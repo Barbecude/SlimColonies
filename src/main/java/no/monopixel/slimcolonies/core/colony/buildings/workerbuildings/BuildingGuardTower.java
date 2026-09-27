@@ -1,17 +1,19 @@
 package no.monopixel.slimcolonies.core.colony.buildings.workerbuildings;
 
+import com.ldtteam.structurize.blueprints.v1.Blueprint;
 import no.monopixel.slimcolonies.api.colony.IColony;
 import no.monopixel.slimcolonies.api.colony.IColonyView;
 import no.monopixel.slimcolonies.core.colony.buildings.AbstractBuildingGuards;
 import net.minecraft.core.BlockPos;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Guard Tower building.
  *
  * @author Asherslab
  */
-
+@SuppressWarnings("squid:MaximumInheritanceDepth")
 public class BuildingGuardTower extends AbstractBuildingGuards
 {
 
@@ -46,17 +48,37 @@ public class BuildingGuardTower extends AbstractBuildingGuards
         return MAX_LEVEL;
     }
 
+    @Override
+    public int getClaimRadius(final int newLevel)
+    {
+        switch (newLevel)
+        {
+            case 1:
+                return 2;
+            case 2:
+            case 3:
+                return 3;
+            case 4:
+                return 4;
+            case 5:
+                return 5;
+            default:
+                return 0;
+        }
+    }
 
     @Override
     public void onDestroyed()
     {
         super.onDestroyed();
+        colony.getServerBuildingManager().guardBuildingChangedAt(this, 0);
     }
 
     @Override
-    public void onUpgradeComplete(final int newLevel)
+    public void onUpgradeComplete(@Nullable final Blueprint blueprint, final int newLevel)
     {
-        super.onUpgradeComplete(newLevel);
+        super.onUpgradeComplete(blueprint, newLevel);
+        colony.getServerBuildingManager().guardBuildingChangedAt(this, newLevel);
     }
 
     @Override

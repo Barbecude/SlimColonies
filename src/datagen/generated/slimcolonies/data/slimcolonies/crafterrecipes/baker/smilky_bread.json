@@ -1,0 +1,21 @@
+{
+  "type": "recipe",
+  "crafter": "baker_crafting",
+  "inputs": [
+    {
+      "count": 8,
+      "id": "slimcolonies:durum"
+    },
+    {
+      "id": "slimcolonies:large_soy_milk_bottle"
+    }
+  ],
+  "intermediate": "minecraft:air",
+  "loot-table": "slimcolonies:recipes/large_bottle",
+  "min-building-level": 4,
+  "result": {
+    "count": 4,
+    "id": "slimcolonies:milky_bread"
+  },
+  "show-tooltip": true
+}

@@ -1,11 +1,5 @@
 package no.monopixel.slimcolonies.core.colony.buildings;
 
-import net.minecraft.core.BlockPos;
-import net.minecraft.nbt.CompoundTag;
-import net.minecraft.nbt.ListTag;
-import net.minecraft.network.FriendlyByteBuf;
-import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.level.Level;
 import no.monopixel.slimcolonies.api.colony.ICitizenData;
 import no.monopixel.slimcolonies.api.colony.IColony;
 import no.monopixel.slimcolonies.api.colony.jobs.registry.JobEntry;
@@ -25,12 +19,20 @@ import no.monopixel.slimcolonies.core.colony.buildings.utils.BuildingBuilderReso
 import no.monopixel.slimcolonies.core.colony.jobs.AbstractJobStructure;
 import no.monopixel.slimcolonies.core.entity.ai.workers.AbstractEntityAIStructureWithWorkOrder;
 import no.monopixel.slimcolonies.core.entity.ai.workers.util.BuildingProgressStage;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.ListTag;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.Level;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
 import java.util.function.Predicate;
 
+import static no.monopixel.slimcolonies.api.util.constant.EquipmentLevelConstants.TOOL_LEVEL_WOOD_OR_GOLD;
 import static no.monopixel.slimcolonies.api.util.constant.NbtTagConstants.*;
 import static no.monopixel.slimcolonies.core.colony.jobs.AbstractJobStructure.TAG_WORK_ORDER;
 
@@ -101,7 +103,7 @@ public abstract class AbstractBuildingStructureBuilder extends AbstractBuilding
     {
         if (inventory)
         {
-            final int hashCode = stack.hasTag() ? stack.getTag().hashCode() : 0;
+            final int hashCode = stack.getComponentsPatch().hashCode();
             final String key = stack.getDescriptionId() + "-" + hashCode;
             if (getRequiredResources() != null && getRequiredResources().getResourceMap().containsKey(key))
             {
@@ -145,9 +147,9 @@ public abstract class AbstractBuildingStructureBuilder extends AbstractBuilding
                 }
             }
             if (checkIfShouldKeepEquipment(ModEquipmentTypes.pickaxe.get(), stack, localAlreadyKept)
-                || checkIfShouldKeepEquipment(ModEquipmentTypes.shovel.get(), stack, localAlreadyKept)
-                || checkIfShouldKeepEquipment(ModEquipmentTypes.axe.get(), stack, localAlreadyKept)
-                || checkIfShouldKeepEquipment(ModEquipmentTypes.hoe.get(), stack, localAlreadyKept))
+                  || checkIfShouldKeepEquipment(ModEquipmentTypes.shovel.get(), stack, localAlreadyKept)
+                  || checkIfShouldKeepEquipment(ModEquipmentTypes.axe.get(), stack, localAlreadyKept)
+                  || checkIfShouldKeepEquipment(ModEquipmentTypes.hoe.get(), stack, localAlreadyKept))
             {
                 localAlreadyKept.add(new ItemStorage(stack, 1, true));
                 return 0;
@@ -166,7 +168,7 @@ public abstract class AbstractBuildingStructureBuilder extends AbstractBuilding
      */
     private boolean checkIfShouldKeepEquipment(final EquipmentTypeEntry type, final ItemStack stack, final List<ItemStorage> localAlreadyKept)
     {
-        if (ItemStackUtils.isEquipmentType(stack, type))
+        if (ItemStackUtils.hasEquipmentLevel(stack, type, TOOL_LEVEL_WOOD_OR_GOLD, getMaxEquipmentLevel()))
         {
             for (final ItemStorage storage : localAlreadyKept)
             {
@@ -188,7 +190,7 @@ public abstract class AbstractBuildingStructureBuilder extends AbstractBuilding
         for (final BuildingBuilderResource stack : getModule(BuildingModules.BUILDING_RESOURCES).getNeededResources().values())
         {
             toKeep.put(itemstack -> ItemStackUtils.compareItemStacksIgnoreStackSize(stack.getItemStack(), itemstack),
-                new net.minecraft.util.Tuple<>(stack.getAmount(), true));
+              new net.minecraft.util.Tuple<>(stack.getAmount(), true));
         }
 
         return toKeep;
@@ -207,9 +209,9 @@ public abstract class AbstractBuildingStructureBuilder extends AbstractBuilding
     }
 
     @Override
-    public void deserializeNBT(final CompoundTag compound)
+    public void deserializeNBT(@NotNull final HolderLookup.Provider provider, final CompoundTag compound)
     {
-        super.deserializeNBT(compound);
+        super.deserializeNBT(provider, compound);
         if (compound.contains(TAG_PROGRESS_POS))
         {
             progressPos = BlockPosUtil.read(compound, TAG_PROGRESS_POS);
@@ -239,9 +241,9 @@ public abstract class AbstractBuildingStructureBuilder extends AbstractBuilding
     }
 
     @Override
-    public CompoundTag serializeNBT()
+    public CompoundTag serializeNBT(@NotNull final HolderLookup.Provider provider)
     {
-        final CompoundTag compound = super.serializeNBT();
+        final CompoundTag compound = super.serializeNBT(provider);
         if (progressPos != null)
         {
             BlockPosUtil.write(compound, TAG_PROGRESS_POS, progressPos);
@@ -273,7 +275,7 @@ public abstract class AbstractBuildingStructureBuilder extends AbstractBuilding
      * @param buf the used ByteBuffer.
      */
     @Override
-    public void serializeToView(@NotNull final FriendlyByteBuf buf, final boolean fullSync)
+    public void serializeToView(@NotNull final RegistryFriendlyByteBuf buf, final boolean fullSync)
     {
         super.serializeToView(buf, fullSync);
 
@@ -310,7 +312,7 @@ public abstract class AbstractBuildingStructureBuilder extends AbstractBuilding
      */
     public boolean hasResourceInBucket(final ItemStack stack)
     {
-        final int hashCode = stack.hasTag() ? stack.getTag().hashCode() : 0;
+        final int hashCode = stack.getComponentsPatch().hashCode();
         final String key = stack.getDescriptionId() + "-" + hashCode;
         return getRequiredResources() != null && getRequiredResources().getResourceMap().containsKey(key);
     }
@@ -323,8 +325,13 @@ public abstract class AbstractBuildingStructureBuilder extends AbstractBuilding
      */
     public void addNeededResource(@Nullable final ItemStack res, final int amount)
     {
-        getModule(BuildingModules.BUILDING_RESOURCES).addNeededResource(res, amount);
-        this.markDirty();
+        if (res != null)
+        {
+            final ItemStack copy = res.copy();
+            copy.setCount(1);
+            getModule(BuildingModules.BUILDING_RESOURCES).addNeededResource(copy, amount);
+            this.markDirty();
+        }
     }
 
     /**
@@ -344,7 +351,7 @@ public abstract class AbstractBuildingStructureBuilder extends AbstractBuilding
      */
     public void resetNeededResources()
     {
-        getFirstModuleOccurance(BuildingResourcesModule.class).resetNeededResources();
+        getModule(BuildingModules.BUILDING_RESOURCES).resetNeededResources();
         this.markDirty();
     }
 
@@ -356,7 +363,7 @@ public abstract class AbstractBuildingStructureBuilder extends AbstractBuilding
      */
     public boolean requiresResourceForBuilding(final ItemStack stack)
     {
-        return getFirstModuleOccurance(BuildingResourcesModule.class).requiresResourceForBuilding(stack);
+        return getModule(BuildingModules.BUILDING_RESOURCES).requiresResourceForBuilding(stack);
     }
 
     /**
@@ -435,7 +442,6 @@ public abstract class AbstractBuildingStructureBuilder extends AbstractBuilding
 
     /**
      * Set the total number of stages.
-     *
      * @param total the total.
      */
     public void setTotalStages(final int total)
@@ -456,7 +462,6 @@ public abstract class AbstractBuildingStructureBuilder extends AbstractBuilding
 
     /**
      * Handle workorder cancellation, reset requests and progress.
-     *
      * @param workOrder the cancelled workorder.
      */
     public void onWorkOrderCancellation(final IWorkOrder workOrder)
@@ -479,7 +484,7 @@ public abstract class AbstractBuildingStructureBuilder extends AbstractBuilding
 
         setWorkOrder(null);
         resetNeededResources();
-        this.setProgressPos(null, BuildingProgressStage.CLEAR);
+        this.setProgressPos(null, null);
         this.cancelAllRequestsOfCitizenOrBuilding(null);
     }
 
@@ -488,7 +493,7 @@ public abstract class AbstractBuildingStructureBuilder extends AbstractBuilding
      *
      * @return UUID of the Work Order claimed by this Job, or null
      */
-    public int getWorkOrderId()
+    private int getWorkOrderId()
     {
         return workOrderId;
     }
@@ -507,6 +512,7 @@ public abstract class AbstractBuildingStructureBuilder extends AbstractBuilding
         }
         return true;
     }
+
 
     /**
      * Get the Work Order for the Job. Warning: WorkOrder is not cached
@@ -556,8 +562,9 @@ public abstract class AbstractBuildingStructureBuilder extends AbstractBuilding
     }
 
     /**
+     * @deprecated
+     * Set workorder ID. Only for backwards compatibility.
      * @param id the work order id.
-     * @deprecated Set workorder ID. Only for backwards compatibility.
      */
     public void setWorkOrderId(final int id)
     {

@@ -1,5 +1,9 @@
 package no.monopixel.slimcolonies.core.quests;
 
+import no.monopixel.slimcolonies.api.colony.ICitizenData;
+import no.monopixel.slimcolonies.api.colony.IColony;
+import no.monopixel.slimcolonies.api.quests.*;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.IntTag;
 import net.minecraft.nbt.ListTag;
@@ -7,9 +11,7 @@ import net.minecraft.nbt.Tag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Player;
-import no.monopixel.slimcolonies.api.colony.ICitizenData;
-import no.monopixel.slimcolonies.api.colony.IColony;
-import no.monopixel.slimcolonies.api.quests.*;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
@@ -65,9 +67,8 @@ public class QuestInstance implements IQuestInstance
 
     /**
      * Create a new colony quest.
-     *
-     * @param questTemplateID   the global id of the quest.
-     * @param colony            the colony it belongs to.
+     * @param questTemplateID the global id of the quest.
+     * @param colony the colony it belongs to.
      * @param triggerReturnData the trigger return data that made this quest available.
      */
     public QuestInstance(final ResourceLocation questTemplateID, final IColony colony, final List<ITriggerReturnData<?>> triggerReturnData)
@@ -95,7 +96,6 @@ public class QuestInstance implements IQuestInstance
 
     /**
      * Create an empty colony quest obj to deserialize the data from.
-     *
      * @param colony the colony it is assigned to.
      */
     public QuestInstance(final IColony colony)
@@ -139,7 +139,7 @@ public class QuestInstance implements IQuestInstance
     @Override
     public boolean isValid(final IColony colony)
     {
-        if (questGiver == Integer.MIN_VALUE || colony.getCitizenManager().getCivilian(questGiver) == null)
+        if (questGiver == Integer.MIN_VALUE || colony.getCitizenManager().getCivilian(questGiver) == null )
         {
             return false;
         }
@@ -204,7 +204,7 @@ public class QuestInstance implements IQuestInstance
 
         // Always when advancing an objective, get the rewards from the current objective.
         final List<Integer> rewards = questObjectiveTemplate.getRewardUnlocks();
-        if (!rewards.isEmpty())
+        if(!rewards.isEmpty())
         {
             questData.unlockQuestRewards(colony, player, this, rewards);
         }
@@ -255,13 +255,13 @@ public class QuestInstance implements IQuestInstance
             if (player != null)
             {
                 final IQuestTemplate questData = IQuestManager.GLOBAL_SERVER_QUESTS.get(questTemplateID);
-                player.sendSystemMessage(Component.translatable("no.monopixel.slimcolonies.coremod.quest.completed", questData.getName()));
+                player.sendSystemMessage(Component.translatableEscape("no.monopixel.slimcolonies.coremod.quest.completed", questData.getName()));
             }
         }
     }
 
     @Override
-    public CompoundTag serializeNBT()
+    public CompoundTag serializeNBT(@NotNull final HolderLookup.Provider provider)
     {
         final CompoundTag compoundNBT = new CompoundTag();
         compoundNBT.putString(TAG_ID, questTemplateID.toString());
@@ -277,7 +277,7 @@ public class QuestInstance implements IQuestInstance
 
         if (currentObjectiveInstance != null)
         {
-            compoundNBT.put(TAG_OBJECTIVE, this.currentObjectiveInstance.serializeNBT());
+            compoundNBT.put(TAG_OBJECTIVE, this.currentObjectiveInstance.serializeNBT(provider));
         }
 
         if (assignedPlayer != null)
@@ -289,9 +289,9 @@ public class QuestInstance implements IQuestInstance
     }
 
     @Override
-    public void deserializeNBT(final CompoundTag nbt)
+    public void deserializeNBT(@NotNull final HolderLookup.Provider provider, final CompoundTag nbt)
     {
-        questTemplateID = new ResourceLocation(nbt.getString(TAG_ID));
+        questTemplateID = ResourceLocation.parse(nbt.getString(TAG_ID));
         assignmentStart = nbt.getInt(TAG_ASSIGN_START);
         objectiveProgress = nbt.getInt(TAG_PROGRESS);
         questGiver = nbt.getInt(TAG_QUEST_GIVER);
@@ -305,7 +305,7 @@ public class QuestInstance implements IQuestInstance
         if (nbt.contains(TAG_OBJECTIVE))
         {
             final IObjectiveInstance data = IQuestManager.GLOBAL_SERVER_QUESTS.get(questTemplateID).getObjective(objectiveProgress).createObjectiveInstance();
-            data.deserializeNBT(nbt.getCompound(TAG_OBJECTIVE));
+            data.deserializeNBT(provider, nbt.getCompound(TAG_OBJECTIVE));
             this.currentObjectiveInstance = data;
         }
 
@@ -324,7 +324,7 @@ public class QuestInstance implements IQuestInstance
     @Override
     public IQuestParticipant getParticipant(final int target)
     {
-        return colony.getCitizenManager().getCivilian(questParticipants.get(target - 1));
+        return colony.getCitizenManager().getCivilian(questParticipants.get(target-1));
     }
 
     @Override

@@ -13,17 +13,17 @@ public final class ColonyManagerConstants
     /**
      * The file name of the slimcolonies path.
      */
-    public static final String FILENAME_SLIMCOLONIES_PATH = "slimcolonies";
+    public static final String FILENAME_MINECOLONIES_PATH = "slimcolonies";
 
     /**
      * The file name of the slimcolonies.
      */
-    public static final String FILENAME_SLIMCOLONIES = "colonies.dat";
+    public static final String FILENAME_MINECOLONIES = "colonies.dat";
 
     /**
      * The file name pattern of the slimcolonies backup.
      */
-    public static final String FILENAME_SLIMCOLONIES_BACKUP = "colonies-%s.zip";
+    public static final String FILENAME_MINECOLONIES_BACKUP = "colonies-%s.zip";
 
     /**
      * Printed text if world capability couldn't be found.
@@ -38,12 +38,12 @@ public final class ColonyManagerConstants
     /**
      * Colony filename.
      */
-    public static final String FILENAME_COLONY = "colony%d.dat";
+    public static final String FILENAME_COLONY = "colony%s.dat";
 
     /**
      * Colony filename deleted.
      */
-    public static final String FILENAME_COLONY_DELETED = "colony%d.dat.deleted";
+    public static final String FILENAME_COLONY_DELETED = "colony%s.dat.deleted";
 
     /**
      * Log message for missing world cap.

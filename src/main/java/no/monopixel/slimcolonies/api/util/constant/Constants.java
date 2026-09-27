@@ -1,8 +1,6 @@
 package no.monopixel.slimcolonies.api.util.constant;
 
 import net.minecraft.core.BlockPos;
-import net.minecraft.world.effect.MobEffect;
-import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.phys.AABB;
 
 /**
@@ -11,16 +9,17 @@ import net.minecraft.world.phys.AABB;
 public final class Constants
 {
     public static final String MOD_ID                           = "slimcolonies";
-    public static final int    ROTATE_0_TIMES                   = 0;
-    public static final int    ROTATE_ONCE                      = 1;
-    public static final int    ROTATE_TWICE                     = 2;
-    public static final int    ROTATE_THREE_TIMES               = 3;
     public static final int    CITIZEN_RESPAWN_INTERVAL_MIN     = 10;
     public static final int    CITIZEN_RESPAWN_INTERVAL_MAX     = 600;
     public static final int    MAX_BUILDING_LEVEL               = 5;
     public static final int    TICKS_SECOND                     = 20;
     public static final int    SECONDS_A_MINUTE                 = 60;
     public static final int    STACKSIZE                        = 64;
+    public static final int    MAX_BARBARIAN_HORDE_SIZE         = 400;
+    public static final int    MIN_BARBARIAN_HORDE_SIZE         = 6;
+    public static final int    MAX_BARBARIAN_DIFFICULTY         = 10;
+    public static final int    DEFAULT_BARBARIAN_DIFFICULTY     = 5;
+    public static final int    MIN_BARBARIAN_DIFFICULTY         = 0;
     public static final int    ENTITY_TRACKING_RANGE            = 256;
     public static final int    ENTITY_UPDATE_FREQUENCY          = 2;
     public static final int    ENTITY_UPDATE_FREQUENCY_FISHHOOK = 5;
@@ -37,7 +36,7 @@ public final class Constants
     public static final int    PARAMS_CUSTOM_RECIPE             = 8;
     public static final int    PARAMS_CUSTOM_RECIPE_MGR         = 13;
     public static final String DEFAULT_STYLE                    = "Colonial";
-    public static final String STORAGE_STYLE                    = "SlimColonies Original";
+    public static final String STORAGE_STYLE                    = "Minecolonies Original";
 
     public static final String ORES                             = "ores";
     public static final double HALF_BLOCK                       = 0.5D;
@@ -65,21 +64,21 @@ public final class Constants
     /**
      * Advancement Criterion Names
      */
-    public static final String CRITERION_SUPPLY_PLACED          = "supply_placed";
-    public static final String CRITERION_STRUCTURE_PLACED       = "structure_placed";
-    public static final String CRITERION_CREATE_BUILD_REQUEST   = "create_build_request";
-    public static final String CRITERION_OPEN_GUI_WINDOW        = "open_gui_window";
-    public static final String CRITERION_CLICK_GUI_BUTTON       = "click_gui_button";
-    public static final String CRITERION_CITIZEN_EAT_FOOD       = "citizen_eat_food";
-    public static final String CRITERION_BUILDING_ADD_RECIPE    = "building_add_recipe";
-    public static final String CRITERION_COMPLETE_BUILD_REQUEST = "complete_build_request";
-    public static final String CRITERION_COLONY_POPULATION      = "colony_population";
-    public static final String CRITERION_ARMY_POPULATION        = "army_population";
     public static final String CRITERION_ALL_TOWERS             = "all_barracks_towers";
+    public static final String CRITERION_ARMY_POPULATION        = "army_population";
+    public static final String CRITERION_BUILDING_ADD_RECIPE    = "building_add_recipe";
+    public static final String CRITERION_CITIZEN_BURY           = "citizen_bury";
+    public static final String CRITERION_CITIZEN_EAT_FOOD       = "citizen_eat_food";
+    public static final String CRITERION_CITIZEN_RESURRECT      = "citizen_resurrect";
+    public static final String CRITERION_CLICK_GUI_BUTTON       = "click_gui_button";
+    public static final String CRITERION_COLONY_POPULATION      = "colony_population";
+    public static final String CRITERION_COMPLETE_BUILD_REQUEST = "complete_build_request";
+    public static final String CRITERION_CREATE_BUILD_REQUEST   = "create_build_request";
     public static final String CRITERION_DEEP_MINE              = "deep_mine";
     public static final String CRITERION_MAX_FIELDS             = "max_fields";
-    public static final String CRITERION_CITIZEN_BURY           = "citizen_bury";
-    public static final String CRITERION_CITIZEN_RESURRECT      = "citizen_resurrect";
+    public static final String CRITERION_OPEN_GUI_WINDOW        = "open_gui_window";
+    public static final String CRITERION_STRUCTURE_PLACED       = "structure_placed";
+    public static final String CRITERION_SUPPLY_PLACED          = "supply_placed";
     public static final String CRITERION_UNDERTAKER_TOTEM       = "undertaker_totem";
 
     /**
@@ -157,11 +156,7 @@ public final class Constants
      */
     public static final int SLOT_PER_LINE = 9;
 
-    public static final MobEffect LEVITATION_EFFECT = MobEffects.LEVITATION;
-    public static final MobEffect GLOW_EFFECT       = MobEffects.GLOWING;
-
     public static final int GLOW_EFFECT_DURATION   = 20 * 30;
-    public static final int GLOW_EFFECT_MULTIPLIER = 20;
     public static final int GLOW_EFFECT_DISTANCE   = 60;
 
     /**

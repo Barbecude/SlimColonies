@@ -1,12 +1,26 @@
 {
   "branch": "slimcolonies:combat",
+  "costs": [
+    {
+      "count": 64,
+      "item": "minecraft:redstone"
+    },
+    {
+      "count": 64,
+      "item": "minecraft:gold_ingot"
+    },
+    {
+      "count": 128,
+      "item": "minecraft:lapis_lazuli"
+    }
+  ],
   "effects": [
     {
       "id": "slimcolonies:effects/whirlwindabilityunlock",
       "level": 1
     }
   ],
-  "icon": "minecraft:iron_sword",
+  "icon": "slimcolonies:iron_scimitar",
   "parentResearch": "slimcolonies:combat/arrowpierce",
   "requirements": [
     {

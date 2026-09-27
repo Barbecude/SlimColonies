@@ -4,21 +4,24 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import no.monopixel.slimcolonies.api.IMinecoloniesAPI;
+import no.monopixel.slimcolonies.api.colony.IColony;
+import no.monopixel.slimcolonies.api.quests.*;
+import no.monopixel.slimcolonies.api.util.Log;
+import no.monopixel.slimcolonies.core.network.messages.client.GlobalQuestSyncMessage;
+import no.monopixel.slimcolonies.core.quests.*;
+import no.monopixel.slimcolonies.api.quests.IQuestTriggerTemplate;
+import no.monopixel.slimcolonies.api.quests.ITriggerReturnData;
 import io.netty.buffer.Unpooled;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.packs.resources.ResourceManager;
 import net.minecraft.server.packs.resources.SimpleJsonResourceReloadListener;
 import net.minecraft.util.profiling.ProfilerFiller;
-import no.monopixel.slimcolonies.api.ISlimColoniesAPI;
-import no.monopixel.slimcolonies.api.colony.IColony;
-import no.monopixel.slimcolonies.api.quests.*;
-import no.monopixel.slimcolonies.api.util.Log;
-import no.monopixel.slimcolonies.core.Network;
-import no.monopixel.slimcolonies.core.network.messages.client.GlobalQuestSyncMessage;
-import no.monopixel.slimcolonies.core.quests.QuestTemplate;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
@@ -26,6 +29,7 @@ import java.util.function.Function;
 
 import static no.monopixel.slimcolonies.core.generation.DataGeneratorConstants.COLONY_QUESTS_DIR;
 import static no.monopixel.slimcolonies.core.quests.QuestParsingConstants.*;
+import static no.monopixel.slimcolonies.core.quests.QuestParsingConstants.BRACE_CLOSE;
 
 /**
  * Loader for Json based quest data.
@@ -49,27 +53,25 @@ public class QuestJsonListener extends SimpleJsonResourceReloadListener
 
     /**
      * Sync to client.
-     *
      * @param player to send it to.
      */
     public static void sendGlobalQuestPackets(final ServerPlayer player)
     {
-        final FriendlyByteBuf byteBuf = new FriendlyByteBuf(Unpooled.buffer());
+        final RegistryFriendlyByteBuf byteBuf = new RegistryFriendlyByteBuf(new FriendlyByteBuf(Unpooled.buffer()), player.level().registryAccess());
         byteBuf.writeInt(globalJsonElementMap.size());
         for (final Map.Entry<ResourceLocation, JsonElement> entry : globalJsonElementMap.entrySet())
         {
             byteBuf.writeResourceLocation(entry.getKey());
             byteBuf.writeByteArray(entry.getValue().toString().getBytes());
         }
-        Network.getNetwork().sendToPlayer(new GlobalQuestSyncMessage(byteBuf), player);
+        new GlobalQuestSyncMessage(byteBuf).sendToPlayer(player);
     }
 
     /**
      * Read the data from the packet and parse it.
-     *
      * @param byteBuf pck.
      */
-    public static void readGlobalQuestPackets(final FriendlyByteBuf byteBuf)
+    public static void readGlobalQuestPackets(final RegistryFriendlyByteBuf byteBuf)
     {
         globalJsonElementMap.clear();
         final int size = byteBuf.readInt();
@@ -77,7 +79,7 @@ public class QuestJsonListener extends SimpleJsonResourceReloadListener
         {
             globalJsonElementMap.put(byteBuf.readResourceLocation(), GSON.fromJson(new String(byteBuf.readByteArray()), JsonObject.class));
         }
-        apply(globalJsonElementMap);
+        apply(byteBuf.registryAccess(), globalJsonElementMap);
     }
 
     @Override
@@ -85,15 +87,14 @@ public class QuestJsonListener extends SimpleJsonResourceReloadListener
     {
         globalJsonElementMap.clear();
         globalJsonElementMap.putAll(jsonElementMap);
-        apply(jsonElementMap);
+        apply(getRegistryLookup(), jsonElementMap);
     }
 
     /**
      * Our universal apply.
-     *
      * @param jsonElementMap the map.
      */
-    private static void apply(final Map<ResourceLocation, JsonElement> jsonElementMap)
+    private static void apply(@NotNull final HolderLookup.Provider provider, final Map<ResourceLocation, JsonElement> jsonElementMap)
     {
         Log.getLogger().info("Loading quests from data");
 
@@ -107,7 +108,7 @@ public class QuestJsonListener extends SimpleJsonResourceReloadListener
 
             try
             {
-                final IQuestTemplate data = loadDataFromJson(fileResLoc, questDataJson);
+                final IQuestTemplate data = loadDataFromJson(provider, fileResLoc, questDataJson);
                 IQuestManager.GLOBAL_SERVER_QUESTS.put(fileResLoc, data);
             }
             catch (Exception e)
@@ -119,7 +120,7 @@ public class QuestJsonListener extends SimpleJsonResourceReloadListener
         Log.getLogger().info("Finished loading quests from data");
     }
 
-    public static IQuestTemplate loadDataFromJson(final ResourceLocation questId, final JsonObject jsonObject) throws Exception
+    public static IQuestTemplate loadDataFromJson(@NotNull final HolderLookup.Provider provider, final ResourceLocation questId, final JsonObject jsonObject) throws Exception
     {
         final List<IQuestTriggerTemplate> questTriggers = new ArrayList<>();
         // Read quest triggers
@@ -130,7 +131,7 @@ public class QuestJsonListener extends SimpleJsonResourceReloadListener
 
             try
             {
-                questTriggers.add(ISlimColoniesAPI.getInstance().getQuestTriggerRegistry().getValue(ResourceLocation.parse(type)).produce(triggerObj));
+                questTriggers.add(IMinecoloniesAPI.getInstance().getQuestTriggerRegistry().get(ResourceLocation.parse(type)).produce(triggerObj));
             }
             catch (final Exception ex)
             {
@@ -145,7 +146,7 @@ public class QuestJsonListener extends SimpleJsonResourceReloadListener
             final String type = objectiveObj.get(TYPE).getAsString();
             try
             {
-                questObjectives.add(ISlimColoniesAPI.getInstance().getQuestObjectiveRegistry().getValue(ResourceLocation.parse(type)).produce(objectiveObj));
+                questObjectives.add(IMinecoloniesAPI.getInstance().getQuestObjectiveRegistry().get(ResourceLocation.parse(type)).produce(provider, objectiveObj));
             }
             catch (final Exception ex)
             {
@@ -179,7 +180,7 @@ public class QuestJsonListener extends SimpleJsonResourceReloadListener
             questTimeout = 10;
         }
 
-        final Component questName = Component.translatable(jsonObject.get(NAME).getAsString());
+        final Component questName = Component.translatableEscape(jsonObject.get(NAME).getAsString());
 
         final List<IQuestRewardTemplate> questRewards = new ArrayList<>();
         for (final JsonElement objectivesJson : jsonObject.get(QUEST_REWARDS).getAsJsonArray())
@@ -188,7 +189,7 @@ public class QuestJsonListener extends SimpleJsonResourceReloadListener
             final String type = objectiveObj.get(TYPE).getAsString();
             try
             {
-                questRewards.add(ISlimColoniesAPI.getInstance().getQuestRewardRegistry().getValue(ResourceLocation.parse(type)).produce(objectiveObj));
+                questRewards.add(IMinecoloniesAPI.getInstance().getQuestRewardRegistry().get(ResourceLocation.parse(type)).produce(provider, objectiveObj));
             }
             catch (final Exception ex)
             {
@@ -201,7 +202,7 @@ public class QuestJsonListener extends SimpleJsonResourceReloadListener
         {
             try
             {
-                parents.add(new ResourceLocation(objectivesJson.getAsString()));
+                parents.add(ResourceLocation.parse(objectivesJson.getAsString()));
             }
             catch (final Exception ex)
             {
@@ -251,7 +252,7 @@ public class QuestJsonListener extends SimpleJsonResourceReloadListener
             return colony -> {
                 final List<ITriggerReturnData<?>> returnList = new ArrayList<>();
 
-                for (final IQuestTriggerTemplate trigger : triggers)
+                for (final IQuestTriggerTemplate trigger: triggers)
                 {
                     ITriggerReturnData<?> returnData = trigger.canTriggerQuest(questId, colony);
                     if (returnData.isPositive())
@@ -273,7 +274,7 @@ public class QuestJsonListener extends SimpleJsonResourceReloadListener
         //order = order.replaceAll("\\s+", "");
 
         // Split by words and braces, but keep the chars
-        final List<String> values = Arrays.asList(order.replaceAll("\\s+", "").split("((?<=\\w)|(?=\\w)|(?<=[)(])|(?=[)(]))"));
+        final List<String> values = Arrays.asList(order.replaceAll("\\s+","").split("((?<=\\w)|(?=\\w)|(?<=[)(])|(?=[)(]))"));
 
         final List<String> types = new ArrayList<>();
         for (String value : values)
@@ -302,7 +303,7 @@ public class QuestJsonListener extends SimpleJsonResourceReloadListener
         final Map<String, IQuestTriggerTemplate> triggerMap = new HashMap<>();
         for (int i = 0; i < triggers.size(); i++)
         {
-            triggerMap.put(String.valueOf(i + 1), triggers.get(i));
+            triggerMap.put(String.valueOf(i+1), triggers.get(i));
         }
 
         if (values.isEmpty())
@@ -396,12 +397,7 @@ public class QuestJsonListener extends SimpleJsonResourceReloadListener
      * @param colony the colony.
      * @return predicate from data
      */
-    private static List<ITriggerReturnData<?>> evaluate(
-        final IColony colony,
-        final Map<String, IQuestTriggerTemplate> triggerMap,
-        final ExpressionNode expressionTree,
-        final Map<String, ITriggerReturnData<?>> triggerDataCache,
-        final ResourceLocation questId)
+    private static List<ITriggerReturnData<?>> evaluate(final IColony colony, final Map<String, IQuestTriggerTemplate> triggerMap, final ExpressionNode expressionTree, final Map<String, ITriggerReturnData<?>> triggerDataCache, final ResourceLocation questId)
     {
         switch (expressionTree.expression)
         {
@@ -459,7 +455,7 @@ public class QuestJsonListener extends SimpleJsonResourceReloadListener
 
     public static class ExpressionNode
     {
-        public String         expression;
+        public String expression;
         public ExpressionNode childA;
         public ExpressionNode childB;
         public ExpressionNode parent;

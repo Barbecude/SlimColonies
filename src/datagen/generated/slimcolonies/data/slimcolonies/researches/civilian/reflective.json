@@ -1,5 +1,11 @@
 {
   "branch": "slimcolonies:civilian",
+  "costs": [
+    {
+      "count": 48,
+      "item": "minecraft:book"
+    }
+  ],
   "effects": [
     {
       "id": "slimcolonies:effects/levelingmultiplier",

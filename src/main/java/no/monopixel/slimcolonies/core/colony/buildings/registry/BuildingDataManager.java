@@ -13,8 +13,9 @@ import no.monopixel.slimcolonies.api.util.BlockPosUtil;
 import no.monopixel.slimcolonies.api.util.Log;
 import no.monopixel.slimcolonies.core.client.gui.WindowBuildingBrowser;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.block.Block;
 import org.jetbrains.annotations.NotNull;
@@ -22,12 +23,14 @@ import org.jetbrains.annotations.NotNull;
 import static no.monopixel.slimcolonies.api.util.constant.NbtTagConstants.TAG_BUILDING_TYPE;
 import static no.monopixel.slimcolonies.api.util.constant.NbtTagConstants.TAG_LOCATION;
 
+import java.util.Optional;
+
 public class BuildingDataManager implements IBuildingDataManager
 {
     @Override
-    public IBuilding createFrom(final IColony colony, final CompoundTag compound)
+    public IBuilding createFrom(final IColony colony, final CompoundTag compound, @NotNull final HolderLookup.Provider provider)
     {
-        final ResourceLocation type = new ResourceLocation(compound.getString(TAG_BUILDING_TYPE));
+        final ResourceLocation type = ResourceLocation.parse(compound.getString(TAG_BUILDING_TYPE));
         final BlockPos pos = BlockPosUtil.read(compound, TAG_LOCATION);
 
         IBuilding building = this.createFrom(colony, pos, type);
@@ -39,7 +42,7 @@ public class BuildingDataManager implements IBuildingDataManager
 
         try
         {
-            building.deserializeNBT(compound);
+            building.deserializeNBT(provider, compound);
         }
         catch (final Exception ex)
         {
@@ -60,8 +63,8 @@ public class BuildingDataManager implements IBuildingDataManager
     @Override
     public IBuilding createFrom(final IColony colony, final BlockPos position, final ResourceLocation buildingName)
     {
-        final BuildingEntry entry = IBuildingRegistry.getInstance().getValue(buildingName);
-        if (entry == null)
+        final Optional<BuildingEntry> entry = IBuildingRegistry.getInstance().getOptional(buildingName);
+        if (entry == null || entry.isEmpty())
         {
             if (buildingName.getPath().equals("home"))
             {
@@ -70,14 +73,14 @@ public class BuildingDataManager implements IBuildingDataManager
             Log.getLogger().error(String.format("Unknown building type '%s'.", buildingName), new Exception());
             return null;
         }
-        return entry.produceBuilding(position, colony);
+        return entry.get().produceBuilding(position, colony);
     }
 
     @Override
-    public IBuildingView createViewFrom(final IColonyView colony, final BlockPos position, final FriendlyByteBuf networkBuffer)
+    public IBuildingView createViewFrom(final IColonyView colony, final BlockPos position, final RegistryFriendlyByteBuf networkBuffer)
     {
-        final ResourceLocation buildingName = new ResourceLocation(networkBuffer.readUtf(32767));
-        final BuildingEntry entry = IBuildingRegistry.getInstance().getValue(buildingName);
+        final ResourceLocation buildingName = ResourceLocation.parse(networkBuffer.readUtf(32767));
+        final BuildingEntry entry = IBuildingRegistry.getInstance().get(buildingName);
 
         if (entry == null)
         {

@@ -3,7 +3,7 @@ package no.monopixel.slimcolonies.core.placementhandlers;
 import com.ldtteam.structurize.placement.handlers.placement.PlacementHandlers;
 
 /**
- * Registers all minecolonies placement handlers
+ * Registers all slimcolonies placement handlers
  */
 public final class PlacementHandlerInitializer
 {
@@ -20,6 +20,7 @@ public final class PlacementHandlerInitializer
     public static void initHandlers()
     {
         PlacementHandlers.add(new GeneralBlockPlacementHandler(), PlacementHandlers.GeneralBlockPlacementHandler.class);
+        PlacementHandlers.add(new BeehivePlacementHandler());
         PlacementHandlers.add(new JigsawPlacementHandler());
         PlacementHandlers.add(new BuilderIgnorePlacementHandler());
         PlacementHandlers.add(new DoBlockPlacementHandler());

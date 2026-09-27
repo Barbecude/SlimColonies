@@ -2,7 +2,6 @@ package no.monopixel.slimcolonies.core.commands;
 
 import no.monopixel.slimcolonies.api.util.Log;
 import no.monopixel.slimcolonies.api.util.constant.translation.CommandTranslationConstants;
-import no.monopixel.slimcolonies.core.Network;
 import no.monopixel.slimcolonies.core.commands.commandTypes.IMCColonyOfficerCommand;
 import no.monopixel.slimcolonies.core.commands.commandTypes.IMCCommand;
 import no.monopixel.slimcolonies.core.entity.pathfinding.PathfindingUtils;
@@ -45,7 +44,7 @@ public class CommandEntityTrack implements IMCColonyOfficerCommand
             final Collection<? extends Entity> entities = EntityArgument.getEntities(context, "entity");
             if (entities.isEmpty())
             {
-                context.getSource().sendSuccess(() -> Component.translatable(CommandTranslationConstants.COMMAND_ENTITY_NOT_FOUND), true);
+                context.getSource().sendSuccess(() -> Component.translatableEscape(CommandTranslationConstants.COMMAND_ENTITY_NOT_FOUND), true);
                 return 0;
             }
 
@@ -54,8 +53,7 @@ public class CommandEntityTrack implements IMCColonyOfficerCommand
             {
                 context.getSource().sendSuccess(() -> Component.translatable(CommandTranslationConstants.COMMAND_ENTITY_TRACK_DISABLED), true);
                 PathfindingUtils.trackingMap.remove(sender.getUUID());
-                Network.getNetwork()
-                  .sendToPlayer(new SyncPathMessage(new HashSet<>(), new HashSet<>(), new HashSet<>(), new HashSet<>(), new HashSet<>(), new HashSet<>()), (ServerPlayer) sender);
+                new SyncPathMessage(new HashSet<>(), new HashSet<>(), new HashSet<>(), new HashSet<>(), new HashSet<>(), new HashSet<>()).sendToPlayer((ServerPlayer) sender);
             }
             else
             {

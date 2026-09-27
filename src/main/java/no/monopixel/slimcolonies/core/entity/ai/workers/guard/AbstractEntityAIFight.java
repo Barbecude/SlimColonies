@@ -1,14 +1,9 @@
 package no.monopixel.slimcolonies.core.entity.ai.workers.guard;
 
-import net.minecraft.world.entity.EquipmentSlot;
-import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.item.ArmorItem;
-import net.minecraft.world.item.ItemStack;
-import net.minecraftforge.items.IItemHandler;
-import no.monopixel.slimcolonies.api.entity.ai.statemachine.AITarget;
-import no.monopixel.slimcolonies.api.entity.ai.statemachine.states.IAIState;
 import no.monopixel.slimcolonies.api.entity.ai.workers.util.GuardGear;
 import no.monopixel.slimcolonies.api.entity.ai.workers.util.GuardGearBuilder;
+import no.monopixel.slimcolonies.api.entity.ai.statemachine.AITarget;
+import no.monopixel.slimcolonies.api.entity.ai.statemachine.states.IAIState;
 import no.monopixel.slimcolonies.api.equipment.ModEquipmentTypes;
 import no.monopixel.slimcolonies.api.equipment.registry.EquipmentTypeEntry;
 import no.monopixel.slimcolonies.api.util.InventoryFunctions;
@@ -17,7 +12,13 @@ import no.monopixel.slimcolonies.api.util.ItemStackUtils;
 import no.monopixel.slimcolonies.core.colony.buildings.AbstractBuildingGuards;
 import no.monopixel.slimcolonies.core.colony.jobs.AbstractJobGuard;
 import no.monopixel.slimcolonies.core.entity.ai.workers.AbstractEntityAIInteract;
+import no.monopixel.slimcolonies.core.items.ItemSpear;
 import no.monopixel.slimcolonies.core.util.citizenutils.CitizenItemUtils;
+import net.minecraft.world.entity.EquipmentSlot;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.item.ArmorItem;
+import net.minecraft.world.item.ItemStack;
+import net.neoforged.neoforge.items.IItemHandler;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
@@ -25,6 +26,8 @@ import java.util.*;
 import static no.monopixel.slimcolonies.api.entity.ai.statemachine.states.AIWorkerState.*;
 import static no.monopixel.slimcolonies.api.research.util.ResearchConstants.SHIELD_USAGE;
 import static no.monopixel.slimcolonies.api.util.constant.Constants.TICKS_SECOND;
+import static no.monopixel.slimcolonies.api.util.constant.GuardConstants.*;
+import static no.monopixel.slimcolonies.api.util.constant.EquipmentLevelConstants.*;
 
 /**
  * Class taking of the abstract guard methods for both archer and knights.
@@ -68,17 +71,17 @@ public abstract class AbstractEntityAIFight<J extends AbstractJobGuard<J>, B ext
     {
         super(job);
         super.registerTargets(
-            new AITarget(IDLE, START_WORKING, 1),
-            new AITarget(START_WORKING, this::startWorkingAtOwnBuilding, 100),
-            new AITarget(PREPARING, this::prepare, TICKS_SECOND)
+          new AITarget(IDLE, START_WORKING, 1),
+          new AITarget(START_WORKING, this::startWorkingAtOwnBuilding, 100),
+          new AITarget(PREPARING, this::prepare, TICKS_SECOND)
         );
         worker.setCanPickUpLoot(true);
 
-        itemsNeeded.add(GuardGearBuilder.buildGearForLevel());
-        itemsNeeded.add(GuardGearBuilder.buildGearForLevel());
-        itemsNeeded.add(GuardGearBuilder.buildGearForLevel());
-        itemsNeeded.add(GuardGearBuilder.buildGearForLevel());
-        itemsNeeded.add(GuardGearBuilder.buildGearForLevel());
+        itemsNeeded.add(GuardGearBuilder.buildGearForLevel(ARMOR_LEVEL_LEATHER, ARMOR_LEVEL_GOLD, LEATHER_BUILDING_LEVEL_RANGE, GOLD_BUILDING_LEVEL_RANGE));
+        itemsNeeded.add(GuardGearBuilder.buildGearForLevel(ARMOR_LEVEL_LEATHER, ARMOR_LEVEL_CHAIN, LEATHER_BUILDING_LEVEL_RANGE, CHAIN_BUILDING_LEVEL_RANGE));
+        itemsNeeded.add(GuardGearBuilder.buildGearForLevel(ARMOR_LEVEL_LEATHER, ARMOR_LEVEL_IRON, LEATHER_BUILDING_LEVEL_RANGE, IRON_BUILDING_LEVEL_RANGE));
+        itemsNeeded.add(GuardGearBuilder.buildGearForLevel(ARMOR_LEVEL_CHAIN, ARMOR_LEVEL_DIAMOND, LEATHER_BUILDING_LEVEL_RANGE, DIA_BUILDING_LEVEL_RANGE));
+        itemsNeeded.add(GuardGearBuilder.buildGearForLevel(ARMOR_LEVEL_IRON, ARMOR_LEVEL_MAX, LEATHER_BUILDING_LEVEL_RANGE, DIA_BUILDING_LEVEL_RANGE));
     }
 
     /**
@@ -121,10 +124,10 @@ public abstract class AbstractEntityAIFight<J extends AbstractJobGuard<J>, B ext
                 return getState();
             }
             InventoryFunctions.matchFirstInProviderWithSimpleAction(worker,
-                stack -> !ItemStackUtils.isEmpty(stack)
-                    && ItemStackUtils.doesItemServeAsWeapon(stack)
-                    && ItemStackUtils.isEquipmentType(stack, tool),
-                itemStack -> CitizenItemUtils.setMainHeldItem(worker, itemStack));
+              stack -> !ItemStackUtils.isEmpty(stack)
+                         && ItemStackUtils.doesItemServeAsWeapon(stack)
+                         && ItemStackUtils.hasEquipmentLevel(stack, tool, stack.getItem() instanceof ItemSpear ? -1 : 0, building.getMaxEquipmentLevel()),
+              itemStack -> CitizenItemUtils.setMainHeldItem(worker, itemStack));
         }
 
         equipInventoryArmor();
@@ -146,8 +149,12 @@ public abstract class AbstractEntityAIFight<J extends AbstractJobGuard<J>, B ext
     {
         for (final GuardGear item : itemsNeeded.get(building.getBuildingLevelEquivalent() - 1))
         {
+            if (!(building.getBuildingLevelEquivalent() >= item.getMinBuildingLevelRequired() && building.getBuildingLevelEquivalent() <= item.getMaxBuildingLevelRequired()))
+            {
+                continue;
+            }
             if (item.getItemNeeded() == ModEquipmentTypes.shield.get()
-                && worker.getCitizenColonyHandler().getColonyOrRegister().getResearchManager().getResearchEffects().getEffectStrength(SHIELD_USAGE) <= 0)
+                  && worker.getCitizenColonyHandler().getColonyOrRegister().getResearchManager().getResearchEffects().getEffectStrength(SHIELD_USAGE) <= 0)
             {
                 continue;
             }
@@ -177,11 +184,11 @@ public abstract class AbstractEntityAIFight<J extends AbstractJobGuard<J>, B ext
             {
                 // None found, check for equipped
                 if ((item.getType().isArmor() && ItemStackUtils.isEmpty(worker.getInventoryCitizen().getArmorInSlot(item.getType()))) || (!item.getType().isArmor()
-                    && ItemStackUtils.isEmpty(worker.getItemBySlot(
-                    item.getType()))))
+                                                                                                                                            && ItemStackUtils.isEmpty(worker.getItemBySlot(
+                  item.getType()))))
                 {
                     // create request
-                    checkForToolOrWeaponAsync(item.getItemNeeded(), 0, Integer.MAX_VALUE);
+                    checkForToolOrWeaponAsync(item.getItemNeeded(), item.getMinArmorLevel(), item.getMaxArmorLevel());
                 }
             }
             else
@@ -219,7 +226,7 @@ public abstract class AbstractEntityAIFight<J extends AbstractJobGuard<J>, B ext
                         final ItemStack armorStack = worker.getInventoryCitizen().getArmorInSlot(item.getType());
                         worker.getInventoryCitizen().moveArmorToInventory(item.getType());
                         final int slot =
-                            InventoryUtils.findFirstSlotInItemHandlerNotEmptyWith(worker.getInventoryCitizen(), stack -> stack == armorStack);
+                          InventoryUtils.findFirstSlotInItemHandlerNotEmptyWith(worker.getInventoryCitizen(), stack -> stack == armorStack);
                         if (slot > -1)
                         {
                             InventoryUtils.transferItemStackIntoNextFreeSlotInProvider(worker.getInventoryCitizen(), slot, building);
@@ -239,7 +246,7 @@ public abstract class AbstractEntityAIFight<J extends AbstractJobGuard<J>, B ext
                     if (!ItemStackUtils.isEmpty(worker.getItemBySlot(item.getType())))
                     {
                         final int slot =
-                            InventoryUtils.findFirstSlotInItemHandlerNotEmptyWith(worker.getInventoryCitizen(), stack -> stack == worker.getItemBySlot(item.getType()));
+                          InventoryUtils.findFirstSlotInItemHandlerNotEmptyWith(worker.getInventoryCitizen(), stack -> stack == worker.getItemBySlot(item.getType()));
                         if (slot > -1)
                         {
                             InventoryUtils.transferItemStackIntoNextFreeSlotInProvider(worker.getInventoryCitizen(), slot, building);
@@ -277,6 +284,7 @@ public abstract class AbstractEntityAIFight<J extends AbstractJobGuard<J>, B ext
             }
             if (item.getType().isArmor())
             {
+                if (building.getBuildingLevelEquivalent() >= item.getMinBuildingLevelRequired() && building.getBuildingLevelEquivalent() <= item.getMaxBuildingLevelRequired())
                 {
                     int slot = InventoryUtils.findFirstSlotInItemHandlerNotEmptyWith(worker.getInventoryCitizen(), item);
                     if (slot <= -1)
@@ -300,7 +308,8 @@ public abstract class AbstractEntityAIFight<J extends AbstractJobGuard<J>, B ext
             }
             else
             {
-                if (ItemStackUtils.isEmpty(worker.getItemBySlot(item.getType())))
+                if (ItemStackUtils.isEmpty(worker.getItemBySlot(item.getType())) && building.getBuildingLevelEquivalent() >= item.getMinBuildingLevelRequired()
+                      && building.getBuildingLevelEquivalent() <= item.getMaxBuildingLevelRequired())
                 {
                     equipment.add(item.getType());
                     int slot = InventoryUtils.findFirstSlotInItemHandlerNotEmptyWith(worker.getInventoryCitizen(), item);
@@ -320,7 +329,7 @@ public abstract class AbstractEntityAIFight<J extends AbstractJobGuard<J>, B ext
     {
         final ItemStack stack = worker.getItemBySlot(EquipmentSlot.OFFHAND);
         if (stack.isEmpty()
-            || InventoryUtils.findFirstSlotInItemHandlerWith(getInventory(), itemStack -> ItemStackUtils.compareItemStacksIgnoreStackSize(stack, itemStack, false, true)) == -1)
+              || InventoryUtils.findFirstSlotInItemHandlerWith(getInventory(), itemStack -> ItemStackUtils.compareItemStacksIgnoreStackSize(stack, itemStack, false, true)) == -1)
         {
             worker.setItemSlot(EquipmentSlot.OFFHAND, ItemStackUtils.EMPTY);
         }

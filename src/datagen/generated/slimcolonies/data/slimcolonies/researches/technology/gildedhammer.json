@@ -1,5 +1,19 @@
 {
   "branch": "slimcolonies:technology",
+  "costs": [
+    {
+      "count": 64,
+      "item": "minecraft:gravel"
+    },
+    {
+      "count": 64,
+      "item": "minecraft:sand"
+    },
+    {
+      "count": 64,
+      "item": "minecraft:clay"
+    }
+  ],
   "effects": [
     {
       "id": "slimcolonies:effects/crushing11unlock",

@@ -1,0 +1,25 @@
+package no.monopixel.slimcolonies.core.entity.mobs.camp.norsemen;
+
+import no.monopixel.slimcolonies.api.entity.mobs.vikings.AbstractEntityNorsemen;
+import no.monopixel.slimcolonies.api.entity.mobs.vikings.AbstractEntityNorsemenRaider;
+import no.monopixel.slimcolonies.api.entity.mobs.vikings.IArcherNorsemenEntity;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.level.Level;
+
+/**
+ * Class for the Archer norsemen entity.
+ */
+public class EntityNorsemenArcher extends AbstractEntityNorsemen implements IArcherNorsemenEntity
+{
+
+    /**
+     * Constructor of the entity.
+     *
+     * @param worldIn world to construct it in.
+     * @param type    the entity type.
+     */
+    public EntityNorsemenArcher(final EntityType<? extends EntityNorsemenArcher> type, final Level worldIn)
+    {
+        super(type, worldIn);
+    }
+}

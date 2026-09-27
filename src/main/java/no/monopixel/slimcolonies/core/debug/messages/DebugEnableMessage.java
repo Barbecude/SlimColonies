@@ -1,56 +1,47 @@
 package no.monopixel.slimcolonies.core.debug.messages;
 
-import no.monopixel.slimcolonies.api.network.IMessage;
+import com.ldtteam.common.network.AbstractClientPlayMessage;
+import com.ldtteam.common.network.PlayMessageType;
+import no.monopixel.slimcolonies.api.util.constant.Constants;
 import no.monopixel.slimcolonies.core.debug.DebugPlayerManager;
 import net.minecraft.client.Minecraft;
-import net.minecraft.network.FriendlyByteBuf;
-import net.minecraftforge.fml.LogicalSide;
-import net.minecraftforge.network.NetworkEvent;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.world.entity.player.Player;
+import net.neoforged.neoforge.network.handling.IPayloadContext;
 
 /**
  * Enables debug mode for the client
  */
-public class DebugEnableMessage implements IMessage
+public class DebugEnableMessage extends AbstractClientPlayMessage
 {
+    public static final PlayMessageType<?> TYPE = PlayMessageType.forClient(Constants.MOD_ID, "debug_enable", DebugEnableMessage::new);
+
     /**
      * Whether to enable or disable debug mode
      */
     private boolean enable = true;
 
-    public DebugEnableMessage()
-    {
-        super();
-    }
-
     public DebugEnableMessage(final boolean enable)
     {
+        super(TYPE);
         this.enable = enable;
     }
 
-    @Override
-    public void fromBytes(@NotNull final FriendlyByteBuf buf)
+    protected DebugEnableMessage(final RegistryFriendlyByteBuf buf, final PlayMessageType<?> type)
     {
+        super(buf, type);
         enable = buf.readBoolean();
     }
 
     @Override
-    public void toBytes(@NotNull final FriendlyByteBuf buf)
-    {
-        buf.writeBoolean(enable);
-    }
-
-    @Nullable
-    @Override
-    public LogicalSide getExecutionSide()
-    {
-        return LogicalSide.CLIENT;
-    }
-
-    @Override
-    public void onExecute(final NetworkEvent.Context ctxIn, final boolean isLogicalServer)
+    protected void onExecute(final IPayloadContext iPayloadContext, final Player player)
     {
         DebugPlayerManager.setDebugModeFor(Minecraft.getInstance().player.getUUID(), enable);
+    }
+
+    @Override
+    protected void toBytes(final RegistryFriendlyByteBuf buf)
+    {
+        buf.writeBoolean(enable);
     }
 }

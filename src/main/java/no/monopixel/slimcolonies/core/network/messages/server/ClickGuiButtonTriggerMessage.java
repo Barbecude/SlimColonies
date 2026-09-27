@@ -1,68 +1,52 @@
 package no.monopixel.slimcolonies.core.network.messages.server;
 
+import com.ldtteam.common.network.AbstractServerPlayMessage;
+import com.ldtteam.common.network.PlayMessageType;
 import no.monopixel.slimcolonies.api.advancements.AdvancementTriggers;
-import no.monopixel.slimcolonies.api.network.IMessage;
+import no.monopixel.slimcolonies.api.util.constant.Constants;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.network.FriendlyByteBuf;
-import net.minecraftforge.fml.LogicalSide;
-import net.minecraftforge.network.NetworkEvent;
-import org.jetbrains.annotations.Nullable;
+import net.neoforged.neoforge.network.handling.IPayloadContext;
 
-public class ClickGuiButtonTriggerMessage implements IMessage
+public class ClickGuiButtonTriggerMessage extends AbstractServerPlayMessage
 {
+    public static final PlayMessageType<?> TYPE = PlayMessageType.forServer(Constants.MOD_ID, "click_gui_button_trigger", ClickGuiButtonTriggerMessage::new);
+
     /**
      * The ID of the button clicked;
      */
-    private String buttonId;
+    private final String buttonId;
 
     /**
      * The window's Resource
      */
-    private String resource;
+    private final ResourceLocation resource;
 
-    /**
-     * Empty constructor used when registering the message.
-     */
-    public ClickGuiButtonTriggerMessage()
+    public ClickGuiButtonTriggerMessage(final String buttonId, final ResourceLocation resource)
     {
-        super();
-    }
-
-    public ClickGuiButtonTriggerMessage(final String buttonId, final String resource)
-    {
-        super();
+        super(TYPE);
         this.resource = resource;
         this.buttonId = buttonId;
     }
 
     @Override
-    public void toBytes(final FriendlyByteBuf buf)
+    protected void toBytes(final RegistryFriendlyByteBuf buf)
     {
-        buf.writeUtf(this.resource);
+        buf.writeResourceLocation(this.resource);
         buf.writeUtf(this.buttonId);
     }
 
-    @Override
-    public void fromBytes(final FriendlyByteBuf buf)
+    protected ClickGuiButtonTriggerMessage(final RegistryFriendlyByteBuf buf, final PlayMessageType<?> type)
     {
-        this.resource = buf.readUtf(32767);
-        this.buttonId = buf.readUtf(32767);
-    }
-
-    @Nullable
-    @Override
-    public LogicalSide getExecutionSide()
-    {
-        return LogicalSide.SERVER;
+        super(buf, type);
+        this.resource = buf.readResourceLocation();
+        this.buttonId = buf.readUtf();
     }
 
     @Override
-    public void onExecute(final NetworkEvent.Context ctxIn, final boolean isLogicalServer)
+    protected void onExecute(final IPayloadContext ctxIn, final ServerPlayer player)
     {
-        final ServerPlayer player = ctxIn.getSender();
-        if (player != null)
-        {
-            AdvancementTriggers.CLICK_GUI_BUTTON.trigger(player, this.buttonId, this.resource);
-        }
+        AdvancementTriggers.CLICK_GUI_BUTTON.get().trigger(player, this.buttonId, this.resource);
     }
 }

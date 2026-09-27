@@ -6,11 +6,17 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import no.monopixel.slimcolonies.api.colony.IVisitorData;
+import no.monopixel.slimcolonies.api.colony.buildings.registry.IBuildingRegistry;
 import no.monopixel.slimcolonies.api.colony.interactionhandling.ChatPriority;
+import no.monopixel.slimcolonies.api.colony.jobs.registry.IJobRegistry;
+import no.monopixel.slimcolonies.api.colony.jobs.registry.JobEntry;
 import no.monopixel.slimcolonies.api.entity.citizen.Skill;
+import no.monopixel.slimcolonies.api.util.ColonyUtils;
 import no.monopixel.slimcolonies.api.util.ItemStackUtils;
 import no.monopixel.slimcolonies.api.util.Log;
 import no.monopixel.slimcolonies.api.util.MathUtils;
+import no.monopixel.slimcolonies.api.util.constant.Constants;
+import no.monopixel.slimcolonies.core.MineColonies;
 import no.monopixel.slimcolonies.core.colony.interactionhandling.RecruitmentInteraction;
 import net.minecraft.server.packs.resources.SimpleJsonResourceReloadListener;
 import net.minecraft.world.item.ItemStack;
@@ -41,6 +47,8 @@ public class CustomVisitorListener extends SimpleJsonResourceReloadListener
     public static final String VISITOR_STORYKEY         = "storylangkey";
     public static final String VISITOR_CHANCE           = "chance";
     public static final String VISITOR_CITIZEN_SUFFIX   = "citizensuffix";
+    public static final String VISITOR_RECRUITCOST      = "recruitcost";
+    public static final String VISITOR_RECRUITCOSTCOUNT = "recruitcostcount";
     public static final String VISITOR_GENDER           = "gender";
     public static final String VISITOR_VOICE_PROFILE    = "voiceprofile";
     public static final String VISITOR_PRIMARY_SKILL    = "primaryskill";
@@ -109,6 +117,19 @@ public class CustomVisitorListener extends SimpleJsonResourceReloadListener
                 dataEntry.citizenSuffix = data.get(VISITOR_CITIZEN_SUFFIX).getAsString();
             }
 
+            if (data.has(VISITOR_RECRUITCOST))
+            {
+                dataEntry.recruitCost = ItemStackUtils.idToItemStack(data.get(VISITOR_RECRUITCOST).getAsString(), getRegistryLookup());
+            }
+
+            if (data.has(VISITOR_RECRUITCOSTCOUNT))
+            {
+                if (dataEntry.recruitCost != null)
+                {
+                    dataEntry.recruitCost.setCount(data.get(VISITOR_RECRUITCOSTCOUNT).getAsInt());
+                }
+            }
+
             if (data.has(VISITOR_VOICE_PROFILE))
             {
                 dataEntry.voiceProfile = data.get(VISITOR_VOICE_PROFILE).getAsInt();
@@ -173,6 +194,11 @@ public class CustomVisitorListener extends SimpleJsonResourceReloadListener
         private String citizenSuffix = null;
 
         /**
+         * Recruitment costs
+         */
+        private ItemStack recruitCost;
+
+        /**
          * Gender setting
          */
         private String gender = null;
@@ -216,10 +242,14 @@ public class CustomVisitorListener extends SimpleJsonResourceReloadListener
                 visitorData.setSuffix(citizenSuffix);
             }
 
+            if (recruitCost != null)
+            {
+                visitorData.setRecruitCosts(recruitCost);
+            }
 
             if (storykey != null)
             {
-                visitorData.triggerInteraction(new RecruitmentInteraction(Component.translatable(storykey, visitorData.getName().split(" ")[0]), ChatPriority.IMPORTANT));
+                visitorData.triggerInteraction(new RecruitmentInteraction(Component.translatableEscape(storykey, visitorData.getName().split(" ")[0]), ChatPriority.IMPORTANT));
             }
 
             if (primarySkill != null)

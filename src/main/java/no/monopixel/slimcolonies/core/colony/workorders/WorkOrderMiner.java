@@ -1,5 +1,6 @@
 package no.monopixel.slimcolonies.core.colony.workorders;
 
+import com.ldtteam.structurize.api.RotationMirror;
 import com.ldtteam.structurize.blueprints.v1.Blueprint;
 import no.monopixel.slimcolonies.api.colony.IColony;
 import no.monopixel.slimcolonies.api.colony.buildings.IBuilding;
@@ -17,6 +18,7 @@ import java.util.function.Consumer;
 
 import static no.monopixel.slimcolonies.api.util.constant.Constants.STORAGE_STYLE;
 import static no.monopixel.slimcolonies.api.util.constant.NbtTagConstants.TAG_POS;
+import static no.monopixel.slimcolonies.api.util.constant.Suppression.UNUSED_METHOD_PARAMETERS_SHOULD_BE_REMOVED;
 /**
  * A work order that the build can take to build mine.
  */
@@ -41,21 +43,22 @@ public class WorkOrderMiner extends AbstractWorkOrder
      * @param packName      The name of the pack.
      * @param structureName The path of the blueprint.
      * @param workOrderName The user friendly name of the mine.
-     * @param rotation      The number of times the mine was rotated.
+     * @param rotMir        The the mine rotation and mirror.
      * @param location      The location where the mine should be built.
-     * @param mirror        Is the mine mirrored?
+     * @param keepMirror    Whether should keep mirror in rotMir parameter, usually false.
      * @param minerBuilding The id of the building of the miner.
      */
     public WorkOrderMiner(
       final String packName,
       final String structureName,
       final String workOrderName,
-      final int rotation,
+      final RotationMirror rotMir,
       final BlockPos location,
-      final boolean mirror,
+      final boolean keepMirror,
       final BlockPos minerBuilding)
     {
-        super(packName, structureName, workOrderName, WorkOrderType.BUILD, location, rotation, mirror, 0, 1);
+        // TODO: rotationMirror (and all call sites of this)
+        super(packName, structureName, workOrderName, WorkOrderType.BUILD, location, keepMirror ? rotMir : RotationMirror.NONE.rotate(rotMir.rotation()), 0, 1);
         this.minerBuilding = minerBuilding;
     }
 
@@ -99,7 +102,7 @@ public class WorkOrderMiner extends AbstractWorkOrder
      * @param level       the level of that work hut.
      * @return true if the citizen may accept this work order.
      */
-    
+    @SuppressWarnings(UNUSED_METHOD_PARAMETERS_SHOULD_BE_REMOVED)
     @Override
     public boolean canBuildIgnoringDistance(@NotNull IBuilding building,final BlockPos position, final int level)
     {
@@ -109,7 +112,7 @@ public class WorkOrderMiner extends AbstractWorkOrder
     @Override
     public boolean isValid(final IColony colony)
     {
-        return super.isValid(colony) && colony.getBuildingManager().getBuilding(minerBuilding) != null;
+        return super.isValid(colony) && colony.getServerBuildingManager().getBuilding(minerBuilding) != null;
     }
 
     /**

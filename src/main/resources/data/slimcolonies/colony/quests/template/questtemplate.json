@@ -110,8 +110,9 @@
       "type": "slimcolonies:delivery",
       "details": {
         "target": 0,
-        "item": "minecraft:apple",
-        "qty": 1,
+        "item": {
+          "id": "minecraft:apple"
+        },
         "next-objective": 3
       }
     },
@@ -119,8 +120,9 @@
       "type": "slimcolonies:delivery",
       "details": {
         "target": 0,
-        "item": "minecraft:baked_potato",
-        "qty": 1,
+        "item": {
+          "id": "minecraft:baked_potato"
+        },
         "next-objective": 3
       }
     },
@@ -135,7 +137,7 @@
     },
     {
       "type": "slimcolonies:placeblock",
-      "unlocks-rewards": [0, 1, 2, 3, 4],
+      "unlocks-rewards": [0, 1, 2, 3, 4, 5],
       "details": {
         "target": 0,
         "block": "minecraft:dirt",
@@ -167,8 +169,9 @@
     {
       "type": "slimcolonies:item",
       "details": {
-        "item": "minecraft:gold_ingot",
-        "qty": 1
+        "item": {
+          "id": "minecraft:gold_ingot"
+        }
       }
     },
     {
@@ -186,11 +189,25 @@
       }
     },
     {
+      "type": "slimcolonies:raid",
+      "details": {
+        "change": -1
+      }
+    },
+    {
       "type": "slimcolonies:relationship",
       "details": {
         "target1": 0,
         "target2": 1,
         "type": "couple"
+      }
+    },
+    {
+      "type": "slimcolonies:happiness",
+      "details": {
+        "target": 0,
+        "qty": 1,
+        "days": 7
       }
     },
     {

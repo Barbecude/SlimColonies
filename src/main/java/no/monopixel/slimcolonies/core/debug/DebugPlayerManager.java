@@ -2,7 +2,7 @@ package no.monopixel.slimcolonies.core.debug;
 
 import no.monopixel.slimcolonies.core.entity.pathfinding.PathfindingUtils;
 import net.minecraft.world.entity.player.Player;
-import net.minecraftforge.fml.loading.FMLEnvironment;
+import net.neoforged.fml.loading.FMLEnvironment;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -53,6 +53,8 @@ public class DebugPlayerManager
     /**
      * Toggles debugging for the given player
      *
+     * @param player
+     * @return
      */
     public static void setDebugModeFor(final UUID player, boolean enable)
     {

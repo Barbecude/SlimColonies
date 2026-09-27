@@ -1,14 +1,6 @@
 package no.monopixel.slimcolonies.core.entity.ai.workers.service;
 
-import it.unimi.dsi.fastutil.objects.Object2IntMap;
-import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
-import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.level.block.entity.FurnaceBlockEntity;
-import net.minecraftforge.items.IItemHandler;
-import net.minecraftforge.items.wrapper.InvWrapper;
-import no.monopixel.slimcolonies.api.SlimColoniesAPIProxy;
+import no.monopixel.slimcolonies.api.MinecoloniesAPIProxy;
 import no.monopixel.slimcolonies.api.colony.ICitizenData;
 import no.monopixel.slimcolonies.api.colony.buildings.IBuilding;
 import no.monopixel.slimcolonies.api.colony.interactionhandling.ChatPriority;
@@ -20,6 +12,7 @@ import no.monopixel.slimcolonies.api.entity.ai.statemachine.AITarget;
 import no.monopixel.slimcolonies.api.entity.ai.statemachine.states.IAIState;
 import no.monopixel.slimcolonies.api.entity.citizen.AbstractEntityCitizen;
 import no.monopixel.slimcolonies.api.entity.citizen.VisibleCitizenStatus;
+import no.monopixel.slimcolonies.api.items.IMinecoloniesFoodItem;
 import no.monopixel.slimcolonies.api.inventory.InventoryCitizen;
 import no.monopixel.slimcolonies.api.util.*;
 import no.monopixel.slimcolonies.api.util.constant.CitizenConstants;
@@ -30,6 +23,15 @@ import no.monopixel.slimcolonies.core.colony.interactionhandling.StandardInterac
 import no.monopixel.slimcolonies.core.colony.jobs.JobCook;
 import no.monopixel.slimcolonies.core.entity.ai.workers.AbstractEntityAIUsesFurnace;
 import no.monopixel.slimcolonies.core.entity.citizen.EntityCitizen;
+
+import it.unimi.dsi.fastutil.objects.Object2IntMap;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.block.entity.FurnaceBlockEntity;
+import net.neoforged.neoforge.items.IItemHandler;
+import net.neoforged.neoforge.items.wrapper.InvWrapper;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayDeque;
@@ -40,8 +42,7 @@ import java.util.function.Predicate;
 import static no.monopixel.slimcolonies.api.entity.ai.statemachine.states.AIWorkerState.*;
 import static no.monopixel.slimcolonies.api.util.constant.CitizenConstants.AVERAGE_SATURATION;
 import static no.monopixel.slimcolonies.api.util.constant.CitizenConstants.FULL_SATURATION;
-import static no.monopixel.slimcolonies.api.util.constant.Constants.RESULT_SLOT;
-import static no.monopixel.slimcolonies.api.util.constant.Constants.STACKSIZE;
+import static no.monopixel.slimcolonies.api.util.constant.Constants.*;
 import static no.monopixel.slimcolonies.api.util.constant.StatisticsConstants.FOOD_SERVED;
 import static no.monopixel.slimcolonies.api.util.constant.StatisticsConstants.FOOD_SERVED_DETAIL;
 import static no.monopixel.slimcolonies.api.util.constant.TranslationConstants.*;
@@ -81,7 +82,7 @@ public class EntityAIWorkCook extends AbstractEntityAIUsesFurnace<JobCook, Build
      * Cooking icon
      */
     private final static VisibleCitizenStatus COOK =
-        new VisibleCitizenStatus(ResourceLocation.fromNamespaceAndPath(Constants.MOD_ID, "textures/icons/work/cook.png"), "no.monopixel.slimcolonies.gui.visiblestatus.cook");
+      new VisibleCitizenStatus(new ResourceLocation(Constants.MOD_ID, "textures/icons/work/cook.png"), "no.monopixel.slimcolonies.gui.visiblestatus.cook");
 
     /**
      * Constructor for the Cook. Defines the tasks the cook executes.
@@ -92,8 +93,8 @@ public class EntityAIWorkCook extends AbstractEntityAIUsesFurnace<JobCook, Build
     {
         super(job);
         super.registerTargets(
-            new AITarget(COOK_SERVE_FOOD_TO_CITIZEN, this::serveFoodToCitizen, SERVE_DELAY),
-            new AITarget(COOK_SERVE_FOOD_TO_PLAYER, this::serveFoodToPlayer, SERVE_DELAY)
+          new AITarget(COOK_SERVE_FOOD_TO_CITIZEN, this::serveFoodToCitizen, SERVE_DELAY),
+          new AITarget(COOK_SERVE_FOOD_TO_PLAYER, this::serveFoodToPlayer, SERVE_DELAY)
         );
         worker.setCanPickUpLoot(true);
     }
@@ -113,8 +114,8 @@ public class EntityAIWorkCook extends AbstractEntityAIUsesFurnace<JobCook, Build
     protected void extractFromFurnace(final FurnaceBlockEntity furnace)
     {
         InventoryUtils.transferItemStackIntoNextFreeSlotInItemHandler(
-            new InvWrapper(furnace), RESULT_SLOT,
-            worker.getInventoryCitizen());
+          new InvWrapper(furnace), RESULT_SLOT,
+          worker.getInventoryCitizen());
         worker.getCitizenExperienceHandler().addExperience(BASE_XP_GAIN);
         this.incrementActionsDoneAndDecSaturation();
     }
@@ -129,9 +130,20 @@ public class EntityAIWorkCook extends AbstractEntityAIUsesFurnace<JobCook, Build
     protected boolean isSmeltable(final ItemStack stack)
     {
         //Only return true if the item isn't queued for a recipe.
-        return ItemStackUtils.ISCOOKABLE.test(stack) && building.getModule(RESTAURANT_MENU)
-            .getMenu()
-            .contains(new ItemStorage(SlimColoniesAPIProxy.getInstance().getFurnaceRecipes().getSmeltingResult(stack)));
+        return ItemStackUtils.ISCOOKABLE.test(stack) && building.getModule(RESTAURANT_MENU).getMenu().contains(new ItemStorage(MinecoloniesAPIProxy.getInstance().getFurnaceRecipes().getSmeltingResult(stack)));
+    }
+
+    @Override
+    protected boolean reachedMaxToKeep()
+    {
+        if (super.reachedMaxToKeep())
+        {
+            return true;
+        }
+        final int buildingLimit = Math.max(1, building.getBuildingLevel() * building.getBuildingLevel()) * SLOT_PER_LINE;
+        return InventoryUtils.getCountFromBuildingWithLimit(building,
+            FoodUtils.EDIBLE.and(stack -> FoodUtils.canEatLevel(stack, building.getBuildingLevel() - 1)),
+          stack -> stack.getMaxStackSize() * 6) > buildingLimit;
     }
 
     @Override
@@ -146,7 +158,6 @@ public class EntityAIWorkCook extends AbstractEntityAIUsesFurnace<JobCook, Build
 
     /**
      * Serve food to citizen.
-     *
      * @return next IAIState
      */
     private IAIState serveFoodToCitizen()
@@ -185,10 +196,7 @@ public class EntityAIWorkCook extends AbstractEntityAIUsesFurnace<JobCook, Build
                 {
                     final ItemStack stack = worker.getInventoryCitizen().extractItem(foodSlot, 1, false);
                     citizenData.increaseSaturation(FoodUtils.getFoodValue(stack, worker));
-                    worker.getCitizenColonyHandler()
-                        .getColonyOrRegister()
-                        .getStatisticsManager()
-                        .increment(FOOD_SERVED, worker.getCitizenColonyHandler().getColonyOrRegister().getDay());
+                    worker.getCitizenColonyHandler().getColonyOrRegister().getStatisticsManager().increment(FOOD_SERVED, worker.getCitizenColonyHandler().getColonyOrRegister().getDay());
                     StatsUtil.trackStatByStack(building, FOOD_SERVED_DETAIL, stack, 1);
                 }
                 else
@@ -222,20 +230,19 @@ public class EntityAIWorkCook extends AbstractEntityAIUsesFurnace<JobCook, Build
 
         if (citizenData.getHomeBuilding() != null && citizenData.getHomeBuilding().getBuildingLevelEquivalent() > building.getBuildingLevel() + 1)
         {
-            worker.getCitizenData().triggerInteraction(new StandardInteraction(Component.translatable(POOR_RESTAURANT_INTERACTION), ChatPriority.BLOCKING));
+            worker.getCitizenData().triggerInteraction(new StandardInteraction(Component.translatable(POOR_RESTAURANT_INTERACTION), ChatPriority.IMPORTANT));
         }
 
         String foodName = worker.getInventoryCitizen().getStackInSlot(foodSlot).getDescriptionId();
-        int qty = (int) (Math.max(1.0,
-            (FULL_SATURATION - citizen.getCitizenData().getSaturation()) / FoodUtils.getFoodValue(worker.getInventoryCitizen().getStackInSlot(foodSlot), citizen)));
+        int qty = (int) (Math.max(1.0, (FULL_SATURATION - citizen.getCitizenData().getSaturation()) / FoodUtils.getFoodValue(worker.getInventoryCitizen().getStackInSlot(foodSlot), citizen)));
+        // Hand out a bit extra
+        qty = (int) Math.ceil(qty * 1.5);
         if (InventoryUtils.transferXOfItemStackIntoNextFreeSlotInItemHandler(worker.getInventoryCitizen(), foodSlot, qty, citizenData.getInventory()))
         {
-            worker.getCitizenColonyHandler()
-                .getColonyOrRegister()
-                .getStatisticsManager()
-                .incrementBy(FOOD_SERVED, qty, worker.getCitizenColonyHandler().getColonyOrRegister().getDay());
+            worker.getCitizenColonyHandler().getColonyOrRegister().getStatisticsManager().incrementBy(FOOD_SERVED, qty, worker.getCitizenColonyHandler().getColonyOrRegister().getDay());
             StatsUtil.trackStatByName(building, FOOD_SERVED_DETAIL, foodName, qty);
             worker.getCitizenExperienceHandler().addExperience(BASE_XP_GAIN);
+            worker.decreaseSaturationForContinuousAction();
         }
 
         return getState();
@@ -243,12 +250,10 @@ public class EntityAIWorkCook extends AbstractEntityAIUsesFurnace<JobCook, Build
 
     /**
      * Serve food to player.
-     *
      * @return next IAIState
      */
     private IAIState serveFoodToPlayer()
     {
-
         if (playerToServe.isEmpty())
         {
             return START_WORKING;
@@ -280,28 +285,21 @@ public class EntityAIWorkCook extends AbstractEntityAIUsesFurnace<JobCook, Build
             return getState();
         }
 
-        final Object2IntMap<ItemStack> transferredItemMap =
-            InventoryUtils.transferFoodUpToSaturation(worker, handler, building.getBuildingLevel() * SATURATION_TO_SERVE, canEatPredicate);
+        final Object2IntMap<ItemStack> transferredItemMap = InventoryUtils.transferFoodUpToSaturation(worker, handler, building.getBuildingLevel() * SATURATION_TO_SERVE, canEatPredicate);
         int count = 0;
-        for (int v : transferredItemMap.values())
-        {
-            count += v;
-        }
+        for (int v : transferredItemMap.values()) count += v;
 
         if (count <= 0)
         {
             playerToServe.clear();
             return START_WORKING;
         }
-        worker.getCitizenColonyHandler()
-            .getColonyOrRegister()
-            .getStatisticsManager()
-            .incrementBy(FOOD_SERVED, count, worker.getCitizenColonyHandler().getColonyOrRegister().getDay());
+        worker.getCitizenColonyHandler().getColonyOrRegister().getStatisticsManager().incrementBy(FOOD_SERVED, count, worker.getCitizenColonyHandler().getColonyOrRegister().getDay());
         StatsUtil.trackStatByStackMap(building, FOOD_SERVED_DETAIL, transferredItemMap);
         MessageUtils.format(MESSAGE_INFO_CITIZEN_COOK_SERVE_PLAYER, worker.getName().getString()).sendTo(player);
 
         worker.getCitizenExperienceHandler().addExperience(BASE_XP_GAIN);
-        this.incrementActionsDoneAndDecSaturation();
+        this.worker.decreaseSaturationForContinuousAction();
         return START_WORKING;
     }
 
@@ -329,7 +327,7 @@ public class EntityAIWorkCook extends AbstractEntityAIUsesFurnace<JobCook, Build
         }
         return true;
     }
-
+    
     /**
      * Checks if the cook has anything important to do before going to the default furnace user jobs. First calculate the building range if not cached yet. Then check for citizens
      * around the building. If no citizen around switch to default jobs. If citizens around check if food in inventory, if not, switch to gather job. If food in inventory switch to
@@ -341,24 +339,37 @@ public class EntityAIWorkCook extends AbstractEntityAIUsesFurnace<JobCook, Build
     protected IAIState checkForImportantJobs()
     {
         final List<? extends Player> playerList = WorldUtil.getEntitiesWithinBuilding(world, Player.class,
-            building, player -> player != null
-                && player.getFoodData().getFoodLevel() < LEVEL_TO_FEED_PLAYER
-                && building.getColony().getPermissions().hasPermission(player, Action.MANAGE_HUTS)
+          building, player -> player != null
+                                && player.getFoodData().getFoodLevel() < LEVEL_TO_FEED_PLAYER
+                                && building.getColony().getPermissions().hasPermission(player, Action.MANAGE_HUTS)
         );
 
         playerToServe.addAll(playerList);
         final RestaurantMenuModule module = worker.getCitizenData().getWorkBuilding().getModule(RESTAURANT_MENU);
 
-        if (module.getMenu().isEmpty())
+        if (building.getBuildingLevel() >= 3)
         {
-            worker.getCitizenData().triggerInteraction(new StandardInteraction(Component.translatable(POOR_MENU_INTERACTION), ChatPriority.BLOCKING));
+            boolean hasMinecoloniesFoodInMenu = false;
+            for (ItemStorage menuItem : module.getMenu())
+            {
+                if (menuItem.getItem() instanceof IMinecoloniesFoodItem)
+                {
+                    hasMinecoloniesFoodInMenu = true;
+                    break;
+                }
+            }
+
+            if (!hasMinecoloniesFoodInMenu)
+            {
+                worker.getCitizenData().triggerInteraction(new StandardInteraction(Component.translatable(POOR_MENU_INTERACTION), ChatPriority.IMPORTANT));
+            }
         }
 
         for (final EntityCitizen citizen : WorldUtil.getEntitiesWithinBuilding(world, EntityCitizen.class, building, null))
         {
             if (citizen.getCitizenJobHandler().getColonyJob() instanceof JobCook
-                || !shouldBeFed(citizen)
-                || InventoryUtils.hasItemInItemHandler(citizen.getItemHandlerCitizen(), stack -> canEat(stack, citizen)))
+                  || !shouldBeFed(citizen)
+                  || InventoryUtils.hasItemInItemHandler(citizen.getItemHandlerCitizen(), stack -> canEat(stack, citizen)))
             {
                 continue;
             }
@@ -408,9 +419,9 @@ public class EntityAIWorkCook extends AbstractEntityAIUsesFurnace<JobCook, Build
     private boolean shouldBeFed(AbstractEntityCitizen citizen)
     {
         return citizen.getCitizenData() != null
-            && !citizen.getCitizenData().isWorking()
-            && citizen.getCitizenData().getSaturation() <= AVERAGE_SATURATION
-            && !citizen.getCitizenData().justAte();
+                 && !citizen.getCitizenData().isWorking()
+                 && citizen.getCitizenData().getSaturation() <= AVERAGE_SATURATION
+                 && !citizen.getCitizenData().justAte();
     }
 
     @Override

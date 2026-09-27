@@ -1,18 +1,16 @@
 package no.monopixel.slimcolonies.core.colony.buildings.modules;
 
-import net.minecraft.nbt.CompoundTag;
 import no.monopixel.slimcolonies.api.colony.ICitizenData;
 import no.monopixel.slimcolonies.api.colony.IColony;
 import no.monopixel.slimcolonies.api.colony.buildings.HiringMode;
-import no.monopixel.slimcolonies.api.colony.buildings.modules.IAssignsCitizen;
-import no.monopixel.slimcolonies.api.colony.buildings.modules.IBuildingEventsModule;
-import no.monopixel.slimcolonies.api.colony.buildings.modules.IPersistentModule;
-import no.monopixel.slimcolonies.api.colony.buildings.modules.ITickingModule;
+import no.monopixel.slimcolonies.api.colony.buildings.modules.*;
 import no.monopixel.slimcolonies.api.entity.citizen.AbstractEntityCitizen;
+import no.monopixel.slimcolonies.core.colony.buildings.workerbuildings.BuildingTownHall;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.nbt.CompoundTag;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.Objects;
-import java.util.Optional;
+import java.util.*;
 
 import static no.monopixel.slimcolonies.api.util.constant.NbtTagConstants.TAG_LIVING_RESIDENTS;
 import static no.monopixel.slimcolonies.api.util.constant.NbtTagConstants.TAG_RESIDENTS;
@@ -23,9 +21,9 @@ import static no.monopixel.slimcolonies.api.util.constant.NbtTagConstants.TAG_RE
 public class LivingBuildingModule extends AbstractAssignedCitizenModule implements IAssignsCitizen, IBuildingEventsModule, ITickingModule, IPersistentModule
 {
     @Override
-    public void deserializeNBT(final CompoundTag compound)
+    public void deserializeNBT(@NotNull final HolderLookup.Provider provider, final CompoundTag compound)
     {
-        super.deserializeNBT(compound);
+        super.deserializeNBT(provider, compound);
         if (compound.contains(TAG_RESIDENTS))
         {
             final int[] residentIds = compound.getIntArray(TAG_RESIDENTS);
@@ -53,9 +51,9 @@ public class LivingBuildingModule extends AbstractAssignedCitizenModule implemen
     }
 
     @Override
-    public void serializeNBT(final CompoundTag compound)
+    public void serializeNBT(@NotNull final HolderLookup.Provider provider, CompoundTag compound)
     {
-        super.serializeNBT(compound);
+        super.serializeNBT(provider, compound);
         if (!assignedCitizen.isEmpty())
         {
             final int[] residentIds = new int[assignedCitizen.size()];
@@ -70,7 +68,7 @@ public class LivingBuildingModule extends AbstractAssignedCitizenModule implemen
     @Override
     public void onColonyTick(@NotNull final IColony colony)
     {
-        if (!isFull() && ((this.getHiringMode() == HiringMode.DEFAULT && !building.getColony().isManualHousing()) || getHiringMode() == HiringMode.AUTO))
+        if (!isFull() && ((this.getHiringMode() == HiringMode.DEFAULT && building.getColony().getSettings().getSetting(BuildingTownHall.AUTO_HOUSING_MODE).getValue()) || getHiringMode() == HiringMode.AUTO))
         {
             // 'Capture' as many citizens into this house as possible
             for (@NotNull final ICitizenData citizen : building.getColony().getCitizenManager().getCitizens())

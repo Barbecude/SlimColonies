@@ -7,6 +7,7 @@ import no.monopixel.slimcolonies.api.colony.interactionhandling.registry.IIntera
 import no.monopixel.slimcolonies.api.util.Log;
 import no.monopixel.slimcolonies.api.util.constant.Constants;
 import no.monopixel.slimcolonies.api.util.constant.NbtTagConstants;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceLocation;
 import org.jetbrains.annotations.NotNull;
@@ -19,18 +20,18 @@ public final class InteractionResponseHandlerManager implements IInteractionResp
 {
     @Nullable
     @Override
-    public IInteractionResponseHandler createFrom(@NotNull final ICitizen citizen, @NotNull final CompoundTag compound)
+    public IInteractionResponseHandler createFrom(@NotNull final HolderLookup.Provider provider, @NotNull final ICitizen citizen, @NotNull final CompoundTag compound)
     {
         final ResourceLocation handlerType =
           compound.contains(NbtTagConstants.TAG_HANDLER_TYPE)
             ? new ResourceLocation(Constants.MOD_ID, compound.getString(NbtTagConstants.TAG_HANDLER_TYPE))
             : ModInteractionResponseHandlers.STANDARD;
-        final IInteractionResponseHandler handler = IInteractionResponseHandlerRegistry.getInstance().getValue(handlerType).getProducer().apply(citizen);
+        final IInteractionResponseHandler handler = IInteractionResponseHandlerRegistry.getInstance().get(handlerType).getProducer().apply(citizen);
         if (handler != null)
         {
             try
             {
-                handler.deserializeNBT(compound);
+                handler.deserializeNBT(provider, compound);
             }
             catch (final RuntimeException ex)
             {

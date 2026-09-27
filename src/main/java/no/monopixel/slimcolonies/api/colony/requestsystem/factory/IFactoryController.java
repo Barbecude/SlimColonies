@@ -2,10 +2,11 @@ package no.monopixel.slimcolonies.api.colony.requestsystem.factory;
 
 import com.google.common.reflect.TypeToken;
 import io.netty.buffer.ByteBuf;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
-import net.minecraft.network.FriendlyByteBuf;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
@@ -154,7 +155,7 @@ public interface IFactoryController
      * @return An NBTTag containing a serialized version of the given object.
      * @throws IllegalArgumentException is thrown when the output type is unknown to this controller.
      */
-    <Output> CompoundTag serialize(@NotNull final Output object) throws IllegalArgumentException;
+    <Output extends Object> CompoundTag serializeTag(@NotNull final HolderLookup.Provider provider, @NotNull final Output object) throws IllegalArgumentException;
 
     /**
      * Serialize a collection to nbt util.
@@ -162,12 +163,12 @@ public interface IFactoryController
      * @return an nbt tag.
      * @param <Output> the thing being serialized.
      */
-    default <Output> Tag serializeList(Collection<Output> list)
+    default <Output> Tag serializeList(@NotNull final HolderLookup.Provider provider, Collection<Output> list)
     {
         final ListTag tag = new ListTag();
         for (final Output value : list)
         {
-            tag.add(this.serialize(value));
+            tag.add(this.serializeTag(provider, value));
         }
         return tag;
     }
@@ -180,7 +181,17 @@ public interface IFactoryController
      * @return The deserialized version of the given data.
      * @throws IllegalArgumentException is thrown when the type stored in the data is unknown to this controller.
      */
-    <Output> Output deserialize(@NotNull final CompoundTag compound) throws IllegalArgumentException;
+    <Output> Output deserializeTag(@NotNull final HolderLookup.Provider provider, @NotNull final CompoundTag compound) throws IllegalArgumentException;
+
+    /**
+     * Method used to quickly read an object from a given {@link ByteBuf}
+     *
+     * @param buffer   The buffer to read from.
+     * @param <Output> The type to read.
+     * @return An instance of the given output type, with its stored data from the buffer.
+     * @throws IllegalArgumentException is thrown when the requested type is unknown to this controller.
+     */
+    <Output> Output deserialize(@NotNull final RegistryFriendlyByteBuf buffer) throws IllegalArgumentException;
 
     /**
      * Deserialize a collection from nbt util.
@@ -188,12 +199,12 @@ public interface IFactoryController
      * @return a collection.
      * @param <Output> the thing being serialized.
      */
-    default <Output> Collection<Output> deserializeList(ListTag listTag)
+    default <Output> Collection<Output> deserializeList(@NotNull final HolderLookup.Provider provider, ListTag listTag)
     {
         final Collection<Output> values = new ArrayList<>();
         for (final Tag subCompound : listTag)
         {
-            values.add(this.deserialize(((CompoundTag) subCompound)));
+            values.add(this.deserializeTag(provider, ((CompoundTag) subCompound)));
         }
         return values;
     }
@@ -206,17 +217,7 @@ public interface IFactoryController
      * @param <Output> The type of the object to write.
      * @throws IllegalArgumentException is thrown when the given output type is unknown to this controller.
      */
-    <Output extends Object> void serialize(@NotNull final FriendlyByteBuf buffer, @NotNull final Output object) throws IllegalArgumentException;
-
-    /**
-     * Method used to quickly read an object from a given {@link ByteBuf}
-     *
-     * @param buffer   The buffer to read from.
-     * @param <Output> The type to read.
-     * @return An instance of the given output type, with its stored data from the buffer.
-     * @throws IllegalArgumentException is thrown when the requested type is unknown to this controller.
-     */
-    <Output> Output deserialize(@NotNull final FriendlyByteBuf buffer) throws IllegalArgumentException;
+    <Output extends Object> void serialize(@NotNull final RegistryFriendlyByteBuf buffer, @NotNull final Output object) throws IllegalArgumentException;
 
     /**
      * Method used to create a new instance of the given input.

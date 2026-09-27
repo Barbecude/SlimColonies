@@ -1,5 +1,11 @@
 {
   "branch": "slimcolonies:civilian",
+  "costs": [
+    {
+      "count": 64,
+      "item": "minecraft:vine"
+    }
+  ],
   "effects": [
     {
       "id": "slimcolonies:effects/vinesunlock",

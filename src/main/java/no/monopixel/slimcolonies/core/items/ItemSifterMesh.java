@@ -5,7 +5,7 @@ import org.jetbrains.annotations.NotNull;
 /**
  * Class handling Sifter Mesh.
  */
-public class ItemSifterMesh extends AbstractItemSlimColonies
+public class ItemSifterMesh extends AbstractItemMinecolonies
 {
     /**
      * Sets the name, creative tab, and registers the Sifter Mesh item.

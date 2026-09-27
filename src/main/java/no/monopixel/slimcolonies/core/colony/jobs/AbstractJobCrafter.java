@@ -1,9 +1,6 @@
 package no.monopixel.slimcolonies.core.colony.jobs;
 
 import com.google.common.collect.ImmutableList;
-import no.monopixel.slimcolonies.core.entity.citizen.EntityCitizen;
-import net.minecraft.core.BlockPos;
-import net.minecraft.resources.ResourceLocation;
 import no.monopixel.slimcolonies.api.client.render.modeltype.ModModelTypes;
 import no.monopixel.slimcolonies.api.colony.ICitizenData;
 import no.monopixel.slimcolonies.api.colony.requestsystem.StandardFactoryController;
@@ -12,17 +9,29 @@ import no.monopixel.slimcolonies.api.colony.requestsystem.request.IRequest;
 import no.monopixel.slimcolonies.api.colony.requestsystem.request.RequestState;
 import no.monopixel.slimcolonies.api.colony.requestsystem.requestable.crafting.PublicCrafting;
 import no.monopixel.slimcolonies.api.colony.requestsystem.token.IToken;
+import no.monopixel.slimcolonies.api.crafting.ItemStorage;
+import no.monopixel.slimcolonies.api.util.ItemStackUtils;
 import no.monopixel.slimcolonies.api.util.constant.NbtTagConstants;
 import no.monopixel.slimcolonies.api.util.constant.TypeConstants;
 import no.monopixel.slimcolonies.core.colony.buildings.AbstractBuilding;
 import no.monopixel.slimcolonies.core.entity.ai.workers.AbstractEntityAIBasic;
+import no.monopixel.slimcolonies.core.entity.citizen.EntityCitizen;
+import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.nbt.ListTag;
+import net.minecraft.nbt.Tag;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.resources.ResourceLocation;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 
+import static no.monopixel.slimcolonies.api.util.constant.Suppression.UNCHECKED;
 
 /**
  * Class of the crafter job.
@@ -49,6 +58,12 @@ public abstract class AbstractJobCrafter<AI extends AbstractEntityAIBasic<J, ? e
      * Progress of hitting the block.
      */
     private int progress = 0;
+
+    /**
+     * The current map of secondary outputs that need to return to the warehouse after crafting is done.
+     */
+    @NotNull
+    private final Object2IntOpenHashMap<ItemStorage> secondaryOutputs = new Object2IntOpenHashMap<>();
 
     /**
      * Instantiates the job for the crafter.
@@ -86,32 +101,37 @@ public abstract class AbstractJobCrafter<AI extends AbstractEntityAIBasic<J, ? e
     }
 
     @Override
-    public void serializeToView(final FriendlyByteBuf buffer)
+    public void serializeToView(final RegistryFriendlyByteBuf buffer)
     {
         super.serializeToView(buffer);
         StandardFactoryController.getInstance().serialize(buffer, rsDataStoreToken);
     }
 
     @Override
-    public CompoundTag serializeNBT()
+    public CompoundTag serializeNBT(@NotNull final HolderLookup.Provider provider)
     {
-        final CompoundTag compound = super.serializeNBT();
-        compound.put(NbtTagConstants.TAG_RS_DMANJOB_DATASTORE, StandardFactoryController.getInstance().serialize(rsDataStoreToken));
+        final CompoundTag compound = super.serializeNBT(provider);
+        compound.put(NbtTagConstants.TAG_RS_DMANJOB_DATASTORE, StandardFactoryController.getInstance().serializeTag(provider, rsDataStoreToken));
         compound.putInt(NbtTagConstants.TAG_PROGRESS, progress);
         compound.putInt(NbtTagConstants.TAG_MAX_COUNTER, maxCraftingCount);
         compound.putInt(NbtTagConstants.TAG_CRAFT_COUNTER, craftCounter);
+        final ListTag items = new ListTag();
+        for (final Map.Entry<ItemStorage, Integer> item : secondaryOutputs.object2IntEntrySet())
+        {
+            items.add(item.getKey().getItemStack().copyWithCount(item.getValue()).save(provider));
+        }
+        compound.put(NbtTagConstants.TAG_SECONDARY_OUTPUTS, items);
         return compound;
     }
 
     @Override
-    public void deserializeNBT(final CompoundTag compound)
+    public void deserializeNBT(@NotNull final HolderLookup.Provider provider, final CompoundTag compound)
     {
-        super.deserializeNBT(compound);
+        super.deserializeNBT(provider, compound);
 
         if (compound.contains(NbtTagConstants.TAG_RS_DMANJOB_DATASTORE))
         {
-            rsDataStoreToken = StandardFactoryController.getInstance()
-                                 .deserialize(compound.getCompound(NbtTagConstants.TAG_RS_DMANJOB_DATASTORE));
+            rsDataStoreToken = StandardFactoryController.getInstance().deserializeTag(provider, compound.getCompound(NbtTagConstants.TAG_RS_DMANJOB_DATASTORE));
         }
         else
         {
@@ -131,6 +151,22 @@ public abstract class AbstractJobCrafter<AI extends AbstractEntityAIBasic<J, ? e
         if (compound.contains(NbtTagConstants.TAG_CRAFT_COUNTER))
         {
             this.progress = compound.getInt(NbtTagConstants.TAG_CRAFT_COUNTER);
+        }
+
+        if (compound.contains(NbtTagConstants.TAG_SECONDARY_OUTPUTS))
+        {
+            final HashMap<ItemStorage, Integer> newItems = new HashMap<>();
+            final ListTag list = compound.getList(NbtTagConstants.TAG_SECONDARY_OUTPUTS, ListTag.TAG_COMPOUND);
+            for (final Tag tag : list)
+            {
+                if (tag instanceof CompoundTag compoundTag)
+                {
+                    final ItemStorage item = new ItemStorage(ItemStackUtils.deserializeFromNBT(compoundTag, provider));
+                    newItems.put(item, item.getAmount());
+                }
+            }
+            secondaryOutputs.clear();
+            secondaryOutputs.putAll(newItems);
         }
     }
 
@@ -162,6 +198,15 @@ public abstract class AbstractJobCrafter<AI extends AbstractEntityAIBasic<J, ? e
         return getDataStore().getAssignedTasks();
     }
 
+    /**
+     * Returns whether or not the job has a currentTask.
+     *
+     * @return true if has currentTask, otherwise false.
+     */
+    public boolean hasTask()
+    {
+        return !getTaskQueueFromDataStore().isEmpty();
+    }
 
     /**
      * Returns the {@link IRequest} of the current Task.
@@ -169,7 +214,7 @@ public abstract class AbstractJobCrafter<AI extends AbstractEntityAIBasic<J, ? e
      * @param <R> the request type.
      * @return {@link IRequest} of the current Task.
      */
-    @SuppressWarnings("unchecked")
+    @SuppressWarnings(UNCHECKED)
     public <R extends PublicCrafting> IRequest<R> getCurrentTask()
     {
         if (getTaskQueueFromDataStore().isEmpty())
@@ -318,6 +363,17 @@ public abstract class AbstractJobCrafter<AI extends AbstractEntityAIBasic<J, ? e
         this.progress = progress;
     }
 
+    /**
+     * Get the secondary outputs that have yet to be picked up.
+     *
+     * @return the map of secondary outputs.
+     */
+    @NotNull
+    public Object2IntOpenHashMap<ItemStorage> getSecondaryOutputs()
+    {
+        return secondaryOutputs;
+    }
+
     @Override
     public void onRemoval()
     {
@@ -329,6 +385,11 @@ public abstract class AbstractJobCrafter<AI extends AbstractEntityAIBasic<J, ? e
     private void cancelAssignedRequests()
     {
         for (final IToken<?> t : getTaskQueue())
+        {
+            getColony().getRequestManager().updateRequestState(t, RequestState.FAILED);
+        }
+
+        for (final IToken<?> t : getAssignedTasks())
         {
             getColony().getRequestManager().updateRequestState(t, RequestState.FAILED);
         }

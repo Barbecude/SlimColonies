@@ -1,10 +1,13 @@
 package no.monopixel.slimcolonies.core.network.messages.server.colony;
 
+import com.ldtteam.common.network.PlayMessageType;
 import no.monopixel.slimcolonies.api.colony.IColony;
 import no.monopixel.slimcolonies.api.colony.buildings.views.IBuildingView;
+import no.monopixel.slimcolonies.api.util.constant.Constants;
 import no.monopixel.slimcolonies.core.network.messages.server.AbstractColonyServerMessage;
-import net.minecraft.network.FriendlyByteBuf;
-import net.minecraftforge.network.NetworkEvent;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.server.level.ServerPlayer;
+import net.neoforged.neoforge.network.handling.IPayloadContext;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -12,28 +15,22 @@ import org.jetbrains.annotations.NotNull;
  */
 public class WorkOrderChangeMessage extends AbstractColonyServerMessage
 {
+    public static final PlayMessageType<?> TYPE = PlayMessageType.forServer(Constants.MOD_ID, "work_order_change", WorkOrderChangeMessage::new);
+
     /**
      * The workOrder to remove or change priority.
      */
-    private int workOrderId;
+    private final int workOrderId;
 
     /**
      * The priority.
      */
-    private int priority;
+    private final int priority;
 
     /**
      * Remove the workOrder or not.
      */
-    private boolean removeWorkOrder;
-
-    /**
-     * Empty public constructor.
-     */
-    public WorkOrderChangeMessage()
-    {
-        super();
-    }
+    private final boolean removeWorkOrder;
 
     /**
      * Creates object for the player to hire or fire a citizen.
@@ -45,7 +42,7 @@ public class WorkOrderChangeMessage extends AbstractColonyServerMessage
      */
     public WorkOrderChangeMessage(@NotNull final IBuildingView building, final int workOrderId, final boolean removeWorkOrder, final int priority)
     {
-        super(building.getColony());
+        super(TYPE, building.getColony());
         this.workOrderId = workOrderId;
         this.removeWorkOrder = removeWorkOrder;
         this.priority = priority;
@@ -56,9 +53,9 @@ public class WorkOrderChangeMessage extends AbstractColonyServerMessage
      *
      * @param buf the used byteBuffer.
      */
-    @Override
-    public void fromBytesOverride(@NotNull final FriendlyByteBuf buf)
+    protected WorkOrderChangeMessage(final RegistryFriendlyByteBuf buf, final PlayMessageType<?> type)
     {
+        super(buf, type);
         workOrderId = buf.readInt();
         priority = buf.readInt();
         removeWorkOrder = buf.readBoolean();
@@ -70,15 +67,16 @@ public class WorkOrderChangeMessage extends AbstractColonyServerMessage
      * @param buf the used byteBuffer.
      */
     @Override
-    public void toBytesOverride(@NotNull final FriendlyByteBuf buf)
+    protected void toBytes(@NotNull final RegistryFriendlyByteBuf buf)
     {
+        super.toBytes(buf);
         buf.writeInt(workOrderId);
         buf.writeInt(priority);
         buf.writeBoolean(removeWorkOrder);
     }
 
     @Override
-    protected void onExecute(final NetworkEvent.Context ctxIn, final boolean isLogicalServer, final IColony colony)
+    protected void onExecute(final IPayloadContext ctxIn, final ServerPlayer player, final IColony colony)
     {
         if (removeWorkOrder)
         {
@@ -90,3 +88,5 @@ public class WorkOrderChangeMessage extends AbstractColonyServerMessage
         }
     }
 }
+
+

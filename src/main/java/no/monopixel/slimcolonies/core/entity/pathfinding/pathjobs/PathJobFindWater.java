@@ -2,6 +2,7 @@ package no.monopixel.slimcolonies.core.entity.pathfinding.pathjobs;
 
 import com.ldtteam.structurize.util.BlockUtils;
 import no.monopixel.slimcolonies.api.util.BlockPosUtil;
+import no.monopixel.slimcolonies.api.util.Log;
 import no.monopixel.slimcolonies.api.util.Pond;
 import no.monopixel.slimcolonies.api.util.Pond.PondState;
 import no.monopixel.slimcolonies.api.util.Tuple;
@@ -77,7 +78,7 @@ public class PathJobFindWater extends AbstractPathJob implements ISearchPathJob
             return false;
         }
 
-        final MutableBlockPos problemPos = debugDrawEnabled ? BlockPos.ZERO.mutable() : null;
+        final MutableBlockPos problemPos = debugDrawEnabled ? BlockPosUtil.SAFE_ZERO.mutable() : null;
         PondState pondState = Pond.checkPond(world, tempWorldPos.set(n.x, n.y - 1, n.z), problemPos);
 
         if (n.isSwimming() && pondState != PondState.INVALID)
@@ -98,13 +99,13 @@ public class PathJobFindWater extends AbstractPathJob implements ISearchPathJob
                 getResult().pond = new BlockPos(n.x, n.y, n.z);
                 getResult().pondState = pondState;
                 getResult().parent = path.getTarget();
-
+                
                 return true;
             }
         }
 
         // node is not pond -> debug
-        if (problemPos != null && !problemPos.equals(BlockPos.ZERO))
+        if (problemPos != null && !problemPos.equals(BlockPosUtil.SAFE_ZERO))
         {
             debugNodesExtra.add(new MNode(n, problemPos.getX(), problemPos.getY(), problemPos.getZ(), -1, -1));
         }
@@ -205,3 +206,4 @@ public class PathJobFindWater extends AbstractPathJob implements ISearchPathJob
         }
     }
 }
+

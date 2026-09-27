@@ -1,6 +1,5 @@
 package no.monopixel.slimcolonies.core.entity.ai.workers.crafting;
 
-import no.monopixel.slimcolonies.api.colony.requestsystem.request.RequestState;
 import no.monopixel.slimcolonies.api.entity.ai.statemachine.AITarget;
 import no.monopixel.slimcolonies.api.entity.ai.statemachine.states.IAIState;
 import no.monopixel.slimcolonies.api.util.InventoryUtils;
@@ -120,26 +119,14 @@ public class EntityAIConcreteMixer extends AbstractEntityAICrafting<JobConcreteM
         if (mineBlock(posToMine))
         {
             StatsUtil.trackStatByName(building, ITEMS_CRAFTED_DETAIL, blockToMine.getBlock().getDescriptionId(), 1);
-
+            
             if (currentRequest != null && currentRecipeStorage != null && blockToMine.getBlock().asItem().equals(currentRecipeStorage.getPrimaryOutput().getItem()))
             {
                 currentRequest.addDelivery(new ItemStack(blockToMine.getBlock(), 1));
                 job.setCraftCounter(job.getCraftCounter() + 1);
-                if (job.getCraftCounter() >= job.getMaxCraftingCount())
+                if (job.getCraftCounter() >= job.getMaxCraftingCount() && building.getBlockToMine() == null)
                 {
-                    incrementActionsDone(getActionRewardForCraftingSuccess());
-                    job.finishRequest(true);
-                    worker.getCitizenExperienceHandler().addExperience(currentRequest.getRequest().getCount() / 2.0);
-                    currentRequest = null;
-                    currentRecipeStorage = null;
-                    resetValues();
-
-                    if (inventoryNeedsDump() && job.getMaxCraftingCount() == 0 && job.getProgress() == 0 && job.getCraftCounter() == 0 && currentRequest != null)
-                    {
-                        worker.getCitizenExperienceHandler().addExperience(currentRequest.getRequest().getCount() / 2.0);
-                    }
-
-                    return START_WORKING;
+                    return finalizeCraftingTask();
                 }
             }
         }
@@ -171,76 +158,22 @@ public class EntityAIConcreteMixer extends AbstractEntityAICrafting<JobConcreteM
     }
 
     @Override
-    public boolean hasWorkToDo()
-    {
-        return super.hasWorkToDo() || walkTo != null;
-    }
-
-    @Override
-    protected IAIState decide()
-    {
-        if (job.getCurrentTask() == null)
-        {
-            return IDLE;
-        }
-
-        if (walkTo == null && !walkToBuilding())
-        {
-            return START_WORKING;
-        }
-
-        if (job.getActionsDone() > 0)
-        {
-            // Wait to dump before continuing.
-            return getState();
-        }
-
-        if (currentRequest != null && currentRecipeStorage != null)
-        {
-            return QUERY_ITEMS;
-        }
-
-        return GET_RECIPE;
-    }
-
-    @Override
     protected int getExtendedCount(final ItemStack primaryOutput)
     {
         return building.outputBlockCountInWorld(primaryOutput);
     }
 
     @Override
-    protected IAIState craft()
+    public IAIState executeCraftingAction(final int toolSlot)
     {
-        if (currentRecipeStorage == null || job.getCurrentTask() == null)
+        if (currentRecipeStorage == null)
         {
             return START_WORKING;
         }
-
-        if (currentRequest == null && job.getCurrentTask() != null)
-        {
-            return GET_RECIPE;
-        }
-
-        if (walkTo == null && !walkToBuilding())
-        {
-            return getState();
-        }
-
-        currentRequest = job.getCurrentTask();
-
-        if (currentRequest != null && (currentRequest.getState() == RequestState.CANCELLED || currentRequest.getState() == RequestState.FAILED))
-        {
-            incrementActionsDone(getActionRewardForCraftingSuccess());
-            currentRequest = null;
-            currentRecipeStorage = null;
-            return START_WORKING;
-        }
-
         final ItemStack concrete = currentRecipeStorage.getPrimaryOutput();
         if (concrete.getItem() instanceof BlockItem && ((BlockItem) concrete.getItem()).getBlock() instanceof ConcretePowderBlock)
         {
-            return super.craft();
+            return super.executeCraftingAction(toolSlot);
         }
 
         return performMixingWork();

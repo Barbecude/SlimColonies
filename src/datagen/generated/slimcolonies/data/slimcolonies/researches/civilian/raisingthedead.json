@@ -1,5 +1,11 @@
 {
   "branch": "slimcolonies:civilian",
+  "costs": [
+    {
+      "count": 1,
+      "item": "minecraft:totem_of_undying"
+    }
+  ],
   "effects": [
     {
       "id": "slimcolonies:effects/usetotemunlock",

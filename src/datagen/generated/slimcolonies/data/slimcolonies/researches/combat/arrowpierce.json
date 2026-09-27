@@ -1,5 +1,15 @@
 {
   "branch": "slimcolonies:combat",
+  "costs": [
+    {
+      "count": 64,
+      "item": "minecraft:arrow"
+    },
+    {
+      "count": 64,
+      "item": "minecraft:redstone"
+    }
+  ],
   "effects": [
     {
       "id": "slimcolonies:effects/piercingarrowsunlock",

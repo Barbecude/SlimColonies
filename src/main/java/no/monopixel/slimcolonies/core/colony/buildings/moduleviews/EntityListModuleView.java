@@ -4,14 +4,13 @@ import com.ldtteam.blockui.views.BOWindow;
 import no.monopixel.slimcolonies.api.colony.buildings.modules.AbstractBuildingModuleView;
 import no.monopixel.slimcolonies.api.colony.buildings.modules.IEntityListModuleView;
 import no.monopixel.slimcolonies.api.util.constant.Constants;
-import no.monopixel.slimcolonies.core.Network;
-import no.monopixel.slimcolonies.core.client.gui.modules.EntityListModuleWindow;
+import no.monopixel.slimcolonies.core.client.gui.modules.building.EntityListModuleWindow;
 import no.monopixel.slimcolonies.core.network.messages.server.colony.building.AssignFilterableEntityMessage;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.api.distmarker.OnlyIn;
-import net.minecraftforge.registries.ForgeRegistries;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.api.distmarker.OnlyIn;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
@@ -40,7 +39,7 @@ public class EntityListModuleView extends AbstractBuildingModuleView implements 
     /**
      * Lang string for description.
      */
-    private final String desc;
+    private final Component desc;
 
     /**
      * Create a nw grouped entity list view for the client side.
@@ -48,7 +47,7 @@ public class EntityListModuleView extends AbstractBuildingModuleView implements 
      * @param desc desc lang string.
      * @param inverted enabling or disabling.
      */
-    public EntityListModuleView(final String id, final String desc, final boolean inverted)
+    public EntityListModuleView(final String id, final Component desc, final boolean inverted)
     {
         super();
         this.id = id;
@@ -59,7 +58,7 @@ public class EntityListModuleView extends AbstractBuildingModuleView implements 
     @Override
     public void addEntity(final ResourceLocation entity)
     {
-        Network.getNetwork().sendToServer(new AssignFilterableEntityMessage(this.buildingView, getProducer().getRuntimeID(), entity, true));
+        new AssignFilterableEntityMessage(this.buildingView, getProducer().getRuntimeID(), entity, true).sendToServer();
         listOfEntities.add(entity);
     }
 
@@ -78,7 +77,7 @@ public class EntityListModuleView extends AbstractBuildingModuleView implements 
     @Override
     public void removeEntity(final ResourceLocation entity)
     {
-        Network.getNetwork().sendToServer(new AssignFilterableEntityMessage(this.buildingView, getProducer().getRuntimeID(), entity, false));
+        new AssignFilterableEntityMessage(this.buildingView, getProducer().getRuntimeID(), entity, false).sendToServer();
         listOfEntities.remove(entity);
     }
 
@@ -98,20 +97,20 @@ public class EntityListModuleView extends AbstractBuildingModuleView implements 
     public void clearEntities() { listOfEntities.clear(); }
 
     @Override
-    public String getDesc()
+    public Component getDesc()
     {
         return desc;
     }
 
     @Override
-    public void deserialize(@NotNull final FriendlyByteBuf buf)
+    public void deserialize(@NotNull final RegistryFriendlyByteBuf buf)
     {
         listOfEntities.clear();
         final int size = buf.readInt();
 
         for (int j = 0; j < size; j++)
         {
-            listOfEntities.add(ForgeRegistries.ENTITY_TYPES.getKey(buf.readRegistryIdUnsafe(ForgeRegistries.ENTITY_TYPES)));
+            listOfEntities.add(buf.readResourceLocation());
         }
     }
 
@@ -119,12 +118,12 @@ public class EntityListModuleView extends AbstractBuildingModuleView implements 
     @OnlyIn(Dist.CLIENT)
     public BOWindow getWindow()
     {
-        return new EntityListModuleWindow(Constants.MOD_ID + ":gui/layouthuts/layoutfilterableentitylist.xml", buildingView, this);
+        return new EntityListModuleWindow(this);
     }
 
     @Override
     public ResourceLocation getIconResourceLocation()
     {
-        return ResourceLocation.fromNamespaceAndPath(Constants.MOD_ID, "textures/gui/modules/workers.png");
+        return new ResourceLocation(Constants.MOD_ID, "textures/gui/modules/workers.png");
     }
 }

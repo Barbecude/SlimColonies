@@ -1,26 +1,28 @@
 package no.monopixel.slimcolonies.core.research;
 
 import com.google.common.collect.ImmutableList;
+import no.monopixel.slimcolonies.api.MinecoloniesAPIProxy;
+import no.monopixel.slimcolonies.api.colony.IColony;
+import no.monopixel.slimcolonies.api.colony.requestsystem.StandardFactoryController;
+import no.monopixel.slimcolonies.api.crafting.ItemStorage;
+import no.monopixel.slimcolonies.api.research.*;
+import no.monopixel.slimcolonies.api.research.util.ResearchState;
+import no.monopixel.slimcolonies.api.util.*;
+import no.monopixel.slimcolonies.core.colony.buildings.workerbuildings.BuildingUniversity;
+import no.monopixel.slimcolonies.core.event.QuestObjectiveEventHandler;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Player;
-import no.monopixel.slimcolonies.api.SlimColoniesAPIProxy;
-import no.monopixel.slimcolonies.api.colony.IColony;
-import no.monopixel.slimcolonies.api.colony.requestsystem.StandardFactoryController;
-import no.monopixel.slimcolonies.api.research.*;
-import no.monopixel.slimcolonies.api.research.util.ResearchState;
-import no.monopixel.slimcolonies.api.util.Log;
-import no.monopixel.slimcolonies.api.util.MessageUtils;
-import no.monopixel.slimcolonies.api.util.NBTUtils;
-import no.monopixel.slimcolonies.api.util.SoundUtils;
-import no.monopixel.slimcolonies.api.util.constant.Constants;
-import no.monopixel.slimcolonies.core.event.QuestObjectiveEventHandler;
+import net.minecraft.world.item.ItemStack;
+import net.neoforged.neoforge.common.crafting.SizedIngredient;
+import net.neoforged.neoforge.items.wrapper.InvWrapper;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
-
 import static no.monopixel.slimcolonies.api.research.util.ResearchConstants.MAX_DEPTH;
 import static no.monopixel.slimcolonies.api.research.util.ResearchConstants.TAG_RESEARCH_TREE;
 import static no.monopixel.slimcolonies.api.util.constant.TranslationConstants.MESSAGE_RESEARCH_STARTED;
@@ -136,27 +138,40 @@ public class LocalResearchTree implements ILocalResearchTree
         QuestObjectiveEventHandler.onResearchComplete(colony, id);
     }
 
+    /**
+     * Attempt to begin a research.
+     * @param player     the player(s) making the request (and to apply costs toward)
+     * @param colony     the colony doing the research
+     * @param building   the university building that the player is standing in (or null if not in a university)
+     * @param research   the research.
+     */
     @Override
-    public void attemptBeginResearch(final Player player, final IColony colony, final IGlobalResearch research)
+    public void attemptBeginResearch(final Player player, final IColony colony, final BuildingUniversity building, final IGlobalResearch research)
     {
         if (colony.getResearchManager().getResearchTree().getResearch(research.getBranch(), research.getId()) == null)
         {
             if (player.isCreative())
             {
                 research.startResearch(colony.getResearchManager().getResearchTree());
-                if (SlimColoniesAPIProxy.getInstance().getConfig().getServer().researchCreativeCompletion.get())
+                if (MinecoloniesAPIProxy.getInstance().getConfig().getServer().researchCreativeCompletion.get())
                 {
                     colony.getResearchManager()
-                        .getResearchTree()
-                        .getResearch(research.getBranch(), research.getId())
-                        .setProgress(IGlobalResearchTree.getInstance().getBranchData(research.getBranch()).getBaseTime(research.getDepth()));
+                      .getResearchTree()
+                      .getResearch(research.getBranch(), research.getId())
+                      .setProgress(IGlobalResearchTree.getInstance().getBranchData(research.getBranch()).getBaseTime(research.getDepth()));
                 }
                 colony.getResearchManager().markDirty();
                 SoundUtils.playSuccessSound(player, player.blockPosition());
                 colony.getResearchManager().markDirty();
                 return;
             }
-            // Check research requirements (building levels, etc.) but skip item costs
+
+            if (!research.hasEnoughResources(player, building.getPosition()))
+            {
+                MessageUtils.format("no.monopixel.slimcolonies.coremod.research.costnotavailable", MutableComponent.create(research.getName())).sendTo(player);
+                SoundUtils.playErrorSound(player, player.blockPosition());
+                return;
+            }
             if (!research.getResearchRequirements().isEmpty())
             {
                 for (IResearchRequirement requirement : research.getResearchRequirements())
@@ -169,7 +184,38 @@ public class LocalResearchTree implements ILocalResearchTree
                     }
                 }
             }
-            // Research no longer requires item costs - skip resource validation and removal
+
+            // We know the university or player has the items, so now we can remove them safely.
+            for (final SizedIngredient cost : research.getCostList())
+            {
+                final int required = cost.count();
+                if (required <= 0)
+                {
+                    continue;
+                }
+
+                // ItemStorage needs an ItemStack; for tag-based ingredients we just pick any representative
+                // and set the count to the total required. Predicates will enforce the actual match.
+                final ItemStack[] candidates = cost.getItems();
+                if (candidates == null || candidates.length == 0)
+                {
+                    continue;
+                }
+
+                final ItemStack representative = candidates[0].copy();
+                representative.setCount(required);
+
+                final ItemStorage itemsToTake = new ItemStorage(representative);
+
+                InventoryUtils.reduceBuildingThenPlayerInventory(
+                    building,
+                    player,
+                    itemsToTake,
+                    stack -> IGlobalResearch.isUniversityResearchMatch(stack, cost),
+                    stack -> IGlobalResearch.isPlayerResearchMatch(stack, cost)
+                );
+            }
+
             MessageUtils.format(MESSAGE_RESEARCH_STARTED, MutableComponent.create(research.getName())).sendTo(player);
             research.startResearch(colony.getResearchManager().getResearchTree());
             colony.getResearchManager().markDirty();
@@ -179,12 +225,12 @@ public class LocalResearchTree implements ILocalResearchTree
         {
             if (player.isCreative())
             {
-                if (SlimColoniesAPIProxy.getInstance().getConfig().getServer().researchCreativeCompletion.get())
+                if (MinecoloniesAPIProxy.getInstance().getConfig().getServer().researchCreativeCompletion.get())
                 {
                     colony.getResearchManager()
-                        .getResearchTree()
-                        .getResearch(research.getBranch(), research.getId())
-                        .setProgress(IGlobalResearchTree.getInstance().getBranchData(research.getBranch()).getBaseTime(research.getDepth()));
+                      .getResearchTree()
+                      .getResearch(research.getBranch(), research.getId())
+                      .setProgress(IGlobalResearchTree.getInstance().getBranchData(research.getBranch()).getBaseTime(research.getDepth()));
                     colony.getResearchManager().markDirty();
                 }
             }
@@ -204,8 +250,8 @@ public class LocalResearchTree implements ILocalResearchTree
         if (research.getState() == ResearchState.IN_PROGRESS)
         {
             MessageUtils.format("no.monopixel.slimcolonies.coremod.research.stopped",
-                    MutableComponent.create(IGlobalResearchTree.getInstance().getResearch(research.getBranch(), research.getId()).getName()))
-                .sendTo(player);
+                MutableComponent.create(IGlobalResearchTree.getInstance().getResearch(research.getBranch(), research.getId()).getName()))
+              .sendTo(player);
             SoundUtils.playSuccessSound(player, player.blockPosition());
             removeResearch(research.getBranch(), research.getId());
             colony.getResearchManager().markDirty();
@@ -223,10 +269,40 @@ public class LocalResearchTree implements ILocalResearchTree
                 }
             }
 
-            // Research reset no longer requires item costs - skip cost validation and removal
+            if (!player.isCreative())
+            {
+                final List<ItemStorage> costList = IGlobalResearchTree.getInstance().getResearchResetCosts(colony.getWorld().registryAccess());
+                final InvWrapper playerInv = new InvWrapper(player.getInventory());
+                for (final ItemStorage cost : costList)
+                {
+                    final int count = InventoryUtils.getItemCountInItemHandler(playerInv,
+                      stack -> ItemStackUtils.compareItemStacksIgnoreStackSize(stack, cost.getItemStack(), !cost.ignoreDamageValue(), !cost.ignoreNBT()));
+                    if (count < cost.getAmount())
+                    {
+                        MessageUtils.format("no.monopixel.slimcolonies.coremod.research.costnotavailable",
+                          MutableComponent.create(IGlobalResearchTree.getInstance().getResearch(research.getBranch(), research.getId()).getName())).sendTo(player);
+                        SoundUtils.playErrorSound(player, player.blockPosition());
+                        return;
+                    }
+                }
+                for (ItemStorage cost : costList)
+                {
+                    final List<Integer> slotsWithMaterial = InventoryUtils.findAllSlotsInItemHandlerWith(playerInv,
+                      stack -> ItemStackUtils.compareItemStacksIgnoreStackSize(stack, cost.getItemStack(), !cost.ignoreDamageValue(), !cost.ignoreNBT()));
+                    int amount = cost.getAmount();
+                    for (Integer slotNum : slotsWithMaterial)
+                    {
+                        amount = amount - playerInv.extractItem(slotNum, amount, false).getCount();
+                        if (amount <= 0)
+                        {
+                            break;
+                        }
+                    }
+                }
+            }
             MessageUtils.format("no.monopixel.slimcolonies.coremod.research.undo",
-                    MutableComponent.create(IGlobalResearchTree.getInstance().getResearch(research.getBranch(), research.getId()).getName()))
-                .sendTo(player);
+                MutableComponent.create(IGlobalResearchTree.getInstance().getResearch(research.getBranch(), research.getId()).getName()))
+              .sendTo(player);
             SoundUtils.playSuccessSound(player, player.blockPosition());
             removeResearch(research.getBranch(), research.getId());
             resetEffects(colony);
@@ -287,14 +363,14 @@ public class LocalResearchTree implements ILocalResearchTree
     }
 
     @Override
-    public void writeToNBT(final CompoundTag compound)
+    public void writeToNBT(@NotNull final HolderLookup.Provider provider, final CompoundTag compound)
     {
         final ListTag researchList = new ListTag();
         for (final Map<ResourceLocation, ILocalResearch> researchMap : researchTree.values())
         {
             for (final ILocalResearch research : researchMap.values())
             {
-                researchList.add(StandardFactoryController.getInstance().serialize(research));
+                researchList.add(StandardFactoryController.getInstance().serializeTag(provider, research));
             }
         }
 
@@ -302,63 +378,62 @@ public class LocalResearchTree implements ILocalResearchTree
     }
 
     @Override
-    public void readFromNBT(final CompoundTag compound, final IResearchEffectManager effects)
+    public void readFromNBT(@NotNull final HolderLookup.Provider provider, final CompoundTag compound, final IResearchEffectManager effects)
     {
         researchTree.clear();
         inProgress.clear();
         isComplete.clear();
         maxLevelResearchCompleted.clear();
         NBTUtils.streamCompound(compound.getList(TAG_RESEARCH_TREE, Tag.TAG_COMPOUND))
-            .map(researchCompound -> (ILocalResearch) StandardFactoryController.getInstance().deserialize(researchCompound))
-            .forEach(research -> {
-                /// region Updated ID helper.
-                if (!SlimColoniesAPIProxy.getInstance().getGlobalResearchTree().hasResearch(research.getBranch(), research.getId()))
-                {
-                    if (research.getBranch().getNamespace().contains("minecraft"))
-                    {
-                        final ResearchState currentState = research.getState();
-                        final int progress = research.getProgress();
-                        research = new LocalResearch(new ResourceLocation(Constants.MOD_ID, research.getId().getPath()),
-                            new ResourceLocation(Constants.MOD_ID, research.getBranch().getPath()), research.getDepth());
-                        research.setState(currentState);
-                        research.setProgress(progress);
-                    }
-                    else
-                    {
-                        if (SlimColoniesAPIProxy.getInstance().getConfig().getServer().researchDebugLog.get())
-                        {
-                            Log.getLogger().warn("Research " + research.getId() + " was in colony save file, but was not in CompatMap.");
-                        }
-                    }
-                }
-                /// endregion
+          .map(researchCompound -> (ILocalResearch) StandardFactoryController.getInstance().deserializeTag(provider, researchCompound))
+          .forEach(research -> {
+              /// region Updated ID helper.
+              if (!MinecoloniesAPIProxy.getInstance().getGlobalResearchTree().hasResearch(research.getBranch(), research.getId()))
+              {
+                  if (research.getBranch().getNamespace().contains("minecraft"))
+                  {
+                      final ResearchState currentState = research.getState();
+                      final int progress = research.getProgress();
+                      research = new LocalResearch(new ResourceLocation(no.monopixel.slimcolonies.api.util.constant.Constants.MOD_ID, research.getId().getPath()),
+                        new ResourceLocation(no.monopixel.slimcolonies.api.util.constant.Constants.MOD_ID, research.getBranch().getPath()), research.getDepth());
+                      research.setState(currentState);
+                      research.setProgress(progress);
+                  }
+                  else
+                  {
+                      if (MinecoloniesAPIProxy.getInstance().getConfig().getServer().researchDebugLog.get())
+                      {
+                          Log.getLogger().warn("Research " + research.getId() + " was in colony save file, but was not in CompatMap.");
+                      }
+                  }
+              }
+              /// endregion
 
-                if (research.getState() == ResearchState.FINISHED)
-                {
-                    // Even after correction, we do still need to check for presence; it's possible for someone to have old save data and remove the research,
-                    // or to have a different research that was in a now-removed data pack.  But those will get just thrown away.
-                    if (SlimColoniesAPIProxy.getInstance().getGlobalResearchTree().hasResearch(research.getBranch(), research.getId()))
-                    {
-                        for (final IResearchEffect effect : SlimColoniesAPIProxy.getInstance()
-                            .getGlobalResearchTree()
-                            .getResearch(research.getBranch(), research.getId())
-                            .getEffects())
-                        {
-                            effects.applyEffect(effect);
-                        }
-                    }
-                    else
-                    {
-                        if (SlimColoniesAPIProxy.getInstance().getConfig().getServer().researchDebugLog.get())
-                        {
-                            Log.getLogger()
-                                .warn(
-                                    "Research " + research.getId() + " was in colony save file, but not found as valid current research.  Progress on this research may be reset.");
-                        }
-                    }
-                }
-                addResearch(research.getBranch(), research);
-            });
+              if (research.getState() == ResearchState.FINISHED)
+              {
+                  // Even after correction, we do still need to check for presence; it's possible for someone to have old save data and remove the research,
+                  // or to have a different research that was in a now-removed data pack.  But those will get just thrown away.
+                  if (MinecoloniesAPIProxy.getInstance().getGlobalResearchTree().hasResearch(research.getBranch(), research.getId()))
+                  {
+                      for (final IResearchEffect effect : MinecoloniesAPIProxy.getInstance()
+                        .getGlobalResearchTree()
+                        .getResearch(research.getBranch(), research.getId())
+                        .getEffects())
+                      {
+                          effects.applyEffect(effect);
+                      }
+                  }
+                  else
+                  {
+                      if (MinecoloniesAPIProxy.getInstance().getConfig().getServer().researchDebugLog.get())
+                      {
+                          Log.getLogger()
+                            .warn("Research " + research.getId() + " was in colony save file, but not found as valid current research.  Progress on this research may be reset.");
+                      }
+                  }
+              }
+              addResearch(research.getBranch(), research);
+          });
     }
 
     @Override

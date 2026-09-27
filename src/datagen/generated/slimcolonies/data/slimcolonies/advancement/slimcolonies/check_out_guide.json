@@ -1,0 +1,30 @@
+{
+  "parent": "slimcolonies:slimcolonies/place_townhall",
+  "criteria": {
+    "click_gui_button_close": {
+      "conditions": {
+        "button_id": "confirm",
+        "window_resource_location": "slimcolonies:gui/windowhutguide.xml"
+      },
+      "trigger": "slimcolonies:click_gui_button"
+    }
+  },
+  "display": {
+    "description": {
+      "translate": "advancements.slimcolonies.check_out_guide.description"
+    },
+    "icon": {
+      "count": 1,
+      "id": "slimcolonies:blockhutbuilder"
+    },
+    "title": {
+      "translate": "advancements.slimcolonies.check_out_guide.title"
+    }
+  },
+  "requirements": [
+    [
+      "click_gui_button_close"
+    ]
+  ],
+  "sends_telemetry_event": true
+}

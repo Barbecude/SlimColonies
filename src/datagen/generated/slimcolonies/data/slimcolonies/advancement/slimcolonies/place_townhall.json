@@ -1,0 +1,29 @@
+{
+  "parent": "slimcolonies:slimcolonies/root",
+  "criteria": {
+    "build_tool_place_town_hall": {
+      "conditions": {
+        "hut_name": "townhall"
+      },
+      "trigger": "slimcolonies:structure_placed"
+    }
+  },
+  "display": {
+    "description": {
+      "translate": "advancements.slimcolonies.place_townhall.description"
+    },
+    "icon": {
+      "count": 1,
+      "id": "slimcolonies:blockhuttownhall"
+    },
+    "title": {
+      "translate": "advancements.slimcolonies.place_townhall.title"
+    }
+  },
+  "requirements": [
+    [
+      "build_tool_place_town_hall"
+    ]
+  ],
+  "sends_telemetry_event": true
+}

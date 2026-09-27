@@ -4,5 +4,7 @@
   "name": "Trazyne Infinitas",
   "chance": 0.001,
   "storylangkey": "no.monopixel.slimcolonies.coremod.gui.chat.trazyne",
+  "recruitcost": "minecraft:piston",
+  "recruitcostcount": 8,
   "gender": "male"
 }

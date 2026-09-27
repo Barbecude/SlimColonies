@@ -7,6 +7,7 @@ import no.monopixel.slimcolonies.api.colony.requestsystem.request.IRequest;
 import no.monopixel.slimcolonies.api.colony.requestsystem.requestable.IRequestable;
 import no.monopixel.slimcolonies.api.colony.requestsystem.requestable.deliveryman.Delivery;
 import no.monopixel.slimcolonies.core.colony.buildings.AbstractBuilding;
+import no.monopixel.slimcolonies.core.colony.buildings.modules.WorkerBuildingModule;
 import no.monopixel.slimcolonies.core.colony.jobs.JobDeliveryman;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.item.ItemStack;

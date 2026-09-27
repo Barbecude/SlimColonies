@@ -54,3 +54,4 @@ public class JobBaker extends AbstractJobCrafter<EntityAIWorkBaker, JobBaker>
         worker.queueSound(SoundEvents.FIRECHARGE_USE, blockPos, 10, 0, 0.5f, 0.1f);
     }
 }
+

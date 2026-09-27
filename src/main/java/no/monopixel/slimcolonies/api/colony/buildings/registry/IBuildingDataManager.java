@@ -1,17 +1,19 @@
 package no.monopixel.slimcolonies.api.colony.buildings.registry;
 
-import io.netty.buffer.ByteBuf;
-import net.minecraft.core.BlockPos;
-import net.minecraft.nbt.CompoundTag;
-import net.minecraft.network.FriendlyByteBuf;
-import net.minecraft.resources.ResourceLocation;
-import net.minecraft.world.level.block.Block;
-import no.monopixel.slimcolonies.api.ISlimColoniesAPI;
+import no.monopixel.slimcolonies.api.IMinecoloniesAPI;
 import no.monopixel.slimcolonies.api.colony.IColony;
 import no.monopixel.slimcolonies.api.colony.IColonyView;
 import no.monopixel.slimcolonies.api.colony.buildings.IBuilding;
 import no.monopixel.slimcolonies.api.colony.buildings.views.IBuildingView;
 import no.monopixel.slimcolonies.api.tileentities.AbstractTileEntityColonyBuilding;
+import io.netty.buffer.ByteBuf;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.level.block.Block;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Helper manager to analyse and process the registry for {@link BuildingEntry}.
@@ -21,7 +23,7 @@ public interface IBuildingDataManager
 
     static IBuildingDataManager getInstance()
     {
-        return ISlimColoniesAPI.getInstance().getBuildingDataManager();
+        return IMinecoloniesAPI.getInstance().getBuildingDataManager();
     }
 
     /**
@@ -31,7 +33,7 @@ public interface IBuildingDataManager
      * @param compound The data from which to load new {@link IBuilding} stored in a {@link CompoundTag}.
      * @return The {@link IBuilding} with the data loaded from {@link CompoundTag}.
      */
-    IBuilding createFrom(final IColony colony, final CompoundTag compound);
+    IBuilding createFrom(final IColony colony, final CompoundTag compound, @NotNull final HolderLookup.Provider provider);
 
     /**
      * Creates a new entry from a given {@link IColony} and the data passed in as {@link AbstractTileEntityColonyBuilding}.
@@ -60,7 +62,7 @@ public interface IBuildingDataManager
      * @param networkBuffer The data from which to load the new {@link IBuildingView} stored in the networks {@link ByteBuf}.
      * @return The {@link IBuildingView} with the data loaded from the {@link ByteBuf}.
      */
-    IBuildingView createViewFrom(final IColonyView colony, final BlockPos position, final FriendlyByteBuf networkBuffer);
+    IBuildingView createViewFrom(final IColonyView colony, final BlockPos position, final RegistryFriendlyByteBuf networkBuffer);
 
     /**
      * Opens the building browser window for the specific building type.  Client side only.

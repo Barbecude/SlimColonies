@@ -3,20 +3,15 @@ package no.monopixel.slimcolonies.core.colony.buildings.workerbuildings;
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
 import com.ldtteam.blockui.views.BOWindow;
-import net.minecraft.core.BlockPos;
-import net.minecraft.world.level.Level;
-import net.minecraft.world.level.block.Block;
-import net.minecraft.world.level.block.entity.BlockEntity;
 import no.monopixel.slimcolonies.api.colony.ICitizenData;
 import no.monopixel.slimcolonies.api.colony.IColony;
 import no.monopixel.slimcolonies.api.colony.IColonyView;
 import no.monopixel.slimcolonies.api.colony.buildings.workerbuildings.IWareHouse;
 import no.monopixel.slimcolonies.api.colony.requestsystem.resolver.IRequestResolver;
-import no.monopixel.slimcolonies.api.tileentities.AbstractTileEntityColonyBuilding;
-import no.monopixel.slimcolonies.api.tileentities.AbstractTileEntityRack;
-import no.monopixel.slimcolonies.api.tileentities.AbstractTileEntityWareHouse;
+import no.monopixel.slimcolonies.api.tileentities.*;
+import no.monopixel.slimcolonies.api.util.constant.BuildingConstants;
 import no.monopixel.slimcolonies.api.util.constant.TypeConstants;
-import no.monopixel.slimcolonies.core.blocks.BlockSlimColoniesRack;
+import no.monopixel.slimcolonies.core.blocks.BlockMinecoloniesRack;
 import no.monopixel.slimcolonies.core.client.gui.WindowHutMinPlaceholder;
 import no.monopixel.slimcolonies.core.colony.buildings.AbstractBuilding;
 import no.monopixel.slimcolonies.core.colony.buildings.modules.CourierAssignmentModule;
@@ -29,6 +24,10 @@ import no.monopixel.slimcolonies.core.colony.requestsystem.resolvers.WarehouseRe
 import no.monopixel.slimcolonies.core.tileentities.TileEntityColonyBuilding;
 import no.monopixel.slimcolonies.core.tileentities.TileEntityRack;
 import no.monopixel.slimcolonies.core.tileentities.TileEntityWareHouse;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.entity.BlockEntity;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -121,7 +120,7 @@ public class BuildingWareHouse extends AbstractBuilding implements IWareHouse
     @Override
     public void registerBlockPosition(@NotNull final Block block, @NotNull final BlockPos pos, @NotNull final Level world)
     {
-        if (block instanceof BlockSlimColoniesRack)
+        if (block instanceof BlockMinecoloniesRack)
         {
             final BlockEntity entity = world.getBlockEntity(pos);
             if (entity instanceof TileEntityRack)
@@ -144,15 +143,15 @@ public class BuildingWareHouse extends AbstractBuilding implements IWareHouse
 
         builder.addAll(supers);
         builder.add(new WarehouseRequestResolver(getRequester().getLocation(),
-                getColony().getRequestManager().getFactoryController().getNewInstance(TypeConstants.ITOKEN)),
-            new WarehouseConcreteRequestResolver(getRequester().getLocation(),
-                getColony().getRequestManager().getFactoryController().getNewInstance(TypeConstants.ITOKEN))
-        );
+          getColony().getRequestManager().getFactoryController().getNewInstance(TypeConstants.ITOKEN)),
+          new WarehouseConcreteRequestResolver(getRequester().getLocation(),
+          getColony().getRequestManager().getFactoryController().getNewInstance(TypeConstants.ITOKEN))
+          );
 
         builder.add(new DeliveryRequestResolver(getRequester().getLocation(),
-            getColony().getRequestManager().getFactoryController().getNewInstance(TypeConstants.ITOKEN)));
+          getColony().getRequestManager().getFactoryController().getNewInstance(TypeConstants.ITOKEN)));
         builder.add(new PickupRequestResolver(getRequester().getLocation(),
-            getColony().getRequestManager().getFactoryController().getNewInstance(TypeConstants.ITOKEN)));
+          getColony().getRequestManager().getFactoryController().getNewInstance(TypeConstants.ITOKEN)));
 
         return builder.build();
     }
@@ -178,6 +177,23 @@ public class BuildingWareHouse extends AbstractBuilding implements IWareHouse
             getFirstModuleOccurance(WarehouseModule.class).incrementStorageUpgrade();
         }
         markDirty();
+    }
+
+    @Override
+    public boolean canBeGathered()
+    {
+        return false;
+    }
+
+    /**
+     * Checks if the building can sort its inventory.
+     *
+     * @return true if the building can sort, false otherwise.
+     */
+    @Override
+    public boolean canSort()
+    {
+        return getBuildingLevel() >= BuildingConstants.DEFAULT_REQUIRED_SORT_LEVEL;
     }
 
     /**

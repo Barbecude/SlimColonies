@@ -1,13 +1,13 @@
 package no.monopixel.slimcolonies.api.colony.buildings.registry;
 
-import net.minecraftforge.registries.IForgeRegistry;
-import no.monopixel.slimcolonies.api.ISlimColoniesAPI;
+import no.monopixel.slimcolonies.api.IMinecoloniesAPI;
+import net.minecraft.core.Registry;
 
 public interface IBuildingRegistry
 {
 
-    static IForgeRegistry<BuildingEntry> getInstance()
+    static Registry<BuildingEntry> getInstance()
     {
-        return ISlimColoniesAPI.getInstance().getBuildingRegistry();
+        return IMinecoloniesAPI.getInstance().getBuildingRegistry();
     }
 }

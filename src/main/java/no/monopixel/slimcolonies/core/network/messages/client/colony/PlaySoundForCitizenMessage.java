@@ -1,24 +1,23 @@
 package no.monopixel.slimcolonies.core.network.messages.client.colony;
 
+import com.ldtteam.common.network.AbstractClientPlayMessage;
+import com.ldtteam.common.network.PlayMessageType;
 import no.monopixel.slimcolonies.api.entity.citizen.AbstractCivilianEntity;
-import no.monopixel.slimcolonies.api.network.IMessage;
 import no.monopixel.slimcolonies.api.sounds.SoundManager;
-import net.minecraft.client.Minecraft;
+import no.monopixel.slimcolonies.api.util.constant.Constants;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundSource;
-import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.api.distmarker.OnlyIn;
-import net.minecraftforge.fml.LogicalSide;
-import net.minecraftforge.network.NetworkEvent;
-import net.minecraftforge.registries.ForgeRegistries;
-import org.jetbrains.annotations.Nullable;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.api.distmarker.OnlyIn;
+import net.neoforged.neoforge.network.handling.IPayloadContext;
 
 import static no.monopixel.slimcolonies.api.util.SoundUtils.PITCH;
 import static no.monopixel.slimcolonies.api.util.SoundUtils.VOLUME;
@@ -26,60 +25,54 @@ import static no.monopixel.slimcolonies.api.util.SoundUtils.VOLUME;
 /**
  * Play sounds at a citizen for a certain amount of time, sequentially
  */
-public class PlaySoundForCitizenMessage implements IMessage
+public class PlaySoundForCitizenMessage extends AbstractClientPlayMessage
 {
+    public static final PlayMessageType<?> TYPE = PlayMessageType.forClient(Constants.MOD_ID, "play_sound_for_citizen", PlaySoundForCitizenMessage::new);
+
     /**
      * The colony id of the citizen.
      */
-    private int entityid;
+    private final int entityid;
 
     /**
      * The sound event to play.
      */
-    private SoundEvent soundEvent;
+    private final SoundEvent soundEvent;
 
     /**
      * The sound source to use.
      */
-    private SoundSource soundSource;
+    private final SoundSource soundSource;
 
     /**
      * The position to play at
      */
-    private BlockPos pos;
+    private final BlockPos pos;
 
     /**
      * The dimension id to play in
      */
-    private ResourceKey<Level> dimensionID;
+    private final ResourceKey<Level> dimensionID;
 
     /**
      * The volume to use
      */
-    private float volume;
+    private final float volume;
 
     /**
      * Pitch to use.
      */
-    private float pitch;
+    private final float pitch;
 
     /**
      * Length of the audio in ticks.
      */
-    private int length;
+    private final int length;
 
     /**
      * Number of repetitions in ticks.
      */
-    private int repetitions;
-
-    /**
-     * Default constructor.
-     */
-    public PlaySoundForCitizenMessage()
-    {
-        super();
-    }
+    private final int repetitions;
 
     /**
      * Play a sound for a certain citizen.
@@ -135,7 +128,7 @@ public class PlaySoundForCitizenMessage implements IMessage
      */
     public PlaySoundForCitizenMessage(final int entityID, final SoundEvent event, final SoundSource soundSource, final BlockPos pos, final Level world, final float volume, final float pitch, final int length, final int repetitions)
     {
-        super();
+        super(TYPE);
         this.entityid = entityID;
         this.soundEvent = event;
         this.soundSource = soundSource;
@@ -148,7 +141,7 @@ public class PlaySoundForCitizenMessage implements IMessage
     }
 
     @Override
-    public void toBytes(final FriendlyByteBuf buf)
+    protected void toBytes(final RegistryFriendlyByteBuf buf)
     {
         buf.writeResourceLocation(this.soundEvent.getLocation());
         buf.writeInt(soundSource.ordinal());
@@ -161,13 +154,13 @@ public class PlaySoundForCitizenMessage implements IMessage
         buf.writeInt(entityid);
     }
 
-    @Override
-    public void fromBytes(final FriendlyByteBuf buf)
+    public PlaySoundForCitizenMessage(final RegistryFriendlyByteBuf buf, final PlayMessageType<?> type)
     {
-        this.soundEvent = ForgeRegistries.SOUND_EVENTS.getValue(buf.readResourceLocation());
+        super(buf, type);
+        this.soundEvent = BuiltInRegistries.SOUND_EVENT.get(buf.readResourceLocation());
         this.soundSource = SoundSource.values()[buf.readInt()];
         this.pos = buf.readBlockPos();
-        this.dimensionID = ResourceKey.create(Registries.DIMENSION, new ResourceLocation(buf.readUtf(32767)));
+        this.dimensionID = ResourceKey.create(Registries.DIMENSION, ResourceLocation.parse(buf.readUtf(32767)));
         this.volume = buf.readFloat();
         this.pitch = buf.readFloat();
         this.length = buf.readInt();
@@ -175,21 +168,13 @@ public class PlaySoundForCitizenMessage implements IMessage
         this.entityid = buf.readInt();
     }
 
-    @Nullable
+    
     @Override
-    public LogicalSide getExecutionSide()
+    protected void onExecute(final IPayloadContext ctxIn, final Player player)
     {
-        return LogicalSide.CLIENT;
-    }
-
-    @OnlyIn(Dist.CLIENT)
-    @Override
-    public void onExecute(final NetworkEvent.Context ctxIn, final boolean isLogicalServer)
-    {
-        final Entity entity = Minecraft.getInstance().level.getEntity(this.entityid);
-        if (entity instanceof AbstractCivilianEntity)
+        if (player.level().getEntity(this.entityid) instanceof final AbstractCivilianEntity citizen)
         {
-            SoundManager.addToQueue(entity.getUUID(), this.soundEvent, this.soundSource, this.repetitions, this.length, this.pos, this.volume, this.pitch);
+            SoundManager.addToQueue(citizen.getUUID(), this.soundEvent, this.soundSource, this.repetitions, this.length, this.pos, this.volume, this.pitch);
         }
     }
 }

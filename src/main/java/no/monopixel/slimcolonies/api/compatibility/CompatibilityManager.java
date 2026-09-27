@@ -3,49 +3,59 @@ package no.monopixel.slimcolonies.api.compatibility;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import no.monopixel.slimcolonies.api.MinecoloniesAPIProxy;
+import no.monopixel.slimcolonies.api.colony.requestsystem.StandardFactoryController;
+import no.monopixel.slimcolonies.api.compatibility.dynamictrees.DynamicTreeCompat;
+import no.monopixel.slimcolonies.api.compatibility.resourcefulbees.ResourcefulBeesCompat;
+import no.monopixel.slimcolonies.api.compatibility.tinkers.SlimeTreeCheck;
+import no.monopixel.slimcolonies.api.compatibility.tinkers.TinkersToolHelper;
+import no.monopixel.slimcolonies.api.crafting.CompostRecipe;
+import no.monopixel.slimcolonies.api.crafting.ItemStorage;
+import no.monopixel.slimcolonies.api.crafting.registry.ModRecipeSerializer;
+import no.monopixel.slimcolonies.api.items.ModTags;
+import no.monopixel.slimcolonies.api.util.*;
+import no.monopixel.slimcolonies.api.util.constant.NbtTagConstants;
+import no.monopixel.slimcolonies.core.colony.crafting.CustomRecipeManager;
+import no.monopixel.slimcolonies.core.colony.crafting.LootTableAnalyzer;
+import no.monopixel.slimcolonies.core.util.FurnaceRecipes;
+import it.unimi.dsi.fastutil.ints.*;
 import it.unimi.dsi.fastutil.objects.Object2IntLinkedOpenHashMap;
 import net.minecraft.client.multiplayer.ClientLevel;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.core.Registry;
+import net.minecraft.core.component.DataComponentType;
+import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.NbtUtils;
 import net.minecraft.nbt.Tag;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.codec.ByteBufCodecs;
+import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.tags.BlockTags;
 import net.minecraft.tags.ItemTags;
-import net.minecraft.tags.TagKey;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.MobCategory;
 import net.minecraft.world.item.*;
+import net.minecraft.world.item.component.DyedItemColor;
+import net.minecraft.world.item.crafting.RecipeHolder;
 import net.minecraft.world.item.crafting.RecipeManager;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.entity.FurnaceBlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.api.distmarker.OnlyIn;
-import net.minecraftforge.common.Tags;
-import net.minecraftforge.registries.ForgeRegistries;
-import net.minecraftforge.registries.IForgeRegistry;
-import no.monopixel.slimcolonies.api.SlimColoniesAPIProxy;
-import no.monopixel.slimcolonies.api.colony.requestsystem.StandardFactoryController;
-import no.monopixel.slimcolonies.api.crafting.CompostRecipe;
-import no.monopixel.slimcolonies.api.crafting.ItemStorage;
-import no.monopixel.slimcolonies.api.crafting.registry.ModRecipeSerializer;
-import no.monopixel.slimcolonies.api.items.CheckedNbtKey;
-import no.monopixel.slimcolonies.api.items.ModTags;
-import no.monopixel.slimcolonies.api.util.*;
-import no.monopixel.slimcolonies.core.colony.crafting.CustomRecipeManager;
-import no.monopixel.slimcolonies.core.colony.crafting.LootTableAnalyzer;
-import no.monopixel.slimcolonies.core.compatibility.gregtech.GregTechCompatibility;
-import no.monopixel.slimcolonies.core.generation.ItemNbtCalculator;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.api.distmarker.OnlyIn;
+import net.neoforged.fml.ModList;
+import net.neoforged.neoforge.common.Tags;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -63,10 +73,6 @@ public class CompatibilityManager implements ICompatibilityManager
      */
     private static final int MAX_DEPTH = 100;
 
-    // Overworld base stone tags
-    private static final TagKey<Block> TAG_ORES_IN_STONE     = BlockTags.create(ResourceLocation.fromNamespaceAndPath("forge", "ores_in_ground/stone"));
-    private static final TagKey<Block> TAG_ORES_IN_DEEPSLATE = BlockTags.create(ResourceLocation.fromNamespaceAndPath("forge", "ores_in_ground/deepslate"));
-
     /**
      * BiMap of saplings and leaves.
      */
@@ -83,24 +89,14 @@ public class CompatibilityManager implements ICompatibilityManager
     private final Set<Block> oreBlocks = new HashSet<>();
 
     /**
-     * Pre-computed map of breakable ore items. Items that drop themselves when broken are excluded.
-     */
-    private final Map<Item, Boolean> breakableOreCache = new HashMap<>();
-
-    /**
-     * List of all ore-like items
+     * List of all ore-like items.
      */
     private final Set<ItemStorage> smeltableOres = new HashSet<>();
 
     /**
-     * List of minable ore blocks (for miner priority GUI - overworld only).
-     */
-    private final Set<ItemStorage> minableOres = new HashSet<>();
-
-    /**
      * List of all the compost recipes
      */
-    private final Map<Item, CompostRecipe> compostRecipes = new HashMap<>();
+    private final Map<Item, RecipeHolder<CompostRecipe>> compostRecipes = new HashMap<>();
 
     /**
      * List of all the items that can be planted.
@@ -143,6 +139,16 @@ public class CompatibilityManager implements ICompatibilityManager
     private final Map<ItemStorage, CreativeModeTab> creativeModeTabMap = new HashMap<>();
 
     /**
+     * Furnace recipes storage
+     */
+    private final FurnaceRecipes furnaceRecipes = new FurnaceRecipes();
+
+    /**
+     * Cached mapping of items and colors to dyes.
+     */
+    private final Int2ObjectMap<Int2IntMap> dyeColorMap = new Int2ObjectOpenHashMap<>();
+
+    /**
      * Instantiates the compatibilityManager.
      */
     public CompatibilityManager()
@@ -157,14 +163,12 @@ public class CompatibilityManager implements ICompatibilityManager
         saplings.clear();
         oreBlocks.clear();
         smeltableOres.clear();
-        minableOres.clear();
         plantables.clear();
         beekeeperflowers = ImmutableSet.of();
 
         food.clear();
         edibles.clear();
         fuel.clear();
-        breakableOreCache.clear();
         compostRecipes.clear();
 
         monsters = ImmutableSet.of();
@@ -183,62 +187,72 @@ public class CompatibilityManager implements ICompatibilityManager
         discoverAllItems(level);
 
         discoverModCompat();
-        discoverBreakableOres();
 
         discoverCompostRecipes(recipeManager);
         discoverMobs();
     }
 
     @Override
-    public void serialize(@NotNull final FriendlyByteBuf buf)
+    public void serialize(@NotNull final RegistryFriendlyByteBuf buf)
     {
+        buf.writeInt(CHECKED_NBT_KEYS.size());
+        for (final var entry : CHECKED_NBT_KEYS.entrySet())
+        {
+            buf.writeInt(BuiltInRegistries.ITEM.getId(entry.getKey()));
+            buf.writeInt(entry.getValue().size());
+            for (final DataComponentType<?> key : entry.getValue())
+            {
+                Utils.serializeCodecMess(DataComponentType.STREAM_CODEC, buf, key);
+            }
+        }
+
         serializeItemStorageList(buf, saplings);
         serializeBlockList(buf, oreBlocks);
         serializeItemStorageList(buf, smeltableOres);
-        serializeItemStorageList(buf, minableOres);
         serializeItemStorageList(buf, plantables);
         serializeItemStorageList(buf, beekeeperflowers);
 
         serializeItemStorageList(buf, food);
         serializeItemStorageList(buf, edibles);
         serializeItemStorageList(buf, fuel);
-        serializeRegistryIds(buf, ForgeRegistries.ENTITY_TYPES, monsters);
+        serializeRegistryIds(buf, BuiltInRegistries.ENTITY_TYPE, monsters);
 
         serializeCompostRecipes(buf, compostRecipes);
-
-        buf.writeInt(CHECKED_NBT_KEYS.size());
-        for (final var entry : CHECKED_NBT_KEYS.entrySet())
-        {
-            buf.writeInt(BuiltInRegistries.ITEM.getId(entry.getKey()));
-            buf.writeInt(entry.getValue().size());
-            for (final CheckedNbtKey key : entry.getValue())
-            {
-                ItemNbtCalculator.serializeKeyToBuffer(key, buf);
-            }
-        }
     }
 
     @Override
     @OnlyIn(Dist.CLIENT)
-    public void deserialize(@NotNull final FriendlyByteBuf buf, final ClientLevel level)
+    public void deserialize(@NotNull final RegistryFriendlyByteBuf buf, final ClientLevel level)
     {
         clear();
+
+        for (int i = 0, amount = buf.readInt(); i < amount; i++)
+        {
+            final Item item = BuiltInRegistries.ITEM.byId(buf.readInt());
+            Set<DataComponentType<?>> nbtKeys = new HashSet<>();
+            for (int j = 0, children = buf.readInt(); j < children; j++)
+            {
+                nbtKeys.add(Utils.deserializeCodecMess(DataComponentType.STREAM_CODEC, buf));
+            }
+
+            CHECKED_NBT_KEYS.put(item, nbtKeys);
+        }
+
         discoverAllItems(level);
 
         saplings.addAll(deserializeItemStorageList(buf));
         oreBlocks.addAll(deserializeBlockList(buf));
         smeltableOres.addAll(deserializeItemStorageList(buf));
-        minableOres.addAll(deserializeItemStorageList(buf));
         plantables.addAll(deserializeItemStorageList(buf));
         beekeeperflowers = ImmutableSet.copyOf(deserializeItemStorageList(buf));
 
         food.addAll(deserializeItemStorageList(buf));
         edibles.addAll(deserializeItemStorageList(buf));
         fuel.addAll(deserializeItemStorageList(buf));
-        monsters = ImmutableSet.copyOf(deserializeRegistryIds(buf, ForgeRegistries.ENTITY_TYPES));
+        monsters = ImmutableSet.copyOf(deserializeRegistryIds(buf, BuiltInRegistries.ENTITY_TYPE));
 
         Log.getLogger().info("Synchronized {} saplings", saplings.size());
-        Log.getLogger().info("Synchronized {} ore blocks with {} smeltable ores and {} minable ores", oreBlocks.size(), smeltableOres.size(), minableOres.size());
+        Log.getLogger().info("Synchronized {} ore blocks with {} smeltable ores", oreBlocks.size(), smeltableOres.size());
         Log.getLogger().info("Synchronized {} plantables", plantables.size());
         Log.getLogger().info("Synchronized {} flowers", beekeeperflowers.size());
 
@@ -250,83 +264,72 @@ public class CompatibilityManager implements ICompatibilityManager
 
         // the below are loaded from config files, which have been synched already by this point
         discoverModCompat();
-
-        for (int i = 0, amount = buf.readInt(); i < amount; i++)
-        {
-            final Item item = BuiltInRegistries.ITEM.byId(buf.readInt());
-            Set<CheckedNbtKey> nbtKeys = new HashSet<>();
-            for (int j = 0, children = buf.readInt(); j < children; j++)
-            {
-                nbtKeys.add(ItemNbtCalculator.deSerializeKeyFromBuffer(buf));
-            }
-
-            CHECKED_NBT_KEYS.put(item, nbtKeys);
-        }
     }
 
     private static void serializeItemStorageList(
-        @NotNull final FriendlyByteBuf buf,
-        @NotNull final Collection<ItemStorage> list)
+      @NotNull final RegistryFriendlyByteBuf buf,
+      @NotNull final Collection<ItemStorage> list)
     {
-        buf.writeCollection(list, StandardFactoryController.getInstance()::serialize);
+        buf.writeCollection(list, (buffer, storage) -> StandardFactoryController.getInstance().serialize((RegistryFriendlyByteBuf) buffer, storage));
     }
 
     @NotNull
-    private static List<ItemStorage> deserializeItemStorageList(@NotNull final FriendlyByteBuf buf)
+    private static List<ItemStorage> deserializeItemStorageList(@NotNull final RegistryFriendlyByteBuf buf)
     {
-        return buf.readList(StandardFactoryController.getInstance()::deserialize);
+        return buf.readList((buffer) -> StandardFactoryController.getInstance().deserialize((RegistryFriendlyByteBuf) buffer));
     }
 
     private static void serializeBlockList(
-        @NotNull final FriendlyByteBuf buf,
-        @NotNull final Collection<Block> list)
+      @NotNull final RegistryFriendlyByteBuf buf,
+      @NotNull final Collection<Block> list)
     {
-        buf.writeCollection(list.stream().map(ItemStack::new).toList(), FriendlyByteBuf::writeItem);
+        buf.writeCollection(list.stream().map(ItemStack::new).toList(), (b, stack) -> Utils.serializeCodecMess((RegistryFriendlyByteBuf) b, stack));
     }
 
     @NotNull
-    private static List<Block> deserializeBlockList(@NotNull final FriendlyByteBuf buf)
+    private static List<Block> deserializeBlockList(@NotNull final RegistryFriendlyByteBuf buf)
     {
-        final List<ItemStack> stacks = buf.readList(FriendlyByteBuf::readItem);
+        final List<ItemStack> stacks = buf.readList(b -> Utils.deserializeCodecMess((RegistryFriendlyByteBuf) b));
         return stacks.stream()
-            .flatMap(stack -> stack.getItem() instanceof BlockItem blockItem
-                ? Stream.of(blockItem.getBlock()) : Stream.empty())
-            .toList();
+          .flatMap(stack -> stack.getItem() instanceof BlockItem blockItem
+                              ? Stream.of(blockItem.getBlock()) : Stream.empty())
+          .toList();
     }
 
     private static void serializeRegistryIds(
-        @NotNull final FriendlyByteBuf buf,
-        @NotNull final IForgeRegistry<?> registry,
-        @NotNull final Collection<ResourceLocation> ids)
+      @NotNull final RegistryFriendlyByteBuf buf,
+      @NotNull final Registry<?> registry,
+      @NotNull final Collection<ResourceLocation> ids)
     {
-        buf.writeCollection(ids, (b, id) -> b.writeRegistryIdUnsafe(registry, id));
+        buf.writeCollection(ids, (b, id) -> b.writeResourceLocation(id));
     }
 
     @NotNull
     private static <T> List<ResourceLocation>
     deserializeRegistryIds(
-        @NotNull final FriendlyByteBuf buf,
-        @NotNull final IForgeRegistry<T> registry)
+      @NotNull final RegistryFriendlyByteBuf buf,
+      @NotNull final Registry<T> registry)
     {
-        return buf.readList(b -> b.readRegistryIdUnsafe(registry)).stream()
-            .flatMap(item -> Stream.ofNullable(registry.getKey(item)))
-            .toList();
+        return buf.readList(b -> b.readResourceLocation());
     }
 
+    private static final StreamCodec<RegistryFriendlyByteBuf, List<RecipeHolder<?>>> RECIPE_LIST_STREAM_CODEC =
+            RecipeHolder.STREAM_CODEC.apply(ByteBufCodecs.list());
+
     private static void serializeCompostRecipes(
-        @NotNull final FriendlyByteBuf buf,
-        @NotNull final Map<Item, CompostRecipe> compostRecipes)
+      @NotNull final RegistryFriendlyByteBuf buf,
+      @NotNull final Map<Item, RecipeHolder<CompostRecipe>> compostRecipes)
     {
-        final List<CompostRecipe> recipes = compostRecipes.values().stream().distinct().toList();
-        buf.writeCollection(recipes, ModRecipeSerializer.CompostRecipeSerializer.get()::toNetwork);
+        final List<RecipeHolder<CompostRecipe>> recipes = compostRecipes.values().stream().distinct().toList();
+        //RECIPE_LIST_STREAM_CODEC.encode(buf, recipes);
+        buf.writeCollection(recipes, (b, holder) -> RecipeHolder.STREAM_CODEC.encode((RegistryFriendlyByteBuf) b, holder));
     }
 
     @NotNull
-    private static List<CompostRecipe> deserializeCompostRecipes(@NotNull final FriendlyByteBuf buf)
+    private static List<RecipeHolder<CompostRecipe>> deserializeCompostRecipes(@NotNull final RegistryFriendlyByteBuf buf)
     {
-        final CompostRecipe.Serializer serializer = ModRecipeSerializer.CompostRecipeSerializer.get();
-        final ResourceLocation empty = new ResourceLocation("");
-        return buf.readList(b -> serializer.fromNetwork(empty, b));
+        //return RECIPE_LIST_STREAM_CODEC.decode(buf).stream().map(r -> (RecipeHolder<CompostRecipe>) r).toList();
+        return buf.readList(b -> (RecipeHolder<CompostRecipe>) RecipeHolder.STREAM_CODEC.decode((RegistryFriendlyByteBuf) b));
     }
 
     /**
@@ -342,6 +345,20 @@ public class CompatibilityManager implements ICompatibilityManager
             Log.getLogger().error("getListOfAllItems when empty");
         }
         return allItems;
+    }
+
+    @Override
+    public List<ItemStack> getListOfMatchingItems(final Predicate<ItemStack> predicate)
+    {
+        List<ItemStack> list = new ArrayList<>();
+        for (final ItemStack stack : allItems)
+        {
+            if (predicate.test(stack))
+            {
+                list.add(stack);
+            }
+        }
+        return list;
     }
 
     @Override
@@ -417,7 +434,7 @@ public class CompatibilityManager implements ICompatibilityManager
         final Set<ItemStorage> filteredEdibles = new HashSet<>();
         for (final ItemStorage storage : edibles)
         {
-            if ((storage.getItemStack().getFoodProperties(null) != null && storage.getItemStack().getFoodProperties(null).getNutrition() >= minNutrition))
+            if ((storage.getItemStack().getFoodProperties(null) != null && storage.getItemStack().getFoodProperties(null).nutrition() >= minNutrition))
             {
                 filteredEdibles.add(storage);
             }
@@ -436,17 +453,7 @@ public class CompatibilityManager implements ICompatibilityManager
     }
 
     @Override
-    public Set<ItemStorage> getMinableOres()
-    {
-        if (minableOres.isEmpty())
-        {
-            Log.getLogger().error("getMinableOres when empty");
-        }
-        return minableOres;
-    }
-
-    @Override
-    public Map<Item, CompostRecipe> getCopyOfCompostRecipes()
+    public Map<Item, RecipeHolder<CompostRecipe>> getCopyOfCompostRecipes()
     {
         if (compostRecipes.isEmpty())
         {
@@ -463,8 +470,8 @@ public class CompatibilityManager implements ICompatibilityManager
             Log.getLogger().error("getCompostInputs when empty");
         }
         return compostRecipes.keySet().stream()
-            .map(item -> new ItemStorage(new ItemStack(item)))
-            .collect(Collectors.toSet());
+          .map(item -> new ItemStorage(new ItemStack(item)))
+          .collect(Collectors.toSet());
     }
 
     @Override
@@ -507,7 +514,7 @@ public class CompatibilityManager implements ICompatibilityManager
         }
         if (isMineableOre(stack) || stack.is(ModTags.raw_ore))
         {
-            ItemStack smeltingResult = SlimColoniesAPIProxy.getInstance().getFurnaceRecipes().getSmeltingResult(stack);
+            ItemStack smeltingResult = MinecoloniesAPIProxy.getInstance().getFurnaceRecipes().getSmeltingResult(stack);
             return !smeltingResult.isEmpty();
         }
 
@@ -523,28 +530,47 @@ public class CompatibilityManager implements ICompatibilityManager
     @Override
     public boolean isBreakableOre(@NotNull final ItemStack stack)
     {
-        return breakableOreCache.getOrDefault(stack.getItem(), false);
+        if (stack.is(ModTags.breakable_ore))
+        {
+            final Block block = Block.byItem(stack.getItem());
+            if (!block.defaultBlockState().isAir())
+            {
+                final List<LootTableAnalyzer.LootDrop> drops = CustomRecipeManager.getInstance().getLootDrops(block.getLootTable());
+                for (final LootTableAnalyzer.LootDrop drop : drops)
+                {
+                    for (final ItemStack dropStack : drop.getItemStacks())
+                    {
+                        if (ItemStackUtils.compareItemStacksIgnoreStackSize(stack, dropStack))
+                        {
+                            return false;   // blocks that drop themselves are not breakable ore
+                        }
+                    }
+                }
+            }
+            return true;
+        }
+        return false;
     }
 
     @Override
-    public void write(@NotNull final CompoundTag compound)
+    public void write(@NotNull final HolderLookup.Provider provider, @NotNull final CompoundTag compound)
     {
         @NotNull final ListTag saplingsLeavesTagList =
-            leavesToSaplingMap.entrySet()
-                .stream()
-                .filter(entry -> entry.getKey() != null)
-                .map(entry -> writeLeafSaplingEntryToNBT(entry.getKey().defaultBlockState(), entry.getValue()))
-                .collect(NBTUtils.toListNBT());
+          leavesToSaplingMap.entrySet()
+            .stream()
+            .filter(entry -> entry.getKey() != null && !entry.getValue().getItemStack().isEmpty())
+            .map(entry -> writeLeafSaplingEntryToNBT(provider, entry.getKey().defaultBlockState(), entry.getValue()))
+            .collect(NBTUtils.toListNBT());
         compound.put(TAG_SAP_LEAF, saplingsLeavesTagList);
     }
 
     @Override
-    public void read(@NotNull final CompoundTag compound)
+    public void read(@NotNull final HolderLookup.Provider provider, @NotNull final CompoundTag compound)
     {
         NBTUtils.streamCompound(compound.getList(TAG_SAP_LEAF, Tag.TAG_COMPOUND))
-            .map(CompatibilityManager::readLeafSaplingEntryFromNBT)
-            .filter(key -> !key.getA().isAir() && !leavesToSaplingMap.containsKey(key.getA().getBlock()) && !leavesToSaplingMap.containsValue(key.getB()))
-            .forEach(key -> leavesToSaplingMap.put(key.getA().getBlock(), key.getB()));
+          .map(nbt -> CompatibilityManager.readLeafSaplingEntryFromNBT(provider, nbt))
+          .filter(key -> !key.getA().isAir() && !leavesToSaplingMap.containsKey(key.getA().getBlock()) && !leavesToSaplingMap.containsValue(key.getB()))
+          .forEach(key -> leavesToSaplingMap.put(key.getA().getBlock(), key.getB()));
     }
 
     @Override
@@ -588,7 +614,7 @@ public class CompatibilityManager implements ICompatibilityManager
     {
         Set<ResourceLocation> monsterSet = new HashSet<>();
 
-        for (final Map.Entry<ResourceKey<EntityType<?>>, EntityType<?>> entry : ForgeRegistries.ENTITY_TYPES.getEntries())
+        for (final Map.Entry<ResourceKey<EntityType<?>>, EntityType<?>> entry : BuiltInRegistries.ENTITY_TYPE.entrySet())
         {
             if (entry.getValue().getCategory() == MobCategory.MONSTER)
             {
@@ -645,7 +671,7 @@ public class CompatibilityManager implements ICompatibilityManager
         discoverFungi();
 
         beekeeperflowers = ImmutableSet.copyOf(tempFlowers);
-        Log.getLogger().info("Finished discovering ores " + oreBlocks.size() + " " + smeltableOres.size());
+        Log.getLogger().info("Finished discovering Ores " + oreBlocks.size() + " " + smeltableOres.size());
         Log.getLogger().info("Finished discovering saplings " + saplings.size());
         Log.getLogger().info("Finished discovering plantables " + plantables.size());
         Log.getLogger().info("Finished discovering food " + edibles.size() + " " + food.size());
@@ -675,50 +701,15 @@ public class CompatibilityManager implements ICompatibilityManager
     {
         if (stack.is(Tags.Items.ORES) || stack.is(ModTags.breakable_ore) || stack.is(ModTags.raw_ore))
         {
-            boolean isBlockItem = false;
-            boolean isFromOtherDimension = false;
-
-            if (stack.getItem() instanceof BlockItem blockItem)
+            if (stack.getItem() instanceof BlockItem)
             {
-                isBlockItem = true;
-                final Block block = blockItem.getBlock();
-                final BlockState state = block.defaultBlockState();
-
-                // Check dimension using both tag whitelist and GregTech integration
-                boolean filteredByTags = isOreFromOtherDimension(state);
-                boolean filteredByGregTech = GregTechCompatibility.isNonOverworldOnly(stack);
-                isFromOtherDimension = filteredByTags || filteredByGregTech;
-
-                if (!isFromOtherDimension)
-                {
-                    oreBlocks.add(block);
-                }
+                oreBlocks.add(((BlockItem) stack.getItem()).getBlock());
             }
-
-            // smeltableOres: ALL ores with smelting recipes (for smelters - includes all dimensions)
-            if (!SlimColoniesAPIProxy.getInstance().getFurnaceRecipes().getSmeltingResult(stack).isEmpty())
+            if (!MinecoloniesAPIProxy.getInstance().getFurnaceRecipes().getSmeltingResult(stack).isEmpty())
             {
                 smeltableOres.add(new ItemStorage(stack));
             }
-
-            // minableOres: only overworld ore BLOCKS (for miner priority GUI)
-            if (isBlockItem && !isFromOtherDimension &&
-                !SlimColoniesAPIProxy.getInstance().getFurnaceRecipes().getSmeltingResult(stack).isEmpty())
-            {
-                minableOres.add(new ItemStorage(stack));
-            }
         }
-    }
-
-    /**
-     * Check if an ore block is from a non-overworld dimension.
-     *
-     * @param state the block state to check
-     * @return true if the ore is NOT from overworld (not in stone or deepslate)
-     */
-    private boolean isOreFromOtherDimension(final BlockState state)
-    {
-        return !state.is(TAG_ORES_IN_STONE) && !state.is(TAG_ORES_IN_DEEPSLATE);
     }
 
     /**
@@ -754,21 +745,20 @@ public class CompatibilityManager implements ICompatibilityManager
     {
         if (compostRecipes.isEmpty())
         {
-            discoverCompostRecipes(recipeManager.byType(ModRecipeSerializer.CompostRecipeType.get()).values().stream()
-                .map(r -> (CompostRecipe) r).toList());
+            discoverCompostRecipes(recipeManager.getAllRecipesFor(ModRecipeSerializer.CompostRecipeType.get()));
             Log.getLogger().info("Finished discovering compostables " + compostRecipes.size());
         }
     }
 
-    private void discoverCompostRecipes(@NotNull final List<CompostRecipe> recipes)
+    private void discoverCompostRecipes(@NotNull final List<RecipeHolder<CompostRecipe>> recipes)
     {
-        for (final CompostRecipe recipe : recipes)
+        for (final RecipeHolder<CompostRecipe> recipe : recipes)
         {
-            for (final ItemStack stack : recipe.getInput().getItems())
+            for (final ItemStack stack : recipe.value().getInput().getItems())
             {
                 // there can be duplicates due to overlapping tags.  weakest one wins.
                 compostRecipes.merge(stack.getItem(), recipe,
-                    (r1, r2) -> r1.getStrength() < r2.getStrength() ? r1 : r2);
+                  (r1, r2) -> r1.value().getStrength() < r2.value().getStrength() ? r1 : r2);
             }
         }
     }
@@ -813,16 +803,16 @@ public class CompatibilityManager implements ICompatibilityManager
         }
     }
 
-    private static CompoundTag writeLeafSaplingEntryToNBT(final BlockState state, final ItemStorage storage)
+    private static CompoundTag writeLeafSaplingEntryToNBT(@NotNull final HolderLookup.Provider provider, final BlockState state, final ItemStorage storage)
     {
         final CompoundTag compound = NbtUtils.writeBlockState(state);
-        storage.getItemStack().save(compound);
+        compound.put(NbtTagConstants.STACK, storage.getItemStack().saveOptional(provider));
         return compound;
     }
 
-    private static Tuple<BlockState, ItemStorage> readLeafSaplingEntryFromNBT(final CompoundTag compound)
+    private static Tuple<BlockState, ItemStorage> readLeafSaplingEntryFromNBT(@NotNull final HolderLookup.Provider provider, final CompoundTag compound)
     {
-        return new Tuple<>(NbtUtils.readBlockState(BuiltInRegistries.BLOCK.asLookup(), compound), new ItemStorage(ItemStack.of(compound), false, true));
+        return new Tuple<>(NbtUtils.readBlockState(BuiltInRegistries.BLOCK.asLookup(), compound), new ItemStorage(ItemStack.parseOptional(provider, compound.getCompound(NbtTagConstants.STACK)), false, true));
     }
 
     /**
@@ -830,45 +820,62 @@ public class CompatibilityManager implements ICompatibilityManager
      */
     private void discoverModCompat()
     {
-        // No mod compatibility currently supported
+        if (ModList.get().isLoaded("resourcefulbees"))
+        {
+            Compatibility.beeHiveCompat = new ResourcefulBeesCompat();
+        }
+        if (ModList.get().isLoaded("tconstruct"))
+        {
+            Compatibility.tinkersCompat = new TinkersToolHelper();
+            Compatibility.tinkersSlimeCompat = new SlimeTreeCheck();
+        }
+        if (ModList.get().isLoaded("dynamictrees"))
+        {
+            Compatibility.dynamicTreesCompat = new DynamicTreeCompat();
+        }
     }
 
-    private void discoverBreakableOres()
+    @Override
+    public FurnaceRecipes getFurnaceRecipes()
     {
-        for (final Item item : ForgeRegistries.ITEMS.tags().getTag(ModTags.breakable_ore))
-        {
-            final ItemStack stack = item.getDefaultInstance();
-            final Block block = Block.byItem(item);
-            if (block.defaultBlockState().isAir())
-            {
-                breakableOreCache.put(item, false);
-                continue;
-            }
-
-            final List<LootTableAnalyzer.LootDrop> drops = CustomRecipeManager.getInstance().getLootDrops(block.getLootTable());
-            boolean dropsSelf = false;
-            for (final LootTableAnalyzer.LootDrop drop : drops)
-            {
-                for (final ItemStack dropStack : drop.getItemStacks())
-                {
-                    if (ItemStackUtils.compareItemStacksIgnoreStackSize(stack, dropStack))
-                    {
-                        dropsSelf = true;
-                        break;
-                    }
-                }
-                if (dropsSelf)
-                {
-                    break;
-                }
-            }
-            breakableOreCache.put(item, !dropsSelf);
-        }
+        return furnaceRecipes;
     }
 
     @Override
     public int getNumberOfSaplings()
     {
         return saplings.size();
+    }
+
+    @Override
+    public Optional<DyeColor> getDyeColor(final ItemStack stack)
+    {
+        if (stack.is(ItemTags.DYEABLE))
+        {
+            final int color = DyedItemColor.getOrDefault(stack, -1);
+            if (color != -1)
+            {
+                final ItemStack undyedStack = stack.copy();
+                undyedStack.remove(DataComponents.DYED_COLOR);
+
+                final int dyeId = dyeColorMap.computeIfAbsent(Item.getId(undyedStack.getItem()), id ->
+                {
+                    final Int2IntMap map = new Int2IntOpenHashMap();
+                    for (final DyeColor dye : DyeColor.values())
+                    {
+                        final ItemStack dyed = DyedItemColor.applyDyes(undyedStack, List.of(DyeItem.byColor(dye)));
+                        if (!dyed.isEmpty())
+                        {
+                            map.put(DyedItemColor.getOrDefault(dyed, -1), dye.getId());
+                        }
+                    }
+                    return map;
+                }).getOrDefault(color, -1);
+
+                return dyeId < 0 ? Optional.empty() : Optional.of(DyeColor.byId(dyeId));
+            }
+        }
+
+        return Optional.empty();
     }
 }

@@ -1,0 +1,132 @@
+{
+  "name": "slimcolonies:amazon_jungle_pyramid",
+  "fallback": "minecraft:empty",
+  "elements": [
+    {
+      "weight": 1,
+      "element": {
+        "location": "slimcolonies:camps/amazon/amazon_jungle_boss",
+        "processors": "slimcolonies:placeholder_replacement",
+        "projection": "rigid",
+        "element_type": "minecraft:single_pool_element"
+      }
+    },
+    {
+      "weight": 1,
+      "element": {
+        "location": "slimcolonies:camps/amazon/amazon_jungle_boss2",
+        "processors": "slimcolonies:placeholder_replacement",
+        "projection": "rigid",
+        "element_type": "minecraft:single_pool_element"
+      }
+    },
+    {
+      "weight": 10,
+      "element": {
+        "location": "slimcolonies:camps/amazon/amazon_jungle_corner",
+        "processors": "slimcolonies:placeholder_replacement",
+        "projection": "rigid",
+        "element_type": "minecraft:single_pool_element"
+      }
+    },
+    {
+      "weight": 10,
+      "element": {
+        "location": "slimcolonies:camps/amazon/amazon_jungle_intersection",
+        "processors": "slimcolonies:placeholder_replacement",
+        "projection": "rigid",
+        "element_type": "minecraft:single_pool_element"
+      }
+    },
+    {
+      "weight": 1,
+      "element": {
+        "location": "slimcolonies:camps/amazon/amazon_jungle_ladder",
+        "processors": "slimcolonies:placeholder_replacement",
+        "projection": "rigid",
+        "element_type": "minecraft:single_pool_element"
+      }
+    },
+    {
+      "weight": 10,
+      "element": {
+        "location": "slimcolonies:camps/amazon/amazon_jungle_pit_shaft",
+        "processors": "slimcolonies:placeholder_replacement",
+        "projection": "rigid",
+        "element_type": "minecraft:single_pool_element"
+      }
+    },
+    {
+      "weight": 10,
+      "element": {
+        "location": "slimcolonies:camps/amazon/amazon_jungle_ruined_spawner_shaft",
+        "processors": "slimcolonies:placeholder_replacement",
+        "projection": "rigid",
+        "element_type": "minecraft:single_pool_element"
+      }
+    },
+    {
+      "weight": 10,
+      "element": {
+        "location": "slimcolonies:camps/amazon/amazon_jungle_ruined_spawner_shaft_deadend",
+        "processors": "slimcolonies:placeholder_replacement",
+        "projection": "rigid",
+        "element_type": "minecraft:single_pool_element"
+      }
+    },
+    {
+      "weight": 10,
+      "element": {
+        "location": "slimcolonies:camps/amazon/amazon_jungle_ruined_shaft",
+        "processors": "slimcolonies:placeholder_replacement",
+        "projection": "rigid",
+        "element_type": "minecraft:single_pool_element"
+      }
+    },
+    {
+      "weight": 10,
+      "element": {
+        "location": "slimcolonies:camps/amazon/amazon_jungle_spawner_corner",
+        "processors": "slimcolonies:placeholder_replacement",
+        "projection": "rigid",
+        "element_type": "minecraft:single_pool_element"
+      }
+    },
+    {
+      "weight": 10,
+      "element": {
+        "location": "slimcolonies:camps/amazon/amazon_jungle_spawner_intersection",
+        "processors": "slimcolonies:placeholder_replacement",
+        "projection": "rigid",
+        "element_type": "minecraft:single_pool_element"
+      }
+    },
+    {
+      "weight": 10,
+      "element": {
+        "location": "slimcolonies:camps/amazon/amazon_jungle_spawner_shaft",
+        "processors": "slimcolonies:placeholder_replacement",
+        "projection": "rigid",
+        "element_type": "minecraft:single_pool_element"
+      }
+    },
+    {
+      "weight": 10,
+      "element": {
+        "location": "slimcolonies:camps/amazon/amazon_jungle_tnt_shaft",
+        "processors": "slimcolonies:placeholder_replacement",
+        "projection": "rigid",
+        "element_type": "minecraft:single_pool_element"
+      }
+    },
+    {
+      "weight": 10,
+      "element": {
+        "location": "slimcolonies:camps/amazon/amazon_jungle_trapped_corner",
+        "processors": "slimcolonies:placeholder_replacement",
+        "projection": "rigid",
+        "element_type": "minecraft:single_pool_element"
+      }
+    }
+  ]
+}

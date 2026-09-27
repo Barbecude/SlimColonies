@@ -3,14 +3,17 @@ package no.monopixel.slimcolonies.core.quests.sideeffects;
 import no.monopixel.slimcolonies.api.colony.ICitizenData;
 import no.monopixel.slimcolonies.api.quests.IQuestInstance;
 import no.monopixel.slimcolonies.api.util.constant.Constants;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceLocation;
+import org.jetbrains.annotations.UnknownNullability;
 
 /**
  * Quest effect which sets the worker idle
  */
 public class WorkerIdleSideEffect implements IQuestSideEffect, ICitizenQuestSideEffect
 {
-    public static final ResourceLocation ID = ResourceLocation.fromNamespaceAndPath(Constants.MOD_ID, "workeridle");
+    public static final ResourceLocation ID = new ResourceLocation(Constants.MOD_ID, "workeridle");
 
     /**
      * Citizen data we applied to
@@ -66,5 +69,17 @@ public class WorkerIdleSideEffect implements IQuestSideEffect, ICitizenQuestSide
          */
         int idleDays = 1;
         data.setIdleDays(idleDays);
+    }
+
+    @Override
+    public CompoundTag serializeNBT(final HolderLookup.Provider provider)
+    {
+        return null;
+    }
+
+    @Override
+    public void deserializeNBT(final HolderLookup.Provider provider, final CompoundTag nbt)
+    {
+
     }
 }

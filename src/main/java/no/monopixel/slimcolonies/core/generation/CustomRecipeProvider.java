@@ -6,24 +6,24 @@ import com.google.gson.JsonObject;
 import no.monopixel.slimcolonies.api.crafting.ItemStorage;
 import no.monopixel.slimcolonies.api.equipment.ModEquipmentTypes;
 import no.monopixel.slimcolonies.api.equipment.registry.EquipmentTypeEntry;
+import no.monopixel.slimcolonies.api.util.Utils;
 import no.monopixel.slimcolonies.api.util.constant.Constants;
 import no.monopixel.slimcolonies.core.colony.crafting.CustomRecipe;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.data.CachedOutput;
 import net.minecraft.data.DataProvider;
 import net.minecraft.data.PackOutput;
-import net.minecraft.data.recipes.FinishedRecipe;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.crafting.RecipeSerializer;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
-import net.minecraftforge.registries.ForgeRegistries;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
-import java.util.HashMap;
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 
@@ -34,57 +34,75 @@ import static no.monopixel.slimcolonies.api.util.constant.NbtTagConstants.*;
  */
 public abstract class CustomRecipeProvider implements DataProvider
 {
-    private final PackOutput packOutput;
+    private final PackOutput                               packOutput;
+    private final CompletableFuture<HolderLookup.Provider> providerFuture;
+    protected HolderLookup.Provider                        provider;
 
-    public CustomRecipeProvider(@NotNull final PackOutput packOutput)
+    public CustomRecipeProvider(@NotNull final PackOutput packOutput, final CompletableFuture<HolderLookup.Provider> providerFuture)
     {
         this.packOutput = packOutput;
+        this.providerFuture = providerFuture;
     }
 
     @Override
     @NotNull
     public CompletableFuture<?> run(@NotNull final CachedOutput cache)
     {
-        final PackOutput.PathProvider pathProvider = this.packOutput.createPathProvider(PackOutput.Target.DATA_PACK, "crafterrecipes");
-        final Map<ResourceLocation, CompletableFuture<?>> futures = new HashMap<>();
-
-        registerRecipes((recipe) ->
+        return providerFuture.thenCompose(provider ->
         {
-            if (futures.containsKey(recipe.getId()))
+            this.provider = provider;
+
+            final PackOutput.PathProvider pathProvider = this.packOutput.createPathProvider(PackOutput.Target.DATA_PACK, "crafterrecipes");
+            final List<CompletableFuture<?>> futures = new ArrayList<>();
+            final Set<ResourceLocation> dupeKeyCheck = new HashSet<>();
+
+            registerRecipes((recipe) ->
             {
-                throw new IllegalStateException("Duplicate recipe " + recipe.getId());
-            }
+                if (!dupeKeyCheck.add(recipe.id))
+                {
+                    throw new IllegalStateException("Duplicate recipe " + recipe.id);
+                }
+                futures.add(DataProvider.saveStable(cache,
+                        recipe.json,
+                        pathProvider.json(recipe.id)));
+            });
 
-            futures.put(recipe.getId(), DataProvider.saveStable(cache,
-                    recipe.serializeRecipe(),
-                    pathProvider.json(recipe.getId())));
+            return CompletableFuture.allOf(futures.toArray(CompletableFuture[]::new));
         });
-
-        return CompletableFuture.allOf(futures.values().toArray(new CompletableFuture[0]));
     }
 
-    protected abstract void registerRecipes(final Consumer<FinishedRecipe> consumer);
+    @NotNull
+    protected CustomRecipeBuilder recipe(final String crafter, final String module, final String id)
+    {
+        return new CustomRecipeBuilder(crafter, module, id, provider);
+    }
+
+    protected abstract void registerRecipes(@NotNull final Consumer<CustomRecipeBuilder> consumer);
 
     /**
      * Helper to construct custom crafterrecipes for datagen
      */
     public static class CustomRecipeBuilder
     {
+        private final HolderLookup.Provider provider;
         private final JsonObject json = new JsonObject();
         private final ResourceLocation id;
         private Block intermediate = Blocks.AIR;
 
-        private CustomRecipeBuilder(final String crafter, final String module, final String id)
+        public CustomRecipeBuilder(final String crafter, final String module, final String id,
+                                   @NotNull final HolderLookup.Provider provider)
         {
+            this.provider = provider;
             this.json.addProperty(CustomRecipe.RECIPE_TYPE_PROP, CustomRecipe.RECIPE_TYPE_RECIPE);
             this.json.addProperty(CustomRecipe.RECIPE_CRAFTER_PROP, crafter + "_" + module);
             this.id = new ResourceLocation(Constants.MOD_ID, crafter + "/" + id);
         }
 
         @NotNull
-        public static CustomRecipeBuilder create(final String crafter, final String module, final String id)
+        public static CustomRecipeBuilder create(final String crafter, final String module, final String id,
+                                                 @NotNull final HolderLookup.Provider provider)
         {
-            return new CustomRecipeBuilder(crafter, module, id);
+            return new CustomRecipeBuilder(crafter, module, id, provider);
         }
 
         @NotNull
@@ -98,12 +116,7 @@ public abstract class CustomRecipeProvider implements DataProvider
         public CustomRecipeBuilder result(@NotNull final ItemStack result)
         {
             final JsonObject jsonItemStack = stackAsJson(result);
-
-            this.json.addProperty(CustomRecipe.RECIPE_RESULT_PROP, jsonItemStack.get(ITEM_PROP).getAsString());
-            if (jsonItemStack.has(COUNT_PROP))
-            {
-                this.json.add(COUNT_PROP, jsonItemStack.get(COUNT_PROP));
-            }
+            this.json.add(CustomRecipe.RECIPE_RESULT_PROP, jsonItemStack);
             return this;
         }
 
@@ -231,29 +244,21 @@ public abstract class CustomRecipeProvider implements DataProvider
             return this;
         }
 
-        public void build(@NotNull final Consumer<FinishedRecipe> consumer)
+        public void build(@NotNull final Consumer<CustomRecipeBuilder> consumer)
         {
-            this.json.addProperty(CustomRecipe.RECIPE_INTERMEDIATE_PROP, ForgeRegistries.BLOCKS.getKey(this.intermediate).toString());
-            consumer.accept(new Result(this.json, this.id));
+            this.json.addProperty(CustomRecipe.RECIPE_INTERMEDIATE_PROP, BuiltInRegistries.BLOCK.getKey(this.intermediate).toString());
+            consumer.accept(this);
         }
 
         @NotNull
         private JsonObject stackAsJson(final ItemStack stack)
         {
-            final JsonObject jsonItemStack = new JsonObject();
-            String name = ForgeRegistries.ITEMS.getKey(stack.getItem()).toString();
-            // this could be incorrect for items with both damage and other NBT,
-            // but that should be rare, and this avoids some annoyance.
-            if (stack.hasTag() && !stack.isDamageableItem())
+            final JsonObject json = Utils.serializeCodecMessToJson(ItemStack.OPTIONAL_CODEC, provider, stack).getAsJsonObject();
+            if (stack.getCount() == 1)
             {
-                name += stack.getTag().toString();
+                json.remove(COUNT_PROP);
             }
-            jsonItemStack.addProperty(ITEM_PROP, name);
-            if (stack.getCount() != 1)
-            {
-                jsonItemStack.addProperty(COUNT_PROP, stack.getCount());
-            }
-            return jsonItemStack;
+            return json;
         }
 
         @NotNull
@@ -274,11 +279,7 @@ public abstract class CustomRecipeProvider implements DataProvider
             for (final ItemStorage itemStorage : itemStorages)
             {
                 final JsonObject jsonItemStorage = stackAsJson(itemStorage.getItemStack());
-                if (itemStorage.getAmount() == 1)
-                {
-                    jsonItemStorage.remove(COUNT_PROP);
-                }
-                else
+                if (itemStorage.getAmount() != 1)
                 {
                     jsonItemStorage.addProperty(COUNT_PROP, itemStorage.getAmount());
                 }
@@ -289,57 +290,6 @@ public abstract class CustomRecipeProvider implements DataProvider
                 jsonItemStorages.add(jsonItemStorage);
             }
             return jsonItemStorages;
-        }
-
-        private static class Result implements FinishedRecipe
-        {
-            final JsonObject json;
-            final ResourceLocation id;
-
-            public Result(final JsonObject json, final ResourceLocation id)
-            {
-                this.json = json;
-                this.id = id;
-            }
-
-            @NotNull
-            @Override
-            public JsonObject serializeRecipe()
-            {
-                return this.json;
-            }
-
-            @NotNull
-            @Override
-            public ResourceLocation getId()
-            {
-                return this.id;
-            }
-
-            @Override
-            public void serializeRecipeData(@NotNull final JsonObject json)
-            {
-            }
-
-            @Override
-            public RecipeSerializer<?> getType()
-            {
-                return null;
-            }
-
-            @Nullable
-            @Override
-            public JsonObject serializeAdvancement()
-            {
-                return null;
-            }
-
-            @Nullable
-            @Override
-            public ResourceLocation getAdvancementId()
-            {
-                return null;
-            }
         }
     }
 }

@@ -1,7 +1,6 @@
 package no.monopixel.slimcolonies.core.compatibility.jei.transfer;
 
 import no.monopixel.slimcolonies.api.crafting.ModCraftingTypes;
-import no.monopixel.slimcolonies.core.Network;
 import no.monopixel.slimcolonies.core.client.gui.containers.WindowCrafting;
 import no.monopixel.slimcolonies.core.colony.buildings.moduleviews.CraftingModuleView;
 import no.monopixel.slimcolonies.core.compatibility.jei.JobBasedRecipeCategory;
@@ -80,6 +79,6 @@ public class CraftingGuiHandler extends AbstractTeachingGuiHandler<WindowCraftin
         }
 
         final TransferRecipeCraftingTeachingMessage message = new TransferRecipeCraftingTeachingMessage(matrix, gui.isCompleteCrafting());
-        Network.getNetwork().sendToServer(message);
+        message.sendToServer();
     }
 }

@@ -22,7 +22,6 @@ public class DefaultEventBus implements EventBus
     public <T extends IModEvent> void subscribe(final @NotNull Class<T> eventType, final @NotNull EventHandler<T> handler)
     {
         Log.getLogger().debug("Registering event handler for id {}.", eventType.getSimpleName());
-
         eventHandlersPerType.computeIfAbsent(eventType, (f) -> new ArrayList<>()).add(handler);
     }
 
@@ -34,9 +33,7 @@ public class DefaultEventBus implements EventBus
         {
             return;
         }
-
         Log.getLogger().debug("Sending event '{}' for type '{}'. Sending to {} handlers.", event.getEventId(), event.getClass().getSimpleName(), eventHandlers.size());
-
         for (final EventHandler<? extends IModEvent> handler : eventHandlers)
         {
             try

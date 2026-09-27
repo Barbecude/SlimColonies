@@ -6,16 +6,14 @@ import no.monopixel.slimcolonies.api.crafting.IRecipeStorage;
 import no.monopixel.slimcolonies.api.entity.ai.statemachine.AITarget;
 import no.monopixel.slimcolonies.api.entity.ai.statemachine.states.IAIState;
 import no.monopixel.slimcolonies.api.entity.citizen.VisibleCitizenStatus;
-import no.monopixel.slimcolonies.api.util.SoundUtils;
 import no.monopixel.slimcolonies.api.util.constant.Constants;
-import no.monopixel.slimcolonies.core.Network;
 import no.monopixel.slimcolonies.core.colony.buildings.workerbuildings.BuildingCrusher;
 import no.monopixel.slimcolonies.core.colony.jobs.JobCrusher;
+import no.monopixel.slimcolonies.core.entity.citizen.EntityCitizen;
 import no.monopixel.slimcolonies.core.network.messages.client.LocalizedParticleEffectMessage;
 import no.monopixel.slimcolonies.core.util.WorkerUtil;
 import no.monopixel.slimcolonies.core.util.citizenutils.CitizenItemUtils;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.sounds.SoundEvents;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.item.ItemStack;
 import org.jetbrains.annotations.NotNull;
@@ -37,7 +35,7 @@ public class EntityAIWorkCrusher extends AbstractEntityAICrafting<JobCrusher, Bu
      * Crusher icon
      */
     private final static VisibleCitizenStatus CRUSHING =
-        new VisibleCitizenStatus(ResourceLocation.fromNamespaceAndPath(Constants.MOD_ID, "textures/icons/work/crusher.png"), "no.monopixel.slimcolonies.gui.visiblestatus.crusher");
+      new VisibleCitizenStatus(new ResourceLocation(Constants.MOD_ID, "textures/icons/work/crusher.png"), "no.monopixel.slimcolonies.gui.visiblestatus.crusher");
 
     /**
      * Constructor for the crusher. Defines the tasks the crusher executes.
@@ -48,8 +46,8 @@ public class EntityAIWorkCrusher extends AbstractEntityAICrafting<JobCrusher, Bu
     {
         super(job);
         super.registerTargets(
-            new AITarget(IDLE, START_WORKING, 1),
-            new AITarget(CRUSH, this::crush, TICK_DELAY)
+          new AITarget(IDLE, START_WORKING, 1),
+          new AITarget(CRUSH, this::crush, TICK_DELAY)
         );
         worker.setCanPickUpLoot(true);
     }
@@ -148,6 +146,7 @@ public class EntityAIWorkCrusher extends AbstractEntityAICrafting<JobCrusher, Bu
                 job.setCraftCounter(job.getCraftCounter() + 1);
                 currentRecipeStorage.fullfillRecipe(getLootContext(), ImmutableList.of(worker.getItemHandlerCitizen()));
 
+                worker.decreaseSaturationForContinuousAction();
                 worker.getCitizenExperienceHandler().addExperience(0.1);
                 recordCraftingBuildingStats(currentRequest, currentRecipeStorage);
             }
@@ -171,11 +170,9 @@ public class EntityAIWorkCrusher extends AbstractEntityAICrafting<JobCrusher, Bu
         }
         if (check == CRAFT)
         {
-            Network.getNetwork()
-                .sendToTrackingEntity(new LocalizedParticleEffectMessage(currentRecipeStorage.getInput().get(0).getItemStack().copy(), crusherBuilding.getID()), worker);
-            Network.getNetwork().sendToTrackingEntity(new LocalizedParticleEffectMessage(currentRecipeStorage.getPrimaryOutput().copy(), crusherBuilding.getID().below()),
-                worker);
-            SoundUtils.playSoundAtCitizen(world, building.getID(), SoundEvents.STONE_BREAK);
+            new LocalizedParticleEffectMessage(currentRecipeStorage.getInput().get(0).getItemStack().copy(), crusherBuilding.getID()).sendToTrackingEntity(worker);
+            new LocalizedParticleEffectMessage(currentRecipeStorage.getPrimaryOutput().copy(), crusherBuilding.getID().below()).sendToTrackingEntity(worker);
+            job.playSound(building.getID(), (EntityCitizen) worker);
         }
         return getState();
     }
@@ -206,7 +203,7 @@ public class EntityAIWorkCrusher extends AbstractEntityAICrafting<JobCrusher, Bu
         job.setProgress(job.getProgress() + 1);
 
         worker.setItemInHand(InteractionHand.MAIN_HAND,
-            currentRecipeStorage.getCleanedInput().get(worker.getRandom().nextInt(currentRecipeStorage.getCleanedInput().size())).getItemStack().copy());
+          currentRecipeStorage.getCleanedInput().get(worker.getRandom().nextInt(currentRecipeStorage.getCleanedInput().size())).getItemStack().copy());
         worker.setItemInHand(InteractionHand.OFF_HAND, currentRecipeStorage.getPrimaryOutput().copy());
         CitizenItemUtils.hitBlockWithToolInHand(worker, building.getPosition());
 
@@ -227,8 +224,8 @@ public class EntityAIWorkCrusher extends AbstractEntityAICrafting<JobCrusher, Bu
             {
                 incrementActionsDone(getActionRewardForCraftingSuccess());
                 currentRecipeStorage = null;
+                worker.decreaseSaturationForAction();
                 resetValues();
-
                 if (inventoryNeedsDump())
                 {
                     if (job.getMaxCraftingCount() == 0 && job.getProgress() == 0 && job.getCraftCounter() == 0 && currentRequest != null)
@@ -242,10 +239,10 @@ public class EntityAIWorkCrusher extends AbstractEntityAICrafting<JobCrusher, Bu
         {
             currentRequest = null;
             job.finishRequest(false);
-            incrementActionsDoneAndDecSaturation();
             resetValues();
         }
 
         return getState();
     }
+
 }

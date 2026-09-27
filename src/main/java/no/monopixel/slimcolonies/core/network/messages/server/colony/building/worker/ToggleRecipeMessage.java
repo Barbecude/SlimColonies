@@ -1,12 +1,15 @@
 package no.monopixel.slimcolonies.core.network.messages.server.colony.building.worker;
 
+import com.ldtteam.common.network.PlayMessageType;
 import no.monopixel.slimcolonies.api.colony.IColony;
 import no.monopixel.slimcolonies.api.colony.buildings.IBuilding;
 import no.monopixel.slimcolonies.api.colony.buildings.views.IBuildingView;
+import no.monopixel.slimcolonies.api.util.constant.Constants;
 import no.monopixel.slimcolonies.core.colony.buildings.modules.AbstractCraftingBuildingModule;
 import no.monopixel.slimcolonies.core.network.messages.server.AbstractBuildingServerMessage;
-import net.minecraft.network.FriendlyByteBuf;
-import net.minecraftforge.network.NetworkEvent;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.server.level.ServerPlayer;
+import net.neoforged.neoforge.network.handling.IPayloadContext;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -14,23 +17,17 @@ import org.jetbrains.annotations.NotNull;
  */
 public class ToggleRecipeMessage extends AbstractBuildingServerMessage<IBuilding>
 {
+    public static final PlayMessageType<?> TYPE = PlayMessageType.forServer(Constants.MOD_ID, "toggle_recipe", ToggleRecipeMessage::new);
+
     /**
      * The recipe to toggle.
      */
-    private int recipeLocation;
+    private final int recipeLocation;
 
     /**
      * Type of the owning module.
      */
-    private int id;
-
-    /**
-     * Empty public constructor.
-     */
-    public ToggleRecipeMessage()
-    {
-        super();
-    }
+    private final int id;
 
     /**
      * Creates message for player to enable/disable a recipe.
@@ -40,27 +37,28 @@ public class ToggleRecipeMessage extends AbstractBuildingServerMessage<IBuilding
      */
     public ToggleRecipeMessage(@NotNull final IBuildingView building, final int location, final int id)
     {
-        super(building);
+        super(TYPE, building);
         this.recipeLocation = location;
         this.id = id;
     }
 
-    @Override
-    public void fromBytesOverride(@NotNull final FriendlyByteBuf buf)
+    protected ToggleRecipeMessage(final RegistryFriendlyByteBuf buf, final PlayMessageType<?> type)
     {
+        super(buf, type);
         this.recipeLocation = buf.readInt();
         this.id = buf.readInt();
     }
 
     @Override
-    public void toBytesOverride(@NotNull final FriendlyByteBuf buf)
+    protected void toBytes(@NotNull final RegistryFriendlyByteBuf buf)
     {
+        super.toBytes(buf);
         buf.writeInt(this.recipeLocation);
         buf.writeInt(this.id);
     }
 
     @Override
-    protected void onExecute(final NetworkEvent.Context ctxIn, final boolean isLogicalServer, final IColony colony, final IBuilding building)
+    protected void onExecute(final IPayloadContext ctxIn, final ServerPlayer player, final IColony colony, final IBuilding building)
     {
         if (building.getModule(id)!= null)
         {

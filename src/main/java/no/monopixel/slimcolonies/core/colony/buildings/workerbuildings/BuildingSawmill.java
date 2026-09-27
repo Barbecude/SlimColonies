@@ -9,7 +9,6 @@ import no.monopixel.slimcolonies.api.util.ItemStackUtils;
 import no.monopixel.slimcolonies.api.util.OptionalPredicate;
 import no.monopixel.slimcolonies.core.colony.buildings.AbstractBuilding;
 import no.monopixel.slimcolonies.core.colony.buildings.modules.AbstractCraftingBuildingModule;
-import no.monopixel.slimcolonies.core.colony.buildings.modules.AbstractDOCraftingBuildingModule;
 import net.minecraft.core.BlockPos;
 import net.minecraft.tags.ItemTags;
 import net.minecraft.tags.TagKey;
@@ -120,7 +119,7 @@ public class BuildingSawmill extends AbstractBuilding
         }
     }
 
-    public static class DOCraftingModule extends AbstractDOCraftingBuildingModule
+    public static class DOCraftingModule extends AbstractCraftingBuildingModule.Domum
     {
         /**
          * Create a new module.

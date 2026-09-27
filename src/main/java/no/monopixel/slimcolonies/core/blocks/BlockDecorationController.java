@@ -2,12 +2,21 @@ package no.monopixel.slimcolonies.core.blocks;
 
 import com.ldtteam.structurize.blocks.interfaces.IAnchorBlock;
 import com.ldtteam.structurize.blocks.interfaces.ILeveledBlueprintAnchorBlock;
+import no.monopixel.slimcolonies.api.blocks.AbstractBlockMinecoloniesDirectional;
+import no.monopixel.slimcolonies.api.colony.IColony;
+import no.monopixel.slimcolonies.api.colony.IColonyManager;
+import no.monopixel.slimcolonies.api.entity.ai.workers.util.IBuilderUndestroyable;
+import no.monopixel.slimcolonies.api.util.constant.Constants;
+import no.monopixel.slimcolonies.core.client.gui.WindowDecorationController;
+import no.monopixel.slimcolonies.core.tileentities.TileEntityDecorationController;
+import com.mojang.serialization.MapCodec;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
+import net.minecraft.world.ItemInteractionResult;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
@@ -28,25 +37,23 @@ import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.shapes.CollisionContext;
 import net.minecraft.world.phys.shapes.Shapes;
 import net.minecraft.world.phys.shapes.VoxelShape;
-import no.monopixel.slimcolonies.api.blocks.AbstractBlockSlimColoniesDirectional;
-import no.monopixel.slimcolonies.api.entity.ai.workers.util.IBuilderUndestroyable;
-import no.monopixel.slimcolonies.api.util.constant.Constants;
-import no.monopixel.slimcolonies.core.client.gui.WindowDecorationController;
-import no.monopixel.slimcolonies.core.tileentities.TileEntityDecorationController;
 import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nullable;
+import java.util.ArrayList;
 
 import static com.ldtteam.structurize.blockentities.interfaces.IBlueprintDataProviderBE.TAG_BLUEPRINTDATA;
 import static com.ldtteam.structurize.blockentities.interfaces.IBlueprintDataProviderBE.TAG_SCHEMATIC_NAME;
-import static no.monopixel.slimcolonies.api.blocks.decorative.AbstractBlockSlimColoniesConstructionTape.WATERLOGGED;
+import static no.monopixel.slimcolonies.api.blocks.decorative.AbstractBlockMinecoloniesConstructionTape.WATERLOGGED;
+import static no.monopixel.slimcolonies.api.util.constant.SchematicTagConstants.TAG_LEISURE;
 
 /**
  * Creates a decoration controller block.
  */
-public class BlockDecorationController extends AbstractBlockSlimColoniesDirectional<BlockDecorationController>
-    implements IBuilderUndestroyable, IAnchorBlock, EntityBlock, ILeveledBlueprintAnchorBlock, SimpleWaterloggedBlock
+public class BlockDecorationController extends AbstractBlockMinecoloniesDirectional<BlockDecorationController> implements IBuilderUndestroyable, IAnchorBlock, EntityBlock, ILeveledBlueprintAnchorBlock, SimpleWaterloggedBlock
 {
+    public static final MapCodec<BlockDecorationController> CODEC = simpleCodec(BlockDecorationController::new);
+
     /**
      * The hardness this block has.
      */
@@ -73,10 +80,13 @@ public class BlockDecorationController extends AbstractBlockSlimColoniesDirectio
     protected static final VoxelShape AABB_SOUTH = Shapes.box(0.25D, 0.314D, 0.7D, 0.75D, 0.86D, 1.0D);
     protected static final VoxelShape AABB_NORTH = Shapes.box(0.25D, 0.314D, 0.0D, 0.75D, 0.86D, 0.3D);
 
-    protected static final VoxelShape AABB_EAST = Shapes.box(0.7D, 0.314D, 0.25D, 1.0D, 0.86D, 0.75D);
-    protected static final VoxelShape AABB_WEST = Shapes.box(0.0D, 0.314D, 0.25D, 0.3D, 0.86D, 0.75D);
 
-    protected static final VoxelShape AABB_UP   = Shapes.box(0.25D, 0.7D, 0.14D, 0.75D, 1.0D, 0.686D);
+    protected static final VoxelShape AABB_EAST  = Shapes.box(0.7D, 0.314D, 0.25D, 1.0D, 0.86D, 0.75D);
+    protected static final VoxelShape AABB_WEST  = Shapes.box(0.0D, 0.314D, 0.25D, 0.3D, 0.86D, 0.75D);
+
+
+
+    protected static final VoxelShape AABB_UP = Shapes.box(0.25D, 0.7D, 0.14D, 0.75D, 1.0D, 0.686D);
     protected static final VoxelShape AABB_DOWN = Shapes.box(0.25D, 0.0D, 0.314D, 0.75D, 0.3D, 0.86D);
 
     /**
@@ -84,14 +94,25 @@ public class BlockDecorationController extends AbstractBlockSlimColoniesDirectio
      */
     public BlockDecorationController()
     {
-        super(Properties.of().mapColor(MapColor.WOOD).sound(SoundType.WOOD).strength(BLOCK_HARDNESS, RESISTANCE).noCollission());
+        this(Properties.of().mapColor(MapColor.WOOD).sound(SoundType.WOOD).strength(BLOCK_HARDNESS, RESISTANCE).noCollission());
+    }
+
+    public BlockDecorationController(final Properties properties)
+    {
+        super(properties);
         this.registerDefaultState(this.defaultBlockState().setValue(FACING, Direction.NORTH).setValue(MIRROR, false).setValue(WATERLOGGED, false));
+    }
+
+    @Override
+    protected MapCodec<BlockDecorationController> codec()
+    {
+        return CODEC;
     }
 
     @Override
     public ResourceLocation getRegistryName()
     {
-        return ResourceLocation.fromNamespaceAndPath(Constants.MOD_ID, BLOCK_NAME);
+        return new ResourceLocation(Constants.MOD_ID, BLOCK_NAME);
     }
 
     @Override
@@ -104,14 +125,14 @@ public class BlockDecorationController extends AbstractBlockSlimColoniesDirectio
         if (shape.isEmpty() || Block.isShapeFullBlock(shape))
         {
             return switch (direction)
-            {
-                case EAST -> AABB_EAST;
-                case WEST -> AABB_WEST;
-                case SOUTH -> AABB_SOUTH;
-                case NORTH -> AABB_NORTH;
-                case UP -> AABB_UP;
-                case DOWN -> AABB_DOWN;
-            };
+                     {
+                         case EAST -> AABB_EAST;
+                         case WEST -> AABB_WEST;
+                         case SOUTH -> AABB_SOUTH;
+                         case NORTH -> AABB_NORTH;
+                         case UP -> AABB_UP;
+                         case DOWN -> AABB_DOWN;
+                     };
         }
 
         return switch (direction)
@@ -128,12 +149,12 @@ public class BlockDecorationController extends AbstractBlockSlimColoniesDirectio
     @NotNull
     @Override
     public BlockState updateShape(
-        @NotNull final BlockState stateIn,
-        final Direction dir,
-        final BlockState state,
-        final LevelAccessor worldIn,
-        @NotNull final BlockPos currentPos,
-        final BlockPos pos)
+      @NotNull final BlockState stateIn,
+      final Direction dir,
+      final BlockState state,
+      final LevelAccessor worldIn,
+      @NotNull final BlockPos currentPos,
+      final BlockPos pos)
     {
         if (stateIn.getValue(WATERLOGGED))
         {
@@ -145,13 +166,14 @@ public class BlockDecorationController extends AbstractBlockSlimColoniesDirectio
     }
 
     @Override
-    public InteractionResult use(
-        final BlockState state,
-        final Level worldIn,
-        final BlockPos pos,
-        final Player player,
-        final InteractionHand hand,
-        final BlockHitResult ray)
+    public ItemInteractionResult useItemOn(
+      final ItemStack Stack,
+      final BlockState state,
+      final Level worldIn,
+      final BlockPos pos,
+      final Player player,
+      final InteractionHand hand,
+      final BlockHitResult ray)
     {
         if (worldIn.isClientSide)
         {
@@ -161,7 +183,7 @@ public class BlockDecorationController extends AbstractBlockSlimColoniesDirectio
                 new WindowDecorationController(pos).open();
             }
         }
-        return InteractionResult.SUCCESS;
+        return ItemInteractionResult.SUCCESS;
     }
 
     @Override
@@ -181,6 +203,16 @@ public class BlockDecorationController extends AbstractBlockSlimColoniesDirectio
         if (worldIn.isClientSide)
         {
             return;
+        }
+
+        final BlockEntity tileEntity = worldIn.getBlockEntity(pos);
+        if (tileEntity instanceof TileEntityDecorationController && ((TileEntityDecorationController) tileEntity).getPositionedTags().getOrDefault(BlockPos.ZERO, new ArrayList<>()).contains(TAG_LEISURE))
+        {
+            @Nullable final IColony colony = IColonyManager.getInstance().getColonyByPosFromWorld(worldIn, pos);
+            if (colony != null)
+            {
+                colony.getServerBuildingManager().addLeisureSite(pos);
+            }
         }
     }
 

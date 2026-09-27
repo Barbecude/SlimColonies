@@ -1,0 +1,22 @@
+{
+  "type": "recipe",
+  "crafter": "baker_crafting",
+  "inputs": [
+    {
+      "id": "slimcolonies:durum"
+    },
+    {
+      "id": "slimcolonies:durum"
+    },
+    {
+      "id": "slimcolonies:large_water_bottle"
+    }
+  ],
+  "intermediate": "minecraft:air",
+  "loot-table": "slimcolonies:recipes/large_bottle",
+  "result": {
+    "count": 2,
+    "id": "slimcolonies:flatbread"
+  },
+  "show-tooltip": true
+}

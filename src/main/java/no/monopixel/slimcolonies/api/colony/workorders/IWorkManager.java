@@ -18,7 +18,7 @@ public interface IWorkManager
      *
      * @param order {@link IServerWorkOrder} to remove.
      */
-    void removeWorkOrder(@Nullable IServerWorkOrder order);
+    void removeWorkOrder(@NotNull IServerWorkOrder order);
 
     /**
      * Removes a work order from the work manager.

@@ -1,0 +1,30 @@
+{
+  "parent": "slimcolonies:production/build_sawmill",
+  "criteria": {
+    "smeltery": {
+      "conditions": {
+        "hut_name": "smeltery",
+        "level": 1
+      },
+      "trigger": "slimcolonies:complete_build_request"
+    }
+  },
+  "display": {
+    "description": {
+      "translate": "advancements.slimcolonies.build.smeltery.description"
+    },
+    "icon": {
+      "count": 1,
+      "id": "slimcolonies:blockhutsmeltery"
+    },
+    "title": {
+      "translate": "advancements.slimcolonies.build.smeltery.title"
+    }
+  },
+  "requirements": [
+    [
+      "smeltery"
+    ]
+  ],
+  "sends_telemetry_event": true
+}

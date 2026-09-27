@@ -21,9 +21,9 @@ public class ResearchEffectManager implements IResearchEffectManager
     public double getEffectStrength(final ResourceLocation id)
     {
         final IResearchEffect effect = effectMap.get(id);
-        if (effect instanceof GlobalResearchEffect globalResearchEffect)
+        if (effect instanceof GlobalResearchEffect)
         {
-            return globalResearchEffect.getEffect();
+            return effect.getEffect();
         }
         return 0;
     }

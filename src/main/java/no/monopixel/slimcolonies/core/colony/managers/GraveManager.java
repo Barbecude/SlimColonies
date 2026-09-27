@@ -1,6 +1,18 @@
 package no.monopixel.slimcolonies.core.colony.managers;
 
 import com.ldtteam.structurize.util.BlockUtils;
+import no.monopixel.slimcolonies.api.blocks.ModBlocks;
+import no.monopixel.slimcolonies.api.colony.GraveData;
+import no.monopixel.slimcolonies.api.colony.ICitizenData;
+import no.monopixel.slimcolonies.api.colony.IColony;
+import no.monopixel.slimcolonies.api.colony.managers.interfaces.IGraveManager;
+import no.monopixel.slimcolonies.api.util.BlockPosUtil;
+import no.monopixel.slimcolonies.api.util.InventoryUtils;
+import no.monopixel.slimcolonies.api.util.MessageUtils;
+import no.monopixel.slimcolonies.api.util.WorldUtil;
+import no.monopixel.slimcolonies.core.blocks.BlockMinecoloniesGrave;
+import no.monopixel.slimcolonies.core.colony.Colony;
+import no.monopixel.slimcolonies.core.tileentities.TileEntityGrave;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
@@ -13,18 +25,6 @@ import net.minecraft.world.level.block.AirBlock;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
-import no.monopixel.slimcolonies.api.blocks.ModBlocks;
-import no.monopixel.slimcolonies.api.colony.GraveData;
-import no.monopixel.slimcolonies.api.colony.ICitizenData;
-import no.monopixel.slimcolonies.api.colony.IColony;
-import no.monopixel.slimcolonies.api.colony.managers.interfaces.IGraveManager;
-import no.monopixel.slimcolonies.api.util.BlockPosUtil;
-import no.monopixel.slimcolonies.api.util.InventoryUtils;
-import no.monopixel.slimcolonies.api.util.MessageUtils;
-import no.monopixel.slimcolonies.api.util.WorldUtil;
-import no.monopixel.slimcolonies.core.blocks.BlockSlimColoniesGrave;
-import no.monopixel.slimcolonies.core.colony.Colony;
-import no.monopixel.slimcolonies.core.tileentities.TileEntityGrave;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
@@ -268,9 +268,9 @@ public class GraveManager implements IGraveManager
                 if (world.getBlockState(pos.above(i)).getBlock() instanceof AirBlock)
                 {
                     firstValidPosition = BlockPosUtil.findAround(world, pos, 1, 16,
-                        (blockAccess, current) ->
-                            blockAccess.getBlockState(current).isAir() &&
-                                BlockUtils.isAnySolid(blockAccess.getBlockState(current.below())));
+                      (blockAccess, current) ->
+                        blockAccess.getBlockState(current).isAir() &&
+                          BlockUtils.isAnySolid(blockAccess.getBlockState(current.below())));
                     break;
                 }
             }
@@ -283,16 +283,16 @@ public class GraveManager implements IGraveManager
         else
         {
             firstValidPosition = BlockPosUtil.findAround(world, pos, 10, 10,
-                (blockAccess, current) ->
-                    blockAccess.getBlockState(current).isAir() &&
-                        BlockUtils.isAnySolid(blockAccess.getBlockState(current.below())));
+              (blockAccess, current) ->
+                blockAccess.getBlockState(current).isAir() &&
+                  BlockUtils.isAnySolid(blockAccess.getBlockState(current.below())));
         }
 
 
         if (firstValidPosition != null)
         {
             world.setBlockAndUpdate(firstValidPosition,
-                BlockSlimColoniesGrave.getPlacementState(ModBlocks.blockGrave.defaultBlockState(), firstValidPosition));
+              BlockMinecoloniesGrave.getPlacementState(ModBlocks.blockGrave.defaultBlockState(), firstValidPosition));
             final TileEntityGrave graveEntity = (TileEntityGrave) world.getBlockEntity(firstValidPosition);
             if (!InventoryUtils.transferAllItemHandler(citizenData.getInventory(), graveEntity.getInventory()))
             {
@@ -314,10 +314,10 @@ public class GraveManager implements IGraveManager
             graveData.setCitizenName(citizenData.getName());
             if (citizenData.getJob() != null)
             {
-                final Component jobName = Component.translatable(citizenData.getJob().getJobRegistryEntry().getTranslationKey().toLowerCase());
+                final Component jobName = Component.translatableEscape(citizenData.getJob().getJobRegistryEntry().getTranslationKey().toLowerCase());
                 graveData.setCitizenJobName(jobName.getString());
             }
-            graveData.setCitizenDataNBT(citizenData.serializeNBT());
+            graveData.setCitizenDataNBT(citizenData.serializeNBT(world.registryAccess()));
             graveEntity.setGraveData(graveData);
 
             addNewGrave(firstValidPosition);

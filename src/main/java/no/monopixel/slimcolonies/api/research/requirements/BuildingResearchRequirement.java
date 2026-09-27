@@ -73,7 +73,7 @@ public class BuildingResearchRequirement implements IResearchRequirement
 
     /**
      * Attempts to parse a resource location from a given key. If the key is not already a valid resource location,
-     * it is assumed to be a namespaced key within the SlimColonies mod, and is converted to a valid resource location accordingly.
+     * it is assumed to be a namespaced key within the MineColonies mod, and is converted to a valid resource location accordingly.
      *
      * @param key the key to parse.
      * @return the parsed resource location.
@@ -82,7 +82,7 @@ public class BuildingResearchRequirement implements IResearchRequirement
     public static ResourceLocation parseFallbackBuildingKey(final String key)
     {
         final ResourceLocation buildingResourceLocation = ResourceLocation.tryParse(key);
-        return Objects.requireNonNullElseGet(buildingResourceLocation, () -> ResourceLocation.fromNamespaceAndPath(Constants.MOD_ID, key));
+        return Objects.requireNonNullElseGet(buildingResourceLocation, () -> new ResourceLocation(Constants.MOD_ID, key));
     }
 
     /**
@@ -123,7 +123,7 @@ public class BuildingResearchRequirement implements IResearchRequirement
     @Override
     public MutableComponent getDesc()
     {
-        final BuildingEntry buildingEntry = IBuildingRegistry.getInstance().getValue(building);
+        final BuildingEntry buildingEntry = IBuildingRegistry.getInstance().get(building);
         final MutableComponent buildingName = buildingEntry != null ? Component.translatable(buildingEntry.getTranslationKey()) : Component.empty();
 
         if (singleBuilding)
@@ -139,7 +139,7 @@ public class BuildingResearchRequirement implements IResearchRequirement
     @Override
     public boolean isFulfilled(final IColony colony)
     {
-        return colony.hasBuilding(building, buildingLevel, singleBuilding);
+        return colony.getCommonBuildingManager().hasBuilding(building, buildingLevel, singleBuilding);
     }
 
     @Override

@@ -1,7 +1,7 @@
 package no.monopixel.slimcolonies.core.blocks.huts;
 
-import no.monopixel.slimcolonies.api.blocks.AbstractColonyBlock;
 import no.monopixel.slimcolonies.api.blocks.AbstractBlockHut;
+import no.monopixel.slimcolonies.api.blocks.AbstractColonyBlock;
 import no.monopixel.slimcolonies.api.blocks.interfaces.IRSComponentBlock;
 import no.monopixel.slimcolonies.api.colony.buildings.ModBuildings;
 import no.monopixel.slimcolonies.api.colony.buildings.registry.BuildingEntry;

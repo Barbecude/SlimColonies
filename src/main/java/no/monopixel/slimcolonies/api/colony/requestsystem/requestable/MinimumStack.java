@@ -6,8 +6,9 @@ import no.monopixel.slimcolonies.api.crafting.ItemStorage;
 import no.monopixel.slimcolonies.api.util.ItemStackUtils;
 import no.monopixel.slimcolonies.api.util.ReflectionUtils;
 import no.monopixel.slimcolonies.api.util.constant.TypeConstants;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.world.item.ItemStack;
 import org.jetbrains.annotations.NotNull;
 
@@ -125,9 +126,9 @@ public class MinimumStack extends Stack
      * @param compound   the compound.
      * @return the deliverable.
      */
-    public static MinimumStack deserialize(final IFactoryController controller, final CompoundTag compound)
+    public static MinimumStack deserialize(@NotNull final HolderLookup.Provider provider, final IFactoryController controller, final CompoundTag compound)
     {
-        final Stack stack = Stack.deserialize(controller, compound);
+        final Stack stack = Stack.deserialize(provider, controller, compound);
         return new MinimumStack(stack.getStack(), stack.matchDamage(), stack.matchNBT(), stack.getResult(), stack.getCount(), stack.getMinimumCount(), stack.canBeResolvedByBuilding());
     }
 
@@ -138,7 +139,7 @@ public class MinimumStack extends Stack
      * @param buffer     the buffer to read.
      * @return the deliverable.
      */
-    public static MinimumStack deserialize(final IFactoryController controller, final FriendlyByteBuf buffer)
+    public static MinimumStack deserialize(final IFactoryController controller, final RegistryFriendlyByteBuf buffer)
     {
         final Stack stack = Stack.deserialize(controller, buffer);
         return new MinimumStack(stack.getStack(), stack.matchDamage(), stack.matchNBT(), stack.getResult(), stack.getCount(), stack.getMinimumCount(), stack.canBeResolvedByBuilding());

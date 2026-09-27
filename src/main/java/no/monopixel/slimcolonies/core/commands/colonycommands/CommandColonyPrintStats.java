@@ -1,13 +1,13 @@
 package no.monopixel.slimcolonies.core.commands.colonycommands;
 
 import no.monopixel.slimcolonies.api.colony.IColony;
-import no.monopixel.slimcolonies.api.colony.IColonyManager;
 import no.monopixel.slimcolonies.api.colony.buildings.IBuilding;
 import no.monopixel.slimcolonies.api.util.Log;
+import no.monopixel.slimcolonies.core.colony.events.raid.RaidManager;
+import no.monopixel.slimcolonies.core.commands.arguments.ColonyIdArgument;
 import no.monopixel.slimcolonies.core.commands.commandTypes.IMCCommand;
 import no.monopixel.slimcolonies.core.commands.commandTypes.IMCOPCommand;
 import no.monopixel.slimcolonies.core.research.LocalResearchTree;
-import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
 import net.minecraft.ChatFormatting;
@@ -16,13 +16,11 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.network.chat.Style;
-import net.minecraft.network.chat.contents.LiteralContents;
 import net.minecraft.resources.ResourceLocation;
 
 import java.util.List;
 import java.util.stream.Collectors;
 
-import static no.monopixel.slimcolonies.api.util.constant.translation.CommandTranslationConstants.COMMAND_COLONY_ID_NOT_FOUND;
 import static no.monopixel.slimcolonies.core.commands.CommandArgumentNames.COLONYID_ARG;
 
 /**
@@ -50,15 +48,7 @@ public class CommandColonyPrintStats implements IMCOPCommand
     public int onExecute(final CommandContext<CommandSourceStack> context)
     {
         fullLog = "\n";
-        // Colony
-        final int colonyID = IntegerArgumentType.getInteger(context, COLONYID_ARG);
-        final IColony colony = IColonyManager.getInstance().getColonyByDimension(colonyID, context.getSource().getLevel().dimension());
-        if (colony == null)
-        {
-            context.getSource().sendSuccess(() -> Component.translatable(COMMAND_COLONY_ID_NOT_FOUND, colonyID), false);
-            return 0;
-        }
-
+        final IColony colony = ColonyIdArgument.getColony(context, COLONYID_ARG);
         final BlockPos position = colony.getCenter();
         context.getSource().sendSuccess(() -> literalAndRemember(ID_TEXT + colony.getID() + NAME_TEXT + colony.getName()), false);
         final String mayor = colony.getPermissions().getOwnerName();
@@ -72,13 +62,23 @@ public class CommandColonyPrintStats implements IMCOPCommand
         context.getSource().sendSuccess(() -> literalAndRemember(String.format(LAST_CONTACT_TEXT, colony.getLastContactInHours())), false);
         context.getSource().sendSuccess(() -> literalAndRemember(IS_DELETABLE + !colony.canBeAutoDeleted()), false);
 
+        if (!colony.getRaiderManager().canHaveRaiderEvents())
+        {
+            context.getSource().sendSuccess(() -> literalAndRemember(CANNOT_BE_RAIDED), false);
+        }
 
-        if (!colony.getBuildingManager().getBuildings().isEmpty())
+        final RaidManager.RaidHistory last = ((RaidManager) colony.getRaiderManager()).getLastRaid();
+        if (last != null)
+        {
+            context.getSource().sendSuccess(() -> literalAndRemember(last.toString()), false);
+        }
+
+        if (!colony.getServerBuildingManager().getBuildings().isEmpty())
         {
             int count = 0;
             int levels = 0;
 
-            for (final IBuilding building : colony.getBuildingManager().getBuildings().values())
+            for (final IBuilding building : colony.getServerBuildingManager().getBuildings().values())
             {
                 if (building.getBuildingLevel() != 0)
                 {
@@ -90,9 +90,9 @@ public class CommandColonyPrintStats implements IMCOPCommand
             final double average = (double) levels / count;
 
             context.getSource()
-                .sendSuccess(() -> literalAndRemember("Buildings:" + colony.getBuildingManager().getBuildings().size() + " average level:" + average), false);
+                .sendSuccess(() -> literalAndRemember("Buildings:" + colony.getServerBuildingManager().getBuildings().size() + " average level:" + average), false);
             context.getSource()
-              .sendSuccess(() -> literalAndRemember(colony.getBuildingManager()
+              .sendSuccess(() -> literalAndRemember(colony.getServerBuildingManager()
                 .getBuildings()
                 .values()
                 .stream()
@@ -119,7 +119,7 @@ public class CommandColonyPrintStats implements IMCOPCommand
     MutableComponent literalAndRemember(String message)
     {
         fullLog += message + "\n";
-        return MutableComponent.create(new LiteralContents(message));
+        return Component.literal(message);
     }
 
     /**
@@ -135,6 +135,6 @@ public class CommandColonyPrintStats implements IMCOPCommand
     public LiteralArgumentBuilder<CommandSourceStack> build()
     {
         return IMCCommand.newLiteral(getName())
-          .then(IMCCommand.newArgument(COLONYID_ARG, IntegerArgumentType.integer(1)).executes(this::checkPreConditionAndExecute));
+          .then(IMCCommand.newArgument(COLONYID_ARG, ColonyIdArgument.id()).executes(this::checkPreConditionAndExecute));
     }
 }

@@ -1,10 +1,10 @@
 package no.monopixel.slimcolonies.core.colony.buildings;
 
+import com.ldtteam.structurize.api.RotationMirror;
 import com.ldtteam.structurize.blockentities.interfaces.IBlueprintDataProviderBE;
 import com.ldtteam.structurize.blueprints.v1.Blueprint;
 import com.ldtteam.structurize.storage.StructurePacks;
 import com.ldtteam.structurize.util.BlockInfo;
-import com.ldtteam.structurize.util.RotationMirror;
 import no.monopixel.slimcolonies.api.blocks.AbstractBlockHut;
 import no.monopixel.slimcolonies.api.colony.IColony;
 import no.monopixel.slimcolonies.api.colony.buildings.IBuilding;
@@ -13,18 +13,18 @@ import no.monopixel.slimcolonies.api.colony.buildings.modules.IAltersBuildingFoo
 import no.monopixel.slimcolonies.api.colony.buildings.registry.BuildingEntry;
 import no.monopixel.slimcolonies.api.compatibility.newstruct.BlueprintMapping;
 import no.monopixel.slimcolonies.api.tileentities.AbstractTileEntityColonyBuilding;
+import no.monopixel.slimcolonies.core.tileentities.TileEntityColonyBuilding;
 import no.monopixel.slimcolonies.api.util.BlockPosUtil;
 import no.monopixel.slimcolonies.api.util.FireworkUtils;
 import no.monopixel.slimcolonies.api.util.Log;
 import no.monopixel.slimcolonies.api.util.MessageUtils;
-import no.monopixel.slimcolonies.core.tileentities.TileEntityColonyBuilding;
-import no.monopixel.slimcolonies.core.util.BuildingUtils;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.util.Tuple;
-import net.minecraft.world.level.block.Mirror;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.Set;
 import java.util.concurrent.Future;
@@ -52,9 +52,10 @@ public abstract class AbstractSchematicProvider implements ISchematicProvider, I
     private int buildingLevel = 0;
 
     /**
-     * The mirror of the building.
+     * The rotation and mirror of the building.
      */
-    private boolean isBuildingMirrored = false;
+    @Nullable
+    private RotationMirror rotationMirror = null;
 
     /**
      * The building style.
@@ -88,11 +89,6 @@ public abstract class AbstractSchematicProvider implements ISchematicProvider, I
     private BlockPos higherCorner = BlockPos.ZERO;
 
     /**
-     * Cached rotation.
-     */
-    public int cachedRotation = -1;
-
-    /**
      * Parent schematic this is in
      */
     private BlockPos parentSchematic = BlockPos.ZERO;
@@ -103,6 +99,11 @@ public abstract class AbstractSchematicProvider implements ISchematicProvider, I
     private Future<Blueprint> blueprintFuture;
     private String            blueprintFuturePack = "";
     private String            blueprintFutureName = "";
+
+    /**
+     * If prestige should be recalculated.
+     */
+    private boolean recalcPrestige;
 
     public AbstractSchematicProvider(final BlockPos pos, final IColony colony)
     {
@@ -150,12 +151,11 @@ public abstract class AbstractSchematicProvider implements ISchematicProvider, I
     {
         this.path = path;
         getTileEntity().setBlueprintPath(path);
-        cachedRotation = -1;
         this.markDirty();
     }
 
     @Override
-    public CompoundTag serializeNBT()
+    public CompoundTag serializeNBT(@NotNull final HolderLookup.Provider provider)
     {
         final CompoundTag compound = new CompoundTag();
         BlockPosUtil.write(compound, TAG_LOCATION, location);
@@ -164,15 +164,13 @@ public abstract class AbstractSchematicProvider implements ISchematicProvider, I
         compound.putString(TAG_PATH, getBlueprintPath());
 
         compound.putInt(TAG_SCHEMATIC_LEVEL, buildingLevel);
-        compound.putBoolean(TAG_MIRROR, isBuildingMirrored);
+        compound.putByte(TAG_ROTATION_MIRROR, (byte) getRotationMirror().ordinal());
 
         getCorners();
         BlockPosUtil.write(compound, TAG_CORNER1, this.lowerCorner);
         BlockPosUtil.write(compound, TAG_CORNER2, this.higherCorner);
 
         compound.putInt(TAG_HEIGHT, this.height);
-
-        compound.putInt(TAG_ROTATION, cachedRotation);
 
         compound.putBoolean(TAG_DECONSTRUCTED, isDeconstructed);
 
@@ -181,13 +179,13 @@ public abstract class AbstractSchematicProvider implements ISchematicProvider, I
     }
 
     @Override
-    public void deserializeNBT(final CompoundTag compound)
+    public void deserializeNBT(@NotNull final HolderLookup.Provider provider, final CompoundTag compound)
     {
         buildingLevel = compound.getInt(TAG_SCHEMATIC_LEVEL);
 
         deserializerStructureInformationFrom(compound);
 
-        isBuildingMirrored = compound.getBoolean(TAG_MIRROR);
+        this.rotationMirror = RotationMirror.values()[compound.getByte(TAG_ROTATION_MIRROR)];
 
         if (compound.contains(TAG_CORNER1) && compound.contains(TAG_CORNER2))
         {
@@ -197,11 +195,6 @@ public abstract class AbstractSchematicProvider implements ISchematicProvider, I
         if (compound.contains(TAG_HEIGHT))
         {
             this.height = compound.getInt(TAG_HEIGHT);
-        }
-
-        if (compound.contains(TAG_ROTATION))
-        {
-            this.cachedRotation = compound.getInt(TAG_ROTATION);
         }
 
         if (compound.contains(TAG_DECONSTRUCTED))
@@ -311,27 +304,17 @@ public abstract class AbstractSchematicProvider implements ISchematicProvider, I
 
     private boolean isParentValid(BlockPos position)
     {
-        final IBuilding building = colony.getBuildingManager().getBuilding(position);
+        final IBuilding building = colony.getServerBuildingManager().getBuilding(position);
         return building != null && !building.getID().equals(getID()) && !building.hasParent();
     }
 
     @Override
     public Set<BlockPos> getChildren()
     {
-        return colony.getBuildingManager().getBuildings().values().stream()
+        return colony.getServerBuildingManager().getBuildings().values().stream()
           .filter(f -> f.getParent().equals(getID()))
           .map(ISchematicProvider::getID)
           .collect(Collectors.toUnmodifiableSet());
-    }
-
-    @Override
-    public int getRotation()
-    {
-        if (cachedRotation == -1)
-        {
-            cachedRotation = BuildingUtils.getRotationFromBlueprint(colony.getWorld(), getPosition());
-        }
-        return cachedRotation;
     }
 
     /**
@@ -378,18 +361,17 @@ public abstract class AbstractSchematicProvider implements ISchematicProvider, I
                 blueprint = blueprintFuture.get();
                 if (blueprint != null)
                 {
-                    blueprint.setRotationMirror(RotationMirror.of(BlockPosUtil.getRotationFromRotations(getRotation()), isMirrored() ? Mirror.FRONT_BACK : Mirror.NONE),
-                        colony.getWorld());
-                    final BlockInfo info = blueprint.getBlockInfoAsMap().getOrDefault(blueprint.getPrimaryBlockOffset(), null);
-                    if (info.getTileEntityData() != null)
+                    blueprintFuture = null;
+                    if (recalcPrestige)
                     {
-                        final CompoundTag teCompound = info.getTileEntityData().copy();
-                        teCompound.putString(TAG_PACK, blueprint.getPackName());
-                        final String location = StructurePacks.getStructurePack(blueprint.getPackName()).getSubPath(blueprint.getFilePath().resolve(blueprint.getFileName()));
-                        teCompound.putString(TAG_NAME, location);
-
-                        getTileEntity().readSchematicDataFromNBT(teCompound);
+                        calculatePrestige(blueprint);
+                        recalcPrestige = false;
                     }
+                }
+                else
+                {
+                    recalcPrestige = false;
+                    colony.getServerBuildingManager().clearPendingPrestigeCalc(this);
                 }
             }
             catch (Exception e)
@@ -397,6 +379,23 @@ public abstract class AbstractSchematicProvider implements ISchematicProvider, I
                 Log.getLogger().info("Failed to load blueprintfuture for: pack:" + blueprintFuturePack + " name:" + blueprintFutureName, e);
                 blueprintFuture = null;
             }
+        }
+    }
+
+    @Override
+    public void asyncPrestigeRecalc()
+    {
+        // No need to calculate prestige for buildings at level 0.
+        if (buildingLevel == 0)
+        {
+            colony.getServerBuildingManager().clearPendingPrestigeCalc(this);
+            return;
+        }
+
+        if (!recalcPrestige)
+        {
+            recalcPrestige = true;
+            blueprintFuture = StructurePacks.getBlueprintFuture(this.getStructurePack(), this.getBlueprintPath(), colony.getWorld().registryAccess());
         }
     }
 
@@ -419,7 +418,7 @@ public abstract class AbstractSchematicProvider implements ISchematicProvider, I
             packName = te.getStructurePack().getName();
         }
 
-        blueprintFuture = StructurePacks.getBlueprintFuture(packName, structureName);
+        blueprintFuture = StructurePacks.getBlueprintFuture(packName, structureName, te.getLevel().registryAccess());
         blueprintFuturePack = packName;
         blueprintFutureName = structureName;
     }
@@ -430,7 +429,7 @@ public abstract class AbstractSchematicProvider implements ISchematicProvider, I
         final BlockPos parent = getParent();
         if (parent != BlockPos.ZERO)
         {
-            final IBuilding building = colony.getBuildingManager().getBuilding(parent);
+            final IBuilding building = colony.getServerBuildingManager().getBuilding(parent);
             if (building != null)
             {
                 return building.getStructurePack();
@@ -444,7 +443,6 @@ public abstract class AbstractSchematicProvider implements ISchematicProvider, I
     public void setStructurePack(final String pack)
     {
         this.structurePack = pack;
-        cachedRotation = -1;
         this.markDirty();
         getTileEntity().setStructurePack(StructurePacks.getStructurePack(pack));
     }
@@ -469,15 +467,15 @@ public abstract class AbstractSchematicProvider implements ISchematicProvider, I
     }
 
     @Override
-    public void setIsMirrored(final boolean isMirrored)
+    public void setRotationMirror(final RotationMirror rotMir)
     {
-        this.isBuildingMirrored = isMirrored;
+        this.rotationMirror = rotMir;
     }
 
     @Override
-    public boolean isMirrored()
+    public RotationMirror getRotationMirror()
     {
-        return isBuildingMirrored;
+        return rotationMirror;
     }
 
     @Override
@@ -538,7 +536,7 @@ public abstract class AbstractSchematicProvider implements ISchematicProvider, I
                 }
 
                 setBuildingLevel(level);
-                onUpgradeComplete(level);
+                onUpgradeComplete(null, level);
                 isDeconstructed = false;
             }
         }

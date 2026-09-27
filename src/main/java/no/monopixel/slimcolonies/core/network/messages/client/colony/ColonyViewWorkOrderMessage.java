@@ -1,39 +1,35 @@
 package no.monopixel.slimcolonies.core.network.messages.client.colony;
 
+import com.ldtteam.common.network.AbstractClientPlayMessage;
+import com.ldtteam.common.network.PlayMessageType;
 import no.monopixel.slimcolonies.api.colony.IColonyManager;
 import no.monopixel.slimcolonies.api.colony.workorders.IServerWorkOrder;
-import no.monopixel.slimcolonies.api.network.IMessage;
+import no.monopixel.slimcolonies.api.util.constant.Constants;
 import no.monopixel.slimcolonies.core.colony.Colony;
 import no.monopixel.slimcolonies.core.colony.workorders.view.AbstractWorkOrderView;
 import io.netty.buffer.Unpooled;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
-import net.minecraftforge.fml.LogicalSide;
-import net.minecraftforge.network.NetworkEvent;
+import net.neoforged.neoforge.network.handling.IPayloadContext;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 
 /**
  * Add or Update a ColonyView on the client.
  */
-public class ColonyViewWorkOrderMessage implements IMessage
+public class ColonyViewWorkOrderMessage extends AbstractClientPlayMessage
 {
-    private int                colonyId;
-    private ResourceKey<Level> dimension;
-    private FriendlyByteBuf       workOrderBuffer;
+    public static final PlayMessageType<?> TYPE = PlayMessageType.forClient(Constants.MOD_ID, "colony_view_workorder", ColonyViewWorkOrderMessage::new);
 
-    /**
-     * Empty constructor used when registering the
-     */
-    public ColonyViewWorkOrderMessage()
-    {
-        super();
-    }
+    private final int                colonyId;
+    private final ResourceKey<Level> dimension;
+    private final RegistryFriendlyByteBuf       workOrderBuffer;
 
     /**
      * Updates a {@link AbstractWorkOrderView} of the workOrders.
@@ -43,8 +39,9 @@ public class ColonyViewWorkOrderMessage implements IMessage
      */
     public ColonyViewWorkOrderMessage(@NotNull final Colony colony, @NotNull final List<IServerWorkOrder> workOrderList)
     {
+        super(TYPE);
         this.colonyId = colony.getID();
-        this.workOrderBuffer = new FriendlyByteBuf(Unpooled.buffer());
+        this.workOrderBuffer = new RegistryFriendlyByteBuf(new FriendlyByteBuf(Unpooled.buffer()), colony.getWorld().registryAccess());
         this.dimension = colony.getDimension();
 
         workOrderBuffer.writeInt(workOrderList.size());
@@ -54,35 +51,28 @@ public class ColonyViewWorkOrderMessage implements IMessage
         }
     }
 
-    @Override
-    public void fromBytes(@NotNull final FriendlyByteBuf buf)
+    public ColonyViewWorkOrderMessage(@NotNull final RegistryFriendlyByteBuf buf, final PlayMessageType<?> type)
     {
-        final FriendlyByteBuf newbuf = new FriendlyByteBuf(buf.retain());
-        colonyId = newbuf.readInt();
-        dimension = ResourceKey.create(Registries.DIMENSION, ResourceLocation.parse(newbuf.readUtf(32767)));
-        workOrderBuffer = newbuf;
+        super(buf, type);
+        colonyId = buf.readInt();
+        dimension = ResourceKey.create(Registries.DIMENSION, ResourceLocation.parse(buf.readUtf(32767)));
+        workOrderBuffer = new RegistryFriendlyByteBuf(new FriendlyByteBuf(Unpooled.wrappedBuffer(buf.readByteArray())), buf.registryAccess());
     }
 
     @Override
-    public void toBytes(@NotNull final FriendlyByteBuf buf)
+    protected void toBytes(@NotNull final RegistryFriendlyByteBuf buf)
     {
         workOrderBuffer.resetReaderIndex();
         buf.writeInt(colonyId);
         buf.writeUtf(dimension.location().toString());
-        buf.writeBytes(workOrderBuffer);
-    }
-
-    @Nullable
-    @Override
-    public LogicalSide getExecutionSide()
-    {
-        return LogicalSide.CLIENT;
+        buf.writeByteArray(workOrderBuffer.array());
     }
 
     @Override
-    public void onExecute(final NetworkEvent.Context ctxIn, final boolean isLogicalServer)
+    protected void onExecute(final IPayloadContext ctxIn, final Player player)
     {
         IColonyManager.getInstance().handleColonyViewWorkOrderMessage(colonyId, workOrderBuffer, dimension);
-        workOrderBuffer.release();
     }
 }
+
+

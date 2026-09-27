@@ -10,17 +10,17 @@ import no.monopixel.slimcolonies.api.quests.IQuestDialogueAnswer;
 import no.monopixel.slimcolonies.api.quests.IQuestInstance;
 import no.monopixel.slimcolonies.api.quests.IQuestManager;
 import no.monopixel.slimcolonies.api.util.constant.Constants;
-import no.monopixel.slimcolonies.core.Network;
 import no.monopixel.slimcolonies.core.entity.ai.workers.AbstractEntityAIBasic;
 import no.monopixel.slimcolonies.core.network.messages.server.colony.InteractionResponse;
 import no.monopixel.slimcolonies.core.quests.objectives.DialogueObjectiveTemplateTemplate;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.api.distmarker.OnlyIn;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.api.distmarker.OnlyIn;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Collections;
@@ -39,9 +39,9 @@ public class QuestDialogueInteraction extends StandardInteraction
     /**
      * Three icon options.
      */
-    private static final ResourceLocation QUEST_START_ICON = ResourceLocation.fromNamespaceAndPath(Constants.MOD_ID, "textures/icons/queststart.png");
-    private static final ResourceLocation QUEST_NEXT_TASK_ICON = ResourceLocation.fromNamespaceAndPath(Constants.MOD_ID, "textures/icons/nexttask.png");
-    private static final ResourceLocation QUEST_WAITING_TASK_ICON = ResourceLocation.fromNamespaceAndPath(Constants.MOD_ID, "textures/icons/opentask.png");
+    private static final ResourceLocation QUEST_START_ICON = new ResourceLocation(Constants.MOD_ID, "textures/icons/queststart.png");
+    private static final ResourceLocation QUEST_NEXT_TASK_ICON = new ResourceLocation(Constants.MOD_ID, "textures/icons/nexttask.png");
+    private static final ResourceLocation QUEST_WAITING_TASK_ICON = new ResourceLocation(Constants.MOD_ID, "textures/icons/opentask.png");
 
     /**
      * Currently open colony quest.
@@ -80,7 +80,7 @@ public class QuestDialogueInteraction extends StandardInteraction
 
     public QuestDialogueInteraction(final Component inquiry, final IChatPriority priority, final ResourceLocation location, final int index, final ICitizenData citizenData)
     {
-        super(inquiry, null, priority);
+        super(inquiry, Component.empty(), priority);
         this.questId = location;
         this.index = index;
         this.currentElement = ((DialogueObjectiveTemplateTemplate) IQuestManager.GLOBAL_SERVER_QUESTS.get(questId).getObjective(index)).getDialogueTree();
@@ -142,14 +142,14 @@ public class QuestDialogueInteraction extends StandardInteraction
             final IQuestDialogueAnswer result = this.currentElement.getOptionResult(responseId);
             if (result instanceof IFinalQuestDialogueAnswer)
             {
-                Network.getNetwork().sendToServer(new InteractionResponse(data.getColonyId(), data.getId(), player.level.dimension(), Component.literal(questId.toString()), responseId));
+                new InteractionResponse(data.getColonyId(), data.getId(), player.level().dimension(), Component.literal(questId.toString()), responseId).sendToServer();
                 this.currentElement = this.startElement;
                 finished = true;
                 return true;
             }
             else if (result instanceof DialogueObjectiveTemplateTemplate.DialogueElement)
             {
-                Network.getNetwork().sendToServer(new InteractionResponse(data.getColonyId(), data.getId(), player.level.dimension(), Component.literal(questId.toString()), responseId));
+                new InteractionResponse(data.getColonyId(), data.getId(), player.level().dimension(), Component.literal(questId.toString()), responseId).sendToServer();
                 this.currentElement = (DialogueObjectiveTemplateTemplate.DialogueElement) result;
                 return false;
             }
@@ -223,9 +223,9 @@ public class QuestDialogueInteraction extends StandardInteraction
     }
 
     @Override
-    public CompoundTag serializeNBT()
+    public CompoundTag serializeNBT(@NotNull final HolderLookup.Provider provider)
     {
-        final CompoundTag tag = super.serializeNBT();
+        final CompoundTag tag = super.serializeNBT(provider);
         tag.putString(TAG_QUEST_ID, questId.toString());
         tag.putInt(TAG_QUEST_INDEX, index);
         tag.putBoolean(TAG_FINISHED, finished);
@@ -233,10 +233,10 @@ public class QuestDialogueInteraction extends StandardInteraction
     }
 
     @Override
-    public void deserializeNBT(final @NotNull CompoundTag compoundNBT)
+    public void deserializeNBT(@NotNull final HolderLookup.Provider provider, final @NotNull CompoundTag compoundNBT)
     {
-        super.deserializeNBT(compoundNBT);
-        this.questId = new ResourceLocation(compoundNBT.getString(TAG_QUEST_ID));
+        super.deserializeNBT(provider, compoundNBT);
+        this.questId = ResourceLocation.parse(compoundNBT.getString(TAG_QUEST_ID));
         this.index = compoundNBT.getInt(TAG_QUEST_INDEX);
         this.currentElement = ((DialogueObjectiveTemplateTemplate) IQuestManager.GLOBAL_SERVER_QUESTS.get(questId).getObjective(index)).getDialogueTree();
         this.startElement = currentElement;

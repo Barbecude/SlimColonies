@@ -10,6 +10,7 @@ import no.monopixel.slimcolonies.api.util.NBTUtils;
 import no.monopixel.slimcolonies.core.colony.buildings.AbstractBuilding;
 import no.monopixel.slimcolonies.core.colony.buildings.modules.WorkAtHomeBuildingModule;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
@@ -63,7 +64,7 @@ public class BuildingCombatAcademy extends AbstractBuilding
     {
         super(c, l);
     }
-
+    
 
     @Override
     public void registerBlockPosition(@NotNull final Block block, @NotNull final BlockPos pos, @NotNull final Level world)
@@ -76,9 +77,9 @@ public class BuildingCombatAcademy extends AbstractBuilding
     }
 
     @Override
-    public void deserializeNBT(final CompoundTag compound)
+    public void deserializeNBT(@NotNull final HolderLookup.Provider provider, final CompoundTag compound)
     {
-        super.deserializeNBT(compound);
+        super.deserializeNBT(provider, compound);
 
         fightingPos.clear();
 
@@ -91,9 +92,9 @@ public class BuildingCombatAcademy extends AbstractBuilding
     }
 
     @Override
-    public CompoundTag serializeNBT()
+    public CompoundTag serializeNBT(@NotNull final HolderLookup.Provider provider)
     {
-        final CompoundTag compound = super.serializeNBT();
+        final CompoundTag compound = super.serializeNBT(provider);
 
         final ListTag targetList = fightingPos.stream().map(target -> BlockPosUtil.write(new CompoundTag(), TAG_TARGET, target)).collect(NBTUtils.toListNBT());
         compound.put(TAG_COMBAT_TARGET, targetList);
@@ -125,7 +126,7 @@ public class BuildingCombatAcademy extends AbstractBuilding
         return SCHEMATIC_NAME;
     }
 
-    
+    @SuppressWarnings("squid:S109")
     @Override
     public int getMaxBuildingLevel()
     {

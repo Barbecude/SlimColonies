@@ -2,27 +2,28 @@ package no.monopixel.slimcolonies.core.client.gui.townhall;
 
 import com.ldtteam.blockui.Pane;
 import com.ldtteam.blockui.PaneBuilders;
-import com.ldtteam.blockui.controls.Text;
+import com.ldtteam.blockui.controls.*;
 import com.ldtteam.blockui.views.DropDownList;
 import com.ldtteam.blockui.views.ScrollingList;
-import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.MutableComponent;
-import no.monopixel.slimcolonies.api.SlimColoniesAPIProxy;
+import no.monopixel.slimcolonies.api.MinecoloniesAPIProxy;
 import no.monopixel.slimcolonies.api.colony.ICitizenDataView;
 import no.monopixel.slimcolonies.api.colony.buildings.views.IBuildingView;
 import no.monopixel.slimcolonies.api.util.Tuple;
 import no.monopixel.slimcolonies.api.util.constant.CitizenConstants;
-import no.monopixel.slimcolonies.core.SlimColonies;
+import no.monopixel.slimcolonies.core.MineColonies;
 import no.monopixel.slimcolonies.core.colony.buildings.moduleviews.CombinedHiringLimitModuleView;
 import no.monopixel.slimcolonies.core.colony.buildings.moduleviews.WorkerBuildingModuleView;
 import no.monopixel.slimcolonies.core.colony.buildings.views.AbstractBuildingView;
 import no.monopixel.slimcolonies.core.colony.buildings.workerbuildings.BuildingTownHall;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.MutableComponent;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
 
 import static no.monopixel.slimcolonies.api.research.util.ResearchConstants.CITIZEN_CAP;
 import static no.monopixel.slimcolonies.api.util.constant.TranslationConstants.*;
+import static no.monopixel.slimcolonies.api.util.constant.TranslationConstants.COM_MINECOLONIES_COREMOD_GUI_TOWNHALL_POPULATION_CHILDS;
 import static no.monopixel.slimcolonies.api.util.constant.WindowConstants.*;
 
 /**
@@ -33,10 +34,10 @@ public class WindowStatsPage extends AbstractWindowTownHall
     /**
      * Map of intervals.
      */
-    public static final LinkedHashMap<String, Integer> INTERVAL = new LinkedHashMap<>();
+    private static final LinkedHashMap<String, Integer> INTERVAL = new LinkedHashMap<>();
+
     static
     {
-        INTERVAL.put("no.monopixel.slimcolonies.coremod.gui.interval.today", 0);
         INTERVAL.put("no.monopixel.slimcolonies.coremod.gui.interval.yesterday", 1);
         INTERVAL.put("no.monopixel.slimcolonies.coremod.gui.interval.lastweek", 7);
         INTERVAL.put("no.monopixel.slimcolonies.coremod.gui.interval.100days", 100);
@@ -80,52 +81,51 @@ public class WindowStatsPage extends AbstractWindowTownHall
      */
     private void createAndSetStatistics()
     {
-        final int citizensSize = building.getColony().getCitizens().size();
+        final int citizensSize = buildingView.getColony().getCitizens().size();
         final int citizensCap;
 
-        if (SlimColoniesAPIProxy.getInstance().getGlobalResearchTree().hasResearchEffect(CITIZEN_CAP))
+        if (MinecoloniesAPIProxy.getInstance().getGlobalResearchTree().hasResearchEffect(CITIZEN_CAP))
         {
-            final int max =
-                Math.max(CitizenConstants.CITIZEN_LIMIT_DEFAULT, (int) this.building.getColony().getResearchManager().getResearchEffects().getEffectStrength(CITIZEN_CAP));
-            citizensCap = Math.min(max, SlimColonies.getConfig().getServer().maxCitizenPerColony.get());
+            final int max = Math.max(CitizenConstants.CITIZEN_LIMIT_DEFAULT, (int) this.buildingView.getColony().getResearchManager().getResearchEffects().getEffectStrength(CITIZEN_CAP));
+            citizensCap = Math.min(max, MineColonies.getConfig().getServer().maxCitizenPerColony.get());
         }
         else
         {
-            citizensCap = SlimColonies.getConfig().getServer().maxCitizenPerColony.get();
+            citizensCap = MineColonies.getConfig().getServer().maxCitizenPerColony.get();
         }
 
         final Text totalCitizenLabel = findPaneOfTypeByID(TOTAL_CITIZENS_LABEL, Text.class);
-        totalCitizenLabel.setText(Component.translatable(COREMOD_GUI_TOWNHALL_POPULATION_TOTALCITIZENS_COUNT,
-            citizensSize,
-            Math.max(citizensSize, building.getColony().getCitizenCountLimit())));
+        totalCitizenLabel.setText(Component.translatableEscape(COM_MINECOLONIES_COREMOD_GUI_TOWNHALL_POPULATION_TOTALCITIZENS_COUNT,
+          citizensSize,
+          Math.max(citizensSize, buildingView.getColony().getCitizenCountLimit())));
         List<MutableComponent> hoverText = new ArrayList<>();
-        if (citizensSize < (citizensCap * 0.9) && citizensSize < (building.getColony().getCitizenCountLimit() * 0.9))
+        if(citizensSize < (citizensCap * 0.9) && citizensSize < (buildingView.getColony().getCitizenCountLimit() * 0.9))
         {
             totalCitizenLabel.setColors(DARKGREEN);
         }
-        else if (citizensSize < citizensCap)
+        else if(citizensSize < citizensCap)
         {
-            hoverText.add(Component.translatable(WARNING_POPULATION_NEEDS_HOUSING, this.building.getColony().getName()));
+            hoverText.add(Component.translatableEscape(WARNING_POPULATION_NEEDS_HOUSING, this.buildingView.getColony().getName()));
             totalCitizenLabel.setColors(ORANGE);
         }
         else
         {
-            if (citizensCap < SlimColonies.getConfig().getServer().maxCitizenPerColony.get())
+            if(citizensCap < MineColonies.getConfig().getServer().maxCitizenPerColony.get())
             {
-                hoverText.add(Component.translatable(WARNING_POPULATION_RESEARCH_LIMITED, this.building.getColony().getName()));
+                hoverText.add(Component.translatableEscape(WARNING_POPULATION_RESEARCH_LIMITED, this.buildingView.getColony().getName()));
             }
             else
             {
-                hoverText.add(Component.translatable(WARNING_POPULATION_CONFIG_LIMITED, this.building.getColony().getName()));
+                hoverText.add(Component.translatableEscape( WARNING_POPULATION_CONFIG_LIMITED, this.buildingView.getColony().getName()));
             }
-            totalCitizenLabel.setText(Component.translatable(COREMOD_GUI_TOWNHALL_POPULATION_TOTALCITIZENS_COUNT, citizensSize, citizensCap));
+            totalCitizenLabel.setText(Component.translatableEscape(COM_MINECOLONIES_COREMOD_GUI_TOWNHALL_POPULATION_TOTALCITIZENS_COUNT, citizensSize, citizensCap));
             totalCitizenLabel.setColors(RED);
         }
         PaneBuilders.tooltipBuilder().hoverPane(totalCitizenLabel).build().setText(hoverText);
 
         int children = 0;
         final Map<String, Tuple<Integer, Integer>> jobMaxCountMap = new HashMap<>();
-        for (@NotNull final IBuildingView building : building.getColony().getBuildings())
+        for (@NotNull final IBuildingView building : buildingView.getColony().getClientBuildingManager().getBuildings().values())
         {
             if (building instanceof AbstractBuildingView)
             {
@@ -158,7 +158,7 @@ public class WindowStatsPage extends AbstractWindowTownHall
 
         //calculate number of children
         int unemployed = 0;
-        for (ICitizenDataView iCitizenDataView : building.getColony().getCitizens().values())
+        for (ICitizenDataView iCitizenDataView : buildingView.getColony().getCitizens().values())
         {
             if (iCitizenDataView.isChild())
             {
@@ -200,22 +200,21 @@ public class WindowStatsPage extends AbstractWindowTownHall
                 if (index < theList.size())
                 {
                     final Map.Entry<String, Tuple<Integer, Integer>> entry = theList.get(index);
-                    final String jobString = Component.translatable(entry.getKey()).getString();
+                    final String jobString = Component.translatableEscape(entry.getKey()).getString();
                     final String formattedJobString = jobString.substring(0, 1).toUpperCase(Locale.US) + jobString.substring(1);
 
-                    final Component numberOfWorkers =
-                        Component.translatable(COREMOD_GUI_TOWNHALL_POPULATION_EACH, formattedJobString, entry.getValue().getA(), entry.getValue().getB());
+                    final Component numberOfWorkers = Component.translatableEscape(COM_MINECOLONIES_COREMOD_GUI_TOWNHALL_POPULATION_EACH, formattedJobString, entry.getValue().getA(), entry.getValue().getB());
                     label.setText(numberOfWorkers);
                 }
                 else
                 {
                     if (index == maxJobs + 1)
                     {
-                        label.setText(Component.translatable(COREMOD_GUI_TOWNHALL_POPULATION_UNEMPLOYED, unemployedCount));
+                        label.setText(Component.translatableEscape(COM_MINECOLONIES_COREMOD_GUI_TOWNHALL_POPULATION_UNEMPLOYED, unemployedCount));
                     }
                     else
                     {
-                        label.setText(Component.translatable(COREMOD_GUI_TOWNHALL_POPULATION_CHILDS, childCount));
+                        label.setText(Component.translatableEscape(COM_MINECOLONIES_COREMOD_GUI_TOWNHALL_POPULATION_CHILDS, childCount));
                     }
                 }
             }
@@ -227,44 +226,37 @@ public class WindowStatsPage extends AbstractWindowTownHall
      */
     private void updateStats()
     {
+        final @NotNull List<String> stats = new ArrayList<>(buildingView.getColony().getStatisticsManager().getStatTypes());
+
         findPaneOfTypeByID("stats", ScrollingList.class).setDataProvider(new ScrollingList.DataProvider()
         {
-            private final List<Map.Entry<String, Integer>> statsData;
-            {
-                final int interval = INTERVAL.get(selectedInterval);
-                final Map<String, Integer> statsMap;
-
-                if (interval >= 0)
-                {
-                    statsMap = building.getColony().getStatisticsManager().getStats(
-                        building.getColony().getDay() - interval,
-                        building.getColony().getDay()
-                    );
-                }
-                else
-                {
-                    statsMap = building.getColony().getStatisticsManager().getStats();
-                }
-
-                statsData = new ArrayList<>(statsMap.entrySet());
-                statsData.sort(Map.Entry.comparingByKey());
-            }
-
+            /**
+             * The number of rows of the list.
+             * @return the number.
+             */
             @Override
             public int getElementCount()
             {
-                return statsData.size();
+                return stats.size();
             }
 
+            /**
+             * Inserts the elements into each row.
+             * @param index the index of the row/list element.
+             * @param rowPane the parent Pane for the row, containing the elements to update.
+             */
             @Override
             public void updateElement(final int index, @NotNull final Pane rowPane)
             {
-                final Map.Entry<String, Integer> entry = statsData.get(index);
-                final String id = entry.getKey();
-                final int stat = entry.getValue();
+                int stat = buildingView.getColony().getStatisticsManager().getStatTotal(stats.get(index));
+                int interval = INTERVAL.get(selectedInterval);
+                if (interval > 0)
+                {
+                    stat = buildingView.getColony().getStatisticsManager().getStatsInPeriod(stats.get(index), buildingView.getColony().getDay() - interval, buildingView.getColony().getDay());
+                }
 
                 final Text resourceLabel = rowPane.findPaneOfTypeByID("desc", Text.class);
-                resourceLabel.setText(Component.translatable(PARTIAL_STATS_MODIFIER_NAME + id, stat));
+                resourceLabel.setText(Component.translatableEscape(PARTIAL_STATS_MODIFIER_NAME + stats.get(index), stat));
             }
         });
 
@@ -280,9 +272,9 @@ public class WindowStatsPage extends AbstractWindowTownHall
             }
 
             @Override
-            public String getLabel(final int index)
+            public MutableComponent getLabel(final int index)
             {
-                return Component.translatable((String) INTERVAL.keySet().toArray()[index]).getString();
+                return Component.translatableEscape((String) INTERVAL.keySet().toArray()[index]);
             }
         });
         intervalDropdown.setSelectedIndex(new ArrayList<>(INTERVAL.keySet()).indexOf(selectedInterval));

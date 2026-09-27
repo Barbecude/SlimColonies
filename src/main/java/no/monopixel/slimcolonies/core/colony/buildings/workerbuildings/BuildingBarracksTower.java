@@ -1,24 +1,30 @@
 package no.monopixel.slimcolonies.core.colony.buildings.workerbuildings;
 
+import com.ldtteam.structurize.blueprints.v1.Blueprint;
 import no.monopixel.slimcolonies.api.advancements.AdvancementTriggers;
 import no.monopixel.slimcolonies.api.colony.IColony;
 import no.monopixel.slimcolonies.api.colony.buildings.IBuilding;
 import no.monopixel.slimcolonies.api.colony.workorders.WorkOrderType;
 import no.monopixel.slimcolonies.api.util.MessageUtils;
+import no.monopixel.slimcolonies.api.util.NBTUtils;
+import no.monopixel.slimcolonies.core.colony.Colony;
 import no.monopixel.slimcolonies.core.colony.buildings.AbstractBuildingGuards;
 import no.monopixel.slimcolonies.core.util.AdvancementUtils;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtUtils;
 import net.minecraft.world.entity.player.Player;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
+import static no.monopixel.slimcolonies.api.util.constant.NbtTagConstants.TAG_POS;
 import static no.monopixel.slimcolonies.api.util.constant.TranslationConstants.WARNING_UPGRADE_BARRACKS;
 
 /**
  * Building class for the Barracks Tower.
  */
-
+@SuppressWarnings("squid:MaximumInheritanceDepth")
 public class BuildingBarracksTower extends AbstractBuildingGuards
 {
     ////// --------------------------- NBTConstants --------------------------- \\\\\\
@@ -53,7 +59,7 @@ public class BuildingBarracksTower extends AbstractBuildingGuards
         return SCHEMATIC_NAME;
     }
 
-    
+    @SuppressWarnings("squid:S109")
     @Override
     public int getMaxBuildingLevel()
     {
@@ -64,7 +70,7 @@ public class BuildingBarracksTower extends AbstractBuildingGuards
     public void requestUpgrade(final Player player, final BlockPos builder)
     {
         final int buildingLevel = getBuildingLevel();
-        final IBuilding building = getColony().getBuildingManager().getBuilding(barracks);
+        final IBuilding building = getColony().getServerBuildingManager().getBuilding(barracks);
 
         if (building != null && buildingLevel < getMaxBuildingLevel() && buildingLevel < building.getBuildingLevel())
         {
@@ -96,10 +102,10 @@ public class BuildingBarracksTower extends AbstractBuildingGuards
     }
 
     @Override
-    public void onUpgradeComplete(final int newLevel)
+    public void onUpgradeComplete(@Nullable final Blueprint blueprint, final int newLevel)
     {
-        super.onUpgradeComplete(newLevel);
-        final IBuilding barrack = colony.getBuildingManager().getBuilding(barracks);
+        super.onUpgradeComplete(blueprint, newLevel);
+        final IBuilding barrack = colony.getServerBuildingManager().getBuilding(barracks);
         if (barrack == null)
         {
             return;
@@ -110,7 +116,7 @@ public class BuildingBarracksTower extends AbstractBuildingGuards
             boolean allUpgraded = true;
             for (BlockPos tower : ((BuildingBarracks) barrack).getTowers())
             {
-                if (colony.getBuildingManager().getBuilding(tower).getBuildingLevel() != barrack.getMaxBuildingLevel())
+                if (colony.getServerBuildingManager().getBuilding(tower).getBuildingLevel() != barrack.getMaxBuildingLevel())
                 {
                     allUpgraded = false;
                 }
@@ -118,25 +124,25 @@ public class BuildingBarracksTower extends AbstractBuildingGuards
 
             if (allUpgraded)
             {
-                AdvancementUtils.TriggerAdvancementPlayersForColony(colony, AdvancementTriggers.ALL_TOWERS::trigger);
+                AdvancementUtils.TriggerAdvancementPlayersForColony(colony, AdvancementTriggers.ALL_TOWERS.get()::trigger);
             }
         }
     }
 
     @Override
-    public void deserializeNBT(final CompoundTag compound)
+    public void deserializeNBT(@NotNull final HolderLookup.Provider provider, final CompoundTag compound)
     {
-        super.deserializeNBT(compound);
-        barracks = NbtUtils.readBlockPos(compound.getCompound(TAG_POS));
+        super.deserializeNBT(provider, compound);
+        barracks = NBTUtils.readBlockPos(compound, TAG_POS);
     }
 
     @Override
-    public CompoundTag serializeNBT()
+    public CompoundTag serializeNBT(@NotNull final HolderLookup.Provider provider)
     {
-        final CompoundTag compound = super.serializeNBT();
+        final CompoundTag compound = super.serializeNBT(provider);
         if (barracks != null)
         {
-            compound.put(TAG_POS, NbtUtils.writeBlockPos(barracks));
+            compound.put(TAG_POS, NBTUtils.writeBlockPos(barracks));
         }
 
         return compound;

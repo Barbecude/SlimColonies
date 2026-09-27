@@ -10,9 +10,10 @@ import no.monopixel.slimcolonies.api.colony.requestsystem.token.IToken;
 import no.monopixel.slimcolonies.api.util.NBTUtils;
 import no.monopixel.slimcolonies.api.util.constant.SerializationIdentifierConstants;
 import no.monopixel.slimcolonies.api.util.constant.TypeConstants;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.Tag;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 
 import org.jetbrains.annotations.NotNull;
 
@@ -118,27 +119,28 @@ public class StandardRequestSystemCrafterJobDataStore implements IRequestSystemC
         @NotNull
         @Override
         public CompoundTag serialize(
+          @NotNull final HolderLookup.Provider provider,
           @NotNull final IFactoryController controller, @NotNull final StandardRequestSystemCrafterJobDataStore standardRequestSystemCrafterJobDataStore)
         {
             final CompoundTag compound = new CompoundTag();
 
-            compound.put(TAG_TOKEN, controller.serialize(standardRequestSystemCrafterJobDataStore.id));
-            compound.put(TAG_LIST, standardRequestSystemCrafterJobDataStore.queue.stream().map(controller::serialize).collect(NBTUtils.toListNBT()));
-            compound.put(TAG_ASSIGNED_LIST, standardRequestSystemCrafterJobDataStore.tasks.stream().map(controller::serialize).collect(NBTUtils.toListNBT()));
+            compound.put(TAG_TOKEN, controller.serializeTag(provider, standardRequestSystemCrafterJobDataStore.id));
+            compound.put(TAG_LIST, standardRequestSystemCrafterJobDataStore.queue.stream().map(s -> controller.serializeTag(provider, s)).collect(NBTUtils.toListNBT()));
+            compound.put(TAG_ASSIGNED_LIST, standardRequestSystemCrafterJobDataStore.tasks.stream().map(s -> controller.serializeTag(provider, s)).collect(NBTUtils.toListNBT()));
 
             return compound;
         }
 
         @NotNull
         @Override
-        public StandardRequestSystemCrafterJobDataStore deserialize(@NotNull final IFactoryController controller, @NotNull final CompoundTag nbt) throws Throwable
+        public StandardRequestSystemCrafterJobDataStore deserialize(@NotNull final HolderLookup.Provider provider, @NotNull final IFactoryController controller, @NotNull final CompoundTag nbt) throws Throwable
         {
-            final IToken<?> token = controller.deserialize(nbt.getCompound(TAG_TOKEN));
+            final IToken<?> token = controller.deserializeTag(provider, nbt.getCompound(TAG_TOKEN));
             final LinkedList<IToken<?>> queue = NBTUtils.streamCompound(nbt.getList(TAG_LIST, Tag.TAG_COMPOUND))
-                                                  .map(CompoundTag -> (IToken<?>) controller.deserialize(CompoundTag))
+                                                  .map(tag -> (IToken<?>) controller.deserializeTag(provider, tag))
                                                   .collect(Collectors.toCollection(LinkedList::new));
             final List<IToken<?>> taskList = NBTUtils.streamCompound(nbt.getList(TAG_ASSIGNED_LIST, Tag.TAG_COMPOUND))
-                                               .map(CompoundTag -> (IToken<?>) controller.deserialize(CompoundTag))
+                                               .map(tag -> (IToken<?>) controller.deserializeTag(provider, tag))
                                                .collect(Collectors.toList());
 
             return new StandardRequestSystemCrafterJobDataStore(token, queue, taskList);
@@ -147,7 +149,7 @@ public class StandardRequestSystemCrafterJobDataStore implements IRequestSystemC
         @Override
         public void serialize(
           IFactoryController controller, StandardRequestSystemCrafterJobDataStore input,
-          FriendlyByteBuf packetBuffer)
+          RegistryFriendlyByteBuf packetBuffer)
         {
             controller.serialize(packetBuffer, input.id);
             packetBuffer.writeInt(input.queue.size());
@@ -157,7 +159,7 @@ public class StandardRequestSystemCrafterJobDataStore implements IRequestSystemC
         }
 
         @Override
-        public StandardRequestSystemCrafterJobDataStore deserialize(IFactoryController controller, FriendlyByteBuf buffer)
+        public StandardRequestSystemCrafterJobDataStore deserialize(IFactoryController controller, RegistryFriendlyByteBuf buffer)
           throws Throwable
         {
             final IToken<?> id = controller.deserialize(buffer);

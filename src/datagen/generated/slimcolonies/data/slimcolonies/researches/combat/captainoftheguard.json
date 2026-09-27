@@ -1,5 +1,11 @@
 {
   "branch": "slimcolonies:combat",
+  "costs": [
+    {
+      "count": 27,
+      "item": "minecraft:shield"
+    }
+  ],
   "effects": [
     {
       "id": "slimcolonies:effects/blockattacksmultiplier",

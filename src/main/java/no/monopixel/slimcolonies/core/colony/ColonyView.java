@@ -2,31 +2,16 @@ package no.monopixel.slimcolonies.core.colony;
 
 import com.ldtteam.structurize.storage.StructurePacks;
 import com.ldtteam.structurize.storage.rendering.RenderingCache;
-import net.minecraft.ChatFormatting;
-import net.minecraft.client.Minecraft;
-import net.minecraft.core.BlockPos;
-import net.minecraft.core.registries.Registries;
-import net.minecraft.nbt.CompoundTag;
-import net.minecraft.nbt.ListTag;
-import net.minecraft.network.FriendlyByteBuf;
-import net.minecraft.resources.ResourceKey;
-import net.minecraft.resources.ResourceLocation;
-import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.item.DyeColor;
-import net.minecraft.world.level.Level;
-import net.minecraft.world.level.block.Block;
-import net.minecraft.world.level.block.entity.BannerPattern;
-import net.minecraft.world.level.block.entity.BannerPatterns;
-import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.level.chunk.LevelChunk;
-import net.minecraftforge.event.TickEvent;
-import net.minecraftforge.registries.ForgeRegistries;
 import no.monopixel.slimcolonies.api.colony.*;
-import no.monopixel.slimcolonies.api.colony.buildingextensions.IBuildingExtension;
-import no.monopixel.slimcolonies.api.colony.buildings.registry.IBuildingDataManager;
+import no.monopixel.slimcolonies.api.colony.buildings.modules.ICommonSettingsModule;
+import no.monopixel.slimcolonies.api.colony.buildings.modules.settings.ISettingsModuleView;
+import no.monopixel.slimcolonies.api.colony.buildings.registry.BuildingEntry;
 import no.monopixel.slimcolonies.api.colony.buildings.views.IBuildingView;
 import no.monopixel.slimcolonies.api.colony.buildings.workerbuildings.ITownHallView;
+import no.monopixel.slimcolonies.api.colony.claim.ChunkClaimData;
+import no.monopixel.slimcolonies.api.colony.connections.IColonyConnectionManager;
 import no.monopixel.slimcolonies.api.colony.managers.interfaces.*;
+import no.monopixel.slimcolonies.api.colony.managers.interfaces.views.IRegisteredStructureManagerView;
 import no.monopixel.slimcolonies.api.colony.permissions.ColonyPlayer;
 import no.monopixel.slimcolonies.api.colony.permissions.IPermissions;
 import no.monopixel.slimcolonies.api.colony.requestsystem.StandardFactoryController;
@@ -35,21 +20,20 @@ import no.monopixel.slimcolonies.api.colony.requestsystem.requester.IRequester;
 import no.monopixel.slimcolonies.api.colony.workorders.IWorkManager;
 import no.monopixel.slimcolonies.api.colony.workorders.IWorkOrderView;
 import no.monopixel.slimcolonies.api.entity.citizen.AbstractEntityCitizen;
-import no.monopixel.slimcolonies.api.network.IMessage;
 import no.monopixel.slimcolonies.api.quests.IQuestManager;
 import no.monopixel.slimcolonies.api.research.IResearchManager;
 import no.monopixel.slimcolonies.api.util.BlockPosUtil;
 import no.monopixel.slimcolonies.api.util.ColonyUtils;
 import no.monopixel.slimcolonies.api.util.Log;
-import no.monopixel.slimcolonies.api.util.constant.Constants;
-import no.monopixel.slimcolonies.core.Network;
+import no.monopixel.slimcolonies.api.util.Utils;
 import no.monopixel.slimcolonies.core.client.render.worldevent.ColonyBlueprintRenderer;
 import no.monopixel.slimcolonies.core.colony.buildings.modules.BuildingModules;
-import no.monopixel.slimcolonies.core.colony.buildings.views.AbstractBuildingView;
-import no.monopixel.slimcolonies.core.colony.buildings.workerbuildings.BuildingTownHall;
+import no.monopixel.slimcolonies.core.colony.buildings.modules.SettingsModule;
+import no.monopixel.slimcolonies.core.colony.managers.ColonyConnectionManager;
 import no.monopixel.slimcolonies.core.colony.managers.ResearchManager;
 import no.monopixel.slimcolonies.core.colony.managers.StatisticsManager;
 import no.monopixel.slimcolonies.core.colony.managers.TravellingManager;
+import no.monopixel.slimcolonies.core.colony.managers.views.RegisteredStructureManagerView;
 import no.monopixel.slimcolonies.core.colony.permissions.PermissionsView;
 import no.monopixel.slimcolonies.core.colony.requestsystem.management.manager.StandardRequestManager;
 import no.monopixel.slimcolonies.core.colony.workorders.AbstractWorkOrder;
@@ -58,13 +42,35 @@ import no.monopixel.slimcolonies.core.network.messages.PermissionsMessage;
 import no.monopixel.slimcolonies.core.network.messages.server.colony.ColonyFlagChangeMessage;
 import no.monopixel.slimcolonies.core.network.messages.server.colony.TownHallRenameMessage;
 import no.monopixel.slimcolonies.core.quests.QuestManager;
+import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
+import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
+import net.minecraft.ChatFormatting;
+import net.minecraft.client.Minecraft;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.DyeColor;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.entity.BannerPatternLayers;
+import net.minecraft.world.level.block.entity.BannerPatterns;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.chunk.LevelChunk;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.api.distmarker.OnlyIn;
+import net.neoforged.neoforge.event.tick.LevelTickEvent;
+import net.neoforged.neoforge.event.tick.ServerTickEvent;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
-import java.util.function.Predicate;
-
-import static no.monopixel.slimcolonies.api.util.constant.NbtTagConstants.TAG_BANNER_PATTERNS;
 
 /**
  * Client side representation of the Colony.
@@ -79,23 +85,23 @@ public final class ColonyView implements IColonyView
 
     //  General Attributes
     private final int                            id;
-    private final Map<Integer, IWorkOrderView>   workOrders          = new HashMap<>();
+    private final Map<Integer, IWorkOrderView>   workOrders  = new HashMap<>();
     private final Map<Integer, BlockPos>         workOrderClaimCache = new HashMap<>();
     private       int                            workOrderCachedCount;
     //  Administration/permissions
     @NotNull
-    private final PermissionsView                permissions         = new PermissionsView();
-    @NotNull
-    private final Map<BlockPos, IBuildingView>   buildings           = new HashMap<>();
-    @NotNull
-    private final Set<IBuildingExtension>        fields              = new HashSet<>();
+    private final PermissionsView                permissions = new PermissionsView();
+
     //  Citizenry
     @NotNull
-    private final Map<Integer, ICitizenDataView> citizens            = new HashMap<>();
-    private final Map<Integer, IVisitorViewData> visitors            = new HashMap<>();
-    private       String                         name                = "Unknown";
-    private       ResourceKey<Level>             dimensionId;
+    private final Map<Integer, ICitizenDataView> citizens   = new HashMap<>();
+    private       Map<Integer, IVisitorViewData> visitors    = new HashMap<>();
+    private       String                         name        = "Unknown";
+    private       ResourceKey<Level>                            dimensionId;
 
+    //  Colony Animals
+    private final Map<Integer, IAnimalDataView>  animals = new HashMap<>();
+    
     /**
      * Colony team color.
      */
@@ -104,15 +110,15 @@ public final class ColonyView implements IColonyView
     /**
      * The colony flag (set to plain white as default)
      */
-    private ListTag colonyFlag = new BannerPattern.Builder()
-        .addPattern(BannerPatterns.BASE, DyeColor.WHITE)
-        .toListTag();
+    private BannerPatternLayers colonyFlag;
+
 
     private BlockPos center = BlockPos.ZERO;
 
-    //  Buildings
-    @Nullable
-    private ITownHallView townHall;
+    /**
+     * The max citizen count.
+     */
+    private int citizenCount = 0;
 
     /**
      * The max citizen count considering guard towers.
@@ -120,9 +126,9 @@ public final class ColonyView implements IColonyView
     private int citizenCountWithEmptyGuardTowers = 0;
 
     /**
-     * Check if the colony has a warehouse.
+     * Last barbarian spawnpoints.
      */
-    private boolean hasColonyWarehouse;
+    private final List<BlockPos> lastSpawnPoints = new ArrayList<>();
 
     /**
      * The Positions which players can freely interact.
@@ -140,6 +146,11 @@ public final class ColonyView implements IColonyView
     private final Map<BlockPos, BlockState> wayPoints = new HashMap<>();
 
     /**
+     * The overall happiness of the colony.
+     */
+    private double overallHappiness = 5;
+
+    /**
      * The hours the colony is without contact with its players.
      */
     private int lastContactInHours = 0;
@@ -150,14 +161,19 @@ public final class ColonyView implements IColonyView
     private IRequestManager requestManager;
 
     /**
-     * The world.
+     * Wether the colony is raided
      */
-    private Level world;
+    private boolean isUnderRaid;
 
     /**
-     * Print progress.
+     * The world.
      */
-    private boolean printProgress;
+    private final ResourceKey<Level> world;
+
+    /**
+     * The last use time of the mercenaries.
+     */
+    private long mercenaryLastUseTime = 0;
 
     /**
      * The default style.
@@ -170,8 +186,9 @@ public final class ColonyView implements IColonyView
     private final IResearchManager researchManager;
 
     /**
-     * Set of ticketed chunks for this colony.
+     * Whether spies are active and highlight enemy positions.
      */
+    private boolean   spiesEnabled;
     private Set<Long> ticketedChunks = new HashSet<>();
 
     /**
@@ -210,18 +227,34 @@ public final class ColonyView implements IColonyView
     private final TravellingManager travellingManager = new TravellingManager(this);
 
     /**
+     * Client side connection manager.
+     */
+    private final IColonyConnectionManager connectionManager = new ColonyConnectionManager(this);
+    
+    /**
+     * Client side structure manager.
+     */
+    private final IRegisteredStructureManagerView registeredStructureManagerView = new RegisteredStructureManagerView(this);
+
+    /**
      * Day in the colony.
      */
     private int day;
+
+    /**
+     * Colony level settings manager.
+     */
+    private final ISettingsModuleView settingsModule = (ISettingsModuleView) BuildingEntry.produceViewWithoutBuilding(BuildingModules.TOWNHALL_SETTINGS.key, this);
 
     /**
      * Base constructor for a colony.
      *
      * @param id The current id for the colony.
      */
-    private ColonyView(final int id)
+    private ColonyView(final int id, final ResourceKey<Level> dim)
     {
         this.id = id;
+        this.world = dim;
         this.researchManager = new ResearchManager(this);
         this.questManager = new QuestManager(this);
     }
@@ -233,25 +266,26 @@ public final class ColonyView implements IColonyView
      * @return the new colony view.
      */
     @NotNull
-    public static ColonyView createFromNetwork(final int id)
+    public static ColonyView createFromNetwork(final int id, final ResourceKey<Level> dim)
     {
-        return new ColonyView(id);
+        return new ColonyView(id, dim);
     }
 
     /**
      * Populate an NBT compound for a network packet representing a ColonyView.
      *
      * @param colony            Colony to write data about.
-     * @param buf               {@link FriendlyByteBuf} to write data in.
+     * @param buf               {@link RegistryFriendlyByteBuf} to write data in.
      * @param hasNewSubscribers true if there is a new subscription.
      */
-    public static void serializeNetworkData(@NotNull Colony colony, @NotNull FriendlyByteBuf buf, boolean hasNewSubscribers)
+    public static void serializeNetworkData(@NotNull Colony colony, @NotNull RegistryFriendlyByteBuf buf, boolean hasNewSubscribers)
     {
         //  General Attributes
         buf.writeUtf(colony.getName());
         buf.writeUtf(colony.getDimension().location().toString());
         buf.writeBlockPos(colony.getCenter());
         //  Citizenry
+        buf.writeInt(colony.getCitizenManager().getMaxCitizens());
         buf.writeInt(colony.getCitizenManager().getPotentialMaxCitizens());
 
         final Set<Block> freeBlocks = colony.getFreeBlocks();
@@ -261,7 +295,7 @@ public final class ColonyView implements IColonyView
         buf.writeInt(freeBlocks.size());
         for (final Block block : freeBlocks)
         {
-            buf.writeUtf(ForgeRegistries.BLOCKS.getKey(block).toString());
+            buf.writeUtf(BuiltInRegistries.BLOCK.getKey(block).toString());
         }
 
         buf.writeInt(freePos.size());
@@ -269,7 +303,7 @@ public final class ColonyView implements IColonyView
         {
             buf.writeBlockPos(block);
         }
-        buf.writeBoolean(colony.hasWarehouse());
+        buf.writeDouble(colony.getOverallHappiness());
 
         buf.writeInt(waypoints.size());
         for (final Map.Entry<BlockPos, BlockState> block : waypoints.entrySet())
@@ -315,15 +349,19 @@ public final class ColonyView implements IColonyView
             buf.writeBoolean(false);
         }
 
+        buf.writeInt(colony.getRaiderManager().getLastSpawnPoints().size());
+        for (final BlockPos block : colony.getRaiderManager().getLastSpawnPoints())
+        {
+            buf.writeBlockPos(block);
+        }
 
         buf.writeInt(colony.getTeamColonyColor().ordinal());
-
-        CompoundTag flagNBT = new CompoundTag();
-        flagNBT.put(TAG_BANNER_PATTERNS, colony.getColonyFlag());
-        buf.writeNbt(flagNBT);
-
+        Utils.serializeCodecMess(BannerPatternLayers.STREAM_CODEC, buf, colony.getColonyFlag());
+        buf.writeLong(colony.getMercenaryUseTime());
 
         buf.writeUtf(colony.getStructurePack());
+        buf.writeBoolean(colony.getRaiderManager().isRaided());
+        buf.writeBoolean(colony.getRaiderManager().areSpiesEnabled());
 
         if (hasNewSubscribers || colony.isTicketedChunksDirty())
         {
@@ -338,13 +376,23 @@ public final class ColonyView implements IColonyView
             buf.writeInt(-1);
         }
 
+        final Long2ObjectMap<ChunkClaimData> colonyClaimData = colony.getClaimData();
+        buf.writeInt(colonyClaimData.size());
+        for (final Long2ObjectMap.Entry<ChunkClaimData> entry : colonyClaimData.long2ObjectEntrySet())
+        {
+            buf.writeLong(entry.getLongKey());
+            entry.getValue().serialize(buf);
+        }
+
         final CompoundTag graveTag = new CompoundTag();
         colony.getGraveManager().write(graveTag);
         buf.writeNbt(graveTag);     // this could be more efficient, but it should usually be short anyway
         colony.getStatisticsManager().serialize(buf, hasNewSubscribers);
         colony.getQuestManager().serialize(buf, hasNewSubscribers);
         buf.writeInt(colony.getDay());
-        buf.writeNbt(colony.getTravellingManager().serializeNBT());
+        buf.writeNbt(colony.getTravellingManager().serializeNBT(buf.registryAccess()));
+        colony.getConnectionManager().serializeToView(buf);
+        colony.getSettings().serializeToView(buf);
     }
 
     /**
@@ -430,38 +478,16 @@ public final class ColonyView implements IColonyView
         return dimensionId;
     }
 
-    /**
-     * Getter for the manual hiring or not.
-     *
-     * @return the boolean true or false.
-     */
     @Override
-    public boolean isManualHiring()
-    {
-        return townHall != null && !townHall.getModuleView(BuildingModules.TOWNHALL_SETTINGS).getSetting(BuildingTownHall.AUTO_HIRING_MODE).getValue();
-    }
-
-    @Override
-    public CompoundTag write(final CompoundTag colonyCompound)
+    public CompoundTag write(final CompoundTag colonyCompound, final HolderLookup.Provider provider)
     {
         return new CompoundTag();
     }
 
     @Override
-    public void read(final CompoundTag compound)
+    public void read(final CompoundTag compound, final HolderLookup.Provider provider)
     {
         //Noop
-    }
-
-    /**
-     * Getter for the manual housing or not.
-     *
-     * @return the boolean true or false.
-     */
-    @Override
-    public boolean isManualHousing()
-    {
-        return townHall != null && !townHall.getModuleView(BuildingModules.TOWNHALL_SETTINGS).getSetting(BuildingTownHall.AUTO_HOUSING_MODE).getValue();
     }
 
     @Override
@@ -474,17 +500,6 @@ public final class ColonyView implements IColonyView
     public boolean isValidAttackingGuard(final AbstractEntityCitizen entity)
     {
         return false;
-    }
-
-    /**
-     * Getter for letting citizens move in or not.
-     *
-     * @return the boolean true or false.
-     */
-    @Override
-    public boolean canMoveIn()
-    {
-        return townHall != null && !townHall.getModuleView(BuildingModules.TOWNHALL_SETTINGS).getSetting(BuildingTownHall.MOVE_IN).getValue();
     }
 
     /**
@@ -559,44 +574,6 @@ public final class ColonyView implements IColonyView
     }
 
     /**
-     * Get the town hall View for this ColonyView.
-     *
-     * @return {@link BuildingTownHall.View} of the colony.
-     */
-    @Override
-    @Nullable
-    public ITownHallView getTownHall()
-    {
-        return townHall;
-    }
-
-    /**
-     * Get a AbstractBuilding.View for a given building (by coordinate-id) using raw x,y,z.
-     *
-     * @param x x-coordinate.
-     * @param y y-coordinate.
-     * @param z z-coordinate.
-     * @return {@link AbstractBuildingView} of a AbstractBuilding for the given Coordinates/ID, or null.
-     */
-    @Override
-    public IBuildingView getBuilding(final int x, final int y, final int z)
-    {
-        return getBuilding(new BlockPos(x, y, z));
-    }
-
-    /**
-     * Get a AbstractBuilding.View for a given building (by coordinate-id) using ChunkCoordinates.
-     *
-     * @param buildingId Coordinates/ID of the AbstractBuilding.
-     * @return {@link AbstractBuildingView} of a AbstractBuilding for the given Coordinates/ID, or null.
-     */
-    @Override
-    public IBuildingView getBuilding(final BlockPos buildingId)
-    {
-        return buildings.get(buildingId);
-    }
-
-    /**
      * Returns a map of players in the colony. Key is the UUID, value is {@link ColonyPlayer}
      *
      * @return Map of UUID's and {@link ColonyPlayer}
@@ -613,6 +590,11 @@ public final class ColonyView implements IColonyView
      *
      * @return maximum amount of citizens.
      */
+    @Override
+    public int getCitizenCount()
+    {
+        return citizenCount;
+    }
 
     @Override
     public int getCitizenCountLimit()
@@ -670,38 +652,39 @@ public final class ColonyView implements IColonyView
     /**
      * Populate a ColonyView from the network data.
      *
-     * @param buf               {@link FriendlyByteBuf} to read from.
+     * @param buf               {@link RegistryFriendlyByteBuf} to read from.
      * @param isNewSubscription Whether this is a new subscription of not.
      * @return null == no response.
      */
+    @OnlyIn(Dist.CLIENT)
     @Override
-    @Nullable
-    public IMessage handleColonyViewMessage(@NotNull final FriendlyByteBuf buf, @NotNull final Level world, final boolean isNewSubscription)
+    public void handleColonyViewMessage(@NotNull final RegistryFriendlyByteBuf buf, final boolean isNewSubscription)
     {
-        this.world = world;
+        this.colonyFlag = new BannerPatternLayers.Builder().add(Utils.getRegistryValue(BannerPatterns.BASE, this.getWorld()), DyeColor.WHITE).build();
+
         //  General Attributes
         name = buf.readUtf(32767);
         dimensionId = ResourceKey.create(Registries.DIMENSION, ResourceLocation.parse(buf.readUtf(32767)));
         center = buf.readBlockPos();
         //  Citizenry
+        citizenCount = buf.readInt();
         citizenCountWithEmptyGuardTowers = buf.readInt();
 
         if (isNewSubscription)
         {
             citizens.clear();
-            townHall = null;
-            buildings.clear();
         }
 
         freePositions.clear();
         freeBlocks.clear();
         wayPoints.clear();
+        lastSpawnPoints.clear();
         nameFileIds.clear();
 
         final int blockListSize = buf.readInt();
         for (int i = 0; i < blockListSize; i++)
         {
-            freeBlocks.add(ForgeRegistries.BLOCKS.getValue(ResourceLocation.parse(buf.readUtf(32767))));
+            freeBlocks.add(BuiltInRegistries.BLOCK.get(ResourceLocation.parse((buf.readUtf(32767)))));
         }
 
         final int posListSize = buf.readInt();
@@ -709,7 +692,7 @@ public final class ColonyView implements IColonyView
         {
             freePositions.add(buf.readBlockPos());
         }
-        this.hasColonyWarehouse = buf.readBoolean();
+        this.overallHappiness = buf.readDouble();
 
         final int wayPointListSize = buf.readInt();
         for (int i = 0; i < wayPointListSize; i++)
@@ -735,21 +718,30 @@ public final class ColonyView implements IColonyView
             this.requestManager.deserialize(StandardFactoryController.getInstance(), buf);
         }
 
+        final int barbSpawnListSize = buf.readInt();
+        for (int i = 0; i < barbSpawnListSize; i++)
+        {
+            lastSpawnPoints.add(buf.readBlockPos());
+        }
+        Collections.reverse(lastSpawnPoints);
 
         this.teamColonyColor = ChatFormatting.values()[buf.readInt()];
-        this.colonyFlag = buf.readNbt().getList(TAG_BANNER_PATTERNS, Constants.TAG_COMPOUND);
-
+        this.colonyFlag =  Utils.deserializeCodecMess(BannerPatternLayers.STREAM_CODEC, buf);
+        this.mercenaryLastUseTime = buf.readLong();
 
         this.style = buf.readUtf(32767);
         if (isNewSubscription
-            && StructurePacks.hasPack(this.style)
-            && RenderingCache.getOrCreateBlueprintPreviewData("blueprint").getBlueprint() == null
-            && this.isCoordInColony(world, Minecraft.getInstance().player.blockPosition())
+              && StructurePacks.hasPack(this.style)
+              && RenderingCache.getOrCreateBlueprintPreviewData("blueprint").getBlueprint() == null
+              && Minecraft.getInstance().player != null
+              && this.isCoordInColony(getWorld(), Minecraft.getInstance().player.blockPosition())
         )
         {
             StructurePacks.selectedPack = StructurePacks.getStructurePack(this.style);
         }
 
+        this.isUnderRaid = buf.readBoolean();
+        this.spiesEnabled = buf.readBoolean();
 
         final int ticketChunkCount = buf.readInt();
         if (ticketChunkCount != -1)
@@ -761,12 +753,29 @@ public final class ColonyView implements IColonyView
             }
         }
 
+        final Long2ObjectMap<ChunkClaimData> colonyClaimData = new Long2ObjectOpenHashMap<>();
+        int size = buf.readInt();
+        for (int i = 0; i < size; i++)
+        {
+            final ChunkClaimData chunkClaimData = new ChunkClaimData();
+            final long pos = buf.readLong();
+            chunkClaimData.deSerialize(buf);
+            colonyClaimData.put(pos, chunkClaimData);
+        }
+
+        if (Minecraft.getInstance().getSingleplayerServer() == null)
+        {
+            IColonyManager.getInstance().addClaimData(this, colonyClaimData);
+        }
+
         this.graveManager.read(buf.readNbt());
         this.statisticManager.deserialize(buf);
         this.questManager.deserialize(buf);
         this.day = buf.readInt();
-        this.travellingManager.deserializeNBT(buf.readNbt());
-        return null;
+        this.travellingManager.deserializeNBT(buf.registryAccess(), buf.readNbt());
+        this.connectionManager.deserializeFromView(buf);
+        this.registeredStructureManagerView.deserializeFromView(isNewSubscription, buf);
+        this.settingsModule.deserialize(buf);
     }
 
     /**
@@ -776,11 +785,9 @@ public final class ColonyView implements IColonyView
      * @return null == no response
      */
     @Override
-    @Nullable
-    public IMessage handlePermissionsViewMessage(@NotNull final FriendlyByteBuf buf)
+    public void handlePermissionsViewMessage(@NotNull final RegistryFriendlyByteBuf buf)
     {
         permissions.deserialize(buf);
-        return null;
     }
 
     /**
@@ -790,8 +797,7 @@ public final class ColonyView implements IColonyView
      * @return null == no response.
      */
     @Override
-    @Nullable
-    public IMessage handleColonyViewWorkOrderMessage(final FriendlyByteBuf buf)
+    public void handleColonyViewWorkOrderMessage(final RegistryFriendlyByteBuf buf)
     {
         boolean claimsChanged = false;
 
@@ -815,8 +821,6 @@ public final class ColonyView implements IColonyView
             workOrderCachedCount = workOrders.size();
             ColonyBlueprintRenderer.invalidateCache();
         }
-
-        return null;
     }
 
     /**
@@ -827,20 +831,17 @@ public final class ColonyView implements IColonyView
      * @return null == no response.
      */
     @Override
-    @Nullable
-    public IMessage handleColonyViewCitizensMessage(final int id, final FriendlyByteBuf buf)
+    public void handleColonyViewCitizensMessage(final int id, final RegistryFriendlyByteBuf buf)
     {
         final ICitizenDataView citizen = ICitizenDataManager.getInstance().createFromNetworkData(id, buf, this);
         if (citizen != null)
         {
             citizens.put(citizen.getId(), citizen);
         }
-
-        return null;
     }
 
     @Override
-    public void handleColonyViewVisitorMessage(final FriendlyByteBuf visitorBuf, final boolean refresh)
+    public void handleColonyViewVisitorMessage(final RegistryFriendlyByteBuf visitorBuf, final boolean refresh)
     {
         final Map<Integer, IVisitorViewData> visitorCache = new HashMap<>(visitors);
 
@@ -867,6 +868,40 @@ public final class ColonyView implements IColonyView
         }
     }
 
+
+    /**
+     * Handles animal view messages
+     * @param animalBuf the new data to set
+     * @param refresh if all need to be refreshed
+     */
+    @Override
+    public void handleColonyViewAnimalMessage(final RegistryFriendlyByteBuf animalBuf, final boolean refresh)
+    {
+        final Map<Integer, IAnimalDataView> animalCache = new HashMap<>(animals);
+
+        if (refresh)
+        {
+            animals.clear();
+        }
+
+        int i = animalBuf.readInt();
+        for (int j = 0; j < i; j++)
+        {
+            final int id = animalBuf.readInt();
+            final IAnimalDataView dataView;
+            if (animalCache.containsKey(id))
+            {
+                dataView = animalCache.get(id);
+            }
+            else
+            {
+                dataView = new AnimalDataView(id, this);
+            }
+            dataView.deserialize(animalBuf);
+            animals.put(dataView.getId(), dataView);
+        }
+    }
+
     /**
      * Remove a citizen from the ColonyView.
      *
@@ -874,29 +909,9 @@ public final class ColonyView implements IColonyView
      * @return null == no response.
      */
     @Override
-    @Nullable
-    public IMessage handleColonyViewRemoveCitizenMessage(final int citizen)
+    public void handleColonyViewRemoveCitizenMessage(final int citizen)
     {
         citizens.remove(citizen);
-        return null;
-    }
-
-    /**
-     * Remove a building from the ColonyView.
-     *
-     * @param buildingId location of the building.
-     * @return null == no response.
-     */
-    @Override
-    @Nullable
-    public IMessage handleColonyViewRemoveBuildingMessage(final BlockPos buildingId)
-    {
-        final IBuildingView building = buildings.remove(buildingId);
-        if (townHall == building)
-        {
-            townHall = null;
-        }
-        return null;
     }
 
     /**
@@ -906,74 +921,15 @@ public final class ColonyView implements IColonyView
      * @return null == no response
      */
     @Override
-    @Nullable
-    public IMessage handleColonyViewRemoveWorkOrderMessage(final int workOrderId)
+    public void handleColonyViewRemoveWorkOrderMessage(final int workOrderId)
     {
         workOrders.remove(workOrderId);
-        return null;
-    }
-
-    /**
-     * Update a ColonyView's buildings given a network data ColonyView update packet. This uses a full-replacement - buildings do not get updated and are instead overwritten.
-     *
-     * @param buildingId location of the building.
-     * @param buf        buffer containing ColonyBuilding information.
-     * @return null == no response.
-     */
-    @Override
-    @Nullable
-    public IMessage handleColonyBuildingViewMessage(final BlockPos buildingId, @NotNull final FriendlyByteBuf buf)
-    {
-        if (buildings.containsKey(buildingId))
-        {
-            //Read the string first to set up the buffer.
-            buf.readUtf(32767);
-            buildings.get(buildingId).deserialize(buf);
-        }
-        else
-        {
-            @Nullable final IBuildingView building = IBuildingDataManager.getInstance().createViewFrom(this, buildingId, buf);
-            if (building != null)
-            {
-                buildings.put(building.getID(), building);
-
-                if (building instanceof BuildingTownHall.View)
-                {
-                    townHall = (ITownHallView) building;
-                }
-            }
-        }
-
-        return null;
     }
 
     @Override
-    public void handleColonyViewResearchManagerUpdate(final CompoundTag compoundTag)
+    public void handleColonyViewResearchManagerUpdate(@NotNull final HolderLookup.Provider provider, final CompoundTag compoundTag)
     {
-        this.researchManager.readFromNBT(compoundTag);
-    }
-
-    @Override
-    public void handleColonyBuildingExtensionViewUpdateMessage(final Set<IBuildingExtension> extensions)
-    {
-        this.fields.clear();
-        this.fields.addAll(extensions);
-    }
-
-    @Override
-    public @NotNull List<IBuildingExtension> getBuildingExtensions(final Predicate<IBuildingExtension> matcher)
-    {
-        return fields.stream()
-            .filter(matcher)
-            .toList();
-    }
-
-    @Override
-    public @Nullable IBuildingExtension getBuildingExtension(final Predicate<IBuildingExtension> matcher)
-    {
-        return getBuildingExtensions(matcher).stream()
-            .findFirst()
-            .orElse(null);
+        this.researchManager.readFromNBT(provider, compoundTag);
     }
 
     /**
@@ -984,7 +940,29 @@ public final class ColonyView implements IColonyView
     @Override
     public void addPlayer(final String player)
     {
-        Network.getNetwork().sendToServer(new PermissionsMessage.AddPlayer(this, player));
+        new PermissionsMessage.AddPlayer(this, player).sendToServer();
+    }
+
+    /**
+     * Remove player from colony permissions.
+     *
+     * @param player the UUID of the player to remove.
+     */
+    @Override
+    public void removePlayer(final UUID player)
+    {
+        new PermissionsMessage.RemovePlayer(this, player).sendToServer();
+    }
+
+    /**
+     * Getter for the overall happiness.
+     *
+     * @return the happiness, a double.
+     */
+    @Override
+    public double getOverallHappiness()
+    {
+        return overallHappiness;
     }
 
     @Override
@@ -1016,7 +994,7 @@ public final class ColonyView implements IColonyView
      * @return the ListNBT of flag (banner) patterns
      */
     @Override
-    public ListTag getColonyFlag() {return colonyFlag;}
+    public BannerPatternLayers getColonyFlag() { return colonyFlag; }
 
     /**
      * Sets the name of the view.
@@ -1027,7 +1005,7 @@ public final class ColonyView implements IColonyView
     public void setName(final String name)
     {
         this.name = name;
-        Network.getNetwork().sendToServer(new TownHallRenameMessage(this, name));
+        new TownHallRenameMessage(this, name).sendToServer();
     }
 
     @NotNull
@@ -1050,12 +1028,6 @@ public final class ColonyView implements IColonyView
         return BlockPosUtil.getDistanceSquared2D(center, pos);
     }
 
-    @Override
-    public boolean hasTownHall()
-    {
-        return townHall != null;
-    }
-
     /**
      * Returns the ID of the view.
      *
@@ -1065,41 +1037,6 @@ public final class ColonyView implements IColonyView
     public int getID()
     {
         return id;
-    }
-
-    @Override
-    public boolean hasWarehouse()
-    {
-        return hasColonyWarehouse;
-    }
-
-    @Override
-    public boolean hasBuilding(final ResourceLocation name, final int level, final boolean singleBuilding)
-    {
-        int sum = 0;
-        for (final IBuildingView building : buildings.values())
-        {
-            if (building.getBuildingType().getRegistryName().equals(name))
-            {
-                if (singleBuilding)
-                {
-                    if (building.getBuildingLevel() >= level)
-                    {
-                        return true;
-                    }
-                }
-                else
-                {
-                    sum += building.getBuildingLevel();
-
-                    if (sum >= level)
-                    {
-                        return true;
-                    }
-                }
-            }
-        }
-        return false;
     }
 
     @Override
@@ -1114,10 +1051,16 @@ public final class ColonyView implements IColonyView
         return lastContactInHours;
     }
 
+    @OnlyIn(Dist.CLIENT)
     @Override
     public Level getWorld()
     {
-        return world;
+        final Level level = Minecraft.getInstance().level;
+        if (level == null || !level.dimension().equals(world))
+        {
+            throw new IllegalStateException("Cannot get colony view level");
+        }
+        return level;
     }
 
     @NotNull
@@ -1147,7 +1090,7 @@ public final class ColonyView implements IColonyView
     @Override
     public IRequester getRequesterBuildingForPosition(@NotNull final BlockPos pos)
     {
-        return getBuilding(pos);
+        return registeredStructureManagerView.getBuilding(pos);
     }
 
     @Override
@@ -1174,7 +1117,7 @@ public final class ColonyView implements IColonyView
     }
 
     @Override
-    public void onWorldLoad(@NotNull final Level w)
+    public void onWorldLoad(final ServerLevel w)
     {
 
     }
@@ -1186,7 +1129,7 @@ public final class ColonyView implements IColonyView
     }
 
     @Override
-    public void onServerTick(@NotNull final TickEvent.ServerTickEvent event)
+    public void onServerTick(@NotNull final ServerTickEvent.Pre event)
     {
 
     }
@@ -1199,7 +1142,7 @@ public final class ColonyView implements IColonyView
     }
 
     @Override
-    public void onWorldTick(@NotNull final TickEvent.LevelTickEvent event)
+    public void onWorldTick(@NotNull final LevelTickEvent.Pre event)
     {
 
     }
@@ -1208,6 +1151,17 @@ public final class ColonyView implements IColonyView
     public Map<BlockPos, BlockState> getWayPoints()
     {
         return wayPoints;
+    }
+
+    /**
+     * Get a list of all barb spawn positions in the colony view.
+     *
+     * @return a copy of the list.
+     */
+    @Override
+    public List<BlockPos> getLastSpawnPoints()
+    {
+        return new ArrayList<>(lastSpawnPoints);
     }
 
     @Override
@@ -1220,6 +1174,12 @@ public final class ColonyView implements IColonyView
     public CompoundTag getColonyTag()
     {
         return null;
+    }
+
+    @Override
+    public boolean isColonyUnderAttack()
+    {
+        return false;
     }
 
     @Override
@@ -1241,21 +1201,10 @@ public final class ColonyView implements IColonyView
     }
 
     @Override
-    public void setColonyFlag(ListTag colonyFlag)
+    public void setColonyFlag(BannerPatternLayers colonyFlag)
     {
         this.colonyFlag = colonyFlag;
-        Network.getNetwork().sendToServer(new ColonyFlagChangeMessage(this, colonyFlag));
-    }
-
-    /**
-     * Get a list of all buildings.
-     *
-     * @return a list of their views.
-     */
-    @Override
-    public List<IBuildingView> getBuildings()
-    {
-        return new ArrayList<>(buildings.values());
+        new ColonyFlagChangeMessage(this, colonyFlag).sendToServer();
     }
 
     @NotNull
@@ -1283,9 +1232,15 @@ public final class ColonyView implements IColonyView
     }
 
     @Override
-    public IRegisteredStructureManager getBuildingManager()
+    public IRegisteredStructureManager getServerBuildingManager()
     {
         return null;
+    }
+
+    @Override
+    public ICommonRegisteredStructureManager getCommonBuildingManager()
+    {
+        return registeredStructureManagerView;
     }
 
     @Override
@@ -1302,6 +1257,29 @@ public final class ColonyView implements IColonyView
 
     @Override
     public IVisitorManager getVisitorManager()
+    {
+        return null;
+    }
+
+    /**
+     * Gets the animal manager of the colony view.
+     *
+     * @return null in the view
+     */
+    @Override
+    public IAnimalManager getAnimalManager()
+    {
+        return null;
+    }
+
+    @Override
+    public IRaiderManager getRaiderManager()
+    {
+        return null;
+    }
+
+    @Override
+    public IEventManager getEventManager()
     {
         return null;
     }
@@ -1331,15 +1309,51 @@ public final class ColonyView implements IColonyView
     }
 
     @Override
+    public IColonyConnectionManager getConnectionManager()
+    {
+        return connectionManager;
+    }
+
+    @Override
+    public boolean isRaiding()
+    {
+        return this.isUnderRaid;
+    }
+
+    @Override
+    public long getMercenaryUseTime()
+    {
+        return mercenaryLastUseTime;
+    }
+
+    @Override
+    public void usedMercenaries()
+    {
+        mercenaryLastUseTime = getWorld().getGameTime();
+    }
+
+    @Override
     public IResearchManager getResearchManager()
     {
         return researchManager;
     }
 
     @Override
+    public boolean areSpiesEnabled()
+    {
+        return spiesEnabled;
+    }
+
+    @Override
     public ICitizenDataView getVisitor(final int citizenId)
     {
         return visitors.get(citizenId);
+    }
+
+    @Override
+    public IAnimalDataView getAnimal(final int animalId)
+    {
+        return animals.get(animalId);
     }
 
     @Override
@@ -1383,5 +1397,17 @@ public final class ColonyView implements IColonyView
     public IQuestManager getQuestManager()
     {
         return this.questManager;
+    }
+
+    @Override
+    public IRegisteredStructureManagerView getClientBuildingManager()
+    {
+        return registeredStructureManagerView;
+    }
+
+    @Override
+    public ICommonSettingsModule getSettings()
+    {
+        return settingsModule;
     }
 }

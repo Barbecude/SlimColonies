@@ -1,5 +1,11 @@
 {
   "branch": "slimcolonies:technology",
+  "costs": [
+    {
+      "count": 2048,
+      "item": "minecraft:wheat_seeds"
+    }
+  ],
   "effects": [
     {
       "id": "slimcolonies:effects/farmingmultiplier",

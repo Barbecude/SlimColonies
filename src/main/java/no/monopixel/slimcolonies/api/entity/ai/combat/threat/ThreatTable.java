@@ -1,7 +1,7 @@
 package no.monopixel.slimcolonies.api.entity.ai.combat.threat;
 
 import net.minecraft.world.entity.LivingEntity;
-import net.minecraftforge.common.util.FakePlayer;
+import net.neoforged.neoforge.common.util.FakePlayer;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -180,7 +180,7 @@ public class ThreatTable<T extends LivingEntity & IThreatTableEntity>
             }
         }
 
-        if (Math.abs(owner.level().getGameTime() - current.getLastSeen()) > MAX_TRACKING_TICKS || !current.getEntity().isAlive())
+        if (Math.abs(owner.level().getGameTime() - current.getLastSeen()) > MAX_TRACKING_TICKS || !current.getEntity().canBeSeenAsEnemy())
         {
             removeCurrentTarget();
             return getTarget();

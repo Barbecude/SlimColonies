@@ -1,9 +1,12 @@
 package no.monopixel.slimcolonies.core.entity.other;
 
+import no.monopixel.slimcolonies.api.entity.ModEntities;
+import no.monopixel.slimcolonies.api.entity.other.AbstractFastMinecoloniesEntity;
+import no.monopixel.slimcolonies.api.util.EntityUtils;
+import no.monopixel.slimcolonies.api.util.LookHandler;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.network.protocol.Packet;
-import net.minecraft.network.protocol.game.ClientGamePacketListener;
+import net.minecraft.network.syncher.SynchedEntityData;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.Entity;
@@ -15,14 +18,10 @@ import net.minecraft.world.level.block.StairBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
-import net.minecraftforge.network.NetworkHooks;
-import no.monopixel.slimcolonies.api.entity.ModEntities;
-import no.monopixel.slimcolonies.api.entity.other.AbstractFastSlimColoniesEntity;
-import no.monopixel.slimcolonies.api.util.EntityUtils;
-import no.monopixel.slimcolonies.api.util.LookHandler;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
+import java.util.List;
 
 /**
  * Entity used to sit on, for animation purposes.
@@ -90,13 +89,7 @@ public class SittingEntity extends Entity
     }
 
     @Override
-    public Packet<ClientGamePacketListener> getAddEntityPacket()
-    {
-        return NetworkHooks.getEntitySpawningPacket(this);
-    }
-
-    @Override
-    protected void defineSynchedData()
+    protected void defineSynchedData(final SynchedEntityData.Builder builder)
     {
 
     }
@@ -105,13 +98,13 @@ public class SittingEntity extends Entity
     public void remove(final RemovalReason removalReason)
     {
         super.remove(removalReason);
-        existingSittingEntities.getOrDefault(level.dimension(), new HashSet<>()).remove(sittingpos);
+        existingSittingEntities.getOrDefault(level().dimension(), new HashSet<>()).remove(sittingpos);
     }
 
     @Override
     public void tick()
     {
-        if (this.level.isClientSide)
+        if (this.level().isClientSide)
         {
             return;
         }
@@ -133,19 +126,19 @@ public class SittingEntity extends Entity
     protected void addPassenger(Entity passenger)
     {
         super.addPassenger(passenger);
-        if (this.level.isClientSide)
+        if (this.level().isClientSide)
         {
             return;
         }
 
-        passenger.dimensions = passenger.dimensions.scale(1.0f, 0.5f);
+        passenger.dimensions = passenger.getType().getDimensions().scale(1.0f, 0.5f);
     }
 
     @Override
     protected void removePassenger(Entity passenger)
     {
         super.removePassenger(passenger);
-        if (this.level.isClientSide)
+        if (this.level().isClientSide)
         {
             return;
         }
@@ -161,7 +154,7 @@ public class SittingEntity extends Entity
     public Vec3 getDismountLocationForPassenger(@NotNull final LivingEntity passenger)
     {
         final BlockPos start = sittingpos == BlockPos.ZERO ? blockPosition().above() : sittingpos;
-        final BlockPos spawn = EntityUtils.getSpawnPoint(this.level, start);
+        final BlockPos spawn = EntityUtils.getSpawnPoint(this.level(), start);
         if (spawn == null)
         {
             return super.getDismountLocationForPassenger(passenger);
@@ -191,8 +184,7 @@ public class SittingEntity extends Entity
 
     /**
      * Check if the sitting position at the location is already occupied.
-     *
-     * @param pos   the world pos to check.
+     * @param pos the world pos to check.
      * @param world the world it is in.
      * @return true if sitting pos is occupied.
      */
@@ -216,19 +208,19 @@ public class SittingEntity extends Entity
             return true;
         }
 
-        if (existingSittingEntities.getOrDefault(entity.level.dimension(), new HashSet<>()).contains(pos))
+        if (existingSittingEntities.getOrDefault(entity.level().dimension(), new HashSet<>()).contains(pos))
         {
             return false;
         }
-        existingSittingEntities.computeIfAbsent(entity.level.dimension(), k -> new HashSet<>()).add(pos);
+        existingSittingEntities.computeIfAbsent(entity.level().dimension(), k -> new HashSet<>()).add(pos);
 
-        final SittingEntity sittingEntity = (SittingEntity) ModEntities.SITTINGENTITY.create(entity.level);
+        final SittingEntity sittingEntity = (SittingEntity) ModEntities.SITTINGENTITY.create(entity.level());
 
         // Find the lowest box and sit on that
-        final BlockState state = entity.level.getBlockState(pos);
+        final BlockState state = entity.level().getBlockState(pos);
         double minY = 1;
 
-        final List<AABB> shapes = state.getCollisionShape(entity.level, pos).toAabbs();
+        final List<AABB> shapes = state.getCollisionShape(entity.level(), pos).toAabbs();
         for (final AABB box : shapes)
         {
             if (box.maxY < minY)
@@ -243,13 +235,13 @@ public class SittingEntity extends Entity
         }
 
         entity.getNavigation().stop();
-        sittingEntity.setPos(pos.getX() + 0.5, (pos.getY() + minY) - entity.getBbHeight() / 2, pos.getZ() + 0.5);
+        sittingEntity.setPos(pos.getX() + 0.5, (pos.getY() + minY) - entity.getBbHeight() / 2 - 0.25, pos.getZ() + 0.5);
         sittingEntity.setMaxLifeTime(maxLifeTime);
         sittingEntity.setSittingPos(pos);
-        entity.level.addFreshEntity(sittingEntity);
+        entity.level().addFreshEntity(sittingEntity);
         entity.startRiding(sittingEntity);
 
-        if (state.getBlock() instanceof StairBlock && entity instanceof AbstractFastSlimColoniesEntity abstractFastMinecoloniesEntity)
+        if (state.getBlock() instanceof StairBlock && entity instanceof AbstractFastMinecoloniesEntity abstractFastMinecoloniesEntity)
         {
             final BlockPos lookAt = pos.relative(state.getValue(StairBlock.FACING).getOpposite()).above();
             final LookHandler lookHandler = (LookHandler) abstractFastMinecoloniesEntity.getLookControl();

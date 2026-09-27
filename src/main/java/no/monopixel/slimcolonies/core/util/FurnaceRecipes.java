@@ -9,6 +9,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.crafting.Ingredient;
 import net.minecraft.world.item.crafting.RecipeManager;
 import net.minecraft.world.item.crafting.RecipeType;
+import net.minecraft.world.item.crafting.SmeltingRecipe;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Blocks;
 import org.jetbrains.annotations.Nullable;
@@ -18,11 +19,6 @@ import java.util.Map;
 
 public class FurnaceRecipes implements IFurnaceRecipes
 {
-    /**
-     * Instance of the furnace recipes.
-     */
-    private static FurnaceRecipes instance;
-
     /**
      * Furnace recipes.
      */
@@ -38,7 +34,8 @@ public class FurnaceRecipes implements IFurnaceRecipes
     {
         recipes.clear();
         reverseRecipes.clear();
-        recipeManager.byType(RecipeType.SMELTING).values().forEach(recipe -> {
+        recipeManager.getAllRecipesFor(RecipeType.SMELTING).forEach(holder -> {
+            final SmeltingRecipe recipe = holder.value();
             final NonNullList<Ingredient> list = recipe.getIngredients();
             if (list.size() == 1)
             {
@@ -51,14 +48,8 @@ public class FurnaceRecipes implements IFurnaceRecipes
                                 .withPrimaryOutput(recipe.getResultItem(level.registryAccess()))
                                 .withGridSize(1)
                                 .withIntermediate(Blocks.FURNACE)
-                                .withRecipeId(recipe.getId())
+                                .withRecipeId(holder.id())
                                 .build();
-
-                        // Skip recipes with no valid inputs (e.g., GregTech tools that get filtered out)
-                        if (storage.getCleanedInput().isEmpty())
-                        {
-                            continue;
-                        }
 
                         recipes.put(storage.getCleanedInput().get(0), storage);
 
@@ -87,19 +78,5 @@ public class FurnaceRecipes implements IFurnaceRecipes
     public RecipeStorage getFirstSmeltingRecipeByResult(final ItemStorage storage)
     {
         return reverseRecipes.get(storage);
-    }
-
-    /**
-     * Get the instance of the class.
-     *
-     * @return the instance.
-     */
-    public static FurnaceRecipes getInstance()
-    {
-        if (instance == null)
-        {
-            instance = new FurnaceRecipes();
-        }
-        return instance;
     }
 }

@@ -2,9 +2,9 @@ package no.monopixel.slimcolonies.api.colony.colonyEvents.descriptions;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraftforge.common.util.INBTSerializable;
+import net.neoforged.neoforge.common.util.INBTSerializable;
 
 /**
  * Description for an event that happened in the colony.
@@ -13,21 +13,21 @@ public interface IColonyEventDescription extends INBTSerializable<CompoundTag>
 {
     /**
      * Gets this event types registry id.
-     *
+     * 
      * @return this event types registry id.
      */
     ResourceLocation getEventTypeId();
 
     /**
      * Gets the name of this event type.
-     *
+     * 
      * @return the name of this event type.
      */
     String getName();
 
     /**
      * Builds the string to show in the colony events list.
-     *
+     * 
      * @return the string to show in the colony events list.
      */
     default String toDisplayString()
@@ -37,57 +37,29 @@ public interface IColonyEventDescription extends INBTSerializable<CompoundTag>
 
     /**
      * Returns the position at which this event occurred.
-     *
+     * 
      * @return the position at which this event occurred.
      */
     BlockPos getEventPos();
 
     /**
      * Sets the position this event happened at.
-     *
+     * 
      * @param pos the position this event happened at.
      */
     void setEventPos(BlockPos pos);
 
     /**
-     * Serializes this event to the given {@link FriendlyByteBuf}.
-     *
-     * @param buf the {@link FriendlyByteBuf} to serialize to.
+     * Serializes this event to the given {@link RegistryFriendlyByteBuf}.
+     * 
+     * @param buf the {@link RegistryFriendlyByteBuf} to serialize to.
      */
-    void serialize(final FriendlyByteBuf buf);
+    void serialize(final RegistryFriendlyByteBuf buf);
 
     /**
-     * Deserializes this event from the given {@link FriendlyByteBuf}.
-     *
-     * @param buf the {@link FriendlyByteBuf} to deserialize from.
+     * Deserializes this event from the given {@link RegistryFriendlyByteBuf}.
+     * 
+     * @param buf the {@link RegistryFriendlyByteBuf} to deserialize from.
      */
-    void deserialize(final FriendlyByteBuf buf);
-
-    /**
-     * Get the day the event occured.
-     * @return true.
-     */
-    int getDay();
-
-    /**
-     * Set the day it happened at.
-     * @param day the day.
-     */
-    void setDay(int day);
-
-    /**
-     * If the event should be included at the end of day summary.
-     * @return true if so.
-     */
-    boolean includeInSummary();
-
-    /**
-     * Get the summary translation key.
-     * @return the translation key.
-     */
-    default String getSummaryTranslationKey()
-    {
-        // Not all need it.
-        return  "";
-    }
+    void deserialize(final RegistryFriendlyByteBuf buf);
 }

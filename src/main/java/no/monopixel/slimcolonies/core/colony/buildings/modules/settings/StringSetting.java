@@ -1,12 +1,11 @@
 package no.monopixel.slimcolonies.core.colony.buildings.modules.settings;
 
 import com.ldtteam.blockui.Pane;
+import com.ldtteam.blockui.PaneBuilders;
 import com.ldtteam.blockui.controls.ButtonImage;
 import com.ldtteam.blockui.views.BOWindow;
-import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.api.distmarker.OnlyIn;
+import no.monopixel.slimcolonies.api.colony.buildings.modules.ICommonSettingsModule;
+import no.monopixel.slimcolonies.api.colony.buildings.modules.ISettingsModule;
 import no.monopixel.slimcolonies.api.colony.buildings.modules.settings.ISetting;
 import no.monopixel.slimcolonies.api.colony.buildings.modules.settings.ISettingKey;
 import no.monopixel.slimcolonies.api.colony.buildings.modules.settings.ISettingsModuleView;
@@ -14,10 +13,15 @@ import no.monopixel.slimcolonies.api.colony.buildings.modules.settings.IStringSe
 import no.monopixel.slimcolonies.api.colony.buildings.views.IBuildingView;
 import no.monopixel.slimcolonies.api.util.Log;
 import no.monopixel.slimcolonies.api.util.MathUtils;
-
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.api.distmarker.OnlyIn;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+
+import static no.monopixel.slimcolonies.api.util.constant.translation.GuiTranslationConstants.LABEL_MAIN_TAB_NAME;
 
 /**
  * Stores a string-list setting (Like enum, but easily serializable).
@@ -89,32 +93,32 @@ public class StringSetting implements IStringSetting<String>
     @Override
     public ResourceLocation getLayoutItem()
     {
-        return new ResourceLocation("slimcolonies:gui/layouthuts/layoutstringsetting.xml");
+        return new ResourceLocation("slimcolonies", "gui/layouthuts/layoutstringsetting.xml");
     }
 
     @OnlyIn(Dist.CLIENT)
     @Override
     public void setupHandler(
-        final ISettingKey<?> key,
-        final Pane pane,
-        final ISettingsModuleView settingsModuleView,
-        final IBuildingView building, final BOWindow window)
+      final ISettingKey<?> key,
+      final Pane pane,
+      final ICommonSettingsModule settingsModuleView,
+      final IBuildingView building, final BOWindow window)
     {
         pane.findPaneOfTypeByID("trigger", ButtonImage.class).setHandler(button -> settingsModuleView.trigger(key));
     }
 
     @Override
     public void render(
-        final ISettingKey<?> key,
-        final Pane pane,
-        final ISettingsModuleView settingsModuleView,
-        final IBuildingView building,
-        final BOWindow window)
+      final ISettingKey<?> key,
+      final Pane pane,
+      final ICommonSettingsModule settingsModuleView,
+      final IBuildingView building,
+      final BOWindow window)
     {
-        int buttonWidth = MathUtils.clamp(getButtonWidth(settingsModuleView), 0, MAX_BUTTON_WIDTH);
+        int buttonWidth = MathUtils.clamp(getButtonWidth((ISettingsModuleView) settingsModuleView), 0, MAX_BUTTON_WIDTH);
         ButtonImage triggerButton = pane.findPaneOfTypeByID("trigger", ButtonImage.class);
         triggerButton.setSize(buttonWidth, triggerButton.getHeight());
-        triggerButton.setEnabled(isActive(settingsModuleView));
+        triggerButton.setEnabled(isActive((ISettingsModuleView) settingsModuleView));
         triggerButton.setText(getDisplayText());
         setHoverPane(key, triggerButton, settingsModuleView);
     }
@@ -126,7 +130,7 @@ public class StringSetting implements IStringSetting<String>
      */
     protected Component getDisplayText()
     {
-        return Component.translatable(settings.get(currentIndex));
+        return Component.translatableEscape(settings.get(currentIndex));
     }
 
     @Override

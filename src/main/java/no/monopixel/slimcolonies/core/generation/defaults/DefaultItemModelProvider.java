@@ -1,10 +1,13 @@
 package no.monopixel.slimcolonies.core.generation.defaults;
 
 import no.monopixel.slimcolonies.api.items.ModItems;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.data.PackOutput;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraftforge.client.model.generators.ItemModelProvider;
-import net.minecraftforge.common.data.ExistingFileHelper;
+import net.minecraft.world.item.Item;
+import net.neoforged.neoforge.client.model.generators.ItemModelProvider;
+import net.neoforged.neoforge.client.model.generators.ModelFile;
+import net.neoforged.neoforge.common.data.ExistingFileHelper;
 
 import static no.monopixel.slimcolonies.api.util.constant.Constants.MOD_ID;
 
@@ -28,10 +31,22 @@ public class DefaultItemModelProvider extends ItemModelProvider
         basicItem(disabledGoggles);
         basicItem(ModItems.buildGoggles)
                 .override()
-                    .predicate(new ResourceLocation("disabled"), 1.0F)
+                    .predicate(ResourceLocation.withDefaultNamespace("disabled"), 1.0F)
                     .model(getExistingFile(disabledGoggles))
                 .end();
 
-        // Custom food item models removed - only basic dough items remain
+        for (final Item foodItem : ModItems.getAllIngredients())
+        {
+            getBuilder(foodItem.toString())
+              .parent(new ModelFile.UncheckedModelFile("item/generated"))
+              .texture("layer0", new ResourceLocation(MOD_ID, "item/food/" + BuiltInRegistries.ITEM.wrapAsHolder(foodItem).getKey().location().getPath()));
+        }
+
+        for (final Item foodItem : ModItems.getAllFoods())
+        {
+            getBuilder(foodItem.toString())
+              .parent(new ModelFile.UncheckedModelFile("item/generated"))
+              .texture("layer0", new ResourceLocation(MOD_ID, "item/food/" + BuiltInRegistries.ITEM.wrapAsHolder(foodItem).getKey().location().getPath()));
+        }
     }
 }

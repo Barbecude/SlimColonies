@@ -1,15 +1,7 @@
 package no.monopixel.slimcolonies.core.colony.buildings.workerbuildings;
 
-import net.minecraft.core.BlockPos;
-import net.minecraft.nbt.CompoundTag;
-import net.minecraft.util.Tuple;
-import net.minecraft.world.entity.EquipmentSlot;
-import net.minecraft.world.item.ArmorItem;
-import net.minecraft.world.item.FlintAndSteelItem;
-import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.level.Level;
-import net.minecraft.world.level.block.Block;
 import no.monopixel.slimcolonies.api.colony.IColony;
+import no.monopixel.slimcolonies.api.colony.buildings.modules.settings.ISettingKey;
 import no.monopixel.slimcolonies.api.colony.jobs.registry.JobEntry;
 import no.monopixel.slimcolonies.api.crafting.IRecipeStorage;
 import no.monopixel.slimcolonies.api.crafting.ItemStorage;
@@ -18,17 +10,39 @@ import no.monopixel.slimcolonies.api.util.ItemStackUtils;
 import no.monopixel.slimcolonies.api.util.WorldUtil;
 import no.monopixel.slimcolonies.core.colony.buildings.AbstractBuilding;
 import no.monopixel.slimcolonies.core.colony.buildings.modules.AbstractCraftingBuildingModule;
-import no.monopixel.slimcolonies.core.colony.buildings.modules.BuildingModules;
 import no.monopixel.slimcolonies.core.colony.buildings.modules.MinimumStockModule;
+import no.monopixel.slimcolonies.core.colony.buildings.modules.settings.BoolSetting;
+import no.monopixel.slimcolonies.core.colony.buildings.modules.settings.SettingKey;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Holder;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.util.Tuple;
+import net.minecraft.world.entity.EquipmentSlot;
+import net.minecraft.world.item.ArmorItem;
+import net.minecraft.world.item.FlintAndSteelItem;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Block;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
 
 import static no.monopixel.slimcolonies.api.util.constant.BuildingConstants.CONST_DEFAULT_MAX_BUILDING_LEVEL;
 import static no.monopixel.slimcolonies.api.util.constant.Constants.STACKSIZE;
+import static no.monopixel.slimcolonies.api.util.constant.EquipmentLevelConstants.TOOL_LEVEL_WOOD_OR_GOLD;
 
 public class BuildingNetherWorker extends AbstractBuilding
 {
+
+    /**
+     * Settings
+     */
+    public static final ISettingKey<BoolSetting> CLOSE_PORTAL =
+        new SettingKey<>(BoolSetting.class, new ResourceLocation(no.monopixel.slimcolonies.api.util.constant.Constants.MOD_ID, "closeportal"));
+
     /**
      * Constant name for the Netherworker building
      */
@@ -40,9 +54,9 @@ public class BuildingNetherWorker extends AbstractBuilding
     private static final String TAG_CURRENT_TRIPS = "current_trips";
 
     /**
-     * The tag for storing the last trip time to NBT
+     * Which day in the period is it?
      */
-    private static final String TAG_LAST_TRIP_TIME = "last_trip_time";
+    private static final String TAG_CURRENT_DAY = "current_day";
 
     /**
      * How many trips we can make per period by default
@@ -50,28 +64,38 @@ public class BuildingNetherWorker extends AbstractBuilding
     private static final int MAX_PER_PERIOD = 1;
 
     /**
-     * Cooldown period in ticks (15 minutes = 18000L ticks at 20 ticks/second)
+     * How many days are in a period by default
      */
-    private static final long COOLDOWN_TICKS = 18000L;
+    private static final int PERIOD_DAYS = 3;
 
     /**
-     * Game time (in ticks) when the last trip was completed
+     * Exclusion list id.
      */
-    private long lastTripTime = -COOLDOWN_TICKS; // Initialize to allow immediate first trip
+    public static final String FOOD_EXCLUSION_LIST = "food";
+
+    /**
+     * Which day we're at in the current period
+     */
+    private int currentPeriodDay = 0;
 
     /**
      * How many trips we've done in the current period
      */
     private int currentTrips = 0;
 
+    /**
+     * ServerTime for the last 'day' snapshot, to track days when doDaylightCycle is not happening.
+     */
+    private long snapTime;
+
     public BuildingNetherWorker(@NotNull IColony colony, BlockPos pos)
     {
         super(colony, pos);
 
-        keepX.put(itemStack -> ItemStackUtils.isEquipmentType(itemStack, ModEquipmentTypes.axe.get()), new Tuple<>(1, true));
-        keepX.put(itemStack -> ItemStackUtils.isEquipmentType(itemStack, ModEquipmentTypes.pickaxe.get()), new Tuple<>(1, true));
-        keepX.put(itemStack -> ItemStackUtils.isEquipmentType(itemStack, ModEquipmentTypes.shovel.get()), new Tuple<>(1, true));
-        keepX.put(itemStack -> ItemStackUtils.isEquipmentType(itemStack, ModEquipmentTypes.sword.get()), new Tuple<>(1, true));
+        keepX.put(itemStack -> ItemStackUtils.hasEquipmentLevel(itemStack, ModEquipmentTypes.axe.get(), TOOL_LEVEL_WOOD_OR_GOLD, getMaxEquipmentLevel()), new Tuple<>(1, true));
+        keepX.put(itemStack -> ItemStackUtils.hasEquipmentLevel(itemStack, ModEquipmentTypes.pickaxe.get(), TOOL_LEVEL_WOOD_OR_GOLD, getMaxEquipmentLevel()), new Tuple<>(1, true));
+        keepX.put(itemStack -> ItemStackUtils.hasEquipmentLevel(itemStack, ModEquipmentTypes.shovel.get(), TOOL_LEVEL_WOOD_OR_GOLD, getMaxEquipmentLevel()), new Tuple<>(1, true));
+        keepX.put(itemStack -> ItemStackUtils.hasEquipmentLevel(itemStack, ModEquipmentTypes.sword.get(), TOOL_LEVEL_WOOD_OR_GOLD, getMaxEquipmentLevel()), new Tuple<>(1, true));
 
         keepX.put(itemStack -> itemStack.getItem() instanceof FlintAndSteelItem, new Tuple<>(1, true));
 
@@ -102,28 +126,52 @@ public class BuildingNetherWorker extends AbstractBuilding
         return CONST_DEFAULT_MAX_BUILDING_LEVEL;
     }
 
-    @Override
-    public void deserializeNBT(final CompoundTag compound)
+    /**
+     * Should the portal be closed on return?
+     */
+    public boolean shallClosePortalOnReturn()
     {
-        super.deserializeNBT(compound);
+        return getSetting(CLOSE_PORTAL).getValue();
+    }
+
+    @Override
+    public void onWakeUp()
+    {
+        super.onWakeUp();
+        snapTime = colony.getWorld().getDayTime();
+        if (this.currentPeriodDay < getPeriodDays())
+        {
+            this.currentPeriodDay++;
+        }
+        else
+        {
+            this.currentPeriodDay = 0;
+            this.currentTrips = 0;
+        }
+    }
+
+    @Override
+    public void deserializeNBT(@NotNull final HolderLookup.Provider provider, final CompoundTag compound)
+    {
+        super.deserializeNBT(provider, compound);
         if (compound.contains(TAG_CURRENT_TRIPS))
         {
             this.currentTrips = compound.getInt(TAG_CURRENT_TRIPS);
         }
 
-        if (compound.contains(TAG_LAST_TRIP_TIME))
+        if (compound.contains(TAG_CURRENT_DAY))
         {
-            this.lastTripTime = compound.getLong(TAG_LAST_TRIP_TIME);
+            this.currentPeriodDay = compound.getInt(TAG_CURRENT_DAY);
         }
     }
 
     @Override
-    public CompoundTag serializeNBT()
+    public CompoundTag serializeNBT(@NotNull final HolderLookup.Provider provider)
     {
-        final CompoundTag compound = super.serializeNBT();
+        final CompoundTag compound = super.serializeNBT(provider);
 
         compound.putInt(TAG_CURRENT_TRIPS, this.currentTrips);
-        compound.putLong(TAG_LAST_TRIP_TIME, this.lastTripTime);
+        compound.putInt(TAG_CURRENT_DAY, this.currentPeriodDay);
 
         return compound;
     }
@@ -141,7 +189,7 @@ public class BuildingNetherWorker extends AbstractBuilding
             return stack.getCount();
         }
 
-        // Keep portal materials from recipe
+        // Check for materials needed to go to the Nether: 
         IRecipeStorage rs = getFirstModuleOccurance(BuildingNetherWorker.CraftingModule.class).getFirstRecipe(ItemStack::isEmpty);
         if (rs != null)
         {
@@ -159,32 +207,25 @@ public class BuildingNetherWorker extends AbstractBuilding
             }
         }
 
-        // Keep all food from menu
-        final ItemStorage foodStorage = new ItemStorage(stack);
-        if (getModule(BuildingModules.NETHERMINER_MENU).getMenu().contains(foodStorage))
-        {
-            return 0;
-        }
-
         return super.buildingRequiresCertainAmountOfItem(stack, localAlreadyKept, inventory, jobEntry);
     }
 
     /**
-     * Check to see if it's valid to do a trip by checking the cooldown timer
+     * Check to see if it's valid to do a trip by checking how many done in this current period
      *
      * @return true if the worker can go to the nether
      */
     public boolean isReadyForTrip()
     {
-        final long currentTime = colony.getWorld().getGameTime();
-        final long timeSinceLastTrip = currentTime - lastTripTime;
-
-        // Reset trip counter if cooldown has expired
-        if (timeSinceLastTrip >= COOLDOWN_TICKS)
+        if (snapTime == 0)
         {
-            this.currentTrips = 0;
+            snapTime = colony.getWorld().getDayTime();
         }
-
+        if (Math.abs(colony.getWorld().getDayTime() - snapTime) >= 24000)
+        {
+            //Make sure we're incrementing if day/night cycle isn't running. 
+            this.currentPeriodDay++;
+        }
         return this.currentTrips < getMaxPerPeriod();
     }
 
@@ -194,7 +235,6 @@ public class BuildingNetherWorker extends AbstractBuilding
     public void recordTrip()
     {
         this.currentTrips++;
-        this.lastTripTime = colony.getWorld().getGameTime();
     }
 
     /**
@@ -216,11 +256,21 @@ public class BuildingNetherWorker extends AbstractBuilding
     /**
      * Get the max per period, potentially modified by research
      *
-     * @return max trips per cooldown period
+     * @return
      */
     public static int getMaxPerPeriod()
     {
         return MAX_PER_PERIOD;
+    }
+
+    /**
+     * Get how many days are in a period, potentially modified by research.
+     *
+     * @return
+     */
+    public static int getPeriodDays()
+    {
+        return PERIOD_DAYS;
     }
 
     @Override

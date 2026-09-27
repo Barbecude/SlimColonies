@@ -15,7 +15,8 @@ public class CitizenNameFile
     public enum NameOrder
     {
         EASTERN,
-        WESTERN
+        WESTERN,
+        PATRONYMIC
     }
 
     /**
@@ -36,7 +37,7 @@ public class CitizenNameFile
     /**
      * List of female first names.
      */
-    public List<String> femaleFirstNames;
+    public List<String> femalefirstNames;
 
     /**
      * List of surnames.
@@ -44,21 +45,14 @@ public class CitizenNameFile
     public List<String> surnames;
 
     /**
-     * Whether this name file uses patronymic naming (surnames based on father's name).
+     * Suffix for male patronymic surnames.
      */
-    public boolean patronymic = false;
+    public String maleSuffix;
 
     /**
-     * List of male patronymic suffixes (e.g., "son", "sson").
-     * Used when patronymic is true.
+     * Suffix for female patronymic surnames.
      */
-    public List<String> maleSuffixes;
-
-    /**
-     * List of female patronymic suffixes (e.g., "dóttir", "sdóttir").
-     * Used when patronymic is true.
-     */
-    public List<String> femaleSuffixes;
+    public String femaleSuffix;
 
     /**
      * Create a new instance of a specific name file.
@@ -75,10 +69,24 @@ public class CitizenNameFile
       @NotNull final List<String> femaleFirstNames,
       @NotNull final List<String> surnames)
     {
+        this(parts, order, maleFirstNames, femaleFirstNames, surnames, "son", "dottir");
+    }
+
+    public CitizenNameFile(
+      final int parts,
+      @NotNull final NameOrder order,
+      @NotNull final List<String> maleFirstNames,
+      @NotNull final List<String> femaleFirstNames,
+      @NotNull final List<String> surnames,
+      final String maleSuffix,
+      final String femaleSuffix)
+    {
         this.parts = parts;
         this.order = order;
         this.maleFirstNames = maleFirstNames;
-        this.femaleFirstNames = femaleFirstNames;
+        this.femalefirstNames = femaleFirstNames;
         this.surnames = surnames;
+        this.maleSuffix = maleSuffix;
+        this.femaleSuffix = femaleSuffix;
     }
 }

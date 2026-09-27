@@ -1,0 +1,26 @@
+{
+  "branch": "slimcolonies:civilian",
+  "costs": [
+    {
+      "count": 1,
+      "item": "minecraft:cake"
+    }
+  ],
+  "effects": [
+    {
+      "id": "slimcolonies:effects/happinessmultiplier",
+      "level": 1
+    }
+  ],
+  "icon": "slimcolonies:textures/icons/research/happy1.png",
+  "parentResearch": "slimcolonies:civilian/firstaid",
+  "requirements": [
+    {
+      "type": "slimcolonies:building",
+      "building": "slimcolonies:cook",
+      "level": 2
+    }
+  ],
+  "researchLevel": 2,
+  "sortOrder": 2
+}

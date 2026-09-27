@@ -1,6 +1,7 @@
 package no.monopixel.slimcolonies.api.tileentities;
 
-import com.ldtteam.structurize.api.util.IRotatableBlockEntity;
+import com.ldtteam.structurize.api.IRotatableBlockEntity;
+import com.ldtteam.structurize.api.RotationMirror;
 import com.ldtteam.structurize.blockentities.interfaces.IBlueprintDataProviderBE;
 import no.monopixel.slimcolonies.api.colony.IColony;
 import no.monopixel.slimcolonies.api.colony.buildingextensions.registry.BuildingExtensionRegistries.BuildingExtensionEntry;
@@ -8,7 +9,6 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.level.block.Rotation;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
@@ -72,11 +72,5 @@ public abstract class AbstractTileEntityPlantationField extends BlockEntity impl
      * Get the rotation of the controller.
      * @return the placed rotation.
      */
-    public abstract Rotation getRotation();
-
-    /**
-     * Get the mirroring setting of the controller.
-     * @return true if mirrored.
-     */
-    public abstract boolean getMirror();
+    public abstract RotationMirror getRotationMirror();
 }

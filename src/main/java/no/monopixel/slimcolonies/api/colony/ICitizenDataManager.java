@@ -1,8 +1,9 @@
 package no.monopixel.slimcolonies.api.colony;
 
+import no.monopixel.slimcolonies.api.IMinecoloniesAPI;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.network.FriendlyByteBuf;
-import no.monopixel.slimcolonies.api.ISlimColoniesAPI;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -13,7 +14,7 @@ public interface ICitizenDataManager
 
     static ICitizenDataManager getInstance()
     {
-        return ISlimColoniesAPI.getInstance().getCitizenDataManager();
+        return IMinecoloniesAPI.getInstance().getCitizenDataManager();
     }
 
     /**
@@ -23,7 +24,7 @@ public interface ICitizenDataManager
      * @param colony   The colony to create an instance in.
      * @return The citizen data, loaded from the nbt into the colony.
      */
-    ICitizenData createFromNBT(@NotNull CompoundTag compound, IColony colony);
+    ICitizenData createFromNBT(@NotNull final HolderLookup.Provider provider, @NotNull CompoundTag compound, IColony colony);
 
     /**
      * Creates a citizen data view from a given network buffer, containing the views data.
@@ -33,5 +34,5 @@ public interface ICitizenDataManager
      * @param colonyView    the colony the citizen belongs to.
      * @return The citizen data view.
      */
-    ICitizenDataView createFromNetworkData(final int id, @NotNull final FriendlyByteBuf networkBuffer, final IColonyView colonyView);
+    ICitizenDataView createFromNetworkData(final int id, @NotNull final RegistryFriendlyByteBuf networkBuffer, final IColonyView colonyView);
 }

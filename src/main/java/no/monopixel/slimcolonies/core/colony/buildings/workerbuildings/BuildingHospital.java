@@ -3,11 +3,15 @@ package no.monopixel.slimcolonies.core.colony.buildings.workerbuildings;
 import com.google.common.collect.ImmutableList;
 import no.monopixel.slimcolonies.api.colony.ICitizenData;
 import no.monopixel.slimcolonies.api.colony.IColony;
+import no.monopixel.slimcolonies.api.crafting.ItemStorage;
 import no.monopixel.slimcolonies.api.util.BlockPosUtil;
 import no.monopixel.slimcolonies.api.util.constant.NbtTagConstants;
 import no.monopixel.slimcolonies.core.colony.buildings.AbstractBuilding;
+import no.monopixel.slimcolonies.core.datalistener.model.Disease;
+import no.monopixel.slimcolonies.core.datalistener.DiseasesListener;
 import no.monopixel.slimcolonies.core.entity.ai.workers.util.Patient;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
@@ -27,11 +31,12 @@ import java.util.Map;
 import java.util.function.Predicate;
 
 import static no.monopixel.slimcolonies.api.util.constant.NbtTagConstants.*;
+import static no.monopixel.slimcolonies.api.util.constant.Suppression.OVERRIDE_EQUALS;
 
 /**
  * Class of the hospital building.
  */
-
+@SuppressWarnings(OVERRIDE_EQUALS)
 public class BuildingHospital extends AbstractBuilding
 {
     /**
@@ -80,9 +85,9 @@ public class BuildingHospital extends AbstractBuilding
     }
 
     @Override
-    public void deserializeNBT(final CompoundTag compound)
+    public void deserializeNBT(@NotNull final HolderLookup.Provider provider, final CompoundTag compound)
     {
-        super.deserializeNBT(compound);
+        super.deserializeNBT(provider, compound);
         final ListTag bedTagList = compound.getList(TAG_BEDS, Tag.TAG_COMPOUND);
         for (int i = 0; i < bedTagList.size(); ++i)
         {
@@ -107,9 +112,9 @@ public class BuildingHospital extends AbstractBuilding
     }
 
     @Override
-    public CompoundTag serializeNBT()
+    public CompoundTag serializeNBT(@NotNull final HolderLookup.Provider provider)
     {
-        final CompoundTag compound = super.serializeNBT();
+        final CompoundTag compound = super.serializeNBT(provider);
         if (!bedMap.isEmpty())
         {
             @NotNull final ListTag bedTagList = new ListTag();
@@ -205,7 +210,16 @@ public class BuildingHospital extends AbstractBuilding
      */
     private static boolean isCureItem(final ItemStack stack)
     {
-        // No cure items needed for injuries - healing is done directly
+        for (final Disease disease : DiseasesListener.getDiseases())
+        {
+            for (final ItemStorage cureItem : disease.cureItems())
+            {
+                if (Disease.isCureItem(stack, cureItem))
+                {
+                    return true;
+                }
+            }
+        }
         return false;
     }
 

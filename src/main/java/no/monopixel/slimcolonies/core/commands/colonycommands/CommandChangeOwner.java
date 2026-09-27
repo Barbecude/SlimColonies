@@ -1,12 +1,11 @@
 package no.monopixel.slimcolonies.core.commands.colonycommands;
 
 import no.monopixel.slimcolonies.api.colony.IColony;
-import no.monopixel.slimcolonies.api.colony.IColonyManager;
 import no.monopixel.slimcolonies.api.util.constant.translation.CommandTranslationConstants;
+import no.monopixel.slimcolonies.core.commands.arguments.ColonyIdArgument;
 import no.monopixel.slimcolonies.core.commands.commandTypes.IMCColonyOfficerCommand;
 import no.monopixel.slimcolonies.core.commands.commandTypes.IMCCommand;
 import com.mojang.authlib.GameProfile;
-import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
@@ -29,13 +28,7 @@ public class CommandChangeOwner implements IMCColonyOfficerCommand
     @Override
     public int onExecute(final CommandContext<CommandSourceStack> context)
     {
-        final int colonyID = IntegerArgumentType.getInteger(context, COLONYID_ARG);
-        final IColony colony = IColonyManager.getInstance().getColonyByDimension(colonyID, context.getSource().getLevel().dimension());
-        if (colony == null)
-        {
-            context.getSource().sendSuccess(() -> Component.translatable(CommandTranslationConstants.COMMAND_COLONY_ID_NOT_FOUND, colonyID), true);
-            return 0;
-        }
+        final IColony colony = ColonyIdArgument.getColony(context, COLONYID_ARG);
 
         GameProfile profile;
         try
@@ -51,13 +44,13 @@ public class CommandChangeOwner implements IMCColonyOfficerCommand
         if (player == null)
         {
             // could not find player with given name.
-            context.getSource().sendSuccess(() -> Component.translatable(CommandTranslationConstants.COMMAND_PLAYER_NOT_FOUND, profile.getName()), true);
+            context.getSource().sendSuccess(() -> Component.translatableEscape(CommandTranslationConstants.COMMAND_PLAYER_NOT_FOUND, profile.getName()), true);
             return 0;
         }
 
         colony.getPermissions().setOwner(player);
 
-        context.getSource().sendSuccess(() -> Component.translatable(CommandTranslationConstants.COMMAND_OWNER_CHANGE_SUCCESS, profile.getName(), colony.getName()), true);
+        context.getSource().sendSuccess(() -> Component.translatableEscape(CommandTranslationConstants.COMMAND_OWNER_CHANGE_SUCCESS, profile.getName(), colony.getName()), true);
         return 1;
     }
 
@@ -74,7 +67,7 @@ public class CommandChangeOwner implements IMCColonyOfficerCommand
     public LiteralArgumentBuilder<CommandSourceStack> build()
     {
         return IMCCommand.newLiteral(getName())
-                 .then(IMCCommand.newArgument(COLONYID_ARG, IntegerArgumentType.integer(1))
+                 .then(IMCCommand.newArgument(COLONYID_ARG, ColonyIdArgument.id())
                          .then(IMCCommand.newArgument(PLAYERNAME_ARG, GameProfileArgument.gameProfile()).executes(this::checkPreConditionAndExecute)));
     }
 }

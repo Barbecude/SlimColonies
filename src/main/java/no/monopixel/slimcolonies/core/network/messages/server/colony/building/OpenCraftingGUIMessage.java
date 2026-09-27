@@ -1,24 +1,25 @@
 package no.monopixel.slimcolonies.core.network.messages.server.colony.building;
 
+import com.ldtteam.common.network.PlayMessageType;
 import no.monopixel.slimcolonies.api.colony.IColony;
 import no.monopixel.slimcolonies.api.colony.buildings.IBuilding;
 import no.monopixel.slimcolonies.api.crafting.ModCraftingTypes;
 import no.monopixel.slimcolonies.api.inventory.container.ContainerCrafting;
 import no.monopixel.slimcolonies.api.inventory.container.ContainerCraftingBrewingstand;
 import no.monopixel.slimcolonies.api.inventory.container.ContainerCraftingFurnace;
+import no.monopixel.slimcolonies.api.util.constant.Constants;
 import no.monopixel.slimcolonies.core.colony.buildings.modules.AbstractCraftingBuildingModule;
 import no.monopixel.slimcolonies.core.colony.buildings.views.AbstractBuildingView;
 import no.monopixel.slimcolonies.core.network.messages.server.AbstractBuildingServerMessage;
-import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.entity.player.Inventory;
-import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.inventory.AbstractContainerMenu;
-import net.minecraft.world.MenuProvider;
 import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.chat.Component;
-
-import net.minecraftforge.network.NetworkEvent;
-import net.minecraftforge.network.NetworkHooks;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.MenuProvider;
+import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.inventory.AbstractContainerMenu;
+import net.neoforged.neoforge.network.handling.IPayloadContext;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -26,18 +27,12 @@ import org.jetbrains.annotations.NotNull;
  */
 public class OpenCraftingGUIMessage extends AbstractBuildingServerMessage<IBuilding>
 {
+    public static final PlayMessageType<?> TYPE = PlayMessageType.forServer(Constants.MOD_ID, "open_crafting_gui", OpenCraftingGUIMessage::new);
+
     /**
      * The type of container.
      */
-    private int id;
-
-    /**
-     * Empty public constructor.
-     */
-    public OpenCraftingGUIMessage()
-    {
-        super();
-    }
+    private final int id;
 
     /**
      * Creates an open inventory message for a building.
@@ -46,36 +41,31 @@ public class OpenCraftingGUIMessage extends AbstractBuildingServerMessage<IBuild
      */
     public OpenCraftingGUIMessage(@NotNull final AbstractBuildingView building, final int id)
     {
-        super(building);
+        super(TYPE, building);
         this.id = id;
     }
 
-    @Override
-    public void fromBytesOverride(@NotNull final FriendlyByteBuf buf)
+    protected OpenCraftingGUIMessage(final RegistryFriendlyByteBuf buf, final PlayMessageType<?> type)
     {
+        super(buf, type);
         this.id = buf.readInt();
     }
 
     @Override
-    public void toBytesOverride(@NotNull final FriendlyByteBuf buf)
+    protected void toBytes(@NotNull final RegistryFriendlyByteBuf buf)
     {
+        super.toBytes(buf);
         buf.writeInt(id);
     }
 
     @Override
-    protected void onExecute(final NetworkEvent.Context ctxIn, final boolean isLogicalServer, final IColony colony, final IBuilding building)
+    protected void onExecute(final IPayloadContext ctxIn, final ServerPlayer player, final IColony colony, final IBuilding building)
     {
-        final ServerPlayer player = ctxIn.getSender();
-        if (player == null)
-        {
-            return;
-        }
-
-        if (building.getModule(id) instanceof AbstractCraftingBuildingModule module)
+        if (building.getModule(id) instanceof final AbstractCraftingBuildingModule module)
         {
             if (module.canLearn(ModCraftingTypes.SMELTING.get()))
             {
-                NetworkHooks.openScreen(player, new MenuProvider()
+                player.openMenu(new MenuProvider()
                 {
                     @NotNull
                     @Override
@@ -90,11 +80,11 @@ public class OpenCraftingGUIMessage extends AbstractBuildingServerMessage<IBuild
                     {
                         return new ContainerCraftingFurnace(id, inv, building.getID(), module.getProducer().getRuntimeID());
                     }
-                }, buffer -> new FriendlyByteBuf(buffer.writeBlockPos(building.getID()).writeInt(module.getProducer().getRuntimeID())));
+                }, buffer -> new RegistryFriendlyByteBuf(new FriendlyByteBuf(buffer.writeBlockPos(building.getID()).writeInt(module.getProducer().getRuntimeID())), buffer.registryAccess()));
             }
             else if (module.canLearn(ModCraftingTypes.BREWING.get()))
             {
-                NetworkHooks.openScreen(player, new MenuProvider()
+                player.openMenu(new MenuProvider()
                 {
                     @NotNull
                     @Override
@@ -109,12 +99,11 @@ public class OpenCraftingGUIMessage extends AbstractBuildingServerMessage<IBuild
                     {
                         return new ContainerCraftingBrewingstand(id, inv, building.getID(), module.getProducer().getRuntimeID());
                     }
-                }, buffer -> new FriendlyByteBuf(buffer.writeBlockPos(building.getID()).writeInt(module.getProducer().getRuntimeID())));
+                }, buffer -> new RegistryFriendlyByteBuf(new FriendlyByteBuf(buffer.writeBlockPos(building.getID()).writeInt(module.getProducer().getRuntimeID())), buffer.registryAccess()));
             }
             else
             {
-                net.minecraftforge.network.NetworkHooks.openScreen(player,
-                  new MenuProvider()
+                player.openMenu(new MenuProvider()
                   {
                       @NotNull
                       @Override
@@ -130,8 +119,8 @@ public class OpenCraftingGUIMessage extends AbstractBuildingServerMessage<IBuild
                           return new ContainerCrafting(id, inv, module.canLearn(ModCraftingTypes.LARGE_CRAFTING.get()), building.getID(), module.getProducer().getRuntimeID());
                       }
                   },
-                  buffer -> new FriendlyByteBuf(buffer.writeBoolean(module.canLearn(ModCraftingTypes.LARGE_CRAFTING.get()))).writeBlockPos(building.getID())
-                    .writeInt(module.getProducer().getRuntimeID()));
+                  buffer -> new RegistryFriendlyByteBuf(
+                    new FriendlyByteBuf(buffer.writeBoolean(module.canLearn(ModCraftingTypes.LARGE_CRAFTING.get()))), buffer.registryAccess()).writeBlockPos(building.getID()).writeInt(module.getProducer().getRuntimeID()));
             }
         }
     }

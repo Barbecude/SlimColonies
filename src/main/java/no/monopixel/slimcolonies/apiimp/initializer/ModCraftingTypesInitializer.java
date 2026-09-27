@@ -4,16 +4,16 @@ import no.monopixel.slimcolonies.api.crafting.ModCraftingTypes;
 import no.monopixel.slimcolonies.api.crafting.RecipeCraftingType;
 import no.monopixel.slimcolonies.api.crafting.registry.CraftingType;
 import no.monopixel.slimcolonies.api.util.constant.Constants;
+import no.monopixel.slimcolonies.apiimp.CommonMinecoloniesAPIImpl;
 import no.monopixel.slimcolonies.core.recipes.ArchitectsCutterCraftingType;
 import no.monopixel.slimcolonies.core.recipes.BrewingCraftingType;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.crafting.RecipeType;
-import net.minecraftforge.registries.DeferredRegister;
+import net.neoforged.neoforge.registries.DeferredRegister;
 
 public final class ModCraftingTypesInitializer
 {
     public final static DeferredRegister<CraftingType>
-       DEFERRED_REGISTER = DeferredRegister.create(ResourceLocation.fromNamespaceAndPath(Constants.MOD_ID, "craftingtypes"), Constants.MOD_ID);
+       DEFERRED_REGISTER = DeferredRegister.create(CommonMinecoloniesAPIImpl.CRAFTING_TYPES, Constants.MOD_ID);
 
     private ModCraftingTypesInitializer()
     {
@@ -23,11 +23,11 @@ public final class ModCraftingTypesInitializer
     static
     {
             ModCraftingTypes.SMALL_CRAFTING = DEFERRED_REGISTER.register(ModCraftingTypes.SMALL_CRAFTING_ID.getPath(), () -> new RecipeCraftingType<>(ModCraftingTypes.SMALL_CRAFTING_ID,
-              RecipeType.CRAFTING, r -> r.canCraftInDimensions(2, 2)));
+              RecipeType.CRAFTING, r -> r.value().canCraftInDimensions(2, 2)));
 
             ModCraftingTypes.LARGE_CRAFTING = DEFERRED_REGISTER.register(ModCraftingTypes.LARGE_CRAFTING_ID.getPath(), () -> new RecipeCraftingType<>(ModCraftingTypes.LARGE_CRAFTING_ID,
-              RecipeType.CRAFTING, r -> r.canCraftInDimensions(3, 3)
-                                          && !r.canCraftInDimensions(2, 2)));
+              RecipeType.CRAFTING, r -> r.value().canCraftInDimensions(3, 3)
+                                          && !r.value().canCraftInDimensions(2, 2)));
 
             ModCraftingTypes.SMELTING = DEFERRED_REGISTER.register(ModCraftingTypes.SMELTING_ID.getPath(), () -> new RecipeCraftingType<>(ModCraftingTypes.SMELTING_ID,
               RecipeType.SMELTING, null));

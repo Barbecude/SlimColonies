@@ -1,12 +1,18 @@
 {
   "branch": "slimcolonies:combat",
+  "costs": [
+    {
+      "count": 32,
+      "item": "minecraft:emerald"
+    }
+  ],
   "effects": [
     {
       "id": "slimcolonies:effects/standard",
       "level": 1
     }
   ],
-  "icon": "minecraft:iron_sword",
+  "icon": "slimcolonies:banner_rally_guards",
   "parentResearch": "slimcolonies:combat/telescope",
   "requirements": [
     {

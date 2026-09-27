@@ -1,46 +1,48 @@
 package no.monopixel.slimcolonies.core.colony.buildingextensions;
 
-
 import no.monopixel.slimcolonies.api.blocks.ModBlocks;
 import no.monopixel.slimcolonies.api.colony.IColony;
 import no.monopixel.slimcolonies.api.colony.buildingextensions.registry.BuildingExtensionRegistries;
 import no.monopixel.slimcolonies.api.colony.buildingextensions.registry.BuildingExtensionRegistries.BuildingExtensionEntry;
+import no.monopixel.slimcolonies.api.util.Utils;
+import no.monopixel.slimcolonies.api.util.constant.Constants;
+import no.monopixel.slimcolonies.core.tileentities.TileEntityScarecrow;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.FenceBlock;
 import net.minecraft.world.level.block.FenceGateBlock;
 import net.minecraft.world.level.block.WallBlock;
+import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.Locale;
-
-import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
-
-import org.jetbrains.annotations.NotNull;
 
 import static no.monopixel.slimcolonies.api.util.constant.TranslationConstants.FIELD_STATUS;
 
 /**
  * Field class implementation for the plantation
  */
-public class FarmField extends AbstractBuildingExtensionModule
+public class FarmField extends AbstractBuildingExtension
 {
     /**
      * The max width/length of a field.
      */
-    private static final int MAX_RANGE = 5;
+    public static final int MAX_RANGE = 20;
+    public static final int DEFAULT_RANGE = 5;
 
-    private static final String TAG_SEED         = "seed";
-    private static final String TAG_RADIUS       = "radius";
-    private static final String TAG_MAX_RANGE    = "maxRange";
-    private static final String TAG_STAGE        = "stage";
-    private static final String TAG_WATER_CROP   = "isWaterCrop";
+    private static final String TAG_SEED      = "seed";
+    public static final  String TAG_RADIUS    = "radius";
+    private static final String TAG_MAX_RANGE = "maxRange";
+    private static final String TAG_STAGE     = "stage";
 
     /**
      * The currently selected seed on the field, if any.
@@ -48,27 +50,16 @@ public class FarmField extends AbstractBuildingExtensionModule
     private ItemStack seed = ItemStack.EMPTY;
 
     /**
-     * Cached flag indicating if the current seed is a water crop (like rice).
-     * Computed once when seed is set to avoid repeated string operations.
-     */
-    private boolean isWaterCrop = false;
-
-    /**
      * The size of the field in all four directions
      * in the same order as {@link Direction}:
      * S, W, N, E
      */
-    private int[] radii = {MAX_RANGE, MAX_RANGE, MAX_RANGE, MAX_RANGE};
+    private int[] radii = {DEFAULT_RANGE, DEFAULT_RANGE, DEFAULT_RANGE, DEFAULT_RANGE};
 
     /**
-     * The maximum radius for this field.
+     * Has the field been planted
      */
-    private int maxRadius;
-
-    /**
-     * The current status of the field (READY or RESTING based on cooldown)
-     */
-    private Stage fieldStage = Stage.READY;
+    private Stage fieldStage = Stage.EMPTY;
 
     /**
      * Constructor used in NBT deserialization.
@@ -79,17 +70,26 @@ public class FarmField extends AbstractBuildingExtensionModule
     public FarmField(final BuildingExtensionEntry fieldType, final BlockPos position)
     {
         super(fieldType, position);
-        this.maxRadius = MAX_RANGE;
     }
 
     /**
      * Constructor to create new instances
      *
      * @param position the position it is placed in.
+     * @param worldIn
      */
-    public static FarmField create(final BlockPos position)
+    public static FarmField create(final BlockPos position, final Level worldIn)
     {
-        return (FarmField) BuildingExtensionRegistries.farmField.get().produceExtension(position);
+        final FarmField farmField = (FarmField) BuildingExtensionRegistries.farmField.get().produceExtension(position);
+        if (farmField != null)
+        {
+            final BlockEntity fieldBlock = worldIn.getBlockEntity(position);
+            if (fieldBlock instanceof TileEntityScarecrow scarecrow)
+            {
+                farmField.radii = scarecrow.getFieldSize();
+            }
+        }
+        return farmField;
     }
 
     @Override
@@ -100,65 +100,40 @@ public class FarmField extends AbstractBuildingExtensionModule
     }
 
     @Override
-    public @NotNull CompoundTag serializeNBT()
+    public @NotNull CompoundTag serializeNBT(@NotNull final HolderLookup.Provider provider)
     {
-        CompoundTag compound = super.serializeNBT();
-        compound.put(TAG_SEED, seed.serializeNBT());
+        CompoundTag compound = super.serializeNBT(provider);
+        compound.put(TAG_SEED, seed.saveOptional(provider));
         compound.putIntArray(TAG_RADIUS, radii);
-        compound.putInt(TAG_MAX_RANGE, maxRadius);
         compound.putString(TAG_STAGE, fieldStage.name());
-        compound.putBoolean(TAG_WATER_CROP, isWaterCrop);
         return compound;
     }
 
     @Override
-    public void deserializeNBT(final @NotNull CompoundTag compound)
+    public void deserializeNBT(@NotNull final HolderLookup.Provider provider, final @NotNull CompoundTag compound)
     {
-        super.deserializeNBT(compound);
-        setSeed(ItemStack.of(compound.getCompound(TAG_SEED)));  // This will compute isWaterCrop
+        super.deserializeNBT(provider, compound);
+        setSeed(ItemStack.parseOptional(provider, compound.getCompound(TAG_SEED)));
         radii = compound.getIntArray(TAG_RADIUS);
-        maxRadius = compound.getInt(TAG_MAX_RANGE);
-
-        // Backwards compatibility: convert old stage names to new ones
-        final String stageName = compound.getString(TAG_STAGE);
-        try
-        {
-            fieldStage = Stage.valueOf(stageName);
-        }
-        catch (IllegalArgumentException e)
-        {
-            // Old save data with EMPTY, HOED, or PLANTED - convert to READY
-            fieldStage = Stage.READY;
-        }
-
-        // For backwards compatibility, recompute if not present in saved data
-        // setSeed() already computed it, but this explicit check helps clarity
-        if (compound.contains(TAG_WATER_CROP))
-        {
-            isWaterCrop = compound.getBoolean(TAG_WATER_CROP);
-        }
+        fieldStage = Stage.valueOf(compound.getString(TAG_STAGE));
     }
 
     @Override
-    public void serialize(final @NotNull FriendlyByteBuf buf)
+    public void serialize(final @NotNull RegistryFriendlyByteBuf buf)
     {
         super.serialize(buf);
-        buf.writeItem(getSeed());
+        Utils.serializeCodecMess(buf, getSeed());
         buf.writeVarIntArray(radii);
-        buf.writeInt(maxRadius);
         buf.writeEnum(fieldStage);
-        buf.writeBoolean(isWaterCrop);
     }
 
     @Override
-    public void deserialize(@NotNull final FriendlyByteBuf buf)
+    public void deserialize(@NotNull final RegistryFriendlyByteBuf buf)
     {
         super.deserialize(buf);
-        setSeed(buf.readItem());  // This will compute isWaterCrop
+        setSeed(Utils.deserializeCodecMess(buf));
         radii = buf.readVarIntArray();
-        maxRadius = buf.readInt();
         fieldStage = buf.readEnum(Stage.class);
-        isWaterCrop = buf.readBoolean();
     }
 
     /**
@@ -182,43 +157,6 @@ public class FarmField extends AbstractBuildingExtensionModule
     {
         this.seed = seed.copy();
         this.seed.setCount(1);
-        this.isWaterCrop = computeIsWaterCrop(seed);
-    }
-
-    /**
-     * Check if the current seed is a water crop.
-     * This is cached when setSeed() is called.
-     *
-     * @return true if the seed is a water crop (like rice)
-     */
-    public boolean isWaterCrop()
-    {
-        return this.isWaterCrop;
-    }
-
-    /**
-     * Computes whether a seed is a water crop (like rice) that needs water to grow.
-     * Called once when the seed is set to cache the result.
-     *
-     * @param seed the seed to check
-     * @return true if it's a water crop
-     */
-    private boolean computeIsWaterCrop(final ItemStack seed)
-    {
-        if (seed == null || seed.isEmpty())
-        {
-            return false;
-        }
-
-        final ResourceLocation itemId = net.minecraftforge.registries.ForgeRegistries.ITEMS.getKey(seed.getItem());
-        if (itemId == null)
-        {
-            return false;
-        }
-
-        // Check if it's rice or other water-based crops
-        final String itemPath = itemId.toString();
-        return itemPath.contains("rice");
     }
 
     /**
@@ -255,16 +193,6 @@ public class FarmField extends AbstractBuildingExtensionModule
     }
 
     /**
-     * Get the max range for this field.
-     *
-     * @return the maximum range.
-     */
-    public int getMaxRadius()
-    {
-        return maxRadius;
-    }
-
-    /**
      * @param direction the direction to get the range for
      * @return the radius
      */
@@ -279,7 +207,7 @@ public class FarmField extends AbstractBuildingExtensionModule
      */
     public void setRadius(Direction direction, int radius)
     {
-        this.radii[direction.get2DDataValue()] = Math.min(radius, maxRadius);
+        this.radii[direction.get2DDataValue()] = Math.min(radius, MAX_RANGE);
     }
 
     /**
@@ -306,12 +234,13 @@ public class FarmField extends AbstractBuildingExtensionModule
     }
 
     /**
-     * Describes the status of the field based on cooldown state.
+     * Describes the stage the field is in. Like if it has been hoed, planted or is empty.
      */
     public enum Stage
     {
-        READY(ResourceLocation.fromNamespaceAndPath("minecraft", "textures/item/iron_hoe.png")),
-        RESTING(ResourceLocation.fromNamespaceAndPath("minecraft", "textures/item/clock_00.png"));
+        EMPTY(new ResourceLocation("minecraft", "textures/item/iron_hoe.png")), 
+        HOED(new ResourceLocation("minecraft", "textures/item/wheat_seeds.png")), 
+        PLANTED(new ResourceLocation(Constants.MOD_ID, "textures/item/crops/durum.png"));
 
         protected final ResourceLocation stageIcon;
 
@@ -332,7 +261,7 @@ public class FarmField extends AbstractBuildingExtensionModule
 
         /**
          * Gets the translatable text of the current stage in the farm field's progress.
-         *
+         * 
          * @return the translatable text of the current stage.
          */
         public Component getStageText()

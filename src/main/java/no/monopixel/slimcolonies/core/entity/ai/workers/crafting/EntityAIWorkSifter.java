@@ -10,7 +10,6 @@ import no.monopixel.slimcolonies.api.util.InventoryUtils;
 import no.monopixel.slimcolonies.api.util.ItemStackUtils;
 import no.monopixel.slimcolonies.api.util.SoundUtils;
 import no.monopixel.slimcolonies.api.util.StatsUtil;
-import no.monopixel.slimcolonies.core.Network;
 import no.monopixel.slimcolonies.core.colony.buildings.workerbuildings.BuildingSifter;
 import no.monopixel.slimcolonies.core.colony.interactionhandling.StandardInteraction;
 import no.monopixel.slimcolonies.core.colony.jobs.JobSifter;
@@ -140,7 +139,7 @@ public class EntityAIWorkSifter extends AbstractEntityAICrafting<JobSifter, Buil
                 }
                 if (worker.getCitizenData() != null)
                 {
-                    worker.getCitizenData().triggerInteraction(new StandardInteraction(Component.translatable(SIFTER_NO_MESH), ChatPriority.IMPORTANT));
+                    worker.getCitizenData().triggerInteraction(new StandardInteraction(Component.translatableEscape(SIFTER_NO_MESH), ChatPriority.IMPORTANT));
                     setDelay(NO_MESH_DELAY);
                 }
             }
@@ -194,26 +193,25 @@ public class EntityAIWorkSifter extends AbstractEntityAICrafting<JobSifter, Buil
                 incrementActionsDoneAndDecSaturation();
             }
 
-            StatsUtil.trackStatByName(building, ITEM_USED, inputItem.getHoverName(), inputItem.getCount());
+            StatsUtil.trackStatByName(building, ITEM_USED, inputItem.getHoverName(), inputItem.getCount()); 
             List<ItemStack> outputs = currentRecipeStorage.fullfillRecipeAndCopy(getLootContext(), building.getHandlers(), true);
             if (outputs == null)
             {
                 currentRecipeStorage = null;
                 return getState();
-            }
+            }    
 
             for (ItemStack stackForStats : outputs)
             {
                 StatsUtil.trackStatByName(building, ITEM_OBTAINED, stackForStats.getHoverName(), stackForStats.getCount());
             }
 
+            worker.decreaseSaturationForContinuousAction();
             worker.getCitizenExperienceHandler().addExperience(0.2);
         }
 
-        Network.getNetwork()
-          .sendToTrackingEntity(new LocalizedParticleEffectMessage(meshItem, building.getID()), worker);
-        Network.getNetwork()
-          .sendToTrackingEntity(new LocalizedParticleEffectMessage(inputItem, building.getID().below()), worker);
+        new LocalizedParticleEffectMessage(meshItem, building.getID()).sendToTrackingEntity(worker);
+        new LocalizedParticleEffectMessage(inputItem, building.getID().below()).sendToTrackingEntity(worker);
 
         worker.swing(InteractionHand.MAIN_HAND);
         SoundUtils.playSoundAtCitizen(world, building.getID(), SoundEvents.LEASH_KNOT_BREAK);

@@ -4,11 +4,12 @@ import com.ldtteam.blockui.views.BOWindow;
 import no.monopixel.slimcolonies.api.colony.buildings.modules.AbstractBuildingModuleView;
 import no.monopixel.slimcolonies.api.colony.requestsystem.token.IToken;
 import no.monopixel.slimcolonies.api.util.constant.Constants;
-import no.monopixel.slimcolonies.core.client.gui.modules.WindowHutRequestTaskModule;
-import net.minecraft.network.FriendlyByteBuf;
+import no.monopixel.slimcolonies.core.client.gui.modules.building.WindowHutRequestTaskModule;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.api.distmarker.OnlyIn;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.api.distmarker.OnlyIn;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
@@ -19,7 +20,7 @@ import java.util.List;
 public abstract class RequestTaskModuleView extends AbstractBuildingModuleView
 {
     @Override
-    public void deserialize(@NotNull final FriendlyByteBuf buf)
+    public void deserialize(@NotNull final RegistryFriendlyByteBuf buf)
     {
 
     }
@@ -28,24 +29,23 @@ public abstract class RequestTaskModuleView extends AbstractBuildingModuleView
     @Override
     public BOWindow getWindow()
     {
-        return new WindowHutRequestTaskModule(buildingView, Constants.MOD_ID + ":gui/layouthuts/layouttasklist.xml");
+        return new WindowHutRequestTaskModule(this);
     }
 
     @Override
     public ResourceLocation getIconResourceLocation()
     {
-        return ResourceLocation.fromNamespaceAndPath(Constants.MOD_ID, "textures/gui/modules/info.png");
+        return new ResourceLocation(Constants.MOD_ID, "textures/gui/modules/info.png");
     }
 
     @Override
-    public String getDesc()
+    public Component getDesc()
     {
-        return "no.monopixel.slimcolonies.coremod.gui.workerhuts.crafter.tasks";
+        return Component.translatable("no.monopixel.slimcolonies.coremod.gui.workerhuts.crafter.tasks");
     }
 
     /**
      * Get the specific task list.
-     *
      * @return the task list.
      */
     public abstract List<IToken<?>> getTasks();

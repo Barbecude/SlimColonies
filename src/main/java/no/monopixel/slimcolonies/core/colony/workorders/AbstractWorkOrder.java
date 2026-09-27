@@ -2,28 +2,29 @@ package no.monopixel.slimcolonies.core.colony.workorders;
 
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
+import com.ldtteam.structurize.api.RotationMirror;
 import com.ldtteam.structurize.blockentities.interfaces.IBlueprintDataProviderBE;
 import com.ldtteam.structurize.blueprints.v1.Blueprint;
+import com.ldtteam.structurize.storage.StructurePacks;
+import no.monopixel.slimcolonies.api.colony.ICitizenData;
+import no.monopixel.slimcolonies.api.colony.IColony;
+import no.monopixel.slimcolonies.api.colony.buildings.IBuilding;
+import no.monopixel.slimcolonies.api.colony.workorders.*;
+import no.monopixel.slimcolonies.api.util.*;
+import no.monopixel.slimcolonies.api.util.constant.Constants;
+import no.monopixel.slimcolonies.api.util.constant.NbtTagConstants;
+import no.monopixel.slimcolonies.core.colony.buildings.workerbuildings.BuildingBuilder;
+import no.monopixel.slimcolonies.core.colony.workorders.view.*;
+import no.monopixel.slimcolonies.core.entity.ai.workers.util.BuildingProgressStage;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.phys.AABB;
-import no.monopixel.slimcolonies.api.colony.ICitizenData;
-import no.monopixel.slimcolonies.api.colony.IColony;
-import no.monopixel.slimcolonies.api.colony.buildings.IBuilding;
-import no.monopixel.slimcolonies.api.colony.workorders.*;
-import no.monopixel.slimcolonies.api.util.BlockPosUtil;
-import no.monopixel.slimcolonies.api.util.ColonyUtils;
-import no.monopixel.slimcolonies.api.util.Log;
-import no.monopixel.slimcolonies.api.util.Tuple;
-import no.monopixel.slimcolonies.api.util.constant.Constants;
-import no.monopixel.slimcolonies.core.colony.buildings.workerbuildings.BuildingBuilder;
-import no.monopixel.slimcolonies.core.colony.workorders.view.*;
-import no.monopixel.slimcolonies.core.entity.ai.workers.util.BuildingProgressStage;
+import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -34,9 +35,11 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 
+import static no.monopixel.slimcolonies.api.util.constant.NbtTagConstants.TAG_ROTATION_MIRROR;
 import static com.ldtteam.structurize.blockentities.interfaces.IBlueprintDataProviderBE.TAG_BLUEPRINTDATA;
 import static com.ldtteam.structurize.blockentities.interfaces.IBlueprintDataProviderBE.TAG_SCHEMATIC_NAME;
 import static no.monopixel.slimcolonies.api.util.constant.NbtTagConstants.TAG_STAGE;
+import static no.monopixel.slimcolonies.api.util.constant.Suppression.UNUSED_METHOD_PARAMETERS_SHOULD_BE_REMOVED;
 
 /**
  * General information between WorkOrders.
@@ -64,7 +67,7 @@ public abstract class AbstractWorkOrder implements IBuilderWorkOrder
     private static final String TAG_ITERATOR            = "iterator";
     private static final String TAG_IS_CLEARED          = "cleared";
     private static final String TAG_IS_REQUESTED        = "requested";
-    private static final String TAG_BB                  = "bb";
+    private static final String TAG_BB = "bb";
 
     /**
      * Bimap of workOrder from string to class.
@@ -123,14 +126,9 @@ public abstract class AbstractWorkOrder implements IBuilderWorkOrder
     private BlockPos location;
 
     /**
-     * The rotation of this work order its structure.
+     * The rotation and mirror of this work order its structure.
      */
-    private int rotation;
-
-    /**
-     * Whether the work order its structure is mirrored or not.
-     */
-    private boolean isMirrored;
+    private RotationMirror rotationMirror;
 
     /**
      * The current level of the work order its structure.
@@ -199,9 +197,9 @@ public abstract class AbstractWorkOrder implements IBuilderWorkOrder
      * @param orderClass class of work order
      */
     private static void addMapping(
-        final String name,
-        @NotNull final Class<? extends IWorkOrder> orderClass,
-        @NotNull final Class<? extends IWorkOrderView> viewClass)
+      final String name,
+      @NotNull final Class<? extends IWorkOrder> orderClass,
+      @NotNull final Class<? extends IWorkOrderView> viewClass)
     {
         if (nameToClassBiMap.containsKey(name))
         {
@@ -287,7 +285,7 @@ public abstract class AbstractWorkOrder implements IBuilderWorkOrder
      * @return View object of the workOrder
      */
     @Nullable
-    public static IWorkOrderView createWorkOrderView(final FriendlyByteBuf buf)
+    public static IWorkOrderView createWorkOrderView(final RegistryFriendlyByteBuf buf)
     {
         @Nullable AbstractWorkOrderView orderView = null;
         String mappingName = buf.readUtf(32767);
@@ -336,15 +334,14 @@ public abstract class AbstractWorkOrder implements IBuilderWorkOrder
     }
 
     protected AbstractWorkOrder(
-        String packName,
-        String path,
-        String translationKey,
-        WorkOrderType workOrderType,
-        BlockPos location,
-        int rotation,
-        boolean isMirrored,
-        int currentLevel,
-        int targetLevel)
+      String packName,
+      String path,
+      String translationKey,
+      WorkOrderType workOrderType,
+      BlockPos location,
+      RotationMirror rotationMirror,
+      int currentLevel,
+      int targetLevel)
     {
         this();
         this.packName = packName;
@@ -352,8 +349,7 @@ public abstract class AbstractWorkOrder implements IBuilderWorkOrder
         this.translationKey = translationKey;
         this.workOrderType = workOrderType;
         this.location = location;
-        this.rotation = rotation;
-        this.isMirrored = isMirrored;
+        this.rotationMirror = rotationMirror;
         this.currentLevel = currentLevel;
         this.targetLevel = targetLevel;
     }
@@ -463,15 +459,9 @@ public abstract class AbstractWorkOrder implements IBuilderWorkOrder
     }
 
     @Override
-    public final int getRotation()
+    public final RotationMirror getRotationMirror()
     {
-        return rotation;
-    }
-
-    @Override
-    public final boolean isMirrored()
-    {
-        return isMirrored;
+        return rotationMirror;
     }
 
     @Override
@@ -558,7 +548,7 @@ public abstract class AbstractWorkOrder implements IBuilderWorkOrder
     @Override
     public Component getDisplayName()
     {
-        return Component.translatable(getTranslationKey());
+        return Component.translatableEscape(getTranslationKey());
     }
 
     @Override
@@ -572,10 +562,9 @@ public abstract class AbstractWorkOrder implements IBuilderWorkOrder
                 = ColonyUtils.calculateCorners(location,
                 world,
                 blueprint,
-                getRotation(),
-                isMirrored());
+                getRotationMirror());
 
-            box = new AABB(corners.getA(), corners.getB());
+            box = new AABB(Vec3.atBottomCenterOf(corners.getA()), Vec3.atBottomCenterOf(corners.getB()));
         }
     }
 
@@ -626,12 +615,13 @@ public abstract class AbstractWorkOrder implements IBuilderWorkOrder
     /**
      * Is this WorkOrder still valid?  If not, it will be deleted.
      * <p>
+     * Suppressing Sonar Rule squid:S1172 This rule does " Unused method parameters should be removed" But in this case extending class may need to use the colony parameter
      *
      * @param colony The colony that owns the Work Order
      * @return True if the WorkOrder is still valid, or False if it should be deleted
      */
     @Override
-
+    @SuppressWarnings(UNUSED_METHOD_PARAMETERS_SHOULD_BE_REMOVED)
     public boolean isValid(final IColony colony)
     {
         return true;
@@ -673,8 +663,7 @@ public abstract class AbstractWorkOrder implements IBuilderWorkOrder
         translationKey = compound.getString(TAG_TRANSLATION_KEY);
         workOrderType = WorkOrderType.values()[compound.getInt(TAG_WO_TYPE)];
         location = BlockPosUtil.read(compound, TAG_LOCATION);
-        rotation = compound.getInt(TAG_ROTATION);
-        isMirrored = compound.getBoolean(TAG_IS_MIRRORED);
+        rotationMirror = RotationMirror.values()[compound.getByte(TAG_ROTATION_MIRROR)];
         currentLevel = compound.getInt(TAG_CURRENT_LEVEL);
         targetLevel = compound.getInt(TAG_TARGET_LEVEL);
         amountOfResources = compound.getInt(TAG_AMOUNT_OF_RESOURCES);
@@ -711,8 +700,7 @@ public abstract class AbstractWorkOrder implements IBuilderWorkOrder
         compound.putString(TAG_TRANSLATION_KEY, translationKey);
         compound.putInt(TAG_WO_TYPE, workOrderType.ordinal());
         BlockPosUtil.write(compound, TAG_LOCATION, location);
-        compound.putInt(TAG_ROTATION, rotation);
-        compound.putBoolean(TAG_IS_MIRRORED, isMirrored);
+        compound.putByte(TAG_ROTATION_MIRROR, (byte) rotationMirror.ordinal());
         compound.putInt(TAG_CURRENT_LEVEL, currentLevel);
         compound.putInt(TAG_TARGET_LEVEL, targetLevel);
         compound.putInt(TAG_AMOUNT_OF_RESOURCES, amountOfResources);
@@ -740,7 +728,7 @@ public abstract class AbstractWorkOrder implements IBuilderWorkOrder
      * @param buf Buffer to write to
      */
     @Override
-    public void serializeViewNetworkData(@NotNull final FriendlyByteBuf buf)
+    public void serializeViewNetworkData(@NotNull final RegistryFriendlyByteBuf buf)
     {
         buf.writeUtf(getMappingName());
         buf.writeInt(id);
@@ -751,8 +739,7 @@ public abstract class AbstractWorkOrder implements IBuilderWorkOrder
         buf.writeUtf(translationKey);
         buf.writeInt(workOrderType.ordinal());
         buf.writeBlockPos(location);
-        buf.writeInt(rotation);
-        buf.writeBoolean(isMirrored);
+        buf.writeByte(rotationMirror.ordinal());
         buf.writeInt(currentLevel);
         buf.writeInt(targetLevel);
         buf.writeInt(stage == null ? 0 : stage.ordinal());
@@ -767,9 +754,9 @@ public abstract class AbstractWorkOrder implements IBuilderWorkOrder
     private String getMappingName()
     {
         final Optional<String> s = nameToClassBiMap.entrySet().stream()
-            .filter(f -> this.getClass().equals(f.getValue().getA()))
-            .map(Map.Entry::getKey)
-            .findFirst();
+          .filter(f -> this.getClass().equals(f.getValue().getA()))
+          .map(Map.Entry::getKey)
+          .findFirst();
 
         if (!s.isPresent())
         {
@@ -825,13 +812,10 @@ public abstract class AbstractWorkOrder implements IBuilderWorkOrder
                             if (te instanceof IBlueprintDataProviderBE blueprintDataProviderBE)
                             {
                                 final CompoundTag tagData = compoundNBT.getCompound(TAG_BLUEPRINTDATA);
-                                tagData.putString(no.monopixel.slimcolonies.api.util.constant.NbtTagConstants.TAG_PACK, blueprint.getPackName());
+                                tagData.putString(NbtTagConstants.TAG_PACK, blueprint.getPackName());
                                 if (blueprint.getPrimaryBlockOffset().equals(offset))
                                 {
-                                    tagData.putString(no.monopixel.slimcolonies.api.util.constant.NbtTagConstants.TAG_PATH,
-                                        com.ldtteam.structurize.storage.StructurePacks.getStructurePack(blueprint.getPackName())
-                                            .getSubPath(no.monopixel.slimcolonies.api.util.Utils.resolvePath(blueprint.getFilePath(), tagData.getString(TAG_SCHEMATIC_NAME)))
-                                            + ".blueprint");
+                                    tagData.putString(NbtTagConstants.TAG_PATH, StructurePacks.getStructurePack(blueprint.getPackName()).getSubPath(Utils.resolvePath(blueprint.getFilePath(), tagData.getString(TAG_SCHEMATIC_NAME))) + ".blueprint");
                                 }
 
                                 try
@@ -878,11 +862,11 @@ public abstract class AbstractWorkOrder implements IBuilderWorkOrder
     @Override
     public boolean canBeResolved(final IColony colony, final int level)
     {
-        return colony.getBuildingManager()
-            .getBuildings()
-            .values()
-            .stream()
-            .anyMatch(building -> building instanceof BuildingBuilder && !building.getAllAssignedCitizen().isEmpty() && building.getBuildingLevel() >= level);
+        return colony.getServerBuildingManager()
+          .getBuildings()
+          .values()
+          .stream()
+          .anyMatch(building -> building instanceof BuildingBuilder && !building.getAllAssignedCitizen().isEmpty() && building.getBuildingLevel() >= level);
     }
 
     /**

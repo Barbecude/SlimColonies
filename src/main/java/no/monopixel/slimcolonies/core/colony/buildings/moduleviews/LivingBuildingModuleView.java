@@ -5,10 +5,11 @@ import no.monopixel.slimcolonies.api.colony.buildings.HiringMode;
 import no.monopixel.slimcolonies.api.colony.buildings.modules.AbstractBuildingModuleView;
 import no.monopixel.slimcolonies.api.util.constant.Constants;
 
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.api.distmarker.OnlyIn;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.api.distmarker.OnlyIn;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
@@ -69,13 +70,13 @@ public class LivingBuildingModuleView extends AbstractBuildingModuleView
     }
 
     @Override
-    public String getDesc()
+    public Component getDesc()
     {
         return null;
     }
 
     @Override
-    public void deserialize(@NotNull final FriendlyByteBuf buf)
+    public void deserialize(@NotNull final RegistryFriendlyByteBuf buf)
     {
         residents.clear();
         final int numResidents = buf.readInt();
@@ -97,7 +98,7 @@ public class LivingBuildingModuleView extends AbstractBuildingModuleView
     @Override
     public ResourceLocation getIconResourceLocation()
     {
-        return ResourceLocation.fromNamespaceAndPath(Constants.MOD_ID, "textures/gui/modules/custom.png");
+        return new ResourceLocation(Constants.MOD_ID, "textures/gui/modules/custom.png");
     }
 
     public boolean isPageVisible() {return false;}

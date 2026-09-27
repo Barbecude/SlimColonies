@@ -3,10 +3,11 @@ package no.monopixel.slimcolonies.core.colony.jobs.views;
 import no.monopixel.slimcolonies.api.colony.ICitizenDataView;
 import no.monopixel.slimcolonies.api.colony.IColonyView;
 import no.monopixel.slimcolonies.api.colony.jobs.IJobView;
+import no.monopixel.slimcolonies.api.colony.jobs.registry.IJobRegistry;
 import no.monopixel.slimcolonies.api.colony.jobs.registry.JobEntry;
 import no.monopixel.slimcolonies.api.colony.requestsystem.StandardFactoryController;
 import no.monopixel.slimcolonies.api.colony.requestsystem.token.IToken;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -42,7 +43,7 @@ public class DefaultJobView implements IJobView
     }
 
     @Override
-    public void deserialize(final FriendlyByteBuf buffer)
+    public void deserialize(final RegistryFriendlyByteBuf buffer)
     {
         this.asyncRequests.clear();
         final int size = buffer.readInt();
@@ -50,7 +51,7 @@ public class DefaultJobView implements IJobView
         {
             asyncRequests.add(StandardFactoryController.getInstance().deserialize(buffer));
         }
-        entry = buffer.readRegistryId();
+        entry = buffer.readById(IJobRegistry.getInstance()::byIdOrThrow);
     }
 
     @Override

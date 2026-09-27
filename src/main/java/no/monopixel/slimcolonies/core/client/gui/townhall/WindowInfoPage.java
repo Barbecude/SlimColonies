@@ -4,7 +4,6 @@ import com.ldtteam.blockui.Pane;
 import com.ldtteam.blockui.PaneBuilders;
 import com.ldtteam.blockui.controls.Button;
 import com.ldtteam.blockui.controls.Text;
-import com.ldtteam.blockui.views.DropDownList;
 import com.ldtteam.blockui.views.ScrollingList;
 import no.monopixel.slimcolonies.api.colony.buildings.views.IBuildingView;
 import no.monopixel.slimcolonies.api.colony.colonyEvents.descriptions.IBuildingEventDescription;
@@ -12,7 +11,6 @@ import no.monopixel.slimcolonies.api.colony.colonyEvents.descriptions.ICitizenEv
 import no.monopixel.slimcolonies.api.colony.colonyEvents.descriptions.IColonyEventDescription;
 import no.monopixel.slimcolonies.api.colony.workorders.IWorkOrderView;
 import no.monopixel.slimcolonies.api.util.MessageUtils;
-import no.monopixel.slimcolonies.core.Network;
 import no.monopixel.slimcolonies.core.colony.buildings.views.AbstractBuildingBuilderView;
 import no.monopixel.slimcolonies.core.colony.buildings.workerbuildings.BuildingTownHall;
 import no.monopixel.slimcolonies.core.colony.eventhooks.citizenEvents.CitizenDiedEvent;
@@ -26,7 +24,6 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import static no.monopixel.slimcolonies.api.util.constant.WindowConstants.*;
-import static no.monopixel.slimcolonies.core.client.gui.townhall.WindowStatsPage.INTERVAL;
 
 /**
  * BOWindow for the town hall.
@@ -39,14 +36,9 @@ public class WindowInfoPage extends AbstractWindowTownHall
     private final List<IWorkOrderView> workOrders = new ArrayList<>();
 
     /**
-     * Drop down list for interval.
+     * The ScrollingList of the events.
      */
-    private DropDownList intervalDropdown;
-
-    /**
-     * Current selected interval.
-     */
-    public String selectedInterval = "no.monopixel.slimcolonies.coremod.gui.interval.yesterday";
+    private ScrollingList eventList;
 
     /**
      * Constructor for the town hall window.
@@ -61,35 +53,6 @@ public class WindowInfoPage extends AbstractWindowTownHall
         registerButton(BUTTON_UP, this::updatePriority);
         registerButton(BUTTON_DOWN, this::updatePriority);
         registerButton(BUTTON_DELETE, this::deleteWorkOrder);
-
-        intervalDropdown = findPaneOfTypeByID(DROPDOWN_INTERVAL_ID, DropDownList.class);
-        intervalDropdown.setHandler(this::onDropDownListChanged);
-
-        intervalDropdown.setDataProvider(new DropDownList.DataProvider()
-        {
-            @Override
-            public int getElementCount()
-            {
-                return INTERVAL.size();
-            }
-
-            @Override
-            public String getLabel(final int index)
-            {
-                return Component.translatable((String) INTERVAL.keySet().toArray()[index]).getString();
-            }
-        });
-        intervalDropdown.setSelectedIndex(new ArrayList<>(INTERVAL.keySet()).indexOf(selectedInterval));
-    }
-
-    private void onDropDownListChanged(final DropDownList dropDownList)
-    {
-        final String temp = (String) INTERVAL.keySet().toArray()[dropDownList.getSelectedIndex()];
-        if (!temp.equals(selectedInterval))
-        {
-            selectedInterval = temp;
-            fillEventsList();
-        }
     }
 
     /**
@@ -103,32 +66,16 @@ public class WindowInfoPage extends AbstractWindowTownHall
         fillEventsList();
     }
 
+
     private void fillEventsList()
     {
-        final List<IColonyEventDescription> events;
-        int interval = INTERVAL.get(selectedInterval);
-        if (interval < 0)
-        {
-            events = new ArrayList<>(building.getColonyEvents());
-        }
-        else
-        {
-            events = new ArrayList<>();
-            for (IColonyEventDescription event : building.getColonyEvents())
-            {
-                if (event.getDay() >= building.getColony().getDay() - interval)
-                {
-                    events.add(event);
-                }
-            }
-        }
-
-        findPaneOfTypeByID(EVENTS_LIST, ScrollingList.class).setDataProvider(new ScrollingList.DataProvider()
+        eventList = findPaneOfTypeByID(EVENTS_LIST, ScrollingList.class);
+        eventList.setDataProvider(new ScrollingList.DataProvider()
         {
             @Override
             public int getElementCount()
             {
-                return events.size();
+                return buildingView.getColonyEvents().size();
             }
 
             @Override
@@ -137,7 +84,7 @@ public class WindowInfoPage extends AbstractWindowTownHall
                 final Text nameLabel = rowPane.findPaneOfTypeByID(NAME_LABEL, Text.class);
                 final Text actionLabel = rowPane.findPaneOfTypeByID(ACTION_LABEL, Text.class);
 
-                final IColonyEventDescription event = events.get(index);
+                final IColonyEventDescription event = buildingView.getColonyEvents().get(index);
                 if (event instanceof CitizenDiedEvent)
                 {
                     actionLabel.setText(Component.literal(((CitizenDiedEvent) event).getDeathCause()));
@@ -146,7 +93,6 @@ public class WindowInfoPage extends AbstractWindowTownHall
                 {
                     actionLabel.setText(Component.literal(event.getName()));
                 }
-
                 if (event instanceof ICitizenEventDescription)
                 {
                     nameLabel.setText(Component.literal(((ICitizenEventDescription) event).getCitizenName()));
@@ -158,11 +104,12 @@ public class WindowInfoPage extends AbstractWindowTownHall
                     PaneBuilders.tooltipBuilder().append(nameLabel.getText()).hoverPane(nameLabel).build();
                 }
                 rowPane.findPaneOfTypeByID(POS_LABEL, Text.class)
-                    .setText(Component.literal(event.getEventPos().getX() + " " + event.getEventPos().getY() + " " + event.getEventPos().getZ()));
+                  .setText(Component.literal(event.getEventPos().getX() + " " + event.getEventPos().getY() + " " + event.getEventPos().getZ()));
                 rowPane.findPaneOfTypeByID(BUTTON_ADD_PLAYER_OR_FAKEPLAYER, Button.class).hide();
             }
         });
     }
+
 
     /**
      * Clears and resets all work orders.
@@ -170,7 +117,7 @@ public class WindowInfoPage extends AbstractWindowTownHall
     private void updateWorkOrders()
     {
         workOrders.clear();
-        workOrders.addAll(building.getColony().getWorkOrders().stream().filter(wo -> wo.shouldShowIn(building)).collect(Collectors.toList()));
+        workOrders.addAll(buildingView.getColony().getWorkOrders().stream().filter(wo -> wo.shouldShowIn(buildingView)).collect(Collectors.toList()));
         sortWorkOrders();
     }
 
@@ -200,12 +147,12 @@ public class WindowInfoPage extends AbstractWindowTownHall
                 if (buttonLabel.equals(BUTTON_UP) && i > 0)
                 {
                     workOrder.setPriority(workOrders.get(i - 1).getPriority() + 1);
-                    Network.getNetwork().sendToServer(new WorkOrderChangeMessage(this.building, id, false, workOrder.getPriority()));
+                    new WorkOrderChangeMessage(this.buildingView, id, false, workOrder.getPriority()).sendToServer();
                 }
                 else if (buttonLabel.equals(BUTTON_DOWN) && i <= workOrders.size())
                 {
                     workOrder.setPriority(workOrders.get(i + 1).getPriority() - 1);
-                    Network.getNetwork().sendToServer(new WorkOrderChangeMessage(this.building, id, false, workOrder.getPriority()));
+                    new WorkOrderChangeMessage(this.buildingView, id, false, workOrder.getPriority()).sendToServer();
                 }
 
                 sortWorkOrders();
@@ -231,7 +178,7 @@ public class WindowInfoPage extends AbstractWindowTownHall
                 break;
             }
         }
-        Network.getNetwork().sendToServer(new WorkOrderChangeMessage(this.building, id, true, 0));
+        new WorkOrderChangeMessage(this.buildingView, id, true, 0).sendToServer();
         window.findPaneOfTypeByID(LIST_WORKORDER, ScrollingList.class).refreshElementPanes();
     }
 
@@ -277,7 +224,7 @@ public class WindowInfoPage extends AbstractWindowTownHall
                 }
 
                 //Searches citizen of id x
-                for (@NotNull final IBuildingView buildingView : building.getColony().getBuildings())
+                for (@NotNull final IBuildingView buildingView : buildingView.getColony().getClientBuildingManager().getBuildings().values())
                 {
                     if (buildingView.getPosition().equals(workOrder.getClaimedBy()) && buildingView instanceof AbstractBuildingBuilderView)
                     {

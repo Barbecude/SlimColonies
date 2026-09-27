@@ -9,9 +9,10 @@ import no.monopixel.slimcolonies.api.colony.requestsystem.token.IToken;
 import no.monopixel.slimcolonies.api.util.NBTUtils;
 import no.monopixel.slimcolonies.api.util.constant.SerializationIdentifierConstants;
 import no.monopixel.slimcolonies.core.colony.requestsystem.resolvers.StandardRetryingRequestResolver;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.Tag;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 
 import org.jetbrains.annotations.NotNull;
 
@@ -61,7 +62,7 @@ public class StandardRetryingRequestResolverFactory implements IFactory<IRequest
 
     @NotNull
     @Override
-    public CompoundTag serialize(
+    public CompoundTag serialize(@NotNull final HolderLookup.Provider provider,
       @NotNull final IFactoryController controller, @NotNull final StandardRetryingRequestResolver standardRetryingRequestResolver)
     {
         final CompoundTag compound = new CompoundTag();
@@ -69,7 +70,7 @@ public class StandardRetryingRequestResolverFactory implements IFactory<IRequest
         compound.put(NBT_TRIES, standardRetryingRequestResolver.getAssignedRequests().keySet().stream().map(t -> {
             final CompoundTag assignmentCompound = new CompoundTag();
 
-            assignmentCompound.put(NBT_TOKEN, controller.serialize(t));
+            assignmentCompound.put(NBT_TOKEN, controller.serializeTag(provider, t));
             assignmentCompound.putInt(NBT_VALUE, standardRetryingRequestResolver.getAssignedRequests().get(t));
 
             return assignmentCompound;
@@ -77,38 +78,38 @@ public class StandardRetryingRequestResolverFactory implements IFactory<IRequest
         compound.put(NBT_DELAYS, standardRetryingRequestResolver.getDelays().keySet().stream().map(t -> {
             final CompoundTag delayCompound = new CompoundTag();
 
-            delayCompound.put(NBT_TOKEN, controller.serialize(t));
+            delayCompound.put(NBT_TOKEN, controller.serializeTag(provider, t));
             delayCompound.putInt(NBT_VALUE, standardRetryingRequestResolver.getDelays().get(t));
 
             return delayCompound;
         }).collect(NBTUtils.toListNBT()));
 
-        compound.put(NBT_TOKEN, controller.serialize(standardRetryingRequestResolver.getId()));
-        compound.put(NBT_LOCATION, controller.serialize(standardRetryingRequestResolver.getLocation()));
+        compound.put(NBT_TOKEN, controller.serializeTag(provider, standardRetryingRequestResolver.getId()));
+        compound.put(NBT_LOCATION, controller.serializeTag(provider, standardRetryingRequestResolver.getLocation()));
 
         return compound;
     }
 
     @NotNull
     @Override
-    public StandardRetryingRequestResolver deserialize(@NotNull final IFactoryController controller, @NotNull final CompoundTag nbt)
+    public StandardRetryingRequestResolver deserialize(@NotNull final HolderLookup.Provider provider, @NotNull final IFactoryController controller, @NotNull final CompoundTag nbt)
     {
         final Map<IToken<?>, Integer> assignments = NBTUtils.streamCompound(nbt.getList(NBT_TRIES, Tag.TAG_COMPOUND)).map(assignmentCompound -> {
-            IToken<?> token = controller.deserialize(assignmentCompound.getCompound(NBT_TOKEN));
+            IToken<?> token = controller.deserializeTag(provider, assignmentCompound.getCompound(NBT_TOKEN));
             Integer tries = assignmentCompound.getInt(NBT_VALUE);
 
             return new HashMap.SimpleEntry<>(token, tries);
         }).collect(Collectors.toMap(HashMap.SimpleEntry::getKey, HashMap.SimpleEntry::getValue));
 
         final Map<IToken<?>, Integer> delays = NBTUtils.streamCompound(nbt.getList(NBT_DELAYS, Tag.TAG_COMPOUND)).map(assignmentCompound -> {
-            IToken<?> token = controller.deserialize(assignmentCompound.getCompound(NBT_TOKEN));
+            IToken<?> token = controller.deserializeTag(provider, assignmentCompound.getCompound(NBT_TOKEN));
             Integer tries = assignmentCompound.getInt(NBT_VALUE);
 
             return new HashMap.SimpleEntry<>(token, tries);
         }).collect(Collectors.toMap(HashMap.SimpleEntry::getKey, HashMap.SimpleEntry::getValue));
 
-        final IToken<?> token = controller.deserialize(nbt.getCompound(NBT_TOKEN));
-        final ILocation location = controller.deserialize(nbt.getCompound(NBT_LOCATION));
+        final IToken<?> token = controller.deserializeTag(provider, nbt.getCompound(NBT_TOKEN));
+        final ILocation location = controller.deserializeTag(provider, nbt.getCompound(NBT_LOCATION));
 
         final StandardRetryingRequestResolver retryingRequestResolver = new StandardRetryingRequestResolver(token, location);
         retryingRequestResolver.updateData(assignments, delays);
@@ -116,7 +117,7 @@ public class StandardRetryingRequestResolverFactory implements IFactory<IRequest
     }
 
     @Override
-    public void serialize(IFactoryController controller, StandardRetryingRequestResolver input, FriendlyByteBuf packetBuffer)
+    public void serialize(IFactoryController controller, StandardRetryingRequestResolver input, RegistryFriendlyByteBuf packetBuffer)
     {
         packetBuffer.writeInt(input.getAssignedRequests().size());
         input.getAssignedRequests().forEach((key, value) -> {
@@ -135,7 +136,7 @@ public class StandardRetryingRequestResolverFactory implements IFactory<IRequest
     }
 
     @Override
-    public StandardRetryingRequestResolver deserialize(IFactoryController controller, FriendlyByteBuf buffer) throws Throwable
+    public StandardRetryingRequestResolver deserialize(IFactoryController controller, RegistryFriendlyByteBuf buffer) throws Throwable
     {
         final Map<IToken<?>, Integer> requests = new HashMap<>();
         final int requestsSize = buffer.readInt();

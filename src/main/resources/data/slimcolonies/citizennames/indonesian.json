@@ -1,0 +1,22 @@
+{
+  "parts": 2,
+  "order": "WESTERN",
+  "male_firstname": [
+    "Budi", "Agus", "Eko", "Rizky", "Dimas", "Andi", "Bambang", "Joko", "Hendra", "Wahyu",
+    "Bayu", "Reza", "Fajar", "Ilham", "Arif", "Bagus", "Gilang", "Surya", "Adi", "Dedi",
+    "Iwan", "Yudi", "Tono", "Slamet", "Maman", "Ujang", "Asep", "Raden", "Satria", "Wira",
+    "Galih", "Pandu", "Bima", "Arya", "Raka", "Dewa", "Nanda", "Putra", "Tirta", "Yudha"
+  ],
+  "female_firstname": [
+    "Siti", "Sri", "Dewi", "Ayu", "Putri", "Rina", "Ani", "Indah", "Lestari", "Ratna",
+    "Wulan", "Fitri", "Nisa", "Maya", "Tari", "Mega", "Sari", "Yuni", "Dian", "Citra",
+    "Kirana", "Laras", "Melati", "Kartika", "Intan", "Bunga", "Anisa", "Nadia", "Tiara", "Sekar",
+    "Arum", "Cahya", "Dinda", "Gita", "Mentari", "Niken", "Puspita", "Raras", "Shinta", "Widya"
+  ],
+  "surnames": [
+    "Santoso", "Wijaya", "Saputra", "Pratama", "Hidayat", "Nugroho", "Kusuma", "Setiawan", "Wibowo", "Susanto",
+    "Siregar", "Nasution", "Simanjuntak", "Pasaribu", "Sitompul", "Hutapea", "Manullang", "Tampubolon", "Sinaga", "Sihombing",
+    "Purnama", "Permana", "Ramadhan", "Hakim", "Firmansyah", "Mahendra", "Gunawan", "Budiman", "Hartono", "Salim",
+    "Lesmana", "Wardhana", "Pradana", "Syahputra", "Pamungkas", "Utama", "Aditya", "Baskoro", "Laksono", "Wicaksono"
+  ]
+}

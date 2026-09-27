@@ -1,5 +1,11 @@
 {
   "branch": "slimcolonies:technology",
+  "costs": [
+    {
+      "count": 1,
+      "item": "minecraft:anvil"
+    }
+  ],
   "effects": [
     {
       "id": "slimcolonies:effects/blockhutblacksmith",

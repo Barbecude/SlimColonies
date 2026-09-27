@@ -2,7 +2,6 @@ package no.monopixel.slimcolonies.core.entity.ai.workers.util;
 
 import com.ldtteam.structurize.placement.structure.AbstractStructureHandler;
 import com.ldtteam.structurize.util.BlockUtils;
-import com.ldtteam.structurize.util.PlacementSettings;
 import no.monopixel.slimcolonies.api.blocks.ModBlocks;
 import no.monopixel.slimcolonies.api.colony.IColony;
 import no.monopixel.slimcolonies.api.colony.IColonyManager;
@@ -10,10 +9,8 @@ import no.monopixel.slimcolonies.api.colony.buildings.IBuilding;
 import no.monopixel.slimcolonies.api.colony.workorders.IBuilderWorkOrder;
 import no.monopixel.slimcolonies.api.colony.workorders.IWorkOrder;
 import no.monopixel.slimcolonies.api.equipment.ModEquipmentTypes;
-import no.monopixel.slimcolonies.api.util.BlockPosUtil;
-import no.monopixel.slimcolonies.api.util.InventoryUtils;
-import no.monopixel.slimcolonies.api.util.ItemStackUtils;
-import no.monopixel.slimcolonies.api.util.StatsUtil;
+import no.monopixel.slimcolonies.api.util.*;
+import no.monopixel.slimcolonies.api.items.ModTags;
 import no.monopixel.slimcolonies.api.util.constant.Constants;
 import no.monopixel.slimcolonies.core.colony.buildings.AbstractBuildingStructureBuilder;
 import no.monopixel.slimcolonies.core.colony.jobs.AbstractJobStructure;
@@ -29,9 +26,8 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
-import net.minecraft.world.level.block.Mirror;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraftforge.items.IItemHandler;
+import net.neoforged.neoforge.items.IItemHandler;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -46,7 +42,6 @@ import static no.monopixel.slimcolonies.api.util.constant.StatisticsConstants.BL
  * <p>
  * It internally uses a structure it transparently loads.
  */
-@SuppressWarnings("removal")
 public class BuildingStructureHandler<J extends AbstractJobStructure<?, J>, B extends AbstractBuildingStructureBuilder> extends AbstractStructureHandler
 {
     /**
@@ -80,26 +75,27 @@ public class BuildingStructureHandler<J extends AbstractJobStructure<?, J>, B ex
     private IBuilderWorkOrder workOrder;
 
     /**
-     * The minecolonies AI specific creative structure placer.
+     * The slimcolonies AI specific creative structure placer.
      *
      * @param world             the world.
      * @param workOrder         the workorder for placement
      * @param entityAIStructure the AI handling this structure.
      */
     public BuildingStructureHandler(
-        final Level world,
+      final Level world,
         final IWorkOrder workOrder,
-        final AbstractEntityAIStructure<J, B> entityAIStructure,
+      final AbstractEntityAIStructure<J, B> entityAIStructure,
         final BuildingProgressStage[] stages)
     {
         super(world,
             workOrder.getLocation(),
             workOrder.getBlueprint(),
-            new PlacementSettings(workOrder.isMirrored() ? Mirror.FRONT_BACK : Mirror.NONE, BlockPosUtil.getRotationFromRotations(workOrder.getRotation())));
+            workOrder.getRotationMirror());
         setupBuilding();
         this.workOrder = (IBuilderWorkOrder) workOrder;
         this.structureAI = entityAIStructure;
         this.stages = stages;
+        this.stage = 0;
 
         for (int i = 0; i < stages.length; i++)
         {
@@ -122,7 +118,7 @@ public class BuildingStructureHandler<J extends AbstractJobStructure<?, J>, B ex
         final IColony colony = IColonyManager.getInstance().getColonyByPosFromWorld(getWorld(), getCenterPos());
         if (colony != null)
         {
-            this.building = colony.getBuildingManager().getBuilding(getCenterPos());
+            this.building = colony.getServerBuildingManager().getBuilding(getCenterPos());
         }
     }
 
@@ -175,9 +171,9 @@ public class BuildingStructureHandler<J extends AbstractJobStructure<?, J>, B ex
         structureAI.getWorker().setItemSlot(EquipmentSlot.MAINHAND, requiredItems.isEmpty() ? ItemStackUtils.EMPTY : requiredItems.get(0));
 
         if (Mth.floor(structureAI.getWorker().getX()) == worldPos.getX()
-            && Mth.abs(worldPos.getY() - (int) structureAI.getWorker().getY()) <= 1
-            && Mth.floor(structureAI.getWorker().getZ()) == worldPos.getZ()
-            && structureAI.getWorker().getNavigation().isDone())
+              && Mth.abs(worldPos.getY() - (int) structureAI.getWorker().getY()) <= 1
+              && Mth.floor(structureAI.getWorker().getZ()) == worldPos.getZ()
+              && structureAI.getWorker().getNavigation().isDone())
         {
             EntityNavigationUtils.walkAwayFrom(structureAI.getWorker(), worldPos, 1, 1.0);
         }
@@ -208,34 +204,16 @@ public class BuildingStructureHandler<J extends AbstractJobStructure<?, J>, B ex
 
             for (final ItemStack stack : list)
             {
-                StatsUtil.trackStat(structureAI.getWorker().getCitizenData().getWorkBuilding(), BLOCKS_PLACED, 1);
+                StatsUtil.trackStat( structureAI.getWorker().getCitizenData().getWorkBuilding(), BLOCKS_PLACED,  1);
                 structureAI.reduceNeededResources(stack);
                 structureAI.getWorker()
-                    .getCitizenColonyHandler()
-                    .getColonyOrRegister()
-                    .getStatisticsManager()
-                    .increment(BLOCKS_PLACED, structureAI.getWorker().getCitizenColonyHandler().getColonyOrRegister().getDay());
+                  .getCitizenColonyHandler()
+                  .getColonyOrRegister()
+                  .getStatisticsManager()
+                  .increment(BLOCKS_PLACED, structureAI.getWorker().getCitizenColonyHandler().getColonyOrRegister().getDay());
             }
 
-            BlockState blockStateForSound;
-            if (state.getBlock() == com.ldtteam.structurize.blocks.ModBlocks.blockSolidSubstitution.get())
-            {
-                // If the builder is placing a substitution block, use the sound of the substituted block
-                // fancyPlacement() could be checked here, but is always true for this Handler.
-                blockStateForSound = structureAI.getSolidSubstitution(pos);
-            }
-            else
-            {
-                // If the block is not a substitution block, use the sound of the block itself
-                blockStateForSound = state;
-            }
-            structureAI.getWorker()
-                .queueSound(blockStateForSound.getSoundType().getPlaceSound(),
-                    worldPos,
-                    10,
-                    0,
-                    (blockStateForSound.getSoundType().getVolume() + 1.0F) * 0.5F,
-                    blockStateForSound.getSoundType().getPitch() * 0.8F);
+            structureAI.getWorker().queueSound(state.getSoundType().getPlaceSound(), worldPos, 10, 0);
         }
 
         if (state.getBlock() == ModBlocks.blockWayPoint)
@@ -315,9 +293,9 @@ public class BuildingStructureHandler<J extends AbstractJobStructure<?, J>, B ex
     public boolean isStackFree(@Nullable final ItemStack itemStack)
     {
         return itemStack == null
-            || itemStack.isEmpty()
-            || itemStack.is(ItemTags.LEAVES)
-            || itemStack.getItem() == new ItemStack(ModBlocks.blockDecorationPlaceholder, 1).getItem();
+                 || itemStack.isEmpty()
+                 || itemStack.is(ItemTags.LEAVES)
+                 || itemStack.getItem() == new ItemStack(ModBlocks.blockDecorationPlaceholder, 1).getItem();
     }
 
     @Override
@@ -333,15 +311,9 @@ public class BuildingStructureHandler<J extends AbstractJobStructure<?, J>, B ex
     }
 
     @Override
-    public BlockState getSolidBlockForPos(final BlockPos blockPos)
+    public BlockState getSolidBlockForPos(final BlockPos worldPos, final Function<BlockPos, @Nullable BlockState> virtualBlocks)
     {
-        return structureAI.getSolidSubstitution(blockPos);
-    }
-
-    @Override
-    public BlockState getSolidBlockForPos(final BlockPos worldPos, @Nullable final Function<BlockPos, BlockState> virtualBlocks)
-    {
-        return structureAI.getSolidSubstitution(worldPos);
+        return structureAI.getSolidSubstitution(worldPos, virtualBlocks);
     }
 
     @Override
@@ -359,16 +331,6 @@ public class BuildingStructureHandler<J extends AbstractJobStructure<?, J>, B ex
     @Override
     public boolean shouldBlocksBeConsideredEqual(final BlockState state1, final BlockState state2)
     {
-        final Block block1 = state1.getBlock();
-        final Block block2 = state2.getBlock();
-
-        if (block1 == Blocks.FLOWER_POT || block2 == Blocks.FLOWER_POT)
-        {
-            return block1 == block2;
-        }
-
-        return (block1 == Blocks.GRASS_BLOCK && block2 == Blocks.DIRT)
-            || (block2 == Blocks.GRASS_BLOCK && block1 == Blocks.DIRT)
-            || (block1 == ModBlocks.blockRack && block2 == ModBlocks.blockRack);
+        return false;
     }
 }

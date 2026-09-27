@@ -3,7 +3,7 @@ package no.monopixel.slimcolonies.api.inventory.container;
 import no.monopixel.slimcolonies.api.inventory.ModContainers;
 import no.monopixel.slimcolonies.api.util.ItemStackUtils;
 import net.minecraft.core.BlockPos;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
@@ -11,10 +11,9 @@ import net.minecraft.world.inventory.ClickType;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
-import net.minecraftforge.common.brewing.BrewingRecipeRegistry;
-import net.minecraftforge.items.IItemHandler;
-import net.minecraftforge.items.IItemHandlerModifiable;
-import net.minecraftforge.items.SlotItemHandler;
+import net.neoforged.neoforge.items.IItemHandler;
+import net.neoforged.neoforge.items.IItemHandlerModifiable;
+import net.neoforged.neoforge.items.SlotItemHandler;
 import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nonnull;
@@ -54,7 +53,7 @@ public class ContainerCraftingBrewingstand extends AbstractContainerMenu
      * @param packetBuffer network buffer
      * @return new instance
      */
-    public static ContainerCraftingBrewingstand fromFriendlyByteBuf(final int windowId, final Inventory inv, final FriendlyByteBuf packetBuffer)
+    public static ContainerCraftingBrewingstand fromFriendlyByteBuf(final int windowId, final Inventory inv, final RegistryFriendlyByteBuf packetBuffer)
     {
         final BlockPos tePos = packetBuffer.readBlockPos();
         final int moduleId = packetBuffer.readInt();
@@ -72,7 +71,6 @@ public class ContainerCraftingBrewingstand extends AbstractContainerMenu
     {
         super(ModContainers.craftingBrewingstand.get(), windowId);
         this.moduleId = moduleId;
-
         this.brewingStandInventory = new IItemHandlerModifiable()
         {
             ItemStack ingredient = ItemStack.EMPTY;
@@ -158,11 +156,11 @@ public class ContainerCraftingBrewingstand extends AbstractContainerMenu
             {
                 if (slot == 3)
                 {
-                    return net.minecraftforge.common.brewing.BrewingRecipeRegistry.isValidIngredient(stack);
+                    return getWorldObj().potionBrewing().isIngredient(stack);
                 }
                 else if (slot >= 0 && slot < 3)
                 {
-                    return net.minecraftforge.common.brewing.BrewingRecipeRegistry.isValidInput(stack);
+                    return getWorldObj().potionBrewing().isInput(stack);
                 }
                 else
                 {
@@ -173,11 +171,11 @@ public class ContainerCraftingBrewingstand extends AbstractContainerMenu
         this.playerInventory = inv;
         this.buildingPos = pos;
 
-        this.addSlot(new SlotItemHandler(brewingStandInventory, 3, 79, 17));
-
         this.addSlot(new InputItemHandler(brewingStandInventory, 0, 56, 51));
         this.addSlot(new InputItemHandler(brewingStandInventory, 1, 79, 58));
         this.addSlot(new InputItemHandler(brewingStandInventory, 2, 102, 51));
+
+        this.addSlot(new SlotItemHandler(brewingStandInventory, 3, 79, 17));
 
         // Player inventory slots
         // Note: The slot numbers are within the player inventory and may be the same as the field inventory.
@@ -275,7 +273,7 @@ public class ContainerCraftingBrewingstand extends AbstractContainerMenu
      */
     public void setInput(final ItemStack stack)
     {
-        handleSlotClick(getSlot(0), stack);
+        handleSlotClick(getSlot(3), stack);
     }
 
     /**
@@ -285,9 +283,9 @@ public class ContainerCraftingBrewingstand extends AbstractContainerMenu
      */
     public void setContainer(final ItemStack stack)
     {
+        handleSlotClick(getSlot(0), stack);
         handleSlotClick(getSlot(1), stack);
         handleSlotClick(getSlot(2), stack);
-        handleSlotClick(getSlot(3), stack);
     }
 
     /**
@@ -338,12 +336,12 @@ public class ContainerCraftingBrewingstand extends AbstractContainerMenu
                 return ItemStack.EMPTY;
             }
 
-            if (BrewingRecipeRegistry.isValidIngredient(stack))
+            if (getWorldObj().potionBrewing().isIngredient(stack))
             {
                 setInput(stack);
                 return ItemStack.EMPTY;
             }
-            else if (BrewingRecipeRegistry.isValidInput(stack) && stack.getCount() == 1)
+            else if (getWorldObj().potionBrewing().isInput(stack) && stack.getCount() == 1)
             {
                 setContainer(stack);
                 return ItemStack.EMPTY;

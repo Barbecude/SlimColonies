@@ -5,11 +5,13 @@ import no.monopixel.slimcolonies.api.colony.buildings.modules.AbstractBuildingMo
 import no.monopixel.slimcolonies.api.colony.buildings.modules.IItemListModule;
 import no.monopixel.slimcolonies.api.colony.buildings.modules.IPersistentModule;
 import no.monopixel.slimcolonies.api.crafting.ItemStorage;
+import no.monopixel.slimcolonies.api.util.Utils;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.Tag;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
-import net.minecraft.network.FriendlyByteBuf;
 
 import org.jetbrains.annotations.NotNull;
 
@@ -64,7 +66,7 @@ public class ItemListModule extends AbstractBuildingModule implements IItemListM
     }
 
     @Override
-    public void deserializeNBT(CompoundTag compound)
+    public void deserializeNBT(@NotNull final HolderLookup.Provider provider, CompoundTag compound)
     {
         if (compound.contains(id))
         {
@@ -72,24 +74,22 @@ public class ItemListModule extends AbstractBuildingModule implements IItemListM
         }
 
         final List<ItemStorage> allowedItems = new ArrayList<>();
-            final ListTag filterableList = compound.getList(TAG_ITEMLIST, Tag.TAG_COMPOUND);
-            for (int i = 0; i < filterableList.size(); ++i)
-            {
-                allowedItems.add(new ItemStorage(ItemStack.of(filterableList.getCompound(i))));
-            }
+        final ListTag filterableList = compound.getList(TAG_ITEMLIST, Tag.TAG_COMPOUND);
+        for (int i = 0; i < filterableList.size(); ++i)
+        {
+            allowedItems.add(new ItemStorage(ItemStack.parseOptional(provider, filterableList.getCompound(i))));
+        }
 
         this.itemsAllowed = ImmutableList.copyOf(allowedItems);
     }
 
     @Override
-    public void serializeNBT(final CompoundTag compound)
+    public void serializeNBT(@NotNull final HolderLookup.Provider provider, CompoundTag compound)
     {
         @NotNull final ListTag filteredItems = new ListTag();
         for (@NotNull final ItemStorage item : itemsAllowed)
         {
-            @NotNull final CompoundTag itemCompound = new CompoundTag();
-            item.getItemStack().save(itemCompound);
-            filteredItems.add(itemCompound);
+            filteredItems.add(item.getItemStack().saveOptional(provider));
         }
         compound.put(TAG_ITEMLIST, filteredItems);
     }
@@ -145,12 +145,12 @@ public class ItemListModule extends AbstractBuildingModule implements IItemListM
     }
 
     @Override
-    public void serializeToView(@NotNull final FriendlyByteBuf buf)
+    public void serializeToView(@NotNull final RegistryFriendlyByteBuf buf)
     {
         buf.writeInt(itemsAllowed.size());
         for (final ItemStorage item : itemsAllowed)
         {
-            buf.writeItem(item.getItemStack());
+            Utils.serializeCodecMess(buf, item.getItemStack());
         }
     }
 

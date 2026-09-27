@@ -47,3 +47,4 @@ public interface IImmutableItemStorageFactory extends IFactory<FactoryVoidInput,
     @NotNull
     ImmutableItemStorage getNewInstance(@NotNull final ItemStack stack, final int size);
 }
+

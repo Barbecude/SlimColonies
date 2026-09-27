@@ -1,0 +1,28 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "ingredients": [
+    {
+      "item": "slimcolonies:garlic"
+    },
+    {
+      "item": "slimcolonies:onion"
+    },
+    {
+      "item": "slimcolonies:peas"
+    },
+    {
+      "item": "slimcolonies:large_soy_milk_bottle"
+    },
+    {
+      "item": "minecraft:bowl"
+    },
+    {
+      "item": "minecraft:bowl"
+    }
+  ],
+  "result": {
+    "count": 2,
+    "id": "slimcolonies:pea_soup"
+  }
+}

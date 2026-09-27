@@ -44,6 +44,11 @@ public class JobMiner extends AbstractJobStructure<EntityAIStructureMiner, JobMi
         return new EntityAIStructureMiner(this);
     }
 
+    @Override
+    public double getDiseaseModifier()
+    {
+        return 2;
+    }
 
     @Override
     public boolean ignoresDamage(@NotNull final DamageSource damageSource)
@@ -54,5 +59,11 @@ public class JobMiner extends AbstractJobStructure<EntityAIStructureMiner, JobMi
         }
 
         return super.ignoresDamage(damageSource);
+    }
+
+    @Override
+    public double getSaturationFactor()
+    {
+        return 1.2;
     }
 }

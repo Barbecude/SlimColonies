@@ -15,7 +15,7 @@ import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
-import net.minecraftforge.event.level.NoteBlockEvent.Note;
+import net.neoforged.neoforge.event.level.NoteBlockEvent.Note;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -132,12 +132,22 @@ public final class SoundUtils
         }
         else if (v <= 0.2)
         {
-            // Happiness system removed - always play happy sound
-            playSoundAtCitizenWith(worldIn, pos, EventType.HAPPY, citizen);
+            if (citizen.getCitizenHappinessHandler().getHappiness(citizen.getColony(), citizen) < 5)
+            {
+                playSoundAtCitizenWith(worldIn, pos, EventType.UNHAPPY, citizen);
+            }
+            else
+            {
+                playSoundAtCitizenWith(worldIn, pos, EventType.HAPPY, citizen);
+            }
         }
         else if (v <= 0.3)
         {
             playSoundAtCitizenWith(worldIn, pos, EventType.GENERAL, citizen);
+        }
+        else if (v <= 0.4 && citizen.getEntity().isPresent() && citizen.getCitizenDiseaseHandler().isSick())
+        {
+            playSoundAtCitizenWith(worldIn, pos, EventType.SICKNESS, citizen);
         }
         else if (v <= 0.5 && (citizen.getHomeBuilding() == null || citizen.getHomeBuilding().getBuildingLevelEquivalent() <= 2))
         {
@@ -194,7 +204,7 @@ public final class SoundUtils
         }
         else
         {
-            player.playNotifySound(SoundEvents.NOTE_BLOCK_BELL.get(), SoundSource.NEUTRAL, 1.0f, 1.0f);
+            player.playNotifySound(SoundEvents.NOTE_BLOCK_BELL.value(), SoundSource.NEUTRAL, 1.0f, 1.0f);
         }
     }
 
@@ -218,7 +228,7 @@ public final class SoundUtils
         }
         else
         {
-            player.playNotifySound(SoundEvents.NOTE_BLOCK_DIDGERIDOO.get(), SoundSource.NEUTRAL, 1.0f, 0.3f);
+            player.playNotifySound(SoundEvents.NOTE_BLOCK_DIDGERIDOO.value(), SoundSource.NEUTRAL, 1.0f, 0.3f);
         }
     }
 

@@ -4,13 +4,14 @@ import no.monopixel.slimcolonies.api.colony.jobs.ModJobs;
 import no.monopixel.slimcolonies.api.crafting.ItemStorage;
 import no.monopixel.slimcolonies.api.research.util.ResearchConstants;
 import no.monopixel.slimcolonies.core.generation.CustomRecipeProvider;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.data.PackOutput;
-import net.minecraft.data.recipes.FinishedRecipe;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 
 import static no.monopixel.slimcolonies.api.util.constant.BuildingConstants.MODULE_CUSTOM;
@@ -22,9 +23,9 @@ public class DefaultCrusherCraftingProvider extends CustomRecipeProvider
 {
     private static final String CRUSHER = ModJobs.CRUSHER_ID.getPath();
 
-    public DefaultCrusherCraftingProvider(@NotNull final PackOutput packOutput)
+    public DefaultCrusherCraftingProvider(@NotNull final PackOutput packOutput, final CompletableFuture<HolderLookup.Provider> lookupProvider)
     {
-        super(packOutput);
+        super(packOutput, lookupProvider);
     }
 
     @NotNull
@@ -35,7 +36,7 @@ public class DefaultCrusherCraftingProvider extends CustomRecipeProvider
     }
 
     @Override
-    protected void registerRecipes(@NotNull final Consumer<FinishedRecipe> consumer)
+    protected void registerRecipes(@NotNull final Consumer<CustomRecipeBuilder> consumer)
     {
         final Rule noGildedHammer = builder -> builder.maxResearchId(ResearchConstants.CRUSHING_11);
         final Rule withGildedHammer = builder -> builder.minResearchId(ResearchConstants.CRUSHING_11);
@@ -46,11 +47,11 @@ public class DefaultCrusherCraftingProvider extends CustomRecipeProvider
         crush(consumer, "bonemeal2", new ItemStack(Items.BONE), new ItemStack(Items.BONE_MEAL, 5), withGildedHammer);
         crush(consumer, "bonemeal3", new ItemStack(Items.BONE_BLOCK), new ItemStack(Items.BONE_MEAL, 9));
 
-        crush(consumer, "gravel1", new ItemStack(Items.COBBLESTONE, 2), new ItemStack(Items.GRAVEL), noGildedHammer, gravelLoot);
-        crush(consumer, "gravel2", new ItemStack(Items.COBBLESTONE), new ItemStack(Items.GRAVEL), withGildedHammer, gravelLoot);
+        crush(consumer, "gravel1", new ItemStack(Items.COBBLESTONE, 2), new ItemStack(Items.GRAVEL), noGildedHammer);
+        crush(consumer, "gravel2", new ItemStack(Items.COBBLESTONE), new ItemStack(Items.GRAVEL), withGildedHammer);
 
-        crush(consumer, "sand1", new ItemStack(Items.GRAVEL, 2), new ItemStack(Items.SAND), noGildedHammer);
-        crush(consumer, "sand2", new ItemStack(Items.GRAVEL), new ItemStack(Items.SAND), withGildedHammer);
+        crush(consumer, "sand1", new ItemStack(Items.GRAVEL, 2), new ItemStack(Items.SAND), noGildedHammer, gravelLoot);
+        crush(consumer, "sand2", new ItemStack(Items.GRAVEL), new ItemStack(Items.SAND), withGildedHammer, gravelLoot);
 
         crush(consumer, "clay1", new ItemStack(Items.SAND, 2), new ItemStack(Items.CLAY), noGildedHammer);
         crush(consumer, "clay2", new ItemStack(Items.SAND), new ItemStack(Items.CLAY), withGildedHammer);
@@ -62,13 +63,13 @@ public class DefaultCrusherCraftingProvider extends CustomRecipeProvider
         crush(consumer, "tuff2", new ItemStack(Items.COBBLED_DEEPSLATE), new ItemStack(Items.TUFF), withTheDepths, withGildedHammer);
     }
 
-    private void crush(@NotNull final Consumer<FinishedRecipe> consumer,
+    private void crush(@NotNull final Consumer<CustomRecipeBuilder> consumer,
                        @NotNull final String name,
                        @NotNull final ItemStack input,
                        @NotNull final ItemStack output,
                        @NotNull final Rule... rules)
     {
-        final CustomRecipeBuilder builder = CustomRecipeBuilder.create(CRUSHER, MODULE_CUSTOM, name)
+        final CustomRecipeBuilder builder = recipe(CRUSHER, MODULE_CUSTOM, name)
                 .inputs(List.of(new ItemStorage(input)))
                 .result(output);
         for (final Rule rule : rules)

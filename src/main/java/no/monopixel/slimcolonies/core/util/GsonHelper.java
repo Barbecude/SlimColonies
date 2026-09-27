@@ -25,12 +25,12 @@ public class GsonHelper extends net.minecraft.util.GsonHelper
 
     public static ResourceLocation getAsResourceLocation(final JsonObject object, final String key)
     {
-        return new ResourceLocation(getAsString(object, key));
+        return ResourceLocation.parse(getAsString(object, key));
     }
 
     public static ResourceLocation getAsResourceLocation(final JsonObject object, final String key, final ResourceLocation defaultValue)
     {
-        return Optional.ofNullable(getAsString(object, key, (String) null)).map(ResourceLocation::new).orElse(defaultValue);
+        return Optional.ofNullable(getAsString(object, key, (String) null)).map(ResourceLocation::parse).orElse(defaultValue);
     }
 
     public static <T> JsonArray getAsJsonArray(final JsonObject object, final String key, final Function<T, JsonArray> defaultValue, final T arg)

@@ -1,52 +1,47 @@
 package no.monopixel.slimcolonies.core.network.messages.client.colony;
 
+import com.ldtteam.common.network.AbstractClientPlayMessage;
+import com.ldtteam.common.network.PlayMessageType;
 import no.monopixel.slimcolonies.api.colony.IColony;
 import no.monopixel.slimcolonies.api.colony.IColonyManager;
 import no.monopixel.slimcolonies.api.colony.IColonyView;
 import no.monopixel.slimcolonies.api.colony.buildingextensions.IBuildingExtension;
-import no.monopixel.slimcolonies.api.network.IMessage;
 import no.monopixel.slimcolonies.api.util.Log;
+import no.monopixel.slimcolonies.api.util.constant.Constants;
 import no.monopixel.slimcolonies.core.colony.buildingextensions.registry.BuildingExtensionDataManager;
 import io.netty.buffer.Unpooled;
 import net.minecraft.core.registries.Registries;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
-import net.minecraftforge.fml.LogicalSide;
-import net.minecraftforge.network.NetworkEvent;
+import net.neoforged.neoforge.network.handling.IPayloadContext;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
 
 /**
- * Update message for auto syncing the entire building extension list.
+ * Update message for auto syncing the entire building extensions list.
  */
-public class ColonyViewBuildingExtensionsUpdateMessage implements IMessage
+public class ColonyViewBuildingExtensionsUpdateMessage extends AbstractClientPlayMessage
 {
+    public static final PlayMessageType<?> TYPE = PlayMessageType.forClient(Constants.MOD_ID, "colony_view_building_extensions_update", ColonyViewBuildingExtensionsUpdateMessage::new);
+
     /**
      * The colony this building extension belongs to.
      */
-    private int colonyId;
+    private final int colonyId;
 
     /**
      * Dimension of the colony.
      */
-    private ResourceKey<Level> dimension;
+    private final ResourceKey<Level> dimension;
 
     /**
      * The list of building extension items.
      */
-    private Map<IBuildingExtension, IBuildingExtension> extensions;
-
-    /**
-     * Empty constructor used when registering the
-     */
-    public ColonyViewBuildingExtensionsUpdateMessage()
-    {
-        super();
-    }
+    private final Map<IBuildingExtension, IBuildingExtension> extensions;
 
     /**
      * Creates a message to handle colony all building extension views.
@@ -56,7 +51,7 @@ public class ColonyViewBuildingExtensionsUpdateMessage implements IMessage
      */
     public ColonyViewBuildingExtensionsUpdateMessage(@NotNull final IColony colony, @NotNull final Collection<IBuildingExtension> extensions)
     {
-        super();
+        super(TYPE);
         this.colonyId = colony.getID();
         this.dimension = colony.getDimension();
         this.extensions = new HashMap<>();
@@ -64,62 +59,52 @@ public class ColonyViewBuildingExtensionsUpdateMessage implements IMessage
     }
 
     @Override
-    public void toBytes(@NotNull final FriendlyByteBuf buf)
+    protected void toBytes(@NotNull final RegistryFriendlyByteBuf buf)
     {
         buf.writeInt(colonyId);
         buf.writeUtf(dimension.location().toString());
         buf.writeInt(extensions.size());
         for (final IBuildingExtension extension : extensions.keySet())
         {
-            final FriendlyByteBuf buffer = BuildingExtensionDataManager.extensionToBuffer(extension);
-            buf.writeInt(buffer.readableBytes());
-            buf.writeBytes(buffer);
+            final RegistryFriendlyByteBuf extensionBuffer = BuildingExtensionDataManager.extensionToBuffer(extension, buf.registryAccess());
+            extensionBuffer.resetReaderIndex();
+            buf.writeByteArray(extensionBuffer.array());
         }
     }
 
-    @Override
-    public void fromBytes(@NotNull final FriendlyByteBuf buf)
+    protected ColonyViewBuildingExtensionsUpdateMessage(@NotNull final RegistryFriendlyByteBuf buf, final PlayMessageType<?> type)
     {
+        super(buf, type);
         colonyId = buf.readInt();
-        dimension = ResourceKey.create(Registries.DIMENSION, new ResourceLocation(buf.readUtf(32767)));
+        dimension = ResourceKey.create(Registries.DIMENSION, ResourceLocation.parse(buf.readUtf(32767)));
         extensions = new HashMap<>();
         final int extensionCount = buf.readInt();
         for (int i = 0; i < extensionCount; i++)
         {
-            final int readableBytes = buf.readInt();
-            final FriendlyByteBuf data = new FriendlyByteBuf(Unpooled.buffer(readableBytes));
-            buf.readBytes(data, readableBytes);
-            final IBuildingExtension extension = BuildingExtensionDataManager.bufferToExtension(data);
+            final IBuildingExtension extension = BuildingExtensionDataManager.bufferToExtension(new RegistryFriendlyByteBuf(Unpooled.wrappedBuffer(buf.readByteArray()), buf.registryAccess()));
             extensions.put(extension, extension);
         }
     }
 
-    @Nullable
     @Override
-    public LogicalSide getExecutionSide()
-    {
-        return LogicalSide.CLIENT;
-    }
-
-    @Override
-    public void onExecute(final NetworkEvent.Context ctxIn, final boolean isLogicalServer)
+    protected void onExecute(final IPayloadContext ctxIn, final Player player)
     {
         final IColonyView view = IColonyManager.getInstance().getColonyView(colonyId, dimension);
         if (view != null)
         {
-            final Set<IBuildingExtension> extensions = new HashSet<>();
-            view.getBuildingExtensions(extension -> true).forEach(existingExtension -> {
+            final Set<IBuildingExtension> updatedExtensions = new HashSet<>();
+            view.getClientBuildingManager().getBuildingExtensions(extension -> true).forEach(existingExtension -> {
                 if (this.extensions.containsKey(existingExtension))
                 {
-                    final FriendlyByteBuf copyBuffer = new FriendlyByteBuf(Unpooled.buffer());
+                    final RegistryFriendlyByteBuf copyBuffer = new RegistryFriendlyByteBuf(Unpooled.buffer(), player.level().registryAccess());
                     this.extensions.get(existingExtension).serialize(copyBuffer);
                     existingExtension.deserialize(copyBuffer);
-                    extensions.add(existingExtension);
+                    updatedExtensions.add(existingExtension);
                 }
             });
-            extensions.addAll(this.extensions.keySet());
+            updatedExtensions.addAll(this.extensions.keySet());
 
-            view.handleColonyBuildingExtensionViewUpdateMessage(extensions);
+            view.getClientBuildingManager().handleColonyBuildingExtensionViewUpdateMessage(updatedExtensions);
         }
         else
         {

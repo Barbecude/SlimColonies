@@ -1,33 +1,37 @@
 package no.monopixel.slimcolonies.core.colony.buildings.workerbuildings;
 
-import net.minecraft.core.BlockPos;
+import com.ldtteam.structurize.blueprints.v1.Blueprint;
 import no.monopixel.slimcolonies.api.colony.IColony;
 import no.monopixel.slimcolonies.api.colony.IColonyView;
+import no.monopixel.slimcolonies.api.colony.jobs.ModJobs;
 import no.monopixel.slimcolonies.api.entity.citizen.AbstractEntityCitizen;
 import no.monopixel.slimcolonies.api.util.Log;
 import no.monopixel.slimcolonies.core.colony.buildings.AbstractBuildingGuards;
 import no.monopixel.slimcolonies.core.colony.buildings.modules.GuardBuildingModule;
 import no.monopixel.slimcolonies.core.colony.buildings.modules.settings.GuardTaskSetting;
+import net.minecraft.core.BlockPos;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
+import static no.monopixel.slimcolonies.api.util.constant.EquipmentLevelConstants.BASIC_TOOL_LEVEL;
+import static no.monopixel.slimcolonies.api.util.constant.EquipmentLevelConstants.TOOL_LEVEL_MAXIMUM;
 import static no.monopixel.slimcolonies.api.util.constant.SchematicTagConstants.TAG_ARCHER;
 import static no.monopixel.slimcolonies.api.util.constant.SchematicTagConstants.TAG_KNIGHT;
-import static no.monopixel.slimcolonies.core.colony.buildings.modules.BuildingModules.KNIGHT_GATE_WORK;
-import static no.monopixel.slimcolonies.core.colony.buildings.modules.BuildingModules.RANGER_GATE_WORK;
+import static no.monopixel.slimcolonies.core.colony.buildings.modules.BuildingModules.*;
 
 /**
  * Gate house building.
  *
  */
-
+@SuppressWarnings("squid:MaximumInheritanceDepth")
 public class BuildingGateHouse extends AbstractBuildingGuards
 {
 
     /**
      * Our constants. The Schematic names, Defence bonus, and Offence bonus.
      */
-    private static final String SCHEMATIC_NAME = "gatehouse";
-    private static final int    MAX_LEVEL      = 3;
+    private static final String SCHEMATIC_NAME        = "gatehouse";
+    private static final int    MAX_LEVEL             = 3;
 
     /**
      * The abstract constructor of the building.
@@ -51,6 +55,31 @@ public class BuildingGateHouse extends AbstractBuildingGuards
     public int getMaxBuildingLevel()
     {
         return MAX_LEVEL;
+    }
+
+    @Override
+    public int getMaxEquipmentLevel()
+    {
+        if (getBuildingLevel() >= getMaxBuildingLevel())
+        {
+            return TOOL_LEVEL_MAXIMUM;
+        }
+        else if (getBuildingLevelEquivalent() <= WOOD_HUT_LEVEL)
+        {
+            return BASIC_TOOL_LEVEL;
+        }
+        return getBuildingLevelEquivalent() - WOOD_HUT_LEVEL;
+    }
+
+    @Override
+    public int getClaimRadius(final int newLevel)
+    {
+        return switch (newLevel)
+        {
+            case 1, 2 -> 1;
+            case 3 -> 2;
+            default -> 0;
+        };
     }
 
     @Override
@@ -88,24 +117,30 @@ public class BuildingGateHouse extends AbstractBuildingGuards
     {
         if (getLocationsFromTag(TAG_KNIGHT).size() < 2 || getLocationsFromTag(TAG_ARCHER).size() < 2)
         {
-            Log.getLogger()
-                .error("GateHouse at " + getID().toShortString() + " missing 'knight' or 'archer' tag for guards of: " + getStructurePack() + " : " + getBlueprintPath());
+            Log.getLogger().error("GateHouse at " + getID().toShortString() + " missing 'knight' or 'archer' tag for guards of: " + getStructurePack() + " : " + getBlueprintPath());
             return getID();
         }
 
-        final GuardBuildingModule knightWorkModule = this.getModule(KNIGHT_GATE_WORK);
-        final GuardBuildingModule archerWorkModule = this.getModule(RANGER_GATE_WORK);
+        if (worker.getCitizenData().getJob().getJobRegistryEntry() == ModJobs.archer.get())
+        {
+            final GuardBuildingModule archerWorkModule = this.getModule(RANGER_GATE_WORK);
+            int index = archerWorkModule.getAssignedCitizen().indexOf(worker.getCitizenData());
+            if (index >= 0)
+            {
+                return getLocationsFromTag(TAG_ARCHER).get(index);
+            }
+        }
+        else
+        {
+            final GuardBuildingModule knightWorkModule = this.getModule(KNIGHT_GATE_WORK);
 
-        int firstIndex = knightWorkModule.getAssignedCitizen().indexOf(worker.getCitizenData());
-        if (firstIndex >= 0)
-        {
-            return getLocationsFromTag(TAG_KNIGHT).get(firstIndex);
+            int index = knightWorkModule.getAssignedCitizen().indexOf(worker.getCitizenData());
+            if (index >= 0)
+            {
+                return getLocationsFromTag(TAG_KNIGHT).get(index);
+            }
         }
-        int secondIndex = archerWorkModule.getAssignedCitizen().indexOf(worker.getCitizenData());
-        if (secondIndex >= 0)
-        {
-            return getLocationsFromTag(TAG_ARCHER).get(secondIndex);
-        }
+
         return getID();
     }
 
@@ -120,12 +155,14 @@ public class BuildingGateHouse extends AbstractBuildingGuards
     public void onDestroyed()
     {
         super.onDestroyed();
+        colony.getServerBuildingManager().guardBuildingChangedAt(this, 0);
     }
 
     @Override
-    public void onUpgradeComplete(final int newLevel)
+    public void onUpgradeComplete(@Nullable final Blueprint blueprint, final int newLevel)
     {
-        super.onUpgradeComplete(newLevel);
+        super.onUpgradeComplete(blueprint, newLevel);
+        colony.getServerBuildingManager().guardBuildingChangedAt(this, newLevel);
     }
 
     @Override
@@ -138,11 +175,16 @@ public class BuildingGateHouse extends AbstractBuildingGuards
     public void setBuildingLevel(final int level)
     {
         super.setBuildingLevel(level);
+        if (level >= 1)
+        {
+            colony.getConnectionManager().addNewGateHouse(getPosition());
+        }
     }
 
     @Override
     public void destroy()
     {
+        colony.getConnectionManager().removeGateHouse(getPosition());
         super.destroy();
     }
 

@@ -69,8 +69,12 @@ public class WayPointBlockPlacementHandler implements IPlacementHandler
     }
 
     @Override
-    public boolean doesWorldStateMatchBlueprintState(final BlockState worldState, final BlockState blueprintState, @Nullable final Tuple<BlockEntity, CompoundTag> blockEntityData, @NotNull final IPlacementContext placementContext)
+    public boolean doesWorldStateMatchBlueprintState(
+        final BlockState worldState,
+        final BlockState blueprintState,
+        final Tuple<BlockEntity, CompoundTag> blockEntityData,
+        @NotNull final IPlacementContext placementContext)
     {
-        return worldState.equals(blueprintState);
+        return worldState.getBlock() == blueprintState.getBlock();
     }
 }

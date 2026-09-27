@@ -1,0 +1,19 @@
+{
+  "type": "recipe",
+  "crafter": "blacksmith_crafting",
+  "inputs": [
+    {
+      "count": 5,
+      "id": "minecraft:diamond"
+    },
+    {
+      "id": "minecraft:stick"
+    }
+  ],
+  "intermediate": "minecraft:air",
+  "research-id": "slimcolonies:effects/assistanthammerunlock",
+  "result": {
+    "id": "slimcolonies:assistanthammer_diamond"
+  },
+  "show-tooltip": true
+}

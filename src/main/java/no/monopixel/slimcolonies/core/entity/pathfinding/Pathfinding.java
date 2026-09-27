@@ -1,7 +1,6 @@
 package no.monopixel.slimcolonies.core.entity.pathfinding;
 
 import no.monopixel.slimcolonies.api.util.Log;
-import no.monopixel.slimcolonies.core.SlimColonies;
 import no.monopixel.slimcolonies.core.entity.pathfinding.pathjobs.AbstractPathJob;
 import org.jetbrains.annotations.NotNull;
 
@@ -31,10 +30,10 @@ public final class Pathfinding
         @Override
         public Thread newThread(@NotNull final Runnable runnable)
         {
-            final Thread thread = new Thread(runnable, "SlimColonies Pathfinding Worker #" + (id++));
+            final Thread thread = new Thread(runnable, "Minecolonies Pathfinding Worker #" + (id++));
             thread.setDaemon(true);
 
-            thread.setUncaughtExceptionHandler((thread1, throwable) -> Log.getLogger().error("SlimColonies Pathfinding Thread errored! ", throwable));
+            thread.setUncaughtExceptionHandler((thread1, throwable) -> Log.getLogger().error("Minecolonies Pathfinding Thread errored! ", throwable));
             return thread;
         }
     }
@@ -48,8 +47,7 @@ public final class Pathfinding
     {
         if (executor == null)
         {
-            executor =
-                new ThreadPoolExecutor(1, SlimColonies.getConfig().getServer().pathfindingMaxThreadCount.get(), 10, TimeUnit.SECONDS, jobQueue, new MinecoloniesThreadFactory());
+            executor = new ThreadPoolExecutor(1, 1, 10, TimeUnit.SECONDS, jobQueue, new MinecoloniesThreadFactory());
         }
         return executor;
     }

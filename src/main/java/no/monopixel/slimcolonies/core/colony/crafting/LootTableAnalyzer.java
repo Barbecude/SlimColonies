@@ -1,34 +1,46 @@
 package no.monopixel.slimcolonies.core.colony.crafting;
 
-import com.google.gson.*;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParseException;
 import no.monopixel.slimcolonies.api.items.ModItems;
+import no.monopixel.slimcolonies.api.items.component.AdventureData;
 import no.monopixel.slimcolonies.api.util.Log;
-import com.mojang.brigadier.exceptions.CommandSyntaxException;
-import net.minecraft.nbt.TagParser;
-import net.minecraft.network.FriendlyByteBuf;
+import no.monopixel.slimcolonies.api.util.Utils;
+import com.mojang.serialization.JsonOps;
+import com.mojang.serialization.MapCodec;
+import net.minecraft.core.Holder;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.core.HolderSet;
+import net.minecraft.core.RegistryCodecs;
+import net.minecraft.core.component.DataComponentPatch;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.resources.RegistryOps;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.GsonHelper;
 import net.minecraft.util.Mth;
 import net.minecraft.util.RandomSource;
 import net.minecraft.util.Tuple;
-import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.alchemy.Potion;
-import net.minecraft.world.item.alchemy.PotionUtils;
+import net.minecraft.world.item.alchemy.PotionContents;
+import net.minecraft.world.item.enchantment.Enchantment;
 import net.minecraft.world.item.enchantment.EnchantmentHelper;
-import net.minecraft.world.level.storage.loot.Deserializers;
-import net.minecraft.world.level.storage.loot.LootDataManager;
 import net.minecraft.world.level.storage.loot.LootTable;
-import net.minecraftforge.registries.ForgeRegistries;
+import net.neoforged.neoforge.common.extensions.IHolderExtension;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
-
-import static no.monopixel.slimcolonies.api.util.constant.NbtTagConstants.TAG_ENTITY_TYPE;
 
 /**
  * Utility helper that analyzes a loot table to determine a likely list of drops, along with
@@ -37,61 +49,62 @@ import static no.monopixel.slimcolonies.api.util.constant.NbtTagConstants.TAG_EN
  * constraints with how loot tables are stored this can only produce an approximation of a
  * subset of possible loot results.  Good enough to be indicative but that's all.
  * Currently it only supports a very limited set of conditions and properties; just enough
- * for current usage by SlimColonies recipes.  If tables are extended with additional
+ * for current usage by MineColonies recipes.  If tables are extended with additional
  * conditions or properties then this would have to be adjusted to cope as well.
  */
 public final class LootTableAnalyzer
 {
-    private static final Gson GSON = Deserializers.createLootTableSerializer().create();
-
     private LootTableAnalyzer() { }
 
     /**
      * Evaluate a loot table and report possible drops.
      *
-     * @param lootTableManager the {@link LootDataManager}
+     * @param provider    the registry provider
      * @param lootTableId the loot table id
      * @return the list of possible drops
      */
-    public static List<LootDrop> toDrops(@NotNull final LootDataManager lootTableManager,
-                                         @NotNull final ResourceLocation lootTableId)
-    {
-        return toDrops(lootTableManager, lootTableManager.getLootTable(lootTableId));
-    }
-
-    /**
-     * Evaluate a loot table and report possible drops.
-     *
-     * @param lootTableManager the {@link LootDataManager}
-     * @param lootTable the loot table
-     * @return the list of possible drops
-     */
-    public static List<LootDrop> toDrops(@Nullable final LootDataManager lootTableManager,
-                                         @NotNull final LootTable lootTable)
+    public static List<LootDrop> toDrops(final HolderLookup.Provider provider, @NotNull final ResourceKey<LootTable> lootTableId)
     {
         try
         {
-            final JsonObject lootTableJson = GSON.toJsonTree(lootTable).getAsJsonObject();
-            return toDrops(lootTableManager, lootTableJson);
+            return toDrops(provider, provider.holderOrThrow(lootTableId));
         }
-        catch (final JsonParseException ex)
+        catch (final IllegalStateException ex)
         {
-            Log.getLogger().error(String.format("Failed to parse loot table from %s",
-                    lootTable.getLootTableId()), ex);
+            Log.getLogger().debug(String.format("Failed to parse loot table from %s", lootTableId), ex);
             return Collections.emptyList();
         }
     }
 
+    /**
+     * Evaluate a loot table and report possible drops.
+     *
+     * @param provider  the registry provider
+     * @param lootTable the loot table
+     * @return the list of possible drops
+     */
+    public static List<LootDrop> toDrops(@NotNull final HolderLookup.Provider provider, @NotNull final Holder<LootTable> lootTable)
+    {
+        try
+        {
+            final JsonObject lootTableJson = Utils.serializeCodecMessToJson(LootTable.DIRECT_CODEC, provider, lootTable.value()).getAsJsonObject();
+            return toDrops(provider, lootTableJson);
+        }
+        catch (final JsonParseException ex)
+        {
+            Log.getLogger().error(String.format("Failed to parse loot table from %s", lootTable.getKey()), ex);
+            return Collections.emptyList();
+        }
+    }
 
     /**
      * Evaluate a loot table and report possible drops.
      *
-     * @param lootTableManager the {@link LootDataManager}
+     * @param provider the registry provider
      * @param lootTableJson the loot table json
      * @return the list of possible drops
      */
-    public static List<LootDrop> toDrops(@Nullable final LootDataManager lootTableManager,
-                                         @NotNull final JsonObject lootTableJson)
+    public static List<LootDrop> toDrops(@NotNull final HolderLookup.Provider provider, @NotNull final JsonObject lootTableJson)
     {
         final List<LootDrop> drops = new ArrayList<>();
 
@@ -122,7 +135,7 @@ public final class LootTableAnalyzer
             {
                 final JsonObject entryJson = ej.getAsJsonObject();
                 final float weight = GsonHelper.getAsFloat(entryJson, "weight", 1);
-                final List<LootDrop> entryDrops = entryToDrops(lootTableManager, entryJson);
+                final List<LootDrop> entryDrops = entryToDrops(provider, entryJson);
                 for (final LootDrop drop : entryDrops)
                 {
                     drops.add(new LootDrop(drop.getItemStacks(), drop.getProbability() * (weight / totalWeight) * rolls * modifier, drop.getQuality() * rolls, conditional || drop.getConditional()));
@@ -137,20 +150,19 @@ public final class LootTableAnalyzer
     /**
      * Parse a specific entry and try to determine the possible drops.
      *
-     * @param lootTableManager the {@link LootDataManager}
+     * @param provider the registry provider
      * @param entryJson the entry json
      * @return the list of possible drops
      */
     @NotNull
-    private static List<LootDrop> entryToDrops(@Nullable final LootDataManager lootTableManager,
-                                               @NotNull final JsonObject entryJson)
+    private static List<LootDrop> entryToDrops(@NotNull final HolderLookup.Provider provider, @NotNull final JsonObject entryJson)
     {
         final List<LootDrop> drops = new ArrayList<>();
         final String type = GsonHelper.getAsString(entryJson, "type");
         switch (type)
         {
             case "minecraft:item" -> {
-                final Item item = ForgeRegistries.ITEMS.getValue(new ResourceLocation(GsonHelper.getAsString(entryJson, "name")));
+                final Item item = BuiltInRegistries.ITEM.get(ResourceLocation.parse(GsonHelper.getAsString(entryJson, "name")));
                 final float quality = GsonHelper.getAsFloat(entryJson, "quality", 0);
                 float modifier = 1.0F;
                 final JsonArray conditions = GsonHelper.getAsJsonArray(entryJson, "conditions", new JsonArray());
@@ -159,14 +171,14 @@ public final class LootTableAnalyzer
                 ItemStack stack = new ItemStack(item);
                 if (entryJson.has("functions"))
                 {
-                    final Tuple<ItemStack, Float> result = processFunctions(stack, GsonHelper.getAsJsonArray(entryJson, "functions"));
+                    final Tuple<ItemStack, Float> result = processFunctions(provider, stack, GsonHelper.getAsJsonArray(entryJson, "functions"));
                     stack = result.getA();
                     modifier = result.getB();
                 }
                 modifier = adjustModifier(modifier, conditions);
                 if (stack.getItem().equals(ModItems.adventureToken))
                 {
-                    final List<LootDrop> mobDrops = expandAdventureToken(lootTableManager, stack);
+                    final List<LootDrop> mobDrops = expandAdventureToken(provider, stack);
                     for (final LootDrop drop : mobDrops)
                     {
                         drops.add(new LootDrop(drop.getItemStacks(), drop.getProbability(), drop.getQuality() + quality, drop.getConditional() || conditional));
@@ -178,8 +190,20 @@ public final class LootTableAnalyzer
                 }
             }
             case "minecraft:loot_table" -> {
-                final ResourceLocation table = new ResourceLocation(GsonHelper.getAsString(entryJson, "name"));
-                final List<LootDrop> tableDrops = toDrops(lootTableManager, table);
+                final JsonElement value = entryJson.get("value");
+                final List<LootDrop> tableDrops;
+                if (value.isJsonObject())
+                {
+                    // inline loot table
+                    tableDrops = toDrops(provider, value.getAsJsonObject());
+                }
+                else
+                {
+                    // loot table reference
+                    final ResourceLocation table = ResourceLocation.parse(value.getAsString());
+                    tableDrops = toDrops(provider, ResourceKey.create(Registries.LOOT_TABLE, table));
+                }
+
                 final float quality = GsonHelper.getAsFloat(entryJson, "quality", 0);
                 final JsonArray conditions = GsonHelper.getAsJsonArray(entryJson, "conditions", new JsonArray());
                 final boolean conditional = !conditions.isEmpty();
@@ -198,7 +222,7 @@ public final class LootTableAnalyzer
                         .filter(j -> !j.has("conditions"))
                         .findFirst()
                         .orElse(children.get(children.size() - 1).getAsJsonObject());
-                drops.addAll(entryToDrops(lootTableManager, childJson));
+                drops.addAll(entryToDrops(provider, childJson));
             }
         }
         return drops;
@@ -253,26 +277,19 @@ public final class LootTableAnalyzer
     /**
      * Replaces an {@link ModItems#adventureToken} with the drops from defeating the corresponding monster.
      *
-     * @param lootTableManager the {@link LootDataManager}
+     * @param provider the registry provider
      * @param token the adventure token
      * @return the list of possible drops
      */
     @NotNull
-    private static List<LootDrop> expandAdventureToken(@NotNull final LootDataManager lootTableManager,
-                                                       @NotNull final ItemStack token)
+    private static List<LootDrop> expandAdventureToken(
+      @NotNull final HolderLookup.Provider provider,
+      @NotNull final ItemStack token)
     {
-        if (token.hasTag())
+        final AdventureData component = AdventureData.readFromItemStack(token);
+        if (component != null)
         {
-            assert token.getTag() != null;
-            final String entityType = token.getTag().getString(TAG_ENTITY_TYPE);
-            if (!entityType.isEmpty())
-            {
-                final EntityType<?> mob = ForgeRegistries.ENTITY_TYPES.getValue(ResourceLocation.parse(entityType));
-                if (mob != null)
-                {
-                    return toDrops(lootTableManager, mob.getDefaultLootTable());
-                }
-            }
+            return toDrops(provider, component.entityType().getDefaultLootTable());
         }
         return Collections.emptyList();
     }
@@ -299,11 +316,14 @@ public final class LootTableAnalyzer
      * Rudimentary parsing of loot table functions, primarily focusing on just the ones that are most commonly present
      * in the loot tables that we care about and have a visible effect in the JEI display.
      *
+     * @param provider the registry provider
      * @param stack the original {@link ItemStack} to operate on
      * @param functions the functions array json
      * @return the modified stack and 'quality' modifier
      */
-    private static Tuple<ItemStack, Float> processFunctions(@NotNull ItemStack stack, @NotNull final JsonArray functions)
+    private static Tuple<ItemStack, Float> processFunctions(@NotNull final HolderLookup.Provider provider,
+                                                            @NotNull ItemStack stack,
+                                                            @NotNull final JsonArray functions)
     {
         float modifier = 1.0F;
 
@@ -312,66 +332,71 @@ public final class LootTableAnalyzer
             final JsonObject function = je.getAsJsonObject();
             final String name = GsonHelper.getAsString(function, "function", "");
 
-            switch (name)
+            try
             {
-                case "minecraft:set_count":
-                    final Tuple<Integer, Float> result = processCount(function.get("count"));
-                    stack.setCount(result.getA());
-                    modifier *= result.getB();
-                    break;
+                switch (name)
+                {
+                    case "minecraft:set_count":         // SetItemCountFunction
+                        final Tuple<Integer, Float> result = processCount(function.get("count"));
+                        stack.setCount(result.getA());
+                        modifier *= result.getB();
+                        break;
 
-                case "minecraft:set_damage":
-                    if (stack.isDamageableItem())
-                    {
-                        float damage = 1.0F - processNumber(function.get("damage"), 0F);
-                        stack.setDamageValue(Mth.floor(damage * stack.getMaxDamage()));
-                    }
-                    break;
+                    case "minecraft:set_damage":        // SetItemDamageFunction
+                        if (stack.isDamageableItem())
+                        {
+                            float damage = 1.0F - processNumber(function.get("damage"), 0F);
+                            stack.setDamageValue(Mth.floor(damage * stack.getMaxDamage()));
+                        }
+                        break;
 
-                case "minecraft:set_potion":
-                    final String id = GsonHelper.getAsString(function, "id");
-                    final Potion potion = ForgeRegistries.POTIONS.getValue(ResourceLocation.tryParse(id));
-                    if (potion != null)
-                    {
-                        PotionUtils.setPotion(stack, potion);
-                    }
-                    break;
+                    case "minecraft:set_potion":        // SetPotionFunction
+                        final String id = GsonHelper.getAsString(function, "id");
+                        final Holder<Potion> potion = BuiltInRegistries.POTION.getHolder(ResourceLocation.tryParse(id)).orElse(null);
+                        if (potion != null)
+                        {
+                            stack.update(DataComponents.POTION_CONTENTS, PotionContents.EMPTY, potion, PotionContents::withPotion);
+                        }
+                        break;
 
-                case "minecraft:set_nbt":
-                    try
-                    {
-                        stack.setTag(TagParser.parseTag(GsonHelper.getAsString(function, "tag")));
-                    }
-                    catch (CommandSyntaxException e)
-                    {
-                        Log.getLogger().error("Failed to parse set_nbt in loot table", e);
-                    }
-                    break;
+                    case "minecraft:set_components":    // SetComponentsFunction
+                        final DataComponentPatch patch = Utils.deserializeCodecMessFromJson(DataComponentPatch.CODEC, provider, function.get("components"));
+                        stack.applyComponentsAndValidate(patch);
+                        break;
 
-                case "minecraft:enchant_with_levels":
-                    final int levels = processNumber(function.get("levels"), 1);
-                    final boolean treasure = GsonHelper.getAsBoolean(function, "treasure", false);
-                    stack = EnchantmentHelper.enchantItem(RandomSource.create(), stack, levels, treasure);
-                    break;
+                    case "minecraft:enchant_with_levels":   // EnchantWithLevelsFunction
+                        final int levels = processNumber(function.get("levels"), 1);
+                        final MapCodec<Optional<HolderSet<Enchantment>>> optionsCodec = RegistryCodecs.homogeneousList(Registries.ENCHANTMENT).optionalFieldOf("options");
+                        final RegistryOps<JsonElement> ops = provider.createSerializationContext(JsonOps.INSTANCE);
+                        final Optional<HolderSet<Enchantment>> options = optionsCodec.decode(ops, ops.getMap(function).getOrThrow()).getOrThrow();
+                        final Stream<Holder<Enchantment>> enchantments = options.map(HolderSet::stream)
+                                .orElseGet(() -> provider.lookupOrThrow(Registries.ENCHANTMENT).listElements().map(IHolderExtension::getDelegate));
+                        stack = EnchantmentHelper.enchantItem(RandomSource.create(), stack, levels, enchantments);
+                        break;
 
-                case "minecraft:apply_bonus":
-                case "minecraft:looting_enchant":
-                    // just ignore this for now; we could possibly increase the count a little or
-                    // add a tooltip to indicate it's boosted by looting/fortune, but meh.
-                    break;
+                    case "minecraft:apply_bonus":               // ApplyBonusCount
+                    case "minecraft:enchanted_count_increase":  // EnchantedCountIncreaseFunction
+                        // just ignore this for now; we could possibly increase the count a little or
+                        // add a tooltip to indicate it's boosted by looting/fortune, but meh.
+                        break;
 
-                case "minecraft:furnace_smelt":
-                    // this is mostly just to cook the meat if an animal is on fire, which
-                    // we can safely ignore.
-                    break;
+                    case "minecraft:furnace_smelt":     // SmeltItemFunction
+                        // this is mostly just to cook the meat if an animal is on fire, which
+                        // we can safely ignore.
+                        break;
 
-                case "minecraft:explosion_decay":
-                    // ignore this; we're not expecting explosions
-                    break;
+                    case "minecraft:explosion_decay":   // ApplyExplosionDecay
+                        // ignore this; we're not expecting explosions
+                        break;
 
-                default:
-                    Log.getLogger().warn("Unhandled modifier in loot table: " + name);
-                    break;
+                    default:
+                        Log.getLogger().warn("Unhandled modifier in loot table: {}", name);
+                        break;
+                }
+            }
+            catch (Throwable e)
+            {
+                Log.getLogger().error("Failed to parse {} in loot table", name, e);
             }
         }
 
@@ -505,26 +530,38 @@ public final class LootTableAnalyzer
         }
 
         /** Copy a LootDrop to a packet buffer */
-        public void serialize(@NotNull final FriendlyByteBuf buffer)
+        public void serialize(@NotNull final RegistryFriendlyByteBuf buffer)
         {
+            int prevIndex = buffer.writerIndex();
             buffer.writeVarInt(stacks.size());
             for (final ItemStack stack : stacks)
             {
-                buffer.writeItem(stack);
+                try
+                {
+                    Utils.serializeCodecMess(buffer, stack);
+                }
+                catch (Exception e)
+                {
+                    Log.getLogger().warn("Error serializing item stack: " + stack, e);
+                    buffer.writerIndex(prevIndex);
+                    buffer.writeVarInt(0);
+                    break;
+                }
             }
+
             buffer.writeFloat(probability);
             buffer.writeFloat(quality);
             buffer.writeBoolean(conditional);
         }
 
         /** Recover a LootDrop from a packet buffer */
-        public static LootDrop deserialize(@NotNull final FriendlyByteBuf buffer)
+        public static LootDrop deserialize(@NotNull final RegistryFriendlyByteBuf buffer)
         {
             final int size = buffer.readVarInt();
             final List<ItemStack> stacks = new ArrayList<>(size);
             for (int i = 0; i < size; ++i)
             {
-                stacks.add(buffer.readItem());
+                stacks.add(Utils.deserializeCodecMess(buffer));
             }
             final float probability = buffer.readFloat();
             final float quality = buffer.readFloat();

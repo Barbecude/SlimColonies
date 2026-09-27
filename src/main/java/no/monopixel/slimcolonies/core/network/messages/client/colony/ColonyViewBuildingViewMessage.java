@@ -1,41 +1,38 @@
 package no.monopixel.slimcolonies.core.network.messages.client.colony;
 
+import com.ldtteam.common.network.AbstractClientPlayMessage;
+import com.ldtteam.common.network.PlayMessageType;
 import no.monopixel.slimcolonies.api.colony.IColonyManager;
 import no.monopixel.slimcolonies.api.colony.buildings.IBuilding;
-import no.monopixel.slimcolonies.api.network.IMessage;
+import no.monopixel.slimcolonies.api.util.constant.Constants;
 import io.netty.buffer.Unpooled;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
-import net.minecraftforge.fml.LogicalSide;
-import net.minecraftforge.network.NetworkEvent;
+import net.neoforged.neoforge.network.handling.IPayloadContext;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 /**
  * Add or Update a AbstractBuilding.View to a ColonyView on the client.
  */
-public class ColonyViewBuildingViewMessage implements IMessage
+public class ColonyViewBuildingViewMessage extends AbstractClientPlayMessage
 {
-    private int          colonyId;
-    private BlockPos     buildingId;
-    private FriendlyByteBuf buildingData;
+    public static final PlayMessageType<?> TYPE = PlayMessageType.forClient(Constants.MOD_ID, "colony_view_building_view", ColonyViewBuildingViewMessage::new);
+
+    private final int          colonyId;
+    private final BlockPos     buildingId;
+    private final RegistryFriendlyByteBuf buildingData;
 
     /**
      * Dimension of the colony.
      */
-    private ResourceKey<Level> dimension;
+    private final ResourceKey<Level> dimension;
 
-    /**
-     * Empty constructor used when registering the
-     */
-    public ColonyViewBuildingViewMessage()
-    {
-        super();
-    }
 
     /**
      * Creates a message to handle colony views.
@@ -54,43 +51,35 @@ public class ColonyViewBuildingViewMessage implements IMessage
      */
     public ColonyViewBuildingViewMessage(@NotNull final IBuilding building, final boolean fullSync)
     {
-        super();
+        super(TYPE);
         this.colonyId = building.getColony().getID();
         this.buildingId = building.getID();
-        this.buildingData = new FriendlyByteBuf(Unpooled.buffer());
+        this.buildingData = new RegistryFriendlyByteBuf(new FriendlyByteBuf(Unpooled.buffer()), building.getColony().getWorld().registryAccess());
         building.serializeToView(this.buildingData, fullSync);
         this.dimension = building.getColony().getDimension();
     }
 
-    @Override
-    public void fromBytes(@NotNull final FriendlyByteBuf buf)
+    protected ColonyViewBuildingViewMessage(@NotNull final RegistryFriendlyByteBuf buf, final PlayMessageType<?> type)
     {
+        super(buf, type);
         colonyId = buf.readInt();
         buildingId = buf.readBlockPos();
-        dimension = ResourceKey.create(Registries.DIMENSION, new ResourceLocation(buf.readUtf(32767)));
-        buildingData = new FriendlyByteBuf(Unpooled.buffer(buf.readableBytes()));
-        buf.readBytes(buildingData, buf.readableBytes());
+        dimension = ResourceKey.create(Registries.DIMENSION, ResourceLocation.parse(buf.readUtf(32767)));
+        buildingData = new RegistryFriendlyByteBuf(new FriendlyByteBuf(Unpooled.wrappedBuffer(buf.readByteArray())), buf.registryAccess());
     }
 
     @Override
-    public void toBytes(@NotNull final FriendlyByteBuf buf)
+    protected void toBytes(@NotNull final RegistryFriendlyByteBuf buf)
     {
         buildingData.resetReaderIndex();
         buf.writeInt(colonyId);
         buf.writeBlockPos(buildingId);
         buf.writeUtf(dimension.location().toString());
-        buf.writeBytes(buildingData);
-    }
-
-    @Nullable
-    @Override
-    public LogicalSide getExecutionSide()
-    {
-        return LogicalSide.CLIENT;
+        buf.writeByteArray(buildingData.array());
     }
 
     @Override
-    public void onExecute(final NetworkEvent.Context ctxIn, final boolean isLogicalServer)
+    protected void onExecute(final IPayloadContext ctxIn, final Player player)
     {
         IColonyManager.getInstance().handleColonyBuildingViewMessage(colonyId, buildingId, buildingData, dimension);
     }

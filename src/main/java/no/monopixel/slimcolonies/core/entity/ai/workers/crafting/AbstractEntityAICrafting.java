@@ -1,6 +1,32 @@
 package no.monopixel.slimcolonies.core.entity.ai.workers.crafting;
 
 import com.google.common.collect.ImmutableList;
+import no.monopixel.slimcolonies.api.colony.buildings.IBuilding;
+import no.monopixel.slimcolonies.api.colony.buildings.modules.ICraftingBuildingModule;
+import no.monopixel.slimcolonies.api.colony.requestsystem.request.IRequest;
+import no.monopixel.slimcolonies.api.colony.requestsystem.request.RequestState;
+import no.monopixel.slimcolonies.api.colony.requestsystem.requestable.Stack;
+import no.monopixel.slimcolonies.api.colony.requestsystem.requestable.crafting.PublicCrafting;
+import no.monopixel.slimcolonies.api.colony.requestsystem.requestable.deliveryman.Delivery;
+import no.monopixel.slimcolonies.api.crafting.IRecipeStorage;
+import no.monopixel.slimcolonies.api.crafting.ItemStorage;
+import no.monopixel.slimcolonies.api.crafting.RecipeStorage;
+import no.monopixel.slimcolonies.api.entity.ai.statemachine.AITarget;
+import no.monopixel.slimcolonies.api.entity.ai.statemachine.states.IAIState;
+import no.monopixel.slimcolonies.api.entity.citizen.VisibleCitizenStatus;
+import no.monopixel.slimcolonies.api.equipment.ModEquipmentTypes;
+import no.monopixel.slimcolonies.api.util.*;
+import no.monopixel.slimcolonies.core.colony.buildings.AbstractBuilding;
+import no.monopixel.slimcolonies.core.colony.buildings.modules.CraftingWorkerBuildingModule;
+import no.monopixel.slimcolonies.core.colony.buildings.workerbuildings.BuildingWareHouse;
+import no.monopixel.slimcolonies.core.colony.jobs.AbstractJobCrafter;
+import no.monopixel.slimcolonies.core.entity.ai.workers.AbstractEntityAIInteract;
+import no.monopixel.slimcolonies.core.entity.citizen.EntityCitizen;
+import no.monopixel.slimcolonies.core.entity.other.SittingEntity;
+import no.monopixel.slimcolonies.core.entity.pathfinding.navigation.EntityNavigationUtils;
+import no.monopixel.slimcolonies.core.util.citizenutils.CitizenItemUtils;
+import no.monopixel.slimcolonies.core.network.messages.client.BlockParticleEffectMessage;
+import no.monopixel.slimcolonies.core.network.messages.client.LocalizedParticleEffectMessage;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.server.level.ServerLevel;
@@ -10,46 +36,24 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.storage.loot.LootParams;
 import net.minecraft.world.level.storage.loot.parameters.LootContextParams;
-import net.minecraftforge.network.PacketDistributor;
-import no.monopixel.slimcolonies.api.colony.buildings.modules.ICraftingBuildingModule;
-import no.monopixel.slimcolonies.api.colony.requestsystem.request.IRequest;
-import no.monopixel.slimcolonies.api.colony.requestsystem.request.RequestState;
-import no.monopixel.slimcolonies.api.colony.requestsystem.requestable.Stack;
-import no.monopixel.slimcolonies.api.colony.requestsystem.requestable.crafting.PublicCrafting;
-import no.monopixel.slimcolonies.api.crafting.IRecipeStorage;
-import no.monopixel.slimcolonies.api.crafting.ItemStorage;
-import no.monopixel.slimcolonies.api.crafting.RecipeStorage;
-import no.monopixel.slimcolonies.api.entity.ai.statemachine.AITarget;
-import no.monopixel.slimcolonies.api.entity.ai.statemachine.states.IAIState;
-import no.monopixel.slimcolonies.api.entity.citizen.VisibleCitizenStatus;
-import no.monopixel.slimcolonies.api.equipment.ModEquipmentTypes;
-import no.monopixel.slimcolonies.api.util.*;
-import no.monopixel.slimcolonies.core.Network;
-import no.monopixel.slimcolonies.core.colony.buildings.AbstractBuilding;
-import no.monopixel.slimcolonies.core.colony.buildings.modules.CraftingWorkerBuildingModule;
-import no.monopixel.slimcolonies.core.colony.jobs.AbstractJobCrafter;
-import no.monopixel.slimcolonies.core.entity.ai.workers.AbstractEntityAIInteract;
-import no.monopixel.slimcolonies.core.entity.citizen.EntityCitizen;
-import no.monopixel.slimcolonies.core.entity.other.SittingEntity;
-import no.monopixel.slimcolonies.core.entity.pathfinding.navigation.EntityNavigationUtils;
-import no.monopixel.slimcolonies.core.network.messages.client.BlockParticleEffectMessage;
-import no.monopixel.slimcolonies.core.network.messages.client.LocalizedParticleEffectMessage;
-import no.monopixel.slimcolonies.core.util.citizenutils.CitizenItemUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Predicate;
 
+import static no.monopixel.slimcolonies.api.colony.requestsystem.requestable.deliveryman.AbstractDeliverymanRequestable.MAX_BUILDING_PRIORITY;
 import static no.monopixel.slimcolonies.api.entity.ai.statemachine.states.AIWorkerState.*;
 import static no.monopixel.slimcolonies.api.util.constant.CitizenConstants.*;
 import static no.monopixel.slimcolonies.api.util.constant.Constants.DEFAULT_SPEED;
 import static no.monopixel.slimcolonies.api.util.constant.Constants.TICKS_SECOND;
 import static no.monopixel.slimcolonies.api.util.constant.SchematicTagConstants.*;
 import static no.monopixel.slimcolonies.api.util.constant.StatisticsConstants.ITEMS_CRAFTED;
-import static no.monopixel.slimcolonies.api.util.constant.StatisticsConstants.ITEMS_CRAFTED_DETAIL;
 import static no.monopixel.slimcolonies.core.util.WorkerUtil.hasTooManyExternalItemsInInv;
+
+import static no.monopixel.slimcolonies.api.util.constant.StatisticsConstants.ITEMS_CRAFTED_DETAIL;
 
 /**
  * Abstract class for the principal crafting AIs.
@@ -120,7 +124,6 @@ public abstract class AbstractEntityAICrafting<J extends AbstractJobCrafter<?, J
     /**
      * Returns the name of the crafting stat that is used in the building's statistics.
      * Override this in your subclass to change the description of the smelting stat.
-     *
      * @return The name of the crafting statistic.
      */
     protected String getCraftingStatName()
@@ -131,18 +134,18 @@ public abstract class AbstractEntityAICrafting<J extends AbstractJobCrafter<?, J
     /**
      * Records the crafting request in the building's statistics.
      * Override this in your subclass to change the description of the crafting stat.
-     *
      * @param request the request to record.
      */
     protected void recordCraftingBuildingStats(IRequest<?> request, IRecipeStorage recipe)
     {
-        if (recipe == null)
+        if (recipe == null) 
         {
             return;
         }
 
         StatsUtil.trackStatByName(building, getCraftingStatName(), recipe.getPrimaryOutput().getHoverName(), recipe.getPrimaryOutput().getCount());
     }
+
 
     /**
      * Initialize the crafter job and add all his tasks.
@@ -153,15 +156,15 @@ public abstract class AbstractEntityAICrafting<J extends AbstractJobCrafter<?, J
     {
         super(job);
         super.registerTargets(
-            /*
-             * Check if tasks should be executed.
-             */
-            new AITarget(IDLE, this::hasWorkToDo, () -> START_WORKING, TICKS_SECOND),
-            new AITarget(IDLE, this::idle, TICKS_SECOND),
-            new AITarget(START_WORKING, this::decide, STANDARD_DELAY),
-            new AITarget(QUERY_ITEMS, this::queryItems, STANDARD_DELAY),
-            new AITarget(GET_RECIPE, this::getRecipe, STANDARD_DELAY),
-            new AITarget(CRAFT, this::craft, HIT_DELAY)
+          /*
+           * Check if tasks should be executed.
+           */
+          new AITarget(IDLE, this::hasWorkToDo, () -> START_WORKING, TICKS_SECOND),
+          new AITarget(IDLE, this::idle, TICKS_SECOND),
+          new AITarget(START_WORKING, this::decide, STANDARD_DELAY),
+          new AITarget(QUERY_ITEMS, this::queryItems, STANDARD_DELAY),
+          new AITarget(GET_RECIPE, this::getRecipe, STANDARD_DELAY),
+          new AITarget(CRAFT, this::craft, HIT_DELAY)
         );
         worker.setCanPickUpLoot(true);
     }
@@ -204,7 +207,7 @@ public abstract class AbstractEntityAICrafting<J extends AbstractJobCrafter<?, J
         {
             final List<BlockPos> sitPositions = new ArrayList<>(building.getLocationsFromTag(TAG_SITTING));
             sitPositions.addAll(building.getLocationsFromTag(TAG_SIT_IN));
-            if (worker.level.isRaining())
+            if (worker.level().isRaining())
             {
                 if (!sitPositions.isEmpty())
                 {
@@ -226,7 +229,7 @@ public abstract class AbstractEntityAICrafting<J extends AbstractJobCrafter<?, J
         if (MathUtils.RANDOM.nextBoolean())
         {
             final List<BlockPos> standPositions = new ArrayList<>(building.getLocationsFromTag(TAG_STAND_IN));
-            if (worker.level.isRaining())
+            if (worker.level().isRaining())
             {
                 if (!standPositions.isEmpty())
                 {
@@ -251,7 +254,6 @@ public abstract class AbstractEntityAICrafting<J extends AbstractJobCrafter<?, J
 
     /**
      * If the crafter should go in idle mode or not.
-     *
      * @return true if so.
      */
     public boolean hasWorkToDo()
@@ -361,7 +363,7 @@ public abstract class AbstractEntityAICrafting<J extends AbstractJobCrafter<?, J
 
         currentRequest = currentTask;
         final int currentCount = InventoryUtils.getItemCountInItemHandler(worker.getInventoryCitizen(),
-            stack -> ItemStackUtils.compareItemStacksIgnoreStackSize(stack, currentRecipeStorage.getPrimaryOutput()));
+          stack -> ItemStackUtils.compareItemStacksIgnoreStackSize(stack, currentRecipeStorage.getPrimaryOutput()));
         final int inProgressCount = getExtendedCount(currentRecipeStorage.getPrimaryOutput());
 
         final int countPerIteration = currentRecipeStorage.getPrimaryOutput().getCount();
@@ -377,7 +379,7 @@ public abstract class AbstractEntityAICrafting<J extends AbstractJobCrafter<?, J
             boolean isToolOrContainer = true;
             final int remaining;
             if (!currentRecipeStorage.getCraftingToolsAndSecondaryOutputs().isEmpty()
-                && ItemStackUtils.compareItemStackListIgnoreStackSize(currentRecipeStorage.getCraftingToolsAndSecondaryOutputs(), inputStorage.getItemStack(), false, true))
+                  && ItemStackUtils.compareItemStackListIgnoreStackSize(currentRecipeStorage.getCraftingToolsAndSecondaryOutputs(), inputStorage.getItemStack(), false, true))
             {
                 remaining = inputStorage.getAmount();
             }
@@ -431,7 +433,7 @@ public abstract class AbstractEntityAICrafting<J extends AbstractJobCrafter<?, J
     @Override
     public IAIState getStateAfterPickUp()
     {
-        return GET_RECIPE;
+        return START_WORKING;
     }
 
     /**
@@ -465,11 +467,11 @@ public abstract class AbstractEntityAICrafting<J extends AbstractJobCrafter<?, J
         for (final ItemStorage inputStorage : input)
         {
             final Predicate<ItemStack> predicate = stack -> !ItemStackUtils.isEmpty(stack) && new Stack(stack, false).matches(inputStorage.getItemStack());
-            final int invCount = InventoryUtils.getItemCountInItemHandler(worker.getInventoryCitizen(), predicate);
+            final int invCount = InventoryUtils.getItemCountInItemHandler(worker.getInventoryCitizen(), predicate) + getExtendedCount(inputStorage.getItemStack());
             final ItemStack container = inputStorage.getItemStack().getCraftingRemainingItem();
             final int remaining;
             if (!currentRecipeStorage.getCraftingToolsAndSecondaryOutputs().isEmpty()
-                && ItemStackUtils.compareItemStackListIgnoreStackSize(currentRecipeStorage.getCraftingToolsAndSecondaryOutputs(), inputStorage.getItemStack(), false, true))
+                  && ItemStackUtils.compareItemStackListIgnoreStackSize(currentRecipeStorage.getCraftingToolsAndSecondaryOutputs(), inputStorage.getItemStack(), false, true))
             {
                 remaining = inputStorage.getAmount();
             }
@@ -483,7 +485,7 @@ public abstract class AbstractEntityAICrafting<J extends AbstractJobCrafter<?, J
             }
 
             if (invCount + inProgressCount <= 0
-                || invCount + ((job.getCraftCounter() + progressOpsCount) * inputStorage.getAmount()) < remaining)
+                  || invCount + ((job.getCraftCounter() + progressOpsCount) * inputStorage.getAmount()) < remaining)
             {
                 if (InventoryUtils.hasItemInProvider(building, predicate))
                 {
@@ -533,16 +535,16 @@ public abstract class AbstractEntityAICrafting<J extends AbstractJobCrafter<?, J
             worker.getInventoryCitizen().setHeldItem(InteractionHand.MAIN_HAND, toolSlot);
             worker.setItemInHand(InteractionHand.MAIN_HAND, worker.getInventoryCitizen().getStackInSlot(toolSlot));
             worker.setItemInHand(InteractionHand.OFF_HAND,
-                currentRecipeStorage.getCleanedInput().get(worker.getRandom().nextInt(currentRecipeStorage.getCleanedInput().size())).getItemStack().copy());
+              currentRecipeStorage.getCleanedInput().get(worker.getRandom().nextInt(currentRecipeStorage.getCleanedInput().size())).getItemStack().copy());
         }
         else
         {
             worker.setItemInHand(InteractionHand.MAIN_HAND,
-                currentRecipeStorage.getCleanedInput().get(worker.getRandom().nextInt(currentRecipeStorage.getCleanedInput().size())).getItemStack().copy());
+              currentRecipeStorage.getCleanedInput().get(worker.getRandom().nextInt(currentRecipeStorage.getCleanedInput().size())).getItemStack().copy());
             worker.setItemInHand(InteractionHand.OFF_HAND, currentRecipeStorage.getPrimaryOutput().copy());
         }
         hitBlockWithToolInHand(building.getPosition());
-        Network.getNetwork().sendToTrackingEntity(new LocalizedParticleEffectMessage(worker.getMainHandItem(), building.getPosition().above()), worker);
+        new LocalizedParticleEffectMessage(worker.getMainHandItem(), building.getPosition().above()).sendToTrackingEntity(worker);
 
         currentRequest = job.getCurrentTask();
 
@@ -559,66 +561,86 @@ public abstract class AbstractEntityAICrafting<J extends AbstractJobCrafter<?, J
             final IAIState check = checkForItems(currentRecipeStorage);
             if (check == CRAFT)
             {
-                if (!currentRecipeStorage.fullfillRecipe(getLootContext(), ImmutableList.of(worker.getItemHandlerCitizen())))
-                {
-                    currentRequest = null;
-                    incrementActionsDone(getActionRewardForCraftingSuccess());
-                    job.finishRequest(false);
-                    resetValues();
-                    return START_WORKING;
-                }
-                recordCraftingBuildingStats(currentRequest, currentRecipeStorage);
-                currentRequest.addDelivery(currentRecipeStorage.getPrimaryOutput());
-                job.setCraftCounter(job.getCraftCounter() + 1);
-                if (toolSlot != -1)
-                {
-                    CitizenItemUtils.damageItemInHand(worker, InteractionHand.MAIN_HAND, 1);
-                }
-
-                if (job.getCraftCounter() >= job.getMaxCraftingCount())
-                {
-                    incrementActionsDone(getActionRewardForCraftingSuccess());
-                    final ICraftingBuildingModule module = building.getCraftingModuleForRecipe(currentRecipeStorage.getToken());
-                    if (module != null)
-                    {
-                        module.improveRecipe(currentRecipeStorage, job.getCraftCounter(), worker.getCitizenData());
-                    }
-
-                    currentRecipeStorage = null;
-                    resetValues();
-
-                    if (inventoryNeedsDump() && job.getMaxCraftingCount() == 0 && job.getProgress() == 0 && job.getCraftCounter() == 0 && currentRequest != null)
-                    {
-                        worker.getCitizenExperienceHandler().addExperience(currentRequest.getRequest().getCount() / 2.0);
-                    }
-                    return INVENTORY_FULL;
-                }
-                else if (toolSlot >= 0 && worker.getInventoryCitizen().getHeldItem(InteractionHand.MAIN_HAND).isEmpty())
-                {
-                    // tool broke, abort crafting
-                    currentRequest = null;
-                    job.finishRequest(false);
-                    incrementActionsDoneAndDecSaturation();
-                    resetValues();
-                    return START_WORKING;
-                }
-                else
-                {
-                    job.setProgress(0);
-                    return GET_RECIPE;
-                }
-            }
-            else
-            {
-                currentRequest = null;
-                job.finishRequest(false);
-                incrementActionsDoneAndDecSaturation();
-                resetValues();
+                return executeCraftingAction(toolSlot);
             }
             return START_WORKING;
         }
 
         return getState();
+    }
+
+    /**
+     * Execute the actual crafting action.
+     * @param toolSlot the tool slot to consider.
+     * @return the next state to go to.
+     */
+    public IAIState executeCraftingAction(final int toolSlot)
+    {
+        final List<ItemStack> addedStacks = currentRecipeStorage.fullfillRecipeAndCopy(getLootContext(), ImmutableList.of(worker.getItemHandlerCitizen()), true);
+        if (addedStacks == null)
+        {
+            currentRequest = null;
+            incrementActionsDone(getActionRewardForCraftingSuccess());
+            job.finishRequest(false);
+            resetValues();
+            return START_WORKING;
+        }
+        recordCraftingBuildingStats(currentRequest, currentRecipeStorage);
+        for (final ItemStack addedStack : addedStacks)
+        {
+            if (ItemStackUtils.compareItemStacksIgnoreStackSize(currentRecipeStorage.getPrimaryOutput(), addedStack))
+            {
+                currentRequest.addDelivery(addedStack);
+            }
+            else
+            {
+                job.getSecondaryOutputs().addTo(new ItemStorage(addedStack), addedStack.getCount());
+            }
+        }
+
+        job.setCraftCounter(job.getCraftCounter() + 1);
+        if (toolSlot != -1)
+        {
+            CitizenItemUtils.damageItemInHand(worker, InteractionHand.MAIN_HAND, 1);
+        }
+
+        if (job.getCraftCounter() >= job.getMaxCraftingCount())
+        {
+            incrementActionsDone(getActionRewardForCraftingSuccess());
+            final ICraftingBuildingModule module = building.getCraftingModuleForRecipe(currentRecipeStorage.getToken());
+            if (module != null)
+            {
+                module.improveRecipe(currentRecipeStorage, job.getCraftCounter(), worker.getCitizenData());
+            }
+
+            return finalizeCraftingTask();
+        }
+        else if (toolSlot >= 0 && worker.getInventoryCitizen().getHeldItem(InteractionHand.MAIN_HAND).isEmpty())
+        {
+            // tool broke, abort crafting
+            currentRequest = null;
+            job.finishRequest(false);
+            incrementActionsDoneAndDecSaturation();
+            resetValues();
+            return START_WORKING;
+        }
+        else
+        {
+            job.setProgress(0);
+            return GET_RECIPE;
+        }
+    }
+
+    public IAIState finalizeCraftingTask()
+    {
+        currentRecipeStorage = null;
+        resetValues();
+
+        if (inventoryNeedsDump() && job.getMaxCraftingCount() == 0 && job.getProgress() == 0 && job.getCraftCounter() == 0 && currentRequest != null)
+        {
+            worker.getCitizenExperienceHandler().addExperience(currentRequest.getRequest().getCount() / 2.0);
+        }
+        return INVENTORY_FULL;
     }
 
     public void hitBlockWithToolInHand(@Nullable final BlockPos blockPos)
@@ -631,9 +653,8 @@ public abstract class AbstractEntityAICrafting<J extends AbstractJobCrafter<?, J
         final BlockPos vector = blockPos.subtract(worker.blockPosition());
         final Direction facing = BlockPosUtil.directionFromDelta(vector.getX(), vector.getY(), vector.getZ()).getOpposite();
 
-        Network.getNetwork().sendToPosition(
-            new BlockParticleEffectMessage(blockPos, blockState, facing.ordinal()),
-            new PacketDistributor.TargetPoint(blockPos.getX(), blockPos.getY(), blockPos.getZ(), BLOCK_BREAK_PARTICLE_RANGE, worker.level().dimension()));
+        new BlockParticleEffectMessage(blockPos, blockState, facing.ordinal())
+            .sendToTargetPoint((ServerLevel) worker.level(), null, blockPos.getX(), blockPos.getY(), blockPos.getZ(), BLOCK_BREAK_PARTICLE_RANGE);
 
         job.playSound(blockPos, (EntityCitizen) worker);
     }
@@ -668,6 +689,23 @@ public abstract class AbstractEntityAICrafting<J extends AbstractJobCrafter<?, J
             }
             currentRequest = null;
             resetValues();
+        }
+
+        if (!job.getSecondaryOutputs().isEmpty())
+        {
+            final BlockPos closestWarehouse = job.getColony().getServerBuildingManager().getBestBuilding(worker, BuildingWareHouse.class);
+            if (closestWarehouse != null)
+            {
+                final IBuilding warehouse = job.getColony().getServerBuildingManager().getBuilding(closestWarehouse);
+                for (final Map.Entry<ItemStorage, Integer> output : job.getSecondaryOutputs().entrySet())
+                {
+                    warehouse.createRequest(new Delivery(building.getLocation(),
+                        warehouse.getLocation(),
+                        output.getKey().getItemStack().copyWithCount(output.getValue()),
+                        MAX_BUILDING_PRIORITY), true);
+                }
+            }
+            job.getSecondaryOutputs().clear();
         }
 
         return super.afterDump();
@@ -720,17 +758,17 @@ public abstract class AbstractEntityAICrafting<J extends AbstractJobCrafter<?, J
         }
 
         LootParams.Builder builder = (new LootParams.Builder((ServerLevel) this.world))
-            .withParameter(LootContextParams.ORIGIN, worker.position())
-            .withParameter(LootContextParams.THIS_ENTITY, worker)
-            .withParameter(LootContextParams.TOOL, worker.getMainHandItem())
-            .withLuck((float) getEffectiveSkillLevel(getPrimarySkillLevel()));
+                                       .withParameter(LootContextParams.ORIGIN, worker.position())
+                                       .withParameter(LootContextParams.THIS_ENTITY, worker)
+                                       .withParameter(LootContextParams.TOOL, worker.getMainHandItem())
+                                       .withLuck((float) getEffectiveSkillLevel(getPrimarySkillLevel()));
 
         if (includeKiller)
         {
             builder = builder
-                .withParameter(LootContextParams.DAMAGE_SOURCE, playerDamageSource)
-                .withParameter(LootContextParams.KILLER_ENTITY, playerDamageSource.getEntity())
-                .withParameter(LootContextParams.DIRECT_KILLER_ENTITY, playerDamageSource.getDirectEntity());
+                        .withParameter(LootContextParams.DAMAGE_SOURCE, playerDamageSource)
+                        .withParameter(LootContextParams.ATTACKING_ENTITY, playerDamageSource.getEntity())
+                        .withParameter(LootContextParams.DIRECT_ATTACKING_ENTITY, playerDamageSource.getDirectEntity());
         }
 
         return builder.create(RecipeStorage.recipeLootParameters);

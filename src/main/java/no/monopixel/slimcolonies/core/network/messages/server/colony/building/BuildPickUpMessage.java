@@ -1,12 +1,14 @@
 package no.monopixel.slimcolonies.core.network.messages.server.colony.building;
 
+import com.ldtteam.common.network.PlayMessageType;
 import no.monopixel.slimcolonies.api.colony.IColony;
 import no.monopixel.slimcolonies.api.colony.buildings.IBuilding;
 import no.monopixel.slimcolonies.api.colony.buildings.views.IBuildingView;
+import no.monopixel.slimcolonies.api.util.constant.Constants;
 import no.monopixel.slimcolonies.core.network.messages.server.AbstractBuildingServerMessage;
-import net.minecraft.world.entity.player.Player;
-import net.minecraft.network.FriendlyByteBuf;
-import net.minecraftforge.network.NetworkEvent;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.server.level.ServerPlayer;
+import net.neoforged.neoforge.network.handling.IPayloadContext;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -14,13 +16,7 @@ import org.jetbrains.annotations.NotNull;
  */
 public class BuildPickUpMessage extends AbstractBuildingServerMessage<IBuilding>
 {
-    /**
-     * Empty constructor used when registering the
-     */
-    public BuildPickUpMessage()
-    {
-        super();
-    }
+    public static final PlayMessageType<?> TYPE = PlayMessageType.forServer(Constants.MOD_ID, "build_pick_up", BuildPickUpMessage::new);
 
     /**
      * Creates a build request
@@ -29,25 +25,17 @@ public class BuildPickUpMessage extends AbstractBuildingServerMessage<IBuilding>
      */
     public BuildPickUpMessage(@NotNull final IBuildingView building)
     {
-        super(building);
+        super(TYPE, building);
+    }
+
+    protected BuildPickUpMessage(final RegistryFriendlyByteBuf buf, final PlayMessageType<?> type)
+    {
+        super(buf, type);
     }
 
     @Override
-    public void fromBytesOverride(@NotNull final FriendlyByteBuf buf)
+    protected void onExecute(final IPayloadContext ctxIn, final ServerPlayer player, final IColony colony, final IBuilding building)
     {
-
-    }
-
-    @Override
-    public void toBytesOverride(@NotNull final FriendlyByteBuf buf)
-    {
-
-    }
-
-    @Override
-    public void onExecute(final NetworkEvent.Context ctxIn, final boolean isLogicalServer, final IColony colony, final IBuilding building)
-    {
-        final Player player = ctxIn.getSender();
         building.pickUp(player);
     }
 }

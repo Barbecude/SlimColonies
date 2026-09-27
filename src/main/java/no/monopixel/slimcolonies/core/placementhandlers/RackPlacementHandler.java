@@ -1,19 +1,19 @@
 package no.monopixel.slimcolonies.core.placementhandlers;
 
-import com.ldtteam.structurize.api.util.ItemStackUtils;
+import com.ldtteam.structurize.api.ItemStackUtils;
 import com.ldtteam.structurize.placement.IPlacementContext;
 import com.ldtteam.structurize.placement.handlers.placement.IPlacementHandler;
 import com.ldtteam.structurize.placement.handlers.placement.PlacementHandlers;
 import com.ldtteam.structurize.util.BlockUtils;
-import net.minecraft.core.BlockPos;
-import net.minecraft.nbt.CompoundTag;
+import no.monopixel.slimcolonies.api.blocks.ModBlocks;
+import no.monopixel.slimcolonies.core.blocks.BlockMinecoloniesRack;
 import net.minecraft.util.Tuple;
-import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
-import no.monopixel.slimcolonies.api.blocks.ModBlocks;
-import no.monopixel.slimcolonies.core.blocks.BlockSlimColoniesRack;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.level.Level;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -23,28 +23,22 @@ import java.util.List;
 import static com.ldtteam.structurize.placement.handlers.placement.PlacementHandlers.handleTileEntityPlacement;
 import static no.monopixel.slimcolonies.api.util.constant.Constants.UPDATE_FLAG;
 
-@SuppressWarnings("removal")
 public class RackPlacementHandler implements IPlacementHandler
 {
     @Override
     public boolean canHandle(@NotNull final Level world, @NotNull final BlockPos pos, @NotNull final BlockState blockState)
     {
-        return blockState.getBlock() instanceof BlockSlimColoniesRack;
+        return blockState.getBlock() instanceof BlockMinecoloniesRack;
     }
 
     @Override
     public ActionProcessingResult handle(
-        @NotNull final Level world,
-        @NotNull final BlockPos pos,
-        @NotNull final BlockState blockState,
-        @Nullable final CompoundTag tileEntityData,
-        @NotNull final IPlacementContext placementContext)
+      @NotNull final Level world,
+      @NotNull final BlockPos pos,
+      @NotNull final BlockState blockState,
+      @Nullable final CompoundTag tileEntityData,
+      @NotNull final IPlacementContext placementContext)
     {
-        if (world.getBlockState(pos).getBlock() == ModBlocks.blockRack)
-        {
-            return ActionProcessingResult.SUCCESS;
-        }
-
         world.setBlock(pos, blockState, UPDATE_FLAG);
         if (tileEntityData != null)
         {
@@ -55,10 +49,10 @@ public class RackPlacementHandler implements IPlacementHandler
 
     @Override
     public List<ItemStack> getRequiredItems(
-        @NotNull final Level world,
-        @NotNull final BlockPos pos,
-        @NotNull final BlockState blockState,
-        @Nullable final CompoundTag tileEntityData,
+      @NotNull final Level world,
+      @NotNull final BlockPos pos,
+      @NotNull final BlockState blockState,
+      @Nullable final CompoundTag tileEntityData,
         @NotNull final IPlacementContext placementContext)
     {
         final List<ItemStack> itemList = new ArrayList<>();
@@ -68,7 +62,7 @@ public class RackPlacementHandler implements IPlacementHandler
         }
 
         itemList.add(BlockUtils.getItemStackFromBlockState(blockState));
-        for (final ItemStack stack : PlacementHandlers.getItemsFromTileEntity(tileEntityData, blockState))
+        for (final ItemStack stack : PlacementHandlers.getItemsFromTileEntity(tileEntityData, blockState, world))
         {
             if (!ItemStackUtils.isEmpty(stack))
             {
@@ -79,8 +73,12 @@ public class RackPlacementHandler implements IPlacementHandler
     }
 
     @Override
-    public boolean doesWorldStateMatchBlueprintState(final BlockState worldState, final BlockState blueprintState, @Nullable final Tuple<BlockEntity, CompoundTag> blockEntityData, @NotNull final IPlacementContext placementContext)
+    public boolean doesWorldStateMatchBlueprintState(
+        final BlockState worldState,
+        final BlockState blueprintState,
+        final Tuple<BlockEntity, CompoundTag> blockEntityData,
+        @NotNull final IPlacementContext structureHandler)
     {
-        return worldState.equals(blueprintState);
+        return worldState.getBlock() == blueprintState.getBlock();
     }
 }

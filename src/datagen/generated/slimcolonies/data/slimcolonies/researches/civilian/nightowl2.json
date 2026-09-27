@@ -1,5 +1,11 @@
 {
   "branch": "slimcolonies:civilian",
+  "costs": [
+    {
+      "count": 75,
+      "item": "minecraft:golden_carrot"
+    }
+  ],
   "effects": [
     {
       "id": "slimcolonies:effects/workingdayhaddition",
@@ -15,7 +21,7 @@
       "level": 3
     }
   ],
-  "researchLevel": 3,
+  "researchLevel": 4,
   "sortOrder": 2,
   "subtitle": "no.monopixel.slimcolonies.research.civilian.nightowl2.subtitle"
 }

@@ -15,6 +15,11 @@ public final class BuildingConstants
      */
     public static final int NO_WORK_ORDER = -1;
 
+    /**
+     * Min slots required to be recognized as storage.
+     */
+    public static final int MIN_SLOTS_FOR_RECOGNITION = 5;
+
     // --------------- Miner building constants ---------------//
 
     /**
@@ -53,6 +58,11 @@ public final class BuildingConstants
     public static final String TAG_CURRENT_LEVEL = "currentLevel";
 
     /**
+     * The NBT Tag to store the starting node.
+     */
+    public static final String TAG_SN = "StartingNode";
+
+    /**
      * The NBT Tag to store the location of the ladder.
      */
     public static final String TAG_LLOCATION = "ladderlocation";
@@ -88,9 +98,19 @@ public final class BuildingConstants
     public static final String MODULE_BREWING = "brewing";
 
     /**
+     * Domum Ornamentum module type.
+     */
+    public static final String MODULE_DOMUM = "domum";
+
+    /**
      * Custom crafting module type.
      */
     public static final String MODULE_CUSTOM = "custom";
+
+    /**
+     * Default level to allow building sorting.
+     */
+    public static final int DEFAULT_REQUIRED_SORT_LEVEL = 3;
 
     /**
      * Private constructor to hide implicit public one.

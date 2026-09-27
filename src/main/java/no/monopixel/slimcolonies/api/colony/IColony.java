@@ -1,52 +1,52 @@
 package no.monopixel.slimcolonies.api.colony;
 
-import net.minecraft.ChatFormatting;
-import net.minecraft.core.BlockPos;
-import net.minecraft.nbt.CompoundTag;
-import net.minecraft.nbt.ListTag;
-import net.minecraft.resources.ResourceKey;
-import net.minecraft.resources.ResourceLocation;
-import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.level.Level;
-import net.minecraft.world.level.block.Block;
-import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.level.chunk.LevelChunk;
-import net.minecraftforge.common.capabilities.Capability;
-import net.minecraftforge.common.capabilities.CapabilityManager;
-import net.minecraftforge.common.capabilities.CapabilityToken;
-import net.minecraftforge.event.TickEvent;
+import no.monopixel.slimcolonies.api.colony.buildings.modules.ICommonSettingsModule;
+import no.monopixel.slimcolonies.api.colony.connections.IColonyConnectionManager;
 import no.monopixel.slimcolonies.api.colony.managers.interfaces.*;
 import no.monopixel.slimcolonies.api.colony.permissions.IPermissions;
 import no.monopixel.slimcolonies.api.colony.requestsystem.manager.IRequestManager;
 import no.monopixel.slimcolonies.api.colony.requestsystem.requester.IRequester;
 import no.monopixel.slimcolonies.api.colony.workorders.IWorkManager;
 import no.monopixel.slimcolonies.api.entity.citizen.AbstractEntityCitizen;
+import no.monopixel.slimcolonies.api.items.component.ColonyId;
 import no.monopixel.slimcolonies.api.quests.IQuestManager;
 import no.monopixel.slimcolonies.api.research.IResearchManager;
+import net.minecraft.ChatFormatting;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.entity.BannerPatternLayers;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.chunk.LevelChunk;
+import net.neoforged.neoforge.event.tick.LevelTickEvent;
+import net.neoforged.neoforge.event.tick.ServerTickEvent;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 /**
  * Interface of the Colony and ColonyView which will have to implement the following methods.
  */
 public interface IColony
 {
-    Capability<IColonyTagCapability> CLOSE_COLONY_CAP = CapabilityManager.get(new CapabilityToken<>() {});
-
-    void onWorldLoad(@NotNull Level w);
+    void onWorldLoad(@NotNull ServerLevel w);
 
     void onWorldUnload(@NotNull Level w);
 
-    void onServerTick(@NotNull TickEvent.ServerTickEvent event);
+    void onServerTick(@NotNull ServerTickEvent.Pre event);
 
     @NotNull
     IWorkManager getWorkManager();
 
-    void onWorldTick(@NotNull TickEvent.LevelTickEvent event);
+    void onWorldTick(@NotNull LevelTickEvent.Pre event);
 
     /**
      * Returns the position of the colony.
@@ -89,35 +89,11 @@ public interface IColony
     long getDistanceSquared(BlockPos pos);
 
     /**
-     * Returns whether or not the colony has a town hall.
-     *
-     * @return whether or not the colony has a town hall.
-     */
-    boolean hasTownHall();
-
-    /**
      * returns this colonies unique id.
      *
      * @return an int representing the id.
      */
     int getID();
-
-    /**
-     * Check if the colony has a warehouse.
-     *
-     * @return true if so.
-     */
-    boolean hasWarehouse();
-
-    /**
-     * Check if the colony has a building type at a specific level or higher.
-     *
-     * @param building       The identifier for the building, based on schematic name.
-     * @param level          The level requirement.
-     * @param singleBuilding If true, requires that a single building meet the minimum requirement.
-     * @return true if at least one building of at least the target level is present.
-     */
-    boolean hasBuilding(final ResourceLocation building, final int level, final boolean singleBuilding);
 
     /**
      * Getter for the team colony color.
@@ -131,7 +107,7 @@ public interface IColony
      *
      * @return a list of pattern-color pairs
      */
-    ListTag getColonyFlag();
+    BannerPatternLayers getColonyFlag();
 
     /**
      * Whether it is day for the colony
@@ -198,13 +174,45 @@ public interface IColony
     @NotNull
     List<Player> getMessagePlayerEntities();
 
+    @NotNull
+    default List<BlockPos> getWayPoints(@NotNull BlockPos position, @NotNull BlockPos target)
+    {
+        final List<BlockPos> tempWayPoints = new ArrayList<>();
+        tempWayPoints.addAll(getWayPoints().keySet());
+        tempWayPoints.addAll(getServerBuildingManager().getBuildings().keySet());
+
+        final double maxX = Math.max(position.getX(), target.getX());
+        final double maxZ = Math.max(position.getZ(), target.getZ());
+
+        final double minX = Math.min(position.getX(), target.getX());
+        final double minZ = Math.min(position.getZ(), target.getZ());
+
+        final Iterator<BlockPos> iterator = tempWayPoints.iterator();
+        while (iterator.hasNext())
+        {
+            final BlockPos p = iterator.next();
+            final int x = p.getX();
+            final int z = p.getZ();
+            if (x < minX || x > maxX || z < minZ || z > maxZ)
+            {
+                iterator.remove();
+            }
+        }
+
+        return tempWayPoints;
+    }
+
+    double getOverallHappiness();
+
     Map<BlockPos, BlockState> getWayPoints();
 
     String getStructurePack();
 
     void setStructurePack(String style);
 
-    IRegisteredStructureManager getBuildingManager();
+    IRegisteredStructureManager getServerBuildingManager();
+
+    ICommonRegisteredStructureManager getCommonBuildingManager();
 
     ICitizenManager getCitizenManager();
 
@@ -216,6 +224,22 @@ public interface IColony
      * @return manager
      */
     IVisitorManager getVisitorManager();
+
+    /**
+     * Get the animal manager of the colony.
+     *
+     * @return the animal manager.
+     */
+    IAnimalManager getAnimalManager();
+
+    IRaiderManager getRaiderManager();
+
+    /**
+     * Get the event manager of the colony.
+     *
+     * @return the event manager.
+     */
+    IEventManager getEventManager();
 
     /**
      * Get the reproduction manager of the colony.
@@ -246,6 +270,12 @@ public interface IColony
     ITravellingManager getTravellingManager();
 
     /**
+     * Get the connection manager of the colony.
+     * @return the connection manager.
+     */
+    IColonyConnectionManager getConnectionManager();
+
+    /**
      * Add a visiting player.
      *
      * @param player the player.
@@ -273,7 +303,21 @@ public interface IColony
      */
     IResearchManager getResearchManager();
 
+    /**
+     * Save the time when mercenaries are used, to set a cooldown.
+     */
+    void usedMercenaries();
+
+    /**
+     * Get the last time mercenaries were used.
+     *
+     * @return the mercenary use time.
+     */
+    long getMercenaryUseTime();
+
     CompoundTag getColonyTag();
+
+    boolean isColonyUnderAttack();
 
     boolean isValidAttackingPlayer(Player entity);
 
@@ -281,7 +325,7 @@ public interface IColony
 
     void setColonyColor(ChatFormatting color);
 
-    void setColonyFlag(ListTag patterns);
+    void setColonyFlag(BannerPatternLayers patterns);
 
     void addWayPoint(BlockPos pos, BlockState newWayPointState);
 
@@ -297,9 +341,9 @@ public interface IColony
 
     void setCanBeAutoDeleted(boolean canBeDeleted);
 
-    CompoundTag write(CompoundTag colonyCompound);
+    CompoundTag write(CompoundTag colonyCompound, @NotNull final HolderLookup.Provider provider);
 
-    void read(CompoundTag compound);
+    void read(CompoundTag compound, @NotNull final HolderLookup.Provider provider);
 
     /**
      * Returns a set of players receiving important messages for the colony.
@@ -308,12 +352,6 @@ public interface IColony
      */
     @NotNull
     List<Player> getImportantMessageEntityPlayers();
-
-    boolean isManualHiring();
-
-    boolean isManualHousing();
-
-    boolean canMoveIn();
 
     /**
      * Tries to use a given amount of additional growth-time for childs.
@@ -435,4 +473,18 @@ public interface IColony
      * @return the cit.
      */
     ICitizen getCitizen(int id);
+
+    /**
+     * Get the colony level settings module.
+     * @return the settings module.
+     */
+    ICommonSettingsModule getSettings();
+
+    /**
+     * Saves reference of this colony to given itemStack.
+     */
+    default void writeToItemStack(final ItemStack itemStack)
+    {
+        new ColonyId(getID(), getDimension()).writeToItemStack(itemStack);
+    }
 }

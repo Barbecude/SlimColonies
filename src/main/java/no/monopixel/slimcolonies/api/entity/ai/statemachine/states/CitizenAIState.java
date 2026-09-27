@@ -10,6 +10,7 @@ public enum CitizenAIState implements IState
     EATING(),
     SICK(),
     SLEEP,
+    MOURN,
     WORK,
     WORKING,
     INACTIVE();

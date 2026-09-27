@@ -1,0 +1,22 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "ingredients": [
+    {
+      "item": "slimcolonies:garlic"
+    },
+    {
+      "item": "minecraft:chicken"
+    },
+    {
+      "item": "minecraft:chicken"
+    },
+    {
+      "item": "slimcolonies:nether_pepper"
+    }
+  ],
+  "result": {
+    "count": 2,
+    "id": "slimcolonies:spicy_grilled_chicken"
+  }
+}

@@ -4,17 +4,15 @@ import com.google.common.annotations.VisibleForTesting;
 import no.monopixel.slimcolonies.api.colony.IColony;
 import no.monopixel.slimcolonies.api.util.Log;
 import net.minecraft.core.BlockPos;
-import net.minecraft.world.level.Level;
+import net.minecraft.server.level.ServerLevel;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-import java.util.NoSuchElementException;
+import java.util.*;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
+import static no.monopixel.slimcolonies.api.util.constant.Suppression.UNCHECKED;
 
 /**
  * Data structure for storing colonies, optimized for performance.
@@ -39,7 +37,7 @@ public final class ColonyList<T extends IColony> implements Iterable<T>
      * @param position The position for the Colony center.
      * @return The newly created Colony.
      */
-    public Colony create(final Level world, final BlockPos position)
+    public Colony create(final ServerLevel world, final String name, final BlockPos position)
     {
         final int colonyID = getNextColonyID();
         if (colonyID >= list.length)
@@ -53,7 +51,7 @@ public final class ColonyList<T extends IColony> implements Iterable<T>
             return null;
         }
 
-        final Colony colony = new Colony(colonyID, world, position);
+        final Colony colony = new Colony(colonyID, name, world, position);
         size++;
         list[colony.getID()] = colony;
         return colony;
@@ -66,7 +64,7 @@ public final class ColonyList<T extends IColony> implements Iterable<T>
             return ++topID;
         }
 
-        return nullIndices.remove(0);
+        return nullIndices.removeFirst();
     }
 
     private void expandList()
@@ -118,7 +116,7 @@ public final class ColonyList<T extends IColony> implements Iterable<T>
      * @return The Colony associated with the provided id.
      */
     @Nullable
-    @SuppressWarnings("unchecked")
+    @SuppressWarnings(UNCHECKED)
     public T get(final int index)
     {
         if (index < 1 || index >= list.length)
@@ -165,10 +163,7 @@ public final class ColonyList<T extends IColony> implements Iterable<T>
      */
     public void clear()
     {
-        for (int i = 0; i < list.length; i++)
-        {
-            list[i] = null;
-        }
+        Arrays.fill(list, null);
 
         nullIndices.clear();
 
@@ -229,6 +224,7 @@ public final class ColonyList<T extends IColony> implements Iterable<T>
      * @return an iterator for the colonies.
      */
     @Override
+    @NotNull
     public Iterator<T> iterator()
     {
         return new Iterator<T>()

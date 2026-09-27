@@ -3,11 +3,13 @@
   "crafter": "mechanic_crafting",
   "inputs": [
     {
-      "item": "minecraft:diamond"
+      "id": "minecraft:diamond"
     }
   ],
   "intermediate": "minecraft:air",
   "research-id": "slimcolonies:effects/sifterdiamondunlock",
-  "result": "slimcolonies:sifter_mesh_diamond",
+  "result": {
+    "id": "slimcolonies:sifter_mesh_diamond"
+  },
   "show-tooltip": true
 }

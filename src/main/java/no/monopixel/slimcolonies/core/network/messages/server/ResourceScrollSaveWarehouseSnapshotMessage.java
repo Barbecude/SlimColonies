@@ -1,56 +1,49 @@
 package no.monopixel.slimcolonies.core.network.messages.server;
 
-import no.monopixel.slimcolonies.api.network.IMessage;
-import no.monopixel.slimcolonies.api.util.BlockPosUtil;
+import com.ldtteam.common.network.AbstractServerPlayMessage;
+import com.ldtteam.common.network.PlayMessageType;
+import no.monopixel.slimcolonies.api.items.component.BuildingId;
+import no.monopixel.slimcolonies.api.items.component.WarehouseSnapshot;
+import no.monopixel.slimcolonies.api.util.constant.Constants;
 import no.monopixel.slimcolonies.core.items.ItemResourceScroll;
 import net.minecraft.core.BlockPos;
-import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.FriendlyByteBuf;
-import net.minecraftforge.fml.LogicalSide;
-import net.minecraftforge.network.NetworkEvent;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.server.level.ServerPlayer;
+import net.neoforged.neoforge.network.handling.IPayloadContext;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
-
-import static no.monopixel.slimcolonies.api.util.constant.NbtTagConstants.*;
 
 /**
  * Message sent to the server when the client saves a new snapshot by clicking on a warehouse.
  */
-public class ResourceScrollSaveWarehouseSnapshotMessage implements IMessage
+public class ResourceScrollSaveWarehouseSnapshotMessage extends AbstractServerPlayMessage
 {
+    public static final PlayMessageType<?> TYPE = PlayMessageType.forServer(Constants.MOD_ID, "resource_scroll_save_warehouse_snapshot", ResourceScrollSaveWarehouseSnapshotMessage::new);
+
     /**
      * The position of the builder.
      */
-    private BlockPos builderPos;
+    private final BlockPos builderPos;
 
     /**
      * The warehouse snapshot mapping.
      */
     @NotNull
-    private Map<String, Integer> snapshot = new HashMap<>();
+    private final Map<String, Integer> snapshot;
 
     /**
      * The hash of the current work order (if any).
      */
     @NotNull
-    private String workOrderHash = "";
+    private final String workOrderHash;
 
     /**
      * Empty constructor used when registering the message.
      */
-    public ResourceScrollSaveWarehouseSnapshotMessage()
-    {
-        super();
-    }
-
-    /**
-     * Empty constructor used when registering the message.
-     */
-    public ResourceScrollSaveWarehouseSnapshotMessage(BlockPos builderPos)
+    public ResourceScrollSaveWarehouseSnapshotMessage(final BlockPos builderPos)
     {
         this(builderPos, Map.of(), "");
     }
@@ -58,68 +51,40 @@ public class ResourceScrollSaveWarehouseSnapshotMessage implements IMessage
     /**
      * Empty constructor used when registering the message.
      */
-    public ResourceScrollSaveWarehouseSnapshotMessage(BlockPos builderPos, @NotNull Map<String, Integer> snapshot, @NotNull String workOrderHash)
+    public ResourceScrollSaveWarehouseSnapshotMessage(final BlockPos builderPos, @NotNull final Map<String, Integer> snapshot, @NotNull final String workOrderHash)
     {
-        super();
+        super(TYPE);
         this.builderPos = builderPos;
         this.snapshot = snapshot;
         this.workOrderHash = workOrderHash;
     }
 
-    @Override
-    public void fromBytes(@NotNull final FriendlyByteBuf buf)
+    protected ResourceScrollSaveWarehouseSnapshotMessage(final RegistryFriendlyByteBuf buf, final PlayMessageType<?> type)
     {
-        if (buf.readBoolean())
-        {
-            builderPos = buf.readBlockPos();
-        }
-        int numItems = buf.readInt();
-        snapshot = new HashMap<>();
-        for (int i = 0; i < numItems; i++)
-        {
-            String itemName = buf.readUtf(32767);
-            int itemAmount = buf.readInt();
-            snapshot.put(itemName, itemAmount);
-        }
+        super(buf, type);
+        builderPos = buf.readBoolean() ? buf.readBlockPos() : null;
+        snapshot = buf.readMap(FriendlyByteBuf::readUtf, FriendlyByteBuf::readInt);
         workOrderHash = buf.readUtf(32767);
     }
 
     @Override
-    public void toBytes(@NotNull final FriendlyByteBuf buf)
+    protected void toBytes(@NotNull final RegistryFriendlyByteBuf buf)
     {
         buf.writeBoolean(builderPos != null);
         if (builderPos != null)
         {
             buf.writeBlockPos(builderPos);
         }
-        buf.writeInt(snapshot.size());
-        snapshot.forEach((key, value) -> {
-            buf.writeUtf(key);
-            buf.writeInt(value);
-        });
+        buf.writeMap(snapshot, FriendlyByteBuf::writeUtf, FriendlyByteBuf::writeInt);
         buf.writeUtf(workOrderHash);
     }
 
-    @Nullable
     @Override
-    public LogicalSide getExecutionSide()
+    protected void onExecute(final IPayloadContext ctxIn, final ServerPlayer player)
     {
-        return LogicalSide.SERVER;
-    }
-
-    @Override
-    public void onExecute(final NetworkEvent.Context ctxIn, final boolean isLogicalServer)
-    {
-        Objects.requireNonNull(ctxIn.getSender()).getInventory().items.stream()
+        player.getInventory().items.stream()
           .filter(stack -> stack.getItem() instanceof ItemResourceScroll)
-          .filter(stack -> stack.getTag() != null)
-          .filter(stack -> Objects.equals(builderPos, BlockPosUtil.read(stack.getTag(), TAG_BUILDER)))
-          .forEach(stack -> {
-              CompoundTag data = stack.getTag();
-              CompoundTag newData = new CompoundTag();
-              snapshot.keySet().forEach(f -> newData.putInt(f, snapshot.getOrDefault(f, 0)));
-              data.put(TAG_WAREHOUSE_SNAPSHOT, newData);
-              data.putString(TAG_WAREHOUSE_SNAPSHOT_WO_HASH, workOrderHash);
-          });
+          .filter(stack -> Objects.equals(builderPos, BuildingId.readFromItemStack(stack).id()))
+          .forEach(stack -> new WarehouseSnapshot(snapshot, workOrderHash).writeToItemStack(stack));
     }
 }

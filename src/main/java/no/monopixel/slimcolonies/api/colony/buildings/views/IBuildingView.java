@@ -3,25 +3,27 @@ package no.monopixel.slimcolonies.api.colony.buildings.views;
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
 import com.ldtteam.blockui.views.BOWindow;
+import com.ldtteam.structurize.api.RotationMirror;
 import no.monopixel.slimcolonies.api.colony.ICitizenDataView;
 import no.monopixel.slimcolonies.api.colony.IColonyView;
+import no.monopixel.slimcolonies.api.colony.buildings.ICommonBuilding;
 import no.monopixel.slimcolonies.api.colony.buildings.registry.BuildingEntry;
 import no.monopixel.slimcolonies.api.colony.requestsystem.request.IRequest;
 import no.monopixel.slimcolonies.api.colony.requestsystem.requester.IRequester;
 import no.monopixel.slimcolonies.api.colony.requestsystem.token.IToken;
+import no.monopixel.slimcolonies.api.crafting.ItemStorage;
 import net.minecraft.core.BlockPos;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 import java.util.Collection;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Predicate;
 
+import static no.monopixel.slimcolonies.api.util.constant.Suppression.GENERIC_WILDCARD;
 
-public interface IBuildingView extends IRequester, IModuleContainerView
+public interface IBuildingView extends IRequester, IModuleContainerView, ICommonBuilding
 {
     /**
      * Gets the id for this building.
@@ -32,33 +34,11 @@ public interface IBuildingView extends IRequester, IModuleContainerView
     BlockPos getID();
 
     /**
-     * Gets the location of this building.
-     *
-     * @return A BlockPos, where this building is.
-     */
-    @NotNull
-    BlockPos getPosition();
-
-    /**
      * Get the parent building
      *
      * @return
      */
     BlockPos getParent();
-
-    /**
-     * Get the current level of the building.
-     *
-     * @return AbstractBuilding current level.
-     */
-    int getBuildingLevel();
-
-    /**
-     * Get the BlockPos of the Containers.
-     *
-     * @return containerList.
-     */
-    List<BlockPos> getContainerList();
 
     /**
      * Get the max level of the building.
@@ -114,25 +94,18 @@ public interface IBuildingView extends IRequester, IModuleContainerView
     String getStructurePack();
 
     /**
-     * Getter for the rotation.
-     *
-     * @return the rotation.
-     */
-    int getRotation();
-
-    /**
-     * Getter for the mirror.
+     * Getter for the rotation and the mirror.
      *
      * @return true if mirrored.
      */
-    boolean isMirrored();
+    RotationMirror getRotationMirror();
 
     /**
-     * Checks if this building is pending construction (building, upgrading, or repairing).
+     * Get the current work order level.
      *
-     * @return true if the building is building, upgrading or repairing.
+     * @return 0 if none, othewise the current level worked on
      */
-    boolean isPendingConstruction();
+    boolean hasWorkOrder();
 
     /**
      * Check if the building is current being built.
@@ -174,19 +147,19 @@ public interface IBuildingView extends IRequester, IModuleContainerView
      *
      * @return blockui window.
      */
-    @Nullable
+    @NotNull
     BOWindow getWindow();
 
     /**
-     * Read this view from a {@link FriendlyByteBuf}.
+     * Read this view from a {@link RegistryFriendlyByteBuf}.
      *
      * @param buf The buffer to read this view from.
      */
-    void deserialize(@NotNull FriendlyByteBuf buf);
+    void deserialize(@NotNull RegistryFriendlyByteBuf buf);
 
     Map<Integer, Collection<IToken<?>>> getOpenRequestsByCitizen();
 
-    @SuppressWarnings("unchecked")
+    @SuppressWarnings(GENERIC_WILDCARD)
     <R> ImmutableList<IRequest<? extends R>> getOpenRequestsOfType(@NotNull ICitizenDataView citizenData, Class<R> requestType);
 
     ImmutableList<IRequest<?>> getOpenRequests(@NotNull ICitizenDataView data);
@@ -200,7 +173,7 @@ public interface IBuildingView extends IRequester, IModuleContainerView
      */
     IColonyView getColony();
 
-    @SuppressWarnings("unchecked")
+    @SuppressWarnings(GENERIC_WILDCARD)
     <R> ImmutableList<IRequest<? extends R>> getOpenRequestsOfTypeFiltered(
       @NotNull ICitizenDataView citizenData,
       Class<R> requestType,
@@ -230,12 +203,6 @@ public interface IBuildingView extends IRequester, IModuleContainerView
     boolean isDeconstructed();
 
     /**
-     * Get the Building type
-     * @return building type
-     */
-    BuildingEntry getBuildingType();
-
-    /**
      * Set the building type
      * @param buildingType
      */
@@ -258,4 +225,13 @@ public interface IBuildingView extends IRequester, IModuleContainerView
      * @return the range.
      */
     default int getRange() { return 0; }
+
+    /**
+     * Get lang key of pre-upgrade warning for building level.
+     * @return empty-string by default. Override for respective building.
+     */
+    default String getHoverWarningForLevel()
+    {
+        return "";
+    }
 }

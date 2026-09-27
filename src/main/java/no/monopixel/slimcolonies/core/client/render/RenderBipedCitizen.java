@@ -19,6 +19,8 @@ import net.minecraft.client.renderer.entity.layers.ItemInHandLayer;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.InteractionHand;
+import net.minecraft.world.entity.EntityAttachment;
+import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.NotNull;
 import org.joml.Matrix4f;
 
@@ -103,29 +105,30 @@ public class RenderBipedCitizen extends MobRenderer<AbstractEntityCitizen, Citiz
       @NotNull final Component str,
       @NotNull final PoseStack matrixStack,
       @NotNull final MultiBufferSource buffer,
-      final int packedLight)
+      final int packedLight,
+      final float partialTick)
     {
-        super.renderNameTag(entityIn, str, matrixStack, buffer, packedLight);
+        super.renderNameTag(entityIn, str, matrixStack, buffer, packedLight, partialTick);
 
         if (entityIn.getCitizenDataView() != null && entityIn.getCitizenDataView().hasVisibleStatus())
         {
             double distance = this.entityRenderDispatcher.distanceToSqr(entityIn.getX(), entityIn.getY(), entityIn.getZ());
             if (distance <= 4096.0D)
             {
-                double y = entityIn.getNameTagOffsetY() + 0.3f;
+                Vec3 vec3 = entityIn.getAttachments().getNullable(EntityAttachment.NAME_TAG, 0, entityIn.getViewYRot(partialTick));
 
                 matrixStack.pushPose();
-                matrixStack.translate(0, y, 0);
+                matrixStack.translate(vec3.x, vec3.y + 0.9, vec3.z);
                 matrixStack.mulPose(entityRenderDispatcher.cameraOrientation());
-                matrixStack.scale(-0.025F, -0.025F, 0.025F);
+                matrixStack.scale(0.025F, -0.025F, 0.025F);
 
                 final Matrix4f pose = matrixStack.last().pose();
 
                 VertexConsumer r = buffer.getBuffer(RenderTypes.worldEntityIcon(entityIn.getCitizenDataView().getStatusIcon()));
-                r.vertex(pose, -5, 0, 0).uv(0, 0).endVertex();
-                r.vertex(pose, -5, 10, 0).uv(0, 1).endVertex();
-                r.vertex(pose, 5, 10, 0).uv(1, 1).endVertex();
-                r.vertex(pose, 5, 0, 0).uv(1, 0).endVertex();
+                r.addVertex(pose, -5, 0, 0).setUv(0, 0);
+                r.addVertex(pose, -5, 10, 0).setUv(0, 1);
+                r.addVertex(pose, 5, 10, 0).setUv(1, 1);
+                r.addVertex(pose, 5, 0, 0).setUv(1, 0);
 
                 matrixStack.popPose();
             }

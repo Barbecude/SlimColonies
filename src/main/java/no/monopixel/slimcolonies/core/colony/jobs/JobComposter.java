@@ -1,8 +1,10 @@
 package no.monopixel.slimcolonies.core.colony.jobs;
 
+import no.monopixel.slimcolonies.core.colony.buildings.modules.BuildingModules;
 import net.minecraft.resources.ResourceLocation;
 import no.monopixel.slimcolonies.api.client.render.modeltype.ModModelTypes;
 import no.monopixel.slimcolonies.api.colony.ICitizenData;
+import no.monopixel.slimcolonies.core.colony.buildings.modules.WorkerBuildingModule;
 import no.monopixel.slimcolonies.core.entity.ai.workers.production.agriculture.EntityAIWorkComposter;
 import org.jetbrains.annotations.NotNull;
 
@@ -37,4 +39,10 @@ public class JobComposter extends AbstractJob<EntityAIWorkComposter, JobComposte
         return new EntityAIWorkComposter(this);
     }
 
+    @Override
+    public double getDiseaseModifier()
+    {
+        final int skill = getCitizen().getCitizenSkillHandler().getLevel(getCitizen().getWorkBuilding().getModule(BuildingModules.COMPOSTER_WORK).getPrimarySkill());
+        return (int) ((100 - skill)/25.0);
+    }
 }

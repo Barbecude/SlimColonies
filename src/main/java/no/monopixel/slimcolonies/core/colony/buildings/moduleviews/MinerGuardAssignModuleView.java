@@ -3,11 +3,12 @@ package no.monopixel.slimcolonies.core.colony.buildings.moduleviews;
 import com.ldtteam.blockui.views.BOWindow;
 import no.monopixel.slimcolonies.api.colony.buildings.modules.AbstractBuildingModuleView;
 import no.monopixel.slimcolonies.api.util.constant.Constants;
-import no.monopixel.slimcolonies.core.client.gui.modules.WindowMineGuardModule;
-import net.minecraft.network.FriendlyByteBuf;
+import no.monopixel.slimcolonies.core.client.gui.modules.building.WindowMineGuardModule;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.api.distmarker.OnlyIn;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.api.distmarker.OnlyIn;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -16,7 +17,7 @@ import org.jetbrains.annotations.NotNull;
 public class MinerGuardAssignModuleView extends AbstractBuildingModuleView
 {
     @Override
-    public void deserialize(@NotNull final FriendlyByteBuf buf)
+    public void deserialize(@NotNull final RegistryFriendlyByteBuf buf)
     {
 
     }
@@ -25,18 +26,18 @@ public class MinerGuardAssignModuleView extends AbstractBuildingModuleView
     @Override
     public BOWindow getWindow()
     {
-        return new WindowMineGuardModule(buildingView);
+        return new WindowMineGuardModule(this);
     }
 
     @Override
     public ResourceLocation getIconResourceLocation()
     {
-        return ResourceLocation.fromNamespaceAndPath(Constants.MOD_ID, "textures/gui/modules/sword.png");
+        return new ResourceLocation(Constants.MOD_ID, "textures/gui/modules/sword.png");
     }
-
+    
     @Override
-    public String getDesc()
+    public Component getDesc()
     {
-        return "no.monopixel.slimcolonies.coremod.gui.miner.guardassign";
+        return Component.translatable("no.monopixel.slimcolonies.coremod.gui.miner.guardassign");
     }
 }

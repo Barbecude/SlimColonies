@@ -1,0 +1,6 @@
+{
+  "parent": "minecraft:item/generated",
+  "textures": {
+    "layer0": "slimcolonies:item/food/manchet_dough"
+  }
+}

@@ -1,6 +1,8 @@
 package no.monopixel.slimcolonies.core.placementhandlers;
 
 import com.google.common.collect.ImmutableList;
+import com.ldtteam.structurize.api.RotationMirror;
+import com.ldtteam.structurize.api.constants.Constants;
 import com.ldtteam.structurize.placement.IPlacementContext;
 import com.ldtteam.structurize.placement.handlers.placement.IPlacementHandler;
 import com.ldtteam.structurize.util.BlockUtils;
@@ -29,7 +31,6 @@ import static com.ldtteam.structurize.placement.handlers.placement.PlacementHand
 /**
  * Handler for some specific blocks that we want only to paste/cost in the complete mode.
  */
-@SuppressWarnings("removal")
 public class JigsawPlacementHandler implements IPlacementHandler
 {
     @Override
@@ -40,15 +41,15 @@ public class JigsawPlacementHandler implements IPlacementHandler
 
     @Override
     public ActionProcessingResult handle(
-        @NotNull final Level world,
-        @NotNull final BlockPos pos,
-        @NotNull final BlockState blockState,
-        @Nullable final CompoundTag tileEntityData,
-        @NotNull final IPlacementContext placementContext)
+      @NotNull final Level world,
+      @NotNull final BlockPos pos,
+      @NotNull final BlockState blockState,
+      @Nullable final CompoundTag tileEntityData,
+      @NotNull final IPlacementContext placementContext)
     {
         if (!placementContext.fancyPlacement())
         {
-            WorldUtil.setBlockState(world, pos, blockState, com.ldtteam.structurize.api.util.constant.Constants.UPDATE_FLAG);
+            WorldUtil.setBlockState(world, pos, blockState, Constants.UPDATE_FLAG);
             if (tileEntityData != null)
             {
                 try
@@ -89,19 +90,19 @@ public class JigsawPlacementHandler implements IPlacementHandler
                 return ActionProcessingResult.SUCCESS;
             }
 
-            WorldUtil.setBlockState(world, pos, finalState, com.ldtteam.structurize.api.util.constant.Constants.UPDATE_FLAG);
+            WorldUtil.setBlockState(world, pos, finalState, Constants.UPDATE_FLAG);
         }
-
+        
         return ActionProcessingResult.SUCCESS;
     }
 
     @Override
     public List<ItemStack> getRequiredItems(
-        @NotNull final Level world,
-        @NotNull final BlockPos pos,
-        @NotNull final BlockState blockState,
-        @Nullable final CompoundTag tileEntityData,
-        @NotNull final IPlacementContext placementContext)
+      @NotNull final Level world,
+      @NotNull final BlockPos pos,
+      @NotNull final BlockState blockState,
+      @Nullable final CompoundTag tileEntityData,
+      @NotNull final IPlacementContext placementContext)
     {
         if (!placementContext.fancyPlacement())
         {
@@ -135,7 +136,11 @@ public class JigsawPlacementHandler implements IPlacementHandler
     }
 
     @Override
-    public boolean doesWorldStateMatchBlueprintState(final BlockState worldState, final BlockState blueprintState, @Nullable final Tuple<BlockEntity, CompoundTag> blockEntityData, @NotNull final IPlacementContext placementContext)
+    public boolean doesWorldStateMatchBlueprintState(
+        final BlockState worldState,
+        final BlockState blueprintState,
+        final Tuple<BlockEntity, CompoundTag> blockEntityData,
+        @NotNull final IPlacementContext structureHandler)
     {
         return worldState.equals(blueprintState);
     }

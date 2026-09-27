@@ -28,5 +28,5 @@ public class BlockHutNetherWorker extends AbstractBlockHut<BlockHutNetherWorker>
     {
         return ModBuildings.netherWorker.get();
     }
-
+    
 }

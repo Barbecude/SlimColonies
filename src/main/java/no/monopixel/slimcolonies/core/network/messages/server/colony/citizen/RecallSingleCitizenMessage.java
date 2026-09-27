@@ -1,17 +1,19 @@
 package no.monopixel.slimcolonies.core.network.messages.server.colony.citizen;
 
+import com.ldtteam.common.network.PlayMessageType;
 import no.monopixel.slimcolonies.api.colony.ICitizenData;
 import no.monopixel.slimcolonies.api.colony.IColony;
 import no.monopixel.slimcolonies.api.colony.buildings.IBuilding;
 import no.monopixel.slimcolonies.api.colony.buildings.views.IBuildingView;
 import no.monopixel.slimcolonies.api.entity.citizen.AbstractEntityCitizen;
 import no.monopixel.slimcolonies.api.util.MessageUtils;
+import no.monopixel.slimcolonies.api.util.constant.Constants;
 import no.monopixel.slimcolonies.core.network.messages.server.AbstractBuildingServerMessage;
 import no.monopixel.slimcolonies.core.util.TeleportHelper;
-import net.minecraft.world.entity.player.Player;
-import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.core.BlockPos;
-import net.minecraftforge.network.NetworkEvent;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.server.level.ServerPlayer;
+import net.neoforged.neoforge.network.handling.IPayloadContext;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Optional;
@@ -23,18 +25,12 @@ import static no.monopixel.slimcolonies.api.util.constant.TranslationConstants.W
  */
 public class RecallSingleCitizenMessage extends AbstractBuildingServerMessage<IBuilding>
 {
+    public static final PlayMessageType<?> TYPE = PlayMessageType.forServer(Constants.MOD_ID, "recall_single_citizen", RecallSingleCitizenMessage::new);
+
     /**
      * The citizen id.
      */
-    private int citizenId;
-
-    /**
-     * Empty public constructor.
-     */
-    public RecallSingleCitizenMessage()
-    {
-        super();
-    }
+    private final int citizenId;
 
     /**
      * Object creation for the recall.
@@ -44,26 +40,27 @@ public class RecallSingleCitizenMessage extends AbstractBuildingServerMessage<IB
      */
     public RecallSingleCitizenMessage(final IBuildingView building, final int citizenid)
     {
-        super(building);
+        super(TYPE, building);
         this.citizenId = citizenid;
     }
 
-    @Override
-    public void fromBytesOverride(@NotNull final FriendlyByteBuf buf)
+    protected RecallSingleCitizenMessage(final RegistryFriendlyByteBuf buf, final PlayMessageType<?> type)
     {
+        super(buf, type);
 
         citizenId = buf.readInt();
     }
 
     @Override
-    public void toBytesOverride(@NotNull final FriendlyByteBuf buf)
+    protected void toBytes(@NotNull final RegistryFriendlyByteBuf buf)
     {
+        super.toBytes(buf);
 
         buf.writeInt(citizenId);
     }
 
     @Override
-    protected void onExecute(final NetworkEvent.Context ctxIn, final boolean isLogicalServer, final IColony colony, final IBuilding building)
+    protected void onExecute(final IPayloadContext ctxIn, final ServerPlayer player, final IColony colony, final IBuilding building)
     {
         final ICitizenData citizenData = colony.getCitizenManager().getCivilian(citizenId);
         citizenData.setLastPosition(building.getPosition());
@@ -82,12 +79,6 @@ public class RecallSingleCitizenMessage extends AbstractBuildingServerMessage<IB
         final BlockPos loc = building.getID();
         if (optionalEntityCitizen.isPresent() && !TeleportHelper.teleportCitizen(optionalEntityCitizen.get(), colony.getWorld(), loc))
         {
-            final Player player = ctxIn.getSender();
-            if (player == null)
-            {
-                return;
-            }
-
             MessageUtils.format(WARNING_CITIZEN_RECALL_FAILED).sendTo(player);
         }
     }

@@ -4,5 +4,7 @@
   "name": "Lindie",
   "chance": 0.001,
   "storylangkey": "no.monopixel.slimcolonies.coremod.gui.chat.lindie",
+  "recruitcost": "minecraft:rotten_flesh",
+  "recruitcostcount": 169,
   "gender": "female"
 }

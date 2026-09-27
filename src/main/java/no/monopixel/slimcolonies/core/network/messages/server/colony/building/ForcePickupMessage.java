@@ -1,31 +1,27 @@
 package no.monopixel.slimcolonies.core.network.messages.server.colony.building;
 
+import com.ldtteam.common.network.PlayMessageType;
 import no.monopixel.slimcolonies.api.colony.IColony;
 import no.monopixel.slimcolonies.api.colony.buildings.IBuilding;
 import no.monopixel.slimcolonies.api.colony.buildings.views.IBuildingView;
 import no.monopixel.slimcolonies.api.util.MessageUtils;
+import no.monopixel.slimcolonies.api.util.constant.Constants;
 import no.monopixel.slimcolonies.core.network.messages.server.AbstractBuildingServerMessage;
-import net.minecraft.world.entity.player.Player;
-import net.minecraft.network.FriendlyByteBuf;
-import net.minecraftforge.network.NetworkEvent;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.server.level.ServerPlayer;
+import net.neoforged.neoforge.network.handling.IPayloadContext;
 import org.jetbrains.annotations.NotNull;
 
 import static no.monopixel.slimcolonies.api.colony.requestsystem.requestable.deliveryman.AbstractDeliverymanRequestable.getPlayerActionPriority;
-import static no.monopixel.slimcolonies.api.util.constant.TranslationConstants.COREMOD_ENTITY_DELIVERYMAN_FORCEPICKUP;
-import static no.monopixel.slimcolonies.api.util.constant.TranslationConstants.COREMOD_ENTITY_DELIVERYMAN_FORCEPICKUP_FAILED;
+import static no.monopixel.slimcolonies.api.util.constant.TranslationConstants.COM_MINECOLONIES_COREMOD_ENTITY_DELIVERYMAN_FORCEPICKUP;
+import static no.monopixel.slimcolonies.api.util.constant.TranslationConstants.COM_MINECOLONIES_COREMOD_ENTITY_DELIVERYMAN_FORCEPICKUP_FAILED;
 
 /**
  * Message class which manages the messages to request an immediate pickup
  */
 public class ForcePickupMessage extends AbstractBuildingServerMessage<IBuilding>
 {
-    /**
-     * Empty public constructor.
-     */
-    public ForcePickupMessage()
-    {
-        super();
-    }
+    public static final PlayMessageType<?> TYPE = PlayMessageType.forServer(Constants.MOD_ID, "force_pickup", ForcePickupMessage::new);
 
     /**
      * Creates message for player to force a pickup.
@@ -34,38 +30,26 @@ public class ForcePickupMessage extends AbstractBuildingServerMessage<IBuilding>
      */
     public ForcePickupMessage(@NotNull final IBuildingView building)
     {
-        super(building);
+        super(TYPE, building);
     }
 
-    @Override
-    public void fromBytesOverride(@NotNull final FriendlyByteBuf buf)
+    protected ForcePickupMessage(final RegistryFriendlyByteBuf buf, final PlayMessageType<?> type)
     {
+        super(buf, type);
         // Noop
     }
 
     @Override
-    public void toBytesOverride(@NotNull final FriendlyByteBuf buf)
+    protected void onExecute(final IPayloadContext ctxIn, final ServerPlayer player, final IColony colony, final IBuilding building)
     {
-        // Noop
-    }
-
-    @Override
-    protected void onExecute(final NetworkEvent.Context ctxIn, final boolean isLogicalServer, final IColony colony, final IBuilding building)
-    {
-        if (building.createPickupRequest(getPlayerActionPriority(true)))
+        if (building.createPickupRequest(Constants.STACKSIZE, true))
         {
-            MessageUtils.format(COREMOD_ENTITY_DELIVERYMAN_FORCEPICKUP).sendTo(ctxIn.getSender());
+            MessageUtils.format(COM_MINECOLONIES_COREMOD_ENTITY_DELIVERYMAN_FORCEPICKUP).sendTo(ctxIn.player());
             building.markDirty();
         }
         else
         {
-            final Player player = ctxIn.getSender();
-            if (player == null)
-            {
-                return;
-            }
-
-            MessageUtils.format(COREMOD_ENTITY_DELIVERYMAN_FORCEPICKUP_FAILED).sendTo(player);
+            MessageUtils.format(COM_MINECOLONIES_COREMOD_ENTITY_DELIVERYMAN_FORCEPICKUP_FAILED).sendTo(player);
         }
     }
 }

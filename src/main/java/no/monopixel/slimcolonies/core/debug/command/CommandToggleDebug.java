@@ -1,6 +1,5 @@
 package no.monopixel.slimcolonies.core.debug.command;
 
-import no.monopixel.slimcolonies.core.Network;
 import no.monopixel.slimcolonies.core.commands.commandTypes.IMCCommand;
 import no.monopixel.slimcolonies.core.commands.commandTypes.IMCOPCommand;
 import no.monopixel.slimcolonies.core.debug.DebugPlayerManager;
@@ -51,12 +50,12 @@ public class CommandToggleDebug implements IMCOPCommand
         {
             if (enabled)
             {
-                Network.getNetwork().sendToPlayer(new DebugEnableMessage(true), player);
+                new DebugEnableMessage(true).sendToPlayer(player);
                 player.sendSystemMessage(Component.literal("Enabled slimcolonies debugging").withStyle(ChatFormatting.GREEN));
             }
             else
             {
-                Network.getNetwork().sendToPlayer(new DebugEnableMessage(false), player);
+                new DebugEnableMessage(false).sendToPlayer(player);
                 player.sendSystemMessage(Component.literal("Disabled slimcolonies debugging").withStyle(ChatFormatting.RED));
             }
         }

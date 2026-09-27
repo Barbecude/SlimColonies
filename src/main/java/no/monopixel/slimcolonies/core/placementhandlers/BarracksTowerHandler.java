@@ -1,18 +1,20 @@
 package no.monopixel.slimcolonies.core.placementhandlers;
 
+import com.ldtteam.structurize.api.RotationMirror;
+import com.ldtteam.structurize.api.constants.Constants;
 import com.ldtteam.structurize.placement.IPlacementContext;
 import com.ldtteam.structurize.placement.handlers.placement.IPlacementHandler;
 import com.ldtteam.structurize.util.BlockUtils;
 import no.monopixel.slimcolonies.api.blocks.ModBlocks;
 import no.monopixel.slimcolonies.api.util.Log;
 import no.monopixel.slimcolonies.api.util.WorldUtil;
-import net.minecraft.core.BlockPos;
-import net.minecraft.nbt.CompoundTag;
 import net.minecraft.util.Tuple;
 import net.minecraft.world.level.block.entity.BlockEntity;
-import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.level.Level;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -24,40 +26,34 @@ import static com.ldtteam.structurize.placement.handlers.placement.PlacementHand
 /**
  * Barrackstower handler.
  */
-@SuppressWarnings("removal")
 public class BarracksTowerHandler implements IPlacementHandler
 {
     @Override
     public boolean canHandle(@NotNull final Level world, @NotNull final BlockPos pos, @NotNull final BlockState blockState)
     {
-        return blockState.getBlock() == ModBlocks.blockHutBarracksTower;
+         return blockState.getBlock() == ModBlocks.blockHutBarracksTower;
     }
 
     @Override
     public List<ItemStack> getRequiredItems(
-        @NotNull final Level world,
-        @NotNull final BlockPos pos,
-        @NotNull final BlockState blockState,
-        @Nullable final CompoundTag tileEntityData,
-        @NotNull final IPlacementContext placementContext)
+      @NotNull final Level world,
+      @NotNull final BlockPos pos,
+      @NotNull final BlockState blockState,
+      @Nullable final CompoundTag tileEntityData,
+      @NotNull final IPlacementContext placementContext)
     {
         return Collections.emptyList();
     }
 
     @Override
     public ActionProcessingResult handle(
-        @NotNull final Level world,
-        @NotNull final BlockPos pos,
-        @NotNull final BlockState blockState,
-        @Nullable final CompoundTag tileEntityData,
-        @NotNull final IPlacementContext placementContext)
+      @NotNull final Level world,
+      @NotNull final BlockPos pos,
+      @NotNull final BlockState blockState,
+      @Nullable final CompoundTag tileEntityData,
+      @NotNull final IPlacementContext placementContext)
     {
-        if (world.getBlockState(pos).equals(blockState))
-        {
-            return ActionProcessingResult.PASS;
-        }
-
-        if (!WorldUtil.setBlockState(world, pos, blockState, com.ldtteam.structurize.api.util.constant.Constants.UPDATE_FLAG))
+        if (!WorldUtil.setBlockState(world, pos, blockState, Constants.UPDATE_FLAG))
         {
             return ActionProcessingResult.PASS;
         }
@@ -79,8 +75,12 @@ public class BarracksTowerHandler implements IPlacementHandler
     }
 
     @Override
-    public boolean doesWorldStateMatchBlueprintState(final BlockState worldState, final BlockState blueprintState, @Nullable final Tuple<BlockEntity, CompoundTag> blockEntityData, @NotNull final IPlacementContext placementContext)
+    public boolean doesWorldStateMatchBlueprintState(
+        final BlockState blueprintState,
+        final BlockState worldState,
+        final Tuple<BlockEntity, CompoundTag> tuple,
+        @NotNull final IPlacementContext iPlacementContext)
     {
-        return worldState.equals(blueprintState);
+        return blueprintState.equals(worldState);
     }
 }

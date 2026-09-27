@@ -3,12 +3,13 @@ package no.monopixel.slimcolonies.core.colony.buildings.modules.settings;
 import com.ldtteam.blockui.Pane;
 import com.ldtteam.blockui.controls.ButtonImage;
 import com.ldtteam.blockui.views.BOWindow;
+import no.monopixel.slimcolonies.api.colony.buildings.modules.ICommonSettingsModule;
 import no.monopixel.slimcolonies.api.colony.buildings.modules.settings.ISettingKey;
 import no.monopixel.slimcolonies.api.colony.buildings.modules.settings.ISettingsModuleView;
 import no.monopixel.slimcolonies.api.colony.buildings.views.IBuildingView;
 import no.monopixel.slimcolonies.core.colony.buildings.workerbuildings.BuildingBeekeeper;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.api.distmarker.OnlyIn;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.api.distmarker.OnlyIn;
 
 import java.util.List;
 
@@ -50,7 +51,7 @@ public class BeekeeperCollectionSetting extends StringSetting
     public void setupHandler(
       final ISettingKey<?> key,
       final Pane pane,
-      final ISettingsModuleView settingsModuleView,
+      final ICommonSettingsModule settingsModuleView,
       final IBuildingView building,
       final BOWindow window)
     {

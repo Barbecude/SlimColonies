@@ -1,31 +1,24 @@
 package no.monopixel.slimcolonies.core.network.messages.client.colony;
 
+import com.ldtteam.common.network.AbstractClientPlayMessage;
+import com.ldtteam.common.network.PlayMessageType;
 import no.monopixel.slimcolonies.api.colony.IColonyManager;
-import no.monopixel.slimcolonies.api.network.IMessage;
+import no.monopixel.slimcolonies.api.util.constant.Constants;
 import no.monopixel.slimcolonies.core.colony.Colony;
-import net.minecraft.client.Minecraft;
-import net.minecraft.network.FriendlyByteBuf;
-import net.minecraftforge.fml.LogicalSide;
-import net.minecraftforge.network.NetworkEvent;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.world.entity.player.Player;
+import net.neoforged.neoforge.network.handling.IPayloadContext;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 /**
  * Add or Update a ColonyView on the client.
  */
-public class ColonyViewRemoveWorkOrderMessage implements IMessage
+public class ColonyViewRemoveWorkOrderMessage extends AbstractClientPlayMessage
 {
+    public static final PlayMessageType<?> TYPE = PlayMessageType.forClient(Constants.MOD_ID, "colony_view_remove_workorder", ColonyViewRemoveWorkOrderMessage::new);
 
-    private int colonyId;
-    private int workOrderId;
-
-    /**
-     * Empty constructor used when registering the
-     */
-    public ColonyViewRemoveWorkOrderMessage()
-    {
-        super();
-    }
+    private final int colonyId;
+    private final int workOrderId;
 
     /**
      * Creates an object for the remove message for citizen.
@@ -35,37 +28,28 @@ public class ColonyViewRemoveWorkOrderMessage implements IMessage
      */
     public ColonyViewRemoveWorkOrderMessage(@NotNull final Colony colony, final int workOrderId)
     {
+        super(TYPE);
         this.colonyId = colony.getID();
         this.workOrderId = workOrderId;
     }
 
-    @Override
-    public void fromBytes(@NotNull final FriendlyByteBuf buf)
+    protected ColonyViewRemoveWorkOrderMessage(@NotNull final RegistryFriendlyByteBuf buf, final PlayMessageType<?> type)
     {
+        super(buf, type);
         colonyId = buf.readInt();
         workOrderId = buf.readInt();
     }
 
     @Override
-    public void toBytes(@NotNull final FriendlyByteBuf buf)
+    protected void toBytes(@NotNull final RegistryFriendlyByteBuf buf)
     {
         buf.writeInt(colonyId);
         buf.writeInt(workOrderId);
     }
 
-    @Nullable
     @Override
-    public LogicalSide getExecutionSide()
+    protected void onExecute(final IPayloadContext ctxIn, final Player player)
     {
-        return LogicalSide.CLIENT;
-    }
-
-    @Override
-    public void onExecute(final NetworkEvent.Context ctxIn, final boolean isLogicalServer)
-    {
-        if (Minecraft.getInstance().level != null)
-        {
-            IColonyManager.getInstance().handleColonyViewRemoveWorkOrderMessage(colonyId, workOrderId, Minecraft.getInstance().level.dimension());
-        }
+        IColonyManager.getInstance().handleColonyViewRemoveWorkOrderMessage(colonyId, workOrderId, player.level().dimension());
     }
 }

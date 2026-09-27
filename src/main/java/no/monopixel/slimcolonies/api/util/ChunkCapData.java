@@ -1,7 +1,7 @@
 package no.monopixel.slimcolonies.api.util;
 
 import net.minecraft.core.BlockPos;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
@@ -23,6 +23,11 @@ public class ChunkCapData
     private final int owningColony;
 
     /**
+     * The close colonies to this chunk.
+     */
+    private final List<Integer> staticColonyClaim;
+
+    /**
      * Full claim data of buildings.
      */
     private final Map<Integer, Set<BlockPos>> allClaimBuildings;
@@ -32,15 +37,17 @@ public class ChunkCapData
         this.x = x;
         this.z = z;
         this.owningColony = 0;
+        this.staticColonyClaim = new ArrayList<>();
         this.allClaimBuildings = new HashMap<>();
     }
 
 
-    public ChunkCapData(final int x, final int z, final int owningColony, final @NotNull Map<Integer, Set<BlockPos>> allClaimingBuildings)
+    public ChunkCapData(final int x, final int z, final int owningColony, final List<Integer> staticColonyClaim, final @NotNull Map<Integer, Set<BlockPos>> allClaimingBuildings)
     {
         this.x = x;
         this.z = z;
         this.owningColony = owningColony;
+        this.staticColonyClaim = staticColonyClaim;
         this.allClaimBuildings = allClaimingBuildings;
     }
 
@@ -49,11 +56,16 @@ public class ChunkCapData
      *
      * @param buf the buffer to write it to.
      */
-    public void toBytes(@NotNull final FriendlyByteBuf buf)
+    public void toBytes(@NotNull final RegistryFriendlyByteBuf buf)
     {
         buf.writeInt(x);
         buf.writeInt(z);
         buf.writeInt(owningColony);
+        buf.writeInt(staticColonyClaim.size());
+        for (final Integer id : staticColonyClaim)
+        {
+            buf.writeInt(id);
+        }
         //todo in the future, when we need it, we can also sync the claimed buildings. We don't do this atm as its a bunch of data.
     }
 
@@ -63,13 +75,29 @@ public class ChunkCapData
      * @param buffer the bytebuffer.
      * @return the cap data.
      */
-    public static ChunkCapData fromBytes(@NotNull final FriendlyByteBuf buffer)
+    public static ChunkCapData fromBytes(@NotNull final RegistryFriendlyByteBuf buffer)
     {
         int x = buffer.readInt();
         int z = buffer.readInt();
         int owning = buffer.readInt();
+        int size = buffer.readInt();
 
-        return new ChunkCapData(x, z, owning, new HashMap<>());
+        List<Integer> closeColonies = new ArrayList<>();
+        for (int i = 0; i < size; i++)
+        {
+            closeColonies.add(buffer.readInt());
+        }
+
+        return new ChunkCapData(x, z, owning, closeColonies, new HashMap<>());
+    }
+
+    /**
+     * Getter for static claim.
+     * @return list.
+     */
+    public List<Integer> getStaticColonyClaim()
+    {
+        return staticColonyClaim;
     }
 
     /**

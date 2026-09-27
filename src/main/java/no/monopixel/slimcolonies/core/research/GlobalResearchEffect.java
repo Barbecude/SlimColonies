@@ -89,7 +89,7 @@ public class GlobalResearchEffect implements IResearchEffect
      */
     public GlobalResearchEffect(final CompoundTag nbt)
     {
-        this.id = new ResourceLocation(nbt.getString(TAG_ID));
+        this.id = ResourceLocation.parse(nbt.getString(TAG_ID));
         this.effect = nbt.getDouble(TAG_EFFECT);
         this.displayEffect = nbt.getDouble(TAG_DISPLAY_EFFECT);
         this.name = new TranslatableContents(nbt.getString(TAG_DESC), null, List.of(displayEffect, effect, Math.round(displayEffect * 100), Math.round(effect * 100)).toArray());

@@ -1,13 +1,15 @@
 package no.monopixel.slimcolonies.core.network.messages.server.colony.building;
 
+import com.ldtteam.common.network.PlayMessageType;
 import no.monopixel.slimcolonies.api.colony.IColony;
 import no.monopixel.slimcolonies.api.colony.buildings.IBuilding;
 import no.monopixel.slimcolonies.api.colony.buildings.views.IBuildingView;
+import no.monopixel.slimcolonies.api.util.constant.Constants;
 import no.monopixel.slimcolonies.core.network.messages.server.AbstractBuildingServerMessage;
-import net.minecraft.world.entity.player.Player;
-import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.core.BlockPos;
-import net.minecraftforge.network.NetworkEvent;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.server.level.ServerPlayer;
+import net.neoforged.neoforge.network.handling.IPayloadContext;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -17,6 +19,8 @@ import org.jetbrains.annotations.NotNull;
  */
 public class BuildRequestMessage extends AbstractBuildingServerMessage<IBuilding>
 {
+    public static final PlayMessageType<?> TYPE = PlayMessageType.forServer(Constants.MOD_ID, "build_request", BuildRequestMessage::new);
+
     /**
      * The request mode.
      */
@@ -30,20 +34,12 @@ public class BuildRequestMessage extends AbstractBuildingServerMessage<IBuilding
     /**
      * The mode id.
      */
-    private Mode mode;
+    private final Mode mode;
 
     /**
      * The id of the building.
      */
-    private BlockPos builder;
-
-    /**
-     * Empty constructor used when registering the
-     */
-    public BuildRequestMessage()
-    {
-        super();
-    }
+    private final BlockPos builder;
 
     /**
      * Creates a build request
@@ -54,29 +50,29 @@ public class BuildRequestMessage extends AbstractBuildingServerMessage<IBuilding
      */
     public BuildRequestMessage(@NotNull final IBuildingView building, final Mode mode, final BlockPos builder)
     {
-        super(building);
+        super(TYPE, building);
         this.mode = mode;
         this.builder = builder;
     }
 
-    @Override
-    public void fromBytesOverride(@NotNull final FriendlyByteBuf buf)
+    protected BuildRequestMessage(final RegistryFriendlyByteBuf buf, final PlayMessageType<?> type)
     {
+        super(buf, type);
         mode = Mode.values()[buf.readInt()];
         builder = buf.readBlockPos();
     }
 
     @Override
-    public void toBytesOverride(@NotNull final FriendlyByteBuf buf)
+    protected void toBytes(@NotNull final RegistryFriendlyByteBuf buf)
     {
+        super.toBytes(buf);
         buf.writeInt(mode.ordinal());
         buf.writeBlockPos(builder);
     }
 
     @Override
-    public void onExecute(final NetworkEvent.Context ctxIn, final boolean isLogicalServer, final IColony colony, final IBuilding building)
+    protected void onExecute(final IPayloadContext ctxIn, final ServerPlayer player, final IColony colony, final IBuilding building)
     {
-        final Player player = ctxIn.getSender();
         if (building.isPendingConstruction())
         {
             building.removeWorkOrder();
@@ -95,7 +91,7 @@ public class BuildRequestMessage extends AbstractBuildingServerMessage<IBuilding
                     building.requestRemoval(player, builder);
                     for (final BlockPos childPos : building.getChildren())
                     {
-                        final IBuilding childBuilding = colony.getBuildingManager().getBuilding(childPos);
+                        final IBuilding childBuilding = colony.getServerBuildingManager().getBuilding(childPos);
                         if (childBuilding != null)
                         {
                             childBuilding.requestRemoval(player, builder);

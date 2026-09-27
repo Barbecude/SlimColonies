@@ -1,7 +1,7 @@
 package no.monopixel.slimcolonies.core.colony.buildings.views;
 
 import no.monopixel.slimcolonies.api.colony.IColonyView;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.core.BlockPos;
 import org.jetbrains.annotations.NotNull;
 
@@ -27,7 +27,7 @@ public abstract class AbstractBuildingBuilderView extends AbstractBuildingView
     }
 
     @Override
-    public void deserialize(@NotNull final FriendlyByteBuf buf)
+    public void deserialize(@NotNull final RegistryFriendlyByteBuf buf)
     {
         super.deserialize(buf);
         workerName = buf.readUtf(32767);

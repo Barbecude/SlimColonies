@@ -1,5 +1,11 @@
 {
   "branch": "slimcolonies:civilian",
+  "costs": [
+    {
+      "count": 512,
+      "item": "minecraft:cooked_chicken"
+    }
+  ],
   "effects": [
     {
       "id": "slimcolonies:effects/growthmultiplier",

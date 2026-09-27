@@ -1,0 +1,26 @@
+{
+  "branch": "slimcolonies:civilian",
+  "costs": [
+    {
+      "count": 64,
+      "item": "minecraft:egg"
+    }
+  ],
+  "effects": [
+    {
+      "id": "slimcolonies:effects/vaccines",
+      "level": 1
+    }
+  ],
+  "icon": "slimcolonies:textures/icons/research/hp5.png",
+  "parentResearch": "slimcolonies:civilian/masks",
+  "requirements": [
+    {
+      "type": "slimcolonies:building",
+      "building": "slimcolonies:hospital",
+      "level": 3
+    }
+  ],
+  "researchLevel": 4,
+  "subtitle": "no.monopixel.slimcolonies.research.civilian.vaccines.subtitle"
+}

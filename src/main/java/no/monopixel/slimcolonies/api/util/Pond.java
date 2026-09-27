@@ -2,8 +2,8 @@ package no.monopixel.slimcolonies.api.util;
 
 import no.monopixel.slimcolonies.api.util.constant.ColonyConstants;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.BlockPos.MutableBlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.core.BlockPos.MutableBlockPos;
 import net.minecraft.tags.FluidTags;
 import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.block.Blocks;
@@ -21,8 +21,7 @@ public final class Pond
      * Possible pond states, with SUBOPTIMAL introduced to recognize "flowing water" ponds
      * where it appears valid, but the water blocks below the surface are not source blocks.
      */
-    public enum PondState
-    {
+    public enum PondState {
         INVALID,
         SUBOPTIMAL,
         VALID
@@ -31,16 +30,16 @@ public final class Pond
     /**
      * The minimum pond requirements.
      */
-    public static final int WATER_POOL_WIDTH_REQUIREMENT = 5;
-    public static final int WATER_DEPTH_REQUIREMENT      = 2;
+    public static final int WATER_POOL_WIDTH_REQUIREMENT  = 5;
+    public static final int WATER_DEPTH_REQUIREMENT       = 2;
 
     /**
      * Checks if on position "water" really is water, if the water is connected to land and if the pond is big enough (bigger then 20).
      *
-     * @param world               The world the player is in.
-     * @param water               The coordinate to check.
-     * @param problematicPosition Will contain position of problematic block (if not null &amp;&amp; pond was not found).
-     * @return the pond state indicating validity and any issues.
+     * @param world The world the player is in.
+     * @param water The coordinate to check.
+     * @param problematicPosition Will contain position of problematic block (if not null && pond was not found).
+     * @return true if water.
      */
     public static PondState checkPond(@NotNull final BlockGetter world, @NotNull final BlockPos water, @Nullable final MutableBlockPos problematicPosition)
     {
@@ -81,6 +80,9 @@ public final class Pond
     /**
      * Checks if the water is fine for fishing, see vanilla FishingHook checks
      *
+     * @param world
+     * @param pos
+     * @return
      */
     public static PondState checkWaterForFishing(final BlockGetter world, final BlockPos pos)
     {
@@ -91,7 +93,7 @@ public final class Pond
         {
             FluidState fluidstate = state.getFluidState();
 
-            if (fluidstate.is(FluidTags.WATER) && state.getCollisionShape(world, pos).isEmpty())
+            if  (fluidstate.is(FluidTags.WATER) && state.getCollisionShape(world, pos).isEmpty()) 
             {
                 if (fluidstate.isSource())
                 {
@@ -101,7 +103,7 @@ public final class Pond
                 {
                     pondState = PondState.SUBOPTIMAL;
                 }
-            }
+            };
         }
 
         return pondState;

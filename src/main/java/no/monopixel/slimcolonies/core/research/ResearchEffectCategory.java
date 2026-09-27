@@ -50,7 +50,7 @@ public class ResearchEffectCategory
         levelsAbsolute.add(0d);
         levelsRelative.add(0d);
         levels.forEach(level -> {
-            levelsRelative.add(level - levelsAbsolute.get(levelsAbsolute.size() - 1));
+            levelsRelative.add(level - levelsAbsolute.getLast());
             levelsAbsolute.add(level);
         });
     }

@@ -13,10 +13,11 @@ import no.monopixel.slimcolonies.api.colony.requestsystem.token.IToken;
 import no.monopixel.slimcolonies.api.util.Log;
 import no.monopixel.slimcolonies.api.util.constant.SerializationIdentifierConstants;
 import no.monopixel.slimcolonies.api.util.constant.TypeConstants;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 
 import org.jetbrains.annotations.NotNull;
 
@@ -93,25 +94,27 @@ public class StandardRequestIdentitiesDataStore implements IRequestIdentitiesDat
 
         @NotNull
         @Override
-        public CompoundTag serialize(@NotNull final IFactoryController controller, @NotNull final StandardRequestIdentitiesDataStore standardRequestIdentitiesDataStore)
+        public CompoundTag serialize(
+          @NotNull final HolderLookup.Provider provider,
+          @NotNull final IFactoryController controller, @NotNull final StandardRequestIdentitiesDataStore standardRequestIdentitiesDataStore)
         {
             final CompoundTag systemCompound = new CompoundTag();
 
-            systemCompound.put(TAG_TOKEN, controller.serialize(standardRequestIdentitiesDataStore.getId()));
+            systemCompound.put(TAG_TOKEN, controller.serializeTag(provider, standardRequestIdentitiesDataStore.getId()));
             final ListTag listTag = new ListTag();
             for (final Map.Entry<IToken<?>, IRequest<?>> entry : new HashSet<>(standardRequestIdentitiesDataStore.getIdentities().entrySet()))
             {
                 try
                 {
                     CompoundTag mapCompound = new CompoundTag();
-                    mapCompound.put(TAG_TOKEN, controller.serialize(entry.getKey()));
-                    mapCompound.put(TAG_REQUEST, controller.serialize(entry.getValue()));
+                    mapCompound.put(TAG_TOKEN, controller.serializeTag(provider, entry.getKey()));
+                    mapCompound.put(TAG_REQUEST, controller.serializeTag(provider, entry.getValue()));
                     listTag.add(mapCompound);
                 }
                 catch (final Exception e)
                 {
                     standardRequestIdentitiesDataStore.getIdentities().remove(entry.getKey());
-                    Log.getLogger().error(e);
+                    Log.getLogger().error("Error serializing request identity", e);
                 }
             }
             systemCompound.put(TAG_LIST, listTag);
@@ -120,9 +123,9 @@ public class StandardRequestIdentitiesDataStore implements IRequestIdentitiesDat
 
         @NotNull
         @Override
-        public StandardRequestIdentitiesDataStore deserialize(@NotNull final IFactoryController controller, @NotNull final CompoundTag nbt)
+        public StandardRequestIdentitiesDataStore deserialize(@NotNull final HolderLookup.Provider provider, @NotNull final IFactoryController controller, @NotNull final CompoundTag nbt)
         {
-            final IToken<?> token = controller.deserialize(nbt.getCompound(TAG_TOKEN));
+            final IToken<?> token = controller.deserializeTag(provider, nbt.getCompound(TAG_TOKEN));
             final ListTag list = nbt.getList(TAG_LIST, Tag.TAG_COMPOUND);
 
             final BiMap<IToken<?>, IRequest<?>> map = HashBiMap.create();
@@ -131,13 +134,13 @@ public class StandardRequestIdentitiesDataStore implements IRequestIdentitiesDat
                 final CompoundTag tag = list.getCompound(i);
                 try
                 {
-                    final IToken<?> id = controller.deserialize(tag.getCompound(TAG_TOKEN));
-                    final IRequest<?> request = controller.deserialize(tag.getCompound(TAG_REQUEST));
+                    final IToken<?> id = controller.deserializeTag(provider, tag.getCompound(TAG_TOKEN));
+                    final IRequest<?> request = controller.deserializeTag(provider, tag.getCompound(TAG_REQUEST));
                     map.put(id, request);
                 }
                 catch (final Exception ex)
                 {
-                    Log.getLogger().warn("Skipped orphaned request from removed mod during world load (this is normal after removing mods): {}", ex.getMessage());
+                    Log.getLogger().error(ex);
                 }
             }
 
@@ -145,7 +148,7 @@ public class StandardRequestIdentitiesDataStore implements IRequestIdentitiesDat
         }
 
         @Override
-        public void serialize(IFactoryController controller, StandardRequestIdentitiesDataStore input, FriendlyByteBuf packetBuffer)
+        public void serialize(IFactoryController controller, StandardRequestIdentitiesDataStore input, RegistryFriendlyByteBuf packetBuffer)
         {
             controller.serialize(packetBuffer, input.id);
             packetBuffer.writeInt(input.getIdentities().size());
@@ -156,7 +159,7 @@ public class StandardRequestIdentitiesDataStore implements IRequestIdentitiesDat
         }
 
         @Override
-        public StandardRequestIdentitiesDataStore deserialize(IFactoryController controller, FriendlyByteBuf buffer)
+        public StandardRequestIdentitiesDataStore deserialize(IFactoryController controller, RegistryFriendlyByteBuf buffer)
           throws Throwable
         {
             final IToken<?> token = controller.deserialize(buffer);
@@ -171,7 +174,7 @@ public class StandardRequestIdentitiesDataStore implements IRequestIdentitiesDat
                 catch (final Exception ex)
                 {
                     // If the stack fails, all values have been retrieved from the buffer but the stack validation failed and we filter it out here.
-                    Log.getLogger().warn("Skipped orphaned request from removed mod during network sync (this is normal after removing mods): {}", ex.getMessage());
+                    Log.getLogger().error(ex);
                 }
             }
 

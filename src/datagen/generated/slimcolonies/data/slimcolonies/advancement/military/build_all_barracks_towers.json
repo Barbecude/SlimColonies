@@ -1,0 +1,27 @@
+{
+  "parent": "slimcolonies:military/build_barracks_tower",
+  "criteria": {
+    "towers": {
+      "trigger": "slimcolonies:all_barracks_towers"
+    }
+  },
+  "display": {
+    "description": {
+      "translate": "advancements.slimcolonies.build.all_towers.description"
+    },
+    "frame": "goal",
+    "icon": {
+      "count": 1,
+      "id": "slimcolonies:blockhutbarrackstower"
+    },
+    "title": {
+      "translate": "advancements.slimcolonies.build.all_towers.title"
+    }
+  },
+  "requirements": [
+    [
+      "towers"
+    ]
+  ],
+  "sends_telemetry_event": true
+}

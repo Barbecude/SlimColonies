@@ -1,0 +1,19 @@
+{
+  "values": [
+    "#minecraft:fishes",
+    "minecraft:beef",
+    "minecraft:mutton",
+    "minecraft:chicken",
+    "minecraft:porkchop",
+    "minecraft:rabbit",
+    "minecraft:potato",
+    "minecraft:kelp",
+    "minecraft:dried_kelp",
+    "minecraft:dried_kelp_block",
+    "minecraft:egg",
+    "slimcolonies:large_milk_bottle",
+    "slimcolonies:large_soy_milk_bottle",
+    "slimcolonies:large_water_bottle",
+    "minecraft:milk_bucket"
+  ]
+}

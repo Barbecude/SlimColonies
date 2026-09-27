@@ -1,25 +1,28 @@
 package no.monopixel.slimcolonies.api.compatibility;
 
 import com.google.common.collect.ImmutableSet;
+import no.monopixel.slimcolonies.api.crafting.CompostRecipe;
+import no.monopixel.slimcolonies.api.crafting.ItemStorage;
+import no.monopixel.slimcolonies.core.util.FurnaceRecipes;
 import net.minecraft.client.multiplayer.ClientLevel;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.world.item.CreativeModeTab;
-import net.minecraft.world.item.Item;
-import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.*;
+import net.minecraft.world.item.crafting.RecipeHolder;
 import net.minecraft.world.item.crafting.RecipeManager;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
-import no.monopixel.slimcolonies.api.crafting.CompostRecipe;
-import no.monopixel.slimcolonies.api.crafting.ItemStorage;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
+import java.util.function.Predicate;
 
 /**
  * Interface for all compatabilityManagers. The compatability manager retrieves certain blocks from oreData and stores them.
@@ -39,18 +42,18 @@ public interface ICompatibilityManager
      *
      * @param buf serialization buffer
      */
-    void serialize(@NotNull final FriendlyByteBuf buf);
+    void serialize(@NotNull final RegistryFriendlyByteBuf buf);
 
     /**
      * Receive and update lists based on incoming server discovery data.
-     * <p>
+     *
      * Note: anything based purely on the registries and configs can be safely recalculated here.
-     * But anything based on tags or recipes must be updated purely via the packet,
-     * because this can be called before the client has the latest tags/recipes.
+     *       But anything based on tags or recipes must be updated purely via the packet,
+     *       because this can be called before the client has the latest tags/recipes.
      *
      * @param buf deserialization buffer
      */
-    void deserialize(@NotNull final FriendlyByteBuf buf, final ClientLevel level);
+    void deserialize(@NotNull final RegistryFriendlyByteBuf buf, final ClientLevel level);
 
     /**
      * Gets the sapling matching a leaf.
@@ -83,7 +86,6 @@ public interface ICompatibilityManager
 
     /**
      * Get a set of all edibles for citizens.
-     *
      * @param minNutrition the min nutrition of the food.
      * @return list of edible food.
      */
@@ -95,13 +97,6 @@ public interface ICompatibilityManager
      * @return an immutable set.
      */
     Set<ItemStorage> getSmeltableOres();
-
-    /**
-     * Get a set of minable ore blocks (overworld only, for miner priority GUI).
-     *
-     * @return an immutable set.
-     */
-    Set<ItemStorage> getMinableOres();
 
     /**
      * Check if a stack belongs to a minable ore.
@@ -124,7 +119,7 @@ public interface ICompatibilityManager
      *
      * @return the list of compost recipes, indexed by input item.
      */
-    Map<Item, CompostRecipe> getCopyOfCompostRecipes();
+    Map<Item, RecipeHolder<CompostRecipe>> getCopyOfCompostRecipes();
 
     /**
      * Just the possible composting inputs, for item filters.
@@ -149,7 +144,6 @@ public interface ICompatibilityManager
 
     /**
      * Get the set of all monsters.
-     *
      * @return the set.
      */
     ImmutableSet<ResourceLocation> getAllMonsters();
@@ -171,11 +165,18 @@ public interface ICompatibilityManager
     boolean isOre(ItemStack stack);
 
     /**
-     * Get a list of all blocks.
+     * Get a list of all items.
      *
      * @return the immutable list.
      */
     List<ItemStack> getListOfAllItems();
+
+    /**
+     * Get a list of all matching items.
+     *
+     * @return the immutable list.
+     */
+    List<ItemStack> getListOfMatchingItems(final Predicate<ItemStack> predicate);
 
     /**
      * Get a set of all items (marked to ignore damage but not NBT).
@@ -189,14 +190,14 @@ public interface ICompatibilityManager
      *
      * @param compound NBT-Tag.
      */
-    void write(@NotNull final CompoundTag compound);
+    void write(@NotNull final HolderLookup.Provider provider, @NotNull final CompoundTag compound);
 
     /**
      * Read Colonies from saved NBT data.
      *
      * @param compound NBT Tag.
      */
-    void read(@NotNull final CompoundTag compound);
+    void read(@NotNull final HolderLookup.Provider provider, @NotNull final CompoundTag compound);
 
     /**
      * Connect a certain block as leave to an ItemStack as sapling.
@@ -224,23 +225,34 @@ public interface ICompatibilityManager
 
     /**
      * Get the creative tab for a stack.
-     *
      * @param checkItem the storage wrapper.
      */
     CreativeModeTab getCreativeTab(ItemStorage checkItem);
 
     /**
      * Get the creative tab key as int associated.
-     *
      * @param checkItem the item to check.
      * @return the number or default.
      */
     int getCreativeTabKey(ItemStorage checkItem);
 
     /**
-     * Get number of detected saplings.
+     * Gets the furnace recipe storage
      *
+     * @return furnace recipes
+     */
+    FurnaceRecipes getFurnaceRecipes();
+
+    /**
+     * Get number of detected saplings.
      * @return the number of saplings.
      */
     int getNumberOfSaplings();
+
+    /**
+     * Try to work out what dye needs to be used to produce the given color.
+     * @param stack the already-dyed stack.
+     * @return      the dye color required, or empty if there is no such dye.
+     */
+    Optional<DyeColor> getDyeColor(ItemStack stack);
 }

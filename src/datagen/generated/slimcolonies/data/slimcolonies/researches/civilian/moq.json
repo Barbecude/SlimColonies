@@ -1,0 +1,31 @@
+{
+  "branch": "slimcolonies:technology",
+  "costs": [
+    {
+      "count": 1,
+      "item": "slimcolonies:clipboard"
+    },
+    {
+      "count": 16,
+      "item": "minecraft:book"
+    }
+  ],
+  "effects": [
+    {
+      "id": "slimcolonies:effects/min_order",
+      "level": 1
+    }
+  ],
+  "icon": "slimcolonies:clipboard",
+  "parentResearch": "slimcolonies:technology/memoryaid",
+  "requirements": [
+    {
+      "type": "slimcolonies:building",
+      "building": "slimcolonies:deliveryman",
+      "level": 9
+    }
+  ],
+  "researchLevel": 3,
+  "sortOrder": 3,
+  "subtitle": "no.monopixel.slimcolonies.research.civilian.moq.subtitle"
+}

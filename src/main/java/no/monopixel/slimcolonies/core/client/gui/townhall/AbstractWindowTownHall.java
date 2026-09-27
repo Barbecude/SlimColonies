@@ -5,15 +5,16 @@ import com.ldtteam.blockui.controls.ButtonImage;
 import com.ldtteam.blockui.controls.Image;
 import no.monopixel.slimcolonies.api.colony.buildings.workerbuildings.ITownHallView;
 import no.monopixel.slimcolonies.api.util.constant.Constants;
-import no.monopixel.slimcolonies.core.client.gui.AbstractWindowModuleBuilding;
+import no.monopixel.slimcolonies.core.client.gui.AbstractBuildingMainWindow;
 import no.monopixel.slimcolonies.core.colony.buildings.workerbuildings.BuildingTownHall;
+import net.minecraft.resources.ResourceLocation;
 
 import static no.monopixel.slimcolonies.api.util.constant.WindowConstants.*;
 
 /**
  * BOWindow for the town hall.
  */
-public abstract class AbstractWindowTownHall extends AbstractWindowModuleBuilding<ITownHallView>
+public abstract class AbstractWindowTownHall extends AbstractBuildingMainWindow<ITownHallView>
 {
     /**
      * Color constants for builder list.
@@ -21,6 +22,7 @@ public abstract class AbstractWindowTownHall extends AbstractWindowModuleBuildin
     public static final int RED       = Color.getByName("red", 0);
     public static final int DARKGREEN = Color.getByName("darkgreen", 0);
     public static final int ORANGE    = Color.getByName("orange", 0);
+    public static final int YELLOW = Color.getByName("yellow", 0);
 
     /**
      * Constructor for the town hall window.
@@ -29,7 +31,7 @@ public abstract class AbstractWindowTownHall extends AbstractWindowModuleBuildin
      */
     public AbstractWindowTownHall(final BuildingTownHall.View townHall, final String page)
     {
-        super(townHall, Constants.MOD_ID + ":gui/townhall/" + page);
+        super(townHall, new ResourceLocation(Constants.MOD_ID, "gui/townhall/").withSuffix(page));
 
         registerButton(BUTTON_ACTIONS, () -> new WindowMainPage(townHall).open());
         registerButton(BUTTON_INFOPAGE, () -> new WindowInfoPage(townHall).open());
@@ -37,6 +39,7 @@ public abstract class AbstractWindowTownHall extends AbstractWindowModuleBuildin
         registerButton(BUTTON_CITIZENS, () -> new WindowCitizenPage(townHall).open());
         registerButton(BUTTON_STATS, () -> new WindowStatsPage(townHall).open());
         registerButton(BUTTON_SETTINGS, () -> new WindowSettings(townHall).open());
+        registerButton(BUTTON_ALLIANCE, () -> new WindowAlliancePage(townHall).open());
 
         findPaneOfTypeByID(getWindowId() + "0", Image.class).hide();
         findPaneOfTypeByID(getWindowId(), ButtonImage.class).hide();
@@ -50,14 +53,9 @@ public abstract class AbstractWindowTownHall extends AbstractWindowModuleBuildin
      */
     protected abstract String getWindowId();
 
-    /**
-     * Returns the name of a building.
-     *
-     * @return Name of a building.
-     */
     @Override
-    public String getBuildingName()
+    protected boolean shouldRenderDefaultSidebar()
     {
-        return building.getColony().getName();
+        return false;
     }
 }

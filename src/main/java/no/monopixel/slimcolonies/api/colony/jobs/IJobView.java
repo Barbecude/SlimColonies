@@ -2,7 +2,8 @@ package no.monopixel.slimcolonies.api.colony.jobs;
 
 import no.monopixel.slimcolonies.api.colony.jobs.registry.JobEntry;
 import no.monopixel.slimcolonies.api.colony.requestsystem.token.IToken;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 
 import java.util.Set;
 
@@ -26,7 +27,7 @@ public interface IJobView
      * Deserialize the job from the buffer.
      * @param buffer the buffer to read it from.
      */
-    void deserialize(final FriendlyByteBuf buffer);
+    void deserialize(final RegistryFriendlyByteBuf buffer);
 
     /**
      * Getter for the job entry of the job.

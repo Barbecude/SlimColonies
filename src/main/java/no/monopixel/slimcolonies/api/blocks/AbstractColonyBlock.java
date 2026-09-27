@@ -1,13 +1,27 @@
 package no.monopixel.slimcolonies.api.blocks;
 
+import no.monopixel.slimcolonies.api.MinecoloniesAPIProxy;
+import no.monopixel.slimcolonies.api.blocks.interfaces.ITickableBlockMinecolonies;
+import no.monopixel.slimcolonies.api.colony.IColony;
+import no.monopixel.slimcolonies.api.colony.IColonyManager;
+import no.monopixel.slimcolonies.api.colony.buildings.IBuilding;
+import no.monopixel.slimcolonies.api.colony.buildings.registry.BuildingEntry;
+import no.monopixel.slimcolonies.api.colony.buildings.views.IBuildingView;
+import no.monopixel.slimcolonies.api.colony.permissions.Action;
+import no.monopixel.slimcolonies.api.entity.ai.workers.util.IBuilderUndestroyable;
+import no.monopixel.slimcolonies.api.tileentities.AbstractTileEntityColonyBuilding;
+import no.monopixel.slimcolonies.api.tileentities.MinecoloniesTileEntities;
+import no.monopixel.slimcolonies.api.util.*;
+import no.monopixel.slimcolonies.api.util.constant.Constants;
+import no.monopixel.slimcolonies.core.tileentities.TileEntityColonyBuilding;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.core.Registry;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.InteractionHand;
-import net.minecraft.world.InteractionResult;
+import net.minecraft.world.ItemInteractionResult;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.level.BlockGetter;
@@ -26,22 +40,6 @@ import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.shapes.CollisionContext;
 import net.minecraft.world.phys.shapes.Shapes;
 import net.minecraft.world.phys.shapes.VoxelShape;
-import net.minecraftforge.registries.IForgeRegistry;
-import no.monopixel.slimcolonies.api.SlimColoniesAPIProxy;
-import no.monopixel.slimcolonies.api.blocks.interfaces.ITickableBlockSlimColonies;
-import no.monopixel.slimcolonies.api.colony.IColony;
-import no.monopixel.slimcolonies.api.colony.IColonyManager;
-import no.monopixel.slimcolonies.api.colony.buildings.IBuilding;
-import no.monopixel.slimcolonies.api.colony.buildings.registry.BuildingEntry;
-import no.monopixel.slimcolonies.api.colony.buildings.views.IBuildingView;
-import no.monopixel.slimcolonies.api.colony.permissions.Action;
-import no.monopixel.slimcolonies.api.entity.ai.workers.util.IBuilderUndestroyable;
-import no.monopixel.slimcolonies.api.items.ItemBlockHut;
-import no.monopixel.slimcolonies.api.tileentities.SlimColoniesTileEntities;
-import no.monopixel.slimcolonies.api.util.ColonyUtils;
-import no.monopixel.slimcolonies.api.util.MessageUtils;
-import no.monopixel.slimcolonies.api.util.constant.Constants;
-import no.monopixel.slimcolonies.core.tileentities.TileEntityColonyBuilding;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -54,8 +52,7 @@ import static no.monopixel.slimcolonies.api.util.constant.TranslationConstants.*
  * Base class for all blocks that have a functionality within a colony. This applies to both buildings as well as functional blocks like postbox/stash.
  */
 @SuppressWarnings("PMD.ExcessiveImports")
-public abstract class AbstractColonyBlock<B extends AbstractColonyBlock<B>> extends AbstractBlockSlimColonies<B> implements IBuilderUndestroyable, ITickableBlockSlimColonies
-
+public abstract class AbstractColonyBlock<B extends AbstractColonyBlock<B>> extends AbstractBlockMinecolonies<B> implements IBuilderUndestroyable, ITickableBlockMinecolonies
 {
     /**
      * Hardness factor of the pvp mode.
@@ -114,7 +111,7 @@ public abstract class AbstractColonyBlock<B extends AbstractColonyBlock<B>> exte
             MessageUtils.format(HUT_BREAK_WARNING_CHILD_BUILDINGS).sendTo(player);
         }
 
-        return (SlimColoniesAPIProxy.getInstance().getConfig().getServer().pvp_mode.get() ? 1 / (HARDNESS * HARDNESS_PVP_FACTOR) : 1 / HARDNESS) / 30;
+        return (MinecoloniesAPIProxy.getInstance().getConfig().getServer().pvp_mode.get() ? 1 / (HARDNESS * HARDNESS_PVP_FACTOR) : 1 / HARDNESS) / 30;
     }
 
     /**
@@ -142,9 +139,20 @@ public abstract class AbstractColonyBlock<B extends AbstractColonyBlock<B>> exte
     @Override
     public BlockEntity newBlockEntity(@NotNull final BlockPos blockPos, @NotNull final BlockState blockState)
     {
-        final TileEntityColonyBuilding building = (TileEntityColonyBuilding) SlimColoniesTileEntities.BUILDING.get().create(blockPos, blockState);
+        final TileEntityColonyBuilding building = (TileEntityColonyBuilding) MinecoloniesTileEntities.BUILDING.get().create(blockPos, blockState);
         building.registryName = this.getBuildingEntry().getRegistryName();
         return building;
+    }
+
+    @Override
+    public void onRemove(final @NotNull BlockState blockState, final @NotNull Level level, final @NotNull BlockPos pos, final @NotNull BlockState newBlockState, final boolean p_60519_)
+    {
+        final BlockEntity tileentity = level.getBlockEntity(pos);
+        if (tileentity instanceof AbstractTileEntityColonyBuilding tileEntityColonyBuilding)
+        {
+            InventoryUtils.dropItemHandler(tileEntityColonyBuilding.getInventory(), level, pos.getX(), pos.getY(), pos.getZ());
+        }
+        super.onRemove(blockState, level, pos, newBlockState, p_60519_);
     }
 
     /**
@@ -163,7 +171,8 @@ public abstract class AbstractColonyBlock<B extends AbstractColonyBlock<B>> exte
 
     @NotNull
     @Override
-    public InteractionResult use(
+    public ItemInteractionResult useItemOn(
+        final ItemStack stack,
         final BlockState state,
         final Level worldIn,
         final BlockPos pos,
@@ -178,50 +187,48 @@ public abstract class AbstractColonyBlock<B extends AbstractColonyBlock<B>> exte
         {
             if (hand == InteractionHand.OFF_HAND)
             {
-                return InteractionResult.FAIL;
+                return ItemInteractionResult.FAIL;
             }
 
             @Nullable final IBuildingView building = IColonyManager.getInstance().getBuildingView(worldIn.dimension(), pos);
             final LevelChunk chunk = worldIn.getChunkAt(pos);
             final BlockEntity entity = worldIn.getBlockEntity(pos);
-            if (entity instanceof final TileEntityColonyBuilding te && te.getPositionedTags().containsKey(BlockPos.ZERO) && te.getPositionedTags()
-                .get(BlockPos.ZERO)
-                .contains(DEACTIVATED))
+            if (entity instanceof final TileEntityColonyBuilding te && te.getPositionedTags().containsKey(BlockPos.ZERO) && te.getPositionedTags().get(BlockPos.ZERO).contains(DEACTIVATED))
             {
                 if (building == null && ColonyUtils.getOwningColony(chunk) == 0)
                 {
                     MessageUtils.format(MISSING_COLONY).sendTo(player);
-                    return InteractionResult.FAIL;
+                    return ItemInteractionResult.FAIL;
                 }
 
                 if (building == null && ColonyUtils.getAllClaimingBuildings(chunk).values().stream().flatMap(Collection::stream).noneMatch(p -> p.equals(pos)))
                 {
                     IColonyManager.getInstance().openReactivationWindow(pos);
-                    return InteractionResult.SUCCESS;
+                    return ItemInteractionResult.SUCCESS;
                 }
             }
 
             if (building == null)
             {
                 MessageUtils.format(HUT_BLOCK_MISSING_BUILDING).sendTo(player);
-                return InteractionResult.FAIL;
+                return ItemInteractionResult.FAIL;
             }
 
             if (building.getColony() == null)
             {
                 MessageUtils.format(HUT_BLOCK_MISSING_COLONY).sendTo(player);
-                return InteractionResult.FAIL;
+                return ItemInteractionResult.FAIL;
             }
 
             if (!building.getColony().getPermissions().hasPermission(player, Action.ACCESS_HUTS))
             {
                 MessageUtils.format(PERMISSION_DENIED).sendTo(player);
-                return InteractionResult.FAIL;
+                return ItemInteractionResult.FAIL;
             }
 
             building.openGui(player.isShiftKeyDown());
         }
-        return InteractionResult.SUCCESS;
+        return ItemInteractionResult.SUCCESS;
     }
 
     @Nullable
@@ -264,7 +271,7 @@ public abstract class AbstractColonyBlock<B extends AbstractColonyBlock<B>> exte
 
             if (colony != null)
             {
-                colony.getBuildingManager().addNewBuilding(hut, worldIn);
+                colony.getServerBuildingManager().addNewBuilding(hut, worldIn);
             }
         }
     }
@@ -277,7 +284,6 @@ public abstract class AbstractColonyBlock<B extends AbstractColonyBlock<B>> exte
 
     /**
      * Get the registry name frm the blck hut.
-     *
      * @return the key.
      */
     public ResourceLocation getRegistryName()
@@ -286,15 +292,9 @@ public abstract class AbstractColonyBlock<B extends AbstractColonyBlock<B>> exte
     }
 
     @Override
-    public B registerBlock(final IForgeRegistry<Block> registry)
+    public B registerBlock(final Registry<Block> registry)
     {
-        registry.register(getRegistryName(), this);
+        Registry.register(registry, getRegistryName(), this);
         return (B) this;
-    }
-
-    @Override
-    public void registerBlockItem(final IForgeRegistry<Item> registry, final Item.Properties properties)
-    {
-        registry.register(getRegistryName(), new ItemBlockHut(this, properties));
     }
 }

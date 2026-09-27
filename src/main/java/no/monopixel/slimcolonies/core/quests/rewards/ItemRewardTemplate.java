@@ -4,16 +4,14 @@ import com.google.gson.JsonObject;
 import no.monopixel.slimcolonies.api.colony.IColony;
 import no.monopixel.slimcolonies.api.quests.IQuestInstance;
 import no.monopixel.slimcolonies.api.quests.IQuestRewardTemplate;
-import no.monopixel.slimcolonies.api.util.Log;
-import com.mojang.brigadier.exceptions.CommandSyntaxException;
-import net.minecraft.nbt.TagParser;
-import net.minecraft.resources.ResourceLocation;
-import net.minecraft.util.GsonHelper;
+import no.monopixel.slimcolonies.api.util.Utils;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
-import net.minecraftforge.registries.ForgeRegistries;
+import org.jetbrains.annotations.NotNull;
 
-import static no.monopixel.slimcolonies.api.quests.QuestParseConstant.*;
+import static no.monopixel.slimcolonies.api.quests.QuestParseConstant.DETAILS_KEY;
+import static no.monopixel.slimcolonies.api.quests.QuestParseConstant.ITEM_KEY;
 
 /**
  * Item based quest reward.
@@ -39,24 +37,10 @@ public class ItemRewardTemplate implements IQuestRewardTemplate
      * @param jsonObject the json to read from.
      * @return the reward object.
      */
-    public static IQuestRewardTemplate createReward(final JsonObject jsonObject)
+    public static IQuestRewardTemplate createReward(@NotNull final HolderLookup.Provider provider, final JsonObject jsonObject)
     {
         JsonObject details = jsonObject.getAsJsonObject(DETAILS_KEY);
-        final int quantity = details.get(QUANTITY_KEY).getAsInt();
-        final ItemStack item = new ItemStack(ForgeRegistries.ITEMS.getHolder(new ResourceLocation(details.get(ITEM_KEY).getAsString())).get().get());
-        if (details.has(NBT_KEY))
-        {
-            try
-            {
-                item.setTag(TagParser.parseTag(GsonHelper.getAsString(details, NBT_KEY)));
-            }
-            catch (CommandSyntaxException e)
-            {
-                Log.getLogger().error("Unable to load itemstack nbt from json!");
-                throw new RuntimeException(e);
-            }
-        }
-        item.setCount(quantity);
+        final ItemStack item = Utils.deserializeCodecMessFromJson(ItemStack.CODEC, provider, details.get(ITEM_KEY));
         return new ItemRewardTemplate(item);
     }
     @Override

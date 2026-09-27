@@ -1,0 +1,25 @@
+{
+  "branch": "slimcolonies:combat",
+  "costs": [
+    {
+      "count": 64,
+      "item": "slimcolonies:mistletoe"
+    }
+  ],
+  "effects": [
+    {
+      "id": "slimcolonies:effects/consumepotions",
+      "level": 1
+    }
+  ],
+  "icon": "slimcolonies:mistletoe",
+  "parentResearch": "slimcolonies:combat/arrowuse",
+  "requirements": [
+    {
+      "type": "slimcolonies:building",
+      "building": "slimcolonies:barracks",
+      "level": 3
+    }
+  ],
+  "researchLevel": 3
+}

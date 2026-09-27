@@ -2,19 +2,22 @@ package no.monopixel.slimcolonies.core.recipes;
 
 import com.ldtteam.domumornamentum.block.IMateriallyTexturedBlock;
 import com.ldtteam.domumornamentum.block.IMateriallyTexturedBlockComponent;
+import com.ldtteam.domumornamentum.client.model.data.MaterialTextureData;
 import com.ldtteam.domumornamentum.recipe.ModRecipeTypes;
 import com.ldtteam.domumornamentum.recipe.architectscutter.ArchitectsCutterRecipe;
+import com.ldtteam.domumornamentum.recipe.architectscutter.ArchitectsCutterRecipeInput;
 import no.monopixel.slimcolonies.api.crafting.GenericRecipe;
 import no.monopixel.slimcolonies.api.crafting.IGenericRecipe;
 import no.monopixel.slimcolonies.api.crafting.ModCraftingTypes;
 import no.monopixel.slimcolonies.api.crafting.RecipeCraftingType;
-import net.minecraft.nbt.CompoundTag;
-import net.minecraft.world.Container;
+import net.minecraft.core.Holder;
+import net.minecraft.core.HolderSet.Named;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.crafting.RecipeHolder;
 import net.minecraft.world.item.crafting.RecipeManager;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
-import net.minecraftforge.registries.ForgeRegistries;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -24,7 +27,7 @@ import java.util.List;
 import java.util.Random;
 import java.util.stream.Collectors;
 
-public class ArchitectsCutterCraftingType extends RecipeCraftingType<Container, ArchitectsCutterRecipe>
+public class ArchitectsCutterCraftingType extends RecipeCraftingType<ArchitectsCutterRecipeInput, ArchitectsCutterRecipe>
 {
     public ArchitectsCutterCraftingType()
     {
@@ -36,10 +39,11 @@ public class ArchitectsCutterCraftingType extends RecipeCraftingType<Container, 
     {
         final Random rnd = new Random();
         final List<IGenericRecipe> recipes = new ArrayList<>();
-        for (final ArchitectsCutterRecipe recipe : recipeManager.getAllRecipesFor(ModRecipeTypes.ARCHITECTS_CUTTER.get()))
+        for (final RecipeHolder<ArchitectsCutterRecipe> holder : recipeManager.getAllRecipesFor(ModRecipeTypes.ARCHITECTS_CUTTER.get()))
         {
+            final ArchitectsCutterRecipe recipe = holder.value();
             // cutter recipes don't implement getIngredients(), so we have to work around it
-            final Block generatedBlock = ForgeRegistries.BLOCKS.getValue(recipe.getBlockName());
+            final Block generatedBlock = BuiltInRegistries.BLOCK.get(recipe.getBlockName());
 
             if (!(generatedBlock instanceof final IMateriallyTexturedBlock materiallyTexturedBlock))
                 continue;
@@ -47,24 +51,21 @@ public class ArchitectsCutterCraftingType extends RecipeCraftingType<Container, 
             final List<List<ItemStack>> inputs = new ArrayList<>();
             for (final IMateriallyTexturedBlockComponent component : materiallyTexturedBlock.getComponents())
             {
-                final List<Block> blocks = ForgeRegistries.BLOCKS.tags().getTag(component.getValidSkins()).stream()
-                        .collect(Collectors.toCollection(ArrayList::new));
-                Collections.shuffle(blocks, rnd);
-                inputs.add(blocks.stream().map(ItemStack::new).collect(Collectors.toList()));
+                final Named<Block> tag = BuiltInRegistries.BLOCK.getTag(component.getValidSkins()).orElse(null);
+                if (tag != null)
+                {
+                    final List<Block> blocks = tag.stream().map(Holder::value).collect(Collectors.toList());
+                    Collections.shuffle(blocks, rnd);
+                    inputs.add(blocks.stream().map(ItemStack::new).collect(Collectors.toList()));
+                }
             }
 
             final ItemStack output = recipe.getResultItem(world.registryAccess()).copy();
             output.setCount(Math.max(recipe.getCount(), inputs.size()));
-
-            // resultItem usually doesn't have textureData, but we need it to properly match the creative tab
-            if (!output.getOrCreateTag().contains("textureData"))
-            {
-                assert output.getTag() != null;
-                output.getTag().put("textureData", new CompoundTag());
-            }
+            MaterialTextureData.EMPTY.writeToItemStack(output);
 
             recipes.add(GenericRecipe.builder()
-                    .withRecipeId(recipe.getId())
+                    .withRecipeId(holder.id())
                     .withOutput(output)
                     .withInputs(inputs)
                     .withGridSize(3)

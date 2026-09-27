@@ -2,22 +2,26 @@ package no.monopixel.slimcolonies.core.client.gui;
 
 import com.ldtteam.blockui.Pane;
 import com.ldtteam.blockui.PaneBuilders;
-import com.ldtteam.blockui.controls.*;
+import com.ldtteam.blockui.controls.Button;
+import com.ldtteam.blockui.controls.ButtonImage;
+import com.ldtteam.blockui.controls.ItemIcon;
+import com.ldtteam.blockui.controls.Text;
 import com.ldtteam.blockui.views.Box;
 import com.ldtteam.blockui.views.ScrollingList;
-import com.ldtteam.structurize.api.util.ItemStorage;
 import com.ldtteam.structurize.blueprints.v1.Blueprint;
-import com.ldtteam.structurize.client.gui.AbstractWindowSkeleton;
 import com.ldtteam.structurize.client.gui.WindowExtendedBuildTool;
-import com.ldtteam.structurize.client.rendertask.RenderTaskManager;
+import com.ldtteam.structurize.storage.rendering.RenderingCache;
+import no.monopixel.slimcolonies.api.crafting.ItemStorage;
+import no.monopixel.slimcolonies.api.util.Log;
+import no.monopixel.slimcolonies.api.util.constant.Constants;
+import no.monopixel.slimcolonies.core.items.ItemScanAnalyzer;
+import no.monopixel.slimcolonies.core.util.SchemAnalyzerUtil;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
-import no.monopixel.slimcolonies.api.util.Log;
-import no.monopixel.slimcolonies.core.items.ItemScanAnalyzer;
-import no.monopixel.slimcolonies.core.util.SchemAnalyzerUtil;
 
 import java.util.*;
 
@@ -28,11 +32,6 @@ import static no.monopixel.slimcolonies.core.items.ItemScanAnalyzer.TEMP_SCAN;
  */
 public class WindowSchematicAnalyzer extends AbstractWindowSkeleton
 {
-    /**
-     * Link to the xml file of the window.
-     */
-    private static final String ID = "slimcolonies:gui/analyzer/windowanalyze.xml";
-
     /**
      * Xml ID's for analyzer/analyzedisplay.xml
      */
@@ -72,23 +71,19 @@ public class WindowSchematicAnalyzer extends AbstractWindowSkeleton
 
     public WindowSchematicAnalyzer()
     {
-        super(ID);
-        registerButton(BUTTON_CANCEL, b -> {
-            close();
-        });
-        registerButton(BUTTON_SELECT_SCHEMATIC, b -> {
-            new WindowExtendedBuildTool(
-                BlockPos.containing(Minecraft.getInstance().player.position().add(Minecraft.getInstance().player.getLookAngle().multiply(10, 10, 10))),
+        super(new ResourceLocation(Constants.MOD_ID, "gui/analyzer/windowanalyze.xml"));
+        registerButton(BUTTON_CANCEL, b -> close());
+        registerButton(BUTTON_SELECT_SCHEMATIC,
+            b -> new WindowExtendedBuildTool(BlockPos.containing(Minecraft.getInstance().player.position().add(Minecraft.getInstance().player.getLookAngle().multiply(10, 10, 10))),
                 1,
                 (window, blueprint) -> {
                     Minecraft.getInstance().setScreen(this.getScreen());
-                    final SchemAnalyzerUtil.SchematicAnalyzationResult result = analyzationResults.computeIfAbsent(blueprint, SchemAnalyzerUtil::analyzeSchematic);
+                    final SchemAnalyzerUtil.SchematicAnalyzationResult result = analyzationResults.computeIfAbsent(blueprint, bl -> SchemAnalyzerUtil.analyzeSchematic(bl, mc.level.registryAccess()));
                     sortAnalyzationResults();
                     switchSelectionTo(getBoxForSide(b), result);
                 },
-                (a) -> true
-            ).open();
-        });
+                (a) -> true,
+                mc.level.registryAccess()).open());
 
         registerButton(BUTTON_SELECTION_LEFT, b -> {
             switchSelection(b, false);
@@ -103,7 +98,7 @@ public class WindowSchematicAnalyzer extends AbstractWindowSkeleton
         if (ItemScanAnalyzer.blueprint != null)
         {
             analyzationResults.keySet().removeIf(blueprint -> blueprint.getName().equals(TEMP_SCAN));
-            analyzationResults.put(ItemScanAnalyzer.blueprint, SchemAnalyzerUtil.analyzeSchematic(ItemScanAnalyzer.blueprint));
+            analyzationResults.put(ItemScanAnalyzer.blueprint, SchemAnalyzerUtil.analyzeSchematic(ItemScanAnalyzer.blueprint, mc.level.registryAccess()));
         }
 
         sortAnalyzationResults();
@@ -154,10 +149,10 @@ public class WindowSchematicAnalyzer extends AbstractWindowSkeleton
                 final Text countLabel = rowPane.findPaneOfTypeByID(LIST_ENTRY_COUNT, Text.class);
                 countLabel.setText(Component.literal(Integer.toString(storage.getAmount())).withStyle(ChatFormatting.YELLOW));
                 PaneBuilders.tooltipBuilder().hoverPane(countLabel)
-                    .append(Component.translatable("no.monopixel.slimcolonies.coremod.gui.analyzer.score",
-                        storage.getItemStack().getCount(),
-                        storage.getItemStack().getCount() * storage.getAmount()))
-                    .build();
+                  .append(Component.translatableEscape("no.monopixel.slimcolonies.coremod.gui.analyzer.score",
+                    storage.getItemStack().getCount(),
+                    storage.getItemStack().getCount() * storage.getAmount()))
+                  .build();
                 resourceLabel.setText(storage.getItemStack().getHoverName());
                 final ItemStack copy = storage.getItemStack().copy();
                 copy.setCount(1);
@@ -348,7 +343,7 @@ public class WindowSchematicAnalyzer extends AbstractWindowSkeleton
 
         if (next == null)
         {
-            parent.findPaneOfTypeByID(BUTTON_VIEW_CURRENT, ButtonVanilla.class).setText(Component.literal("none"));
+            parent.findPaneOfTypeByID(BUTTON_VIEW_CURRENT, ButtonImage.class).setText(Component.literal("none"));
             box.hide();
             box.findPaneOfTypeByID(BUTTON_SHOW_RES, ButtonImage.class).setVisible(false);
             return;
@@ -363,41 +358,40 @@ public class WindowSchematicAnalyzer extends AbstractWindowSkeleton
             name = next.blueprint.getFilePath().toString().replace("blueprints/slimcolonies/", "") + "/" + split[split.length - 1];
         }
         name = name.replace(".blueprint", "");
-        parent.findPaneOfTypeByID(BUTTON_VIEW_CURRENT, ButtonVanilla.class).setText(Component.literal(name));
+        parent.findPaneOfTypeByID(BUTTON_VIEW_CURRENT, ButtonImage.class).setText(Component.literal(name));
 
         box.findPaneOfTypeByID(LABEL_SCORE, Text.class)
-            .setText(Component.translatable("no.monopixel.slimcolonies.coremod.gui.analyzer.complexity", Component.literal("" + next.costScore).withStyle(
-                ChatFormatting.RED).withStyle(ChatFormatting.BOLD)));
+          .setText(Component.translatableEscape("no.monopixel.slimcolonies.coremod.gui.analyzer.complexity", Component.literal("" + next.costScore).withStyle(
+            ChatFormatting.RED).withStyle(ChatFormatting.BOLD)));
 
         box.findPaneOfTypeByID(LABEL_BLOCK_COUNTS, Text.class)
-            .setText(Component.translatable("no.monopixel.slimcolonies.coremod.gui.analyzer.blockcounts", Component.literal("" + next.differentBlocks.size()).withStyle(
-                ChatFormatting.BLUE).withStyle(ChatFormatting.BOLD)));
+          .setText(Component.translatableEscape("no.monopixel.slimcolonies.coremod.gui.analyzer.blockcounts", Component.literal("" + next.differentBlocks.size()).withStyle(
+            ChatFormatting.BLUE).withStyle(ChatFormatting.BOLD)));
 
         PaneBuilders.tooltipBuilder()
-            .append(Component.translatable("no.monopixel.slimcolonies.coremod.gui.analyzer.score", next.differentBlocks.size() * 40, next.costScore))
-            .hoverPane(box.findPaneOfTypeByID(LABEL_BLOCK_COUNTS, Text.class))
-            .build();
+          .append(Component.translatableEscape("no.monopixel.slimcolonies.coremod.gui.analyzer.score", next.differentBlocks.size() * 40, next.costScore))
+          .hoverPane(box.findPaneOfTypeByID(LABEL_BLOCK_COUNTS, Text.class))
+          .build();
 
         box.findPaneOfTypeByID(LABEL_SIZE, Text.class)
-            .setText(Component.translatable("no.monopixel.slimcolonies.coremod.gui.analyzer.size",
-                Component.literal("[" + next.blueprint.getSizeX() + " " + next.blueprint.getSizeY() + " "
-                        + next.blueprint.getSizeZ() + "]")
-                    .withStyle(ChatFormatting.YELLOW)
-                    .withStyle(ChatFormatting.BOLD)));
+          .setText(Component.translatableEscape("no.monopixel.slimcolonies.coremod.gui.analyzer.size", Component.literal("[" + next.blueprint.getSizeX() + " " + next.blueprint.getSizeY() + " "
+                                                                                                            + next.blueprint.getSizeZ() + "]")
+            .withStyle(ChatFormatting.YELLOW)
+            .withStyle(ChatFormatting.BOLD)));
         box.findPaneOfTypeByID(LABEL_BUILDINGS, Text.class)
-            .setText(Component.translatable("no.monopixel.slimcolonies.coremod.gui.analyzer.buildings",
-                Component.literal("" + next.containedBuildings).withStyle(ChatFormatting.GOLD).withStyle(ChatFormatting.BOLD)));
+          .setText(Component.translatableEscape("no.monopixel.slimcolonies.coremod.gui.analyzer.buildings",
+            Component.literal("" + next.containedBuildings).withStyle(ChatFormatting.GOLD).withStyle(ChatFormatting.BOLD)));
 
         final ScrollingList resourceList = box.findPaneOfTypeByID(LIST_RES, ScrollingList.class);
         resourceList.setVisible(false);
-        box.findPaneOfTypeByID(BUTTON_SHOW_RES, ButtonImage.class).setText(Component.translatable("com.ldtteam.structurize.gui.scantool.showres"));
+        box.findPaneOfTypeByID(BUTTON_SHOW_RES, ButtonImage.class).setText(Component.translatableEscape("com.ldtteam.structurize.gui.scantool.showres"));
         box.findPaneOfTypeByID(BUTTON_SHOW_RES, ButtonImage.class).setVisible(true);
     }
 
     @Override
     public void onClosed()
     {
-        RenderTaskManager.removeTaskGroup("analyzer");
+        RenderingCache.removeBox("analyzer");
         super.onClosed();
     }
 }

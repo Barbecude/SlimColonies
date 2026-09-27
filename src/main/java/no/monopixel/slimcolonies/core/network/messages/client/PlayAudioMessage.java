@@ -1,73 +1,108 @@
 package no.monopixel.slimcolonies.core.network.messages.client;
 
+import com.ldtteam.common.network.AbstractClientPlayMessage;
+import com.ldtteam.common.network.PlayMessageType;
+import no.monopixel.slimcolonies.api.colony.IColony;
+import no.monopixel.slimcolonies.api.util.constant.Constants;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.resources.sounds.SimpleSoundInstance;
 import net.minecraft.client.resources.sounds.SoundInstance;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.player.Player;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.api.distmarker.OnlyIn;
-import net.minecraftforge.fml.LogicalSide;
-import net.minecraftforge.network.NetworkEvent;
-import no.monopixel.slimcolonies.api.network.IMessage;
-import org.jetbrains.annotations.Nullable;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.api.distmarker.OnlyIn;
+import net.neoforged.neoforge.network.handling.IPayloadContext;
+
+import java.util.List;
 
 /**
  * Asks the client to play a specific music
  */
-public class PlayAudioMessage implements IMessage
+public class PlayAudioMessage extends AbstractClientPlayMessage
 {
+    public static final PlayMessageType<?> TYPE = PlayMessageType.forClient(Constants.MOD_ID, "play_audio", PlayAudioMessage::new);
+
     /**
      * The sound event to play.
      */
-    private ResourceLocation soundEvent;
-    private SoundSource      category;
+    private final ResourceLocation soundEvent;
+    private final SoundSource      category;
 
     /**
-     * Default constructor.
+     * Create a play music message with a specific sound event.
+     *
+     * @param event the sound event.
      */
-    public PlayAudioMessage()
+    public PlayAudioMessage(final SoundEvent event)
     {
-        super();
+        this(event, SoundSource.MUSIC);
+    }
+
+    /**
+     * Create a play music message with a specific sound event.
+     *
+     * @param event the sound event.
+     * @param category the sound category to play on
+     */
+    public PlayAudioMessage(final SoundEvent event, final SoundSource category)
+    {
+        super(TYPE);
+        this.soundEvent = event.getLocation();
+        this.category = category;
     }
 
     @Override
-    public void toBytes(final FriendlyByteBuf buf)
+    protected void toBytes(final RegistryFriendlyByteBuf buf)
     {
         buf.writeVarInt(category.ordinal());
         buf.writeResourceLocation(soundEvent);
     }
 
-    @Override
-    public void fromBytes(final FriendlyByteBuf buf)
+    protected PlayAudioMessage(final RegistryFriendlyByteBuf buf, final PlayMessageType<?> type)
     {
+        super(buf, type);
         this.category = SoundSource.values()[buf.readVarInt()];
         this.soundEvent = buf.readResourceLocation();
     }
 
-    @Nullable
-    @Override
-    public LogicalSide getExecutionSide()
-    {
-        return LogicalSide.CLIENT;
-    }
-
     @OnlyIn(Dist.CLIENT)
     @Override
-    public void onExecute(final NetworkEvent.Context ctxIn, final boolean isLogicalServer)
+    protected void onExecute(final IPayloadContext ctxIn, final Player player)
     {
-        final Player player = Minecraft.getInstance().player;
-
-        if (player == null)
-        {
-            return;
-        }
-
         Minecraft.getInstance().getSoundManager().play(new SimpleSoundInstance(
-            soundEvent, category,
+          soundEvent, category,
             1.0F, 1.0F, RandomSource.create(), false, 0, SoundInstance.Attenuation.NONE, player.getX(), player.getY(), player.getZ(), true));
+    }
+
+    /**
+     * Plays a sound event to everyone in the colony
+     * @param col the colony
+     * @param important if the audio is sent to important message players only
+     * @param stop if all other sounds should be stopped first
+     * @param messages one or more messages to send to each player.
+     */
+    public static void sendToAll(final IColony col, final boolean important, final boolean stop, final PlayAudioMessage... messages)
+    {
+        final List<Player> players = important
+          ? col.getImportantMessageEntityPlayers()
+          : col.getMessagePlayerEntities();
+
+        for (final Player player : players)
+        {
+            if (stop)
+            {
+                new StopMusicMessage().sendToPlayer((ServerPlayer) player);
+            }
+
+            for (final PlayAudioMessage pam : messages)
+            {
+                pam.sendToPlayer((ServerPlayer) player);
+            }
+        }
     }
 }

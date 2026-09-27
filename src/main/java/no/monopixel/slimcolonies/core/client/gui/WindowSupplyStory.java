@@ -4,15 +4,17 @@ import com.ldtteam.blockui.controls.Button;
 import com.ldtteam.blockui.controls.Text;
 import com.ldtteam.structurize.client.gui.WindowSwitchPack;
 import no.monopixel.slimcolonies.api.items.ModItems;
-import no.monopixel.slimcolonies.core.Network;
+import no.monopixel.slimcolonies.api.items.component.SupplyData;
+import no.monopixel.slimcolonies.api.util.constant.Constants;
 import no.monopixel.slimcolonies.core.event.ColonyStoryListener;
-import no.monopixel.slimcolonies.core.network.messages.server.MarkStoryReadOnItemMessage;
+import no.monopixel.slimcolonies.core.network.messages.server.MarkStoryReadOnItem;
 import net.minecraft.client.resources.sounds.SimpleSoundInstance;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.item.ItemStack;
@@ -23,8 +25,6 @@ import java.util.List;
 import java.util.Random;
 
 import static no.monopixel.slimcolonies.api.items.ISupplyItem.SUPPLY_OFFSET_DISTANCE;
-import static no.monopixel.slimcolonies.api.util.constant.Constants.*;
-import static no.monopixel.slimcolonies.api.util.constant.NbtTagConstants.TAG_RANDOM_KEY;
 import static no.monopixel.slimcolonies.api.util.constant.WindowConstants.*;
 
 /**
@@ -41,7 +41,7 @@ public class WindowSupplyStory extends AbstractWindowSkeleton
     /**
      * Type of camp/ship.
      */
-    private final String          type;
+    private final String type;
     private final InteractionHand hand;
 
     /**
@@ -51,7 +51,7 @@ public class WindowSupplyStory extends AbstractWindowSkeleton
 
     public WindowSupplyStory(final BlockPos pos, final String type, final ItemStack stack, final InteractionHand hand)
     {
-        super(MOD_ID + SUPPLIES_STORY_RESOURCE_SUFFIX);
+        super(new ResourceLocation(Constants.MOD_ID, "gui/windowsupplystory.xml"));
         mc.getSoundManager().play(SimpleSoundInstance.forUI(SoundEvents.BOOK_PAGE_TURN, 1.0F));
         if (pos == null)
         {
@@ -71,9 +71,10 @@ public class WindowSupplyStory extends AbstractWindowSkeleton
 
         List<MutableComponent> story = new ArrayList<>();
 
-        if (stack.getOrCreateTag().getString(PLACEMENT_NBT).equals(INSTANT_PLACEMENT)) // if free dungeon loot nbt tag on item.
+        final SupplyData currentComponent = SupplyData.readFromItemStack(stack);
+        if (currentComponent.instantPlacement()) // if free dungeon loot nbt tag on item.
         {
-            final Random random = new Random(stack.getTag().getLong(TAG_RANDOM_KEY));
+            final Random random = new Random(currentComponent.randomKey());
             final List<Holder.Reference<Biome>> biomes = mc.level.registryAccess().registryOrThrow(Registries.BIOME).holders().toList();
             final Holder<Biome> biome = biomes.get(random.nextInt(biomes.size()));
             if (stack.getItem() == ModItems.supplyCamp)
@@ -100,8 +101,7 @@ public class WindowSupplyStory extends AbstractWindowSkeleton
         }
 
         this.findPaneOfTypeByID("text", Text.class).setText(story);
-        this.findPaneOfTypeByID("place", Button.class)
-            .setText(Component.translatable("no.monopixel.slimcolonies.core.gui.supplies.place", Component.translatable(stack.getItem().getDescriptionId())));
+        this.findPaneOfTypeByID("place", Button.class).setText(Component.translatable("no.monopixel.slimcolonies.core.gui.supplies.place", Component.translatable(stack.getItem().getDescriptionId())));
     }
 
     /**
@@ -109,7 +109,7 @@ public class WindowSupplyStory extends AbstractWindowSkeleton
      */
     private void place()
     {
-        Network.getNetwork().sendToServer(new MarkStoryReadOnItemMessage(hand));
+        new MarkStoryReadOnItem(hand).sendToServer();
         new WindowSupplies(pos, type).open();
     }
 

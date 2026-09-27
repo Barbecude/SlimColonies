@@ -1,13 +1,6 @@
 package no.monopixel.slimcolonies.core.colony.requestsystem.requests;
 
 import com.google.common.collect.ImmutableList;
-import net.minecraft.core.BlockPos;
-import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.MutableComponent;
-import net.minecraft.resources.ResourceLocation;
-import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.level.block.entity.FurnaceBlockEntity;
-import net.minecraftforge.registries.ForgeRegistries;
 import no.monopixel.slimcolonies.api.colony.ICitizenDataView;
 import no.monopixel.slimcolonies.api.colony.IColonyManager;
 import no.monopixel.slimcolonies.api.colony.IColonyView;
@@ -22,17 +15,31 @@ import no.monopixel.slimcolonies.api.colony.requestsystem.requestable.deliveryma
 import no.monopixel.slimcolonies.api.colony.requestsystem.requestable.deliveryman.Pickup;
 import no.monopixel.slimcolonies.api.colony.requestsystem.requester.IRequester;
 import no.monopixel.slimcolonies.api.colony.requestsystem.token.IToken;
+import no.monopixel.slimcolonies.api.crafting.ItemStorage;
+import no.monopixel.slimcolonies.api.util.ItemStackUtils;
+import no.monopixel.slimcolonies.api.util.constant.EquipmentLevelConstants;
+import no.monopixel.slimcolonies.api.util.constant.TranslationConstants;
 import no.monopixel.slimcolonies.api.util.constant.translation.RequestSystemTranslationConstants;
 import no.monopixel.slimcolonies.core.colony.buildings.modules.BuildingModules;
 import no.monopixel.slimcolonies.core.colony.buildings.moduleviews.WorkerBuildingModuleView;
 import no.monopixel.slimcolonies.core.colony.jobs.views.CrafterJobView;
 import no.monopixel.slimcolonies.core.colony.jobs.views.DmanJobView;
 import no.monopixel.slimcolonies.core.colony.requestable.SmeltableOre;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.block.entity.FurnaceBlockEntity;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Spliterator;
+import java.util.Spliterators;
 import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 import static no.monopixel.slimcolonies.api.util.constant.TranslationConstants.*;
 
@@ -90,7 +97,7 @@ public final class StandardRequests
         public List<ItemStack> getDisplayStacks()
         {
             return getRequest().getRequestedItems();
-        }
+        }    
     }
 
     /**
@@ -142,7 +149,7 @@ public final class StandardRequests
         public Component getShortDisplayString()
         {
             final MutableComponent result = Component.literal("");
-            result.append(Component.translatable(stackList.getDescription()));
+            result.append(Component.translatableEscape(stackList.getDescription()));
             return result;
         }
 
@@ -169,13 +176,13 @@ public final class StandardRequests
         public ItemTagRequest(@NotNull final IRequester requester, @NotNull final IToken<?> token, @NotNull final RequestTag requested)
         {
             super(requester, token, requested);
-            stacks = ForgeRegistries.ITEMS.tags().getTag(requested.getTag()).stream().map(ItemStack::new).collect(Collectors.toList());
+            stacks = StreamSupport.stream(BuiltInRegistries.ITEM.getTagOrEmpty(requested.getTag()).spliterator(), false).map(ItemStack::new).collect(Collectors.toList());
         }
 
         public ItemTagRequest(@NotNull final IRequester requester, @NotNull final IToken<?> token, @NotNull final RequestState state, @NotNull final RequestTag requested)
         {
             super(requester, token, state, requested);
-            stacks = ForgeRegistries.ITEMS.tags().getTag(requested.getTag()).stream().map(ItemStack::new).collect(Collectors.toList());
+            stacks = StreamSupport.stream(BuiltInRegistries.ITEM.getTagOrEmpty(requested.getTag()).spliterator(), false).map(ItemStack::new).collect(Collectors.toList());
         }
 
         @NotNull
@@ -187,8 +194,8 @@ public final class StandardRequests
             // getRequest().getTag() is a long string that can't be easily be read by players or turned into a translation key.
             // Instead, try to get a translated text first.
             final String tagKey = "no.monopixel.slimcolonies.coremod.tag." + getRequest().getTag().toString().toLowerCase().replace
-                ("namedtag[", "").replace(':', '.').replace("]", "");
-            final MutableComponent tagText = Component.translatable(tagKey);
+                                                                                                                     ("namedtag[", "").replace(':', '.').replace("]", "");
+            final MutableComponent tagText = Component.translatableEscape(tagKey);
             // test the translated text; if there's a difference, the client has a matching translation key.
             if (!tagText.getString().equals(tagKey))
             {
@@ -237,9 +244,9 @@ public final class StandardRequests
         public Component getShortDisplayString()
         {
             return Component.literal("")
-                .append(Component.translatable(RequestSystemTranslationConstants.REQUESTS_TYPE_DELIVERY)
-                    .append(Component.literal(getRequest().getStack().getCount() + " "))
-                    .append(getRequest().getStack().getDisplayName()));
+                     .append(Component.translatableEscape(RequestSystemTranslationConstants.REQUESTS_TYPE_DELIVERY)
+                               .append(Component.literal(getRequest().getStack().getCount() + " "))
+                               .append(getRequest().getStack().getDisplayName()));
         }
 
         @NotNull
@@ -252,7 +259,7 @@ public final class StandardRequests
         @Override
         public MutableComponent getDisplayPrefix()
         {
-            return Component.translatable(RequestSystemTranslationConstants.REQUESTS_TYPE_DELIVERY);
+            return Component.translatableEscape(RequestSystemTranslationConstants.REQUESTS_TYPE_DELIVERY);
         }
 
         @Override
@@ -273,7 +280,7 @@ public final class StandardRequests
             final String requester = getRequester().getRequesterDisplayName(colony.getRequestManager(), this).getString();
 
             int posInList = -1;
-            for (IBuildingView view : colony.getBuildings())
+            for (IBuildingView view : colony.getClientBuildingManager().getBuildings().values())
             {
                 if (view.getBuildingType() == ModBuildings.deliveryman.get())
                 {
@@ -295,13 +302,11 @@ public final class StandardRequests
 
             if (posInList >= 0)
             {
-                return posInList == 0
-                    ? ImmutableList.of(Component.translatable(FROM, requester), Component.translatable(IN_PROGRESS))
-                    : ImmutableList.of(Component.translatable(FROM, requester), Component.translatable(IN_QUEUE, posInList));
+            	return posInList == 0 ? ImmutableList.of(Component.translatableEscape(FROM, requester), Component.translatableEscape(IN_PROGRESS)) : ImmutableList.of(Component.translatableEscape(FROM, requester), Component.translatableEscape(IN_QUEUE, posInList));
             }
             else
             {
-                return ImmutableList.of(Component.translatable(FROM, requester));
+                return ImmutableList.of(Component.translatableEscape(FROM, requester));
             }
         }
 
@@ -309,7 +314,7 @@ public final class StandardRequests
         @Override
         public ResourceLocation getDisplayIcon()
         {
-            return ResourceLocation.parse("slimcolonies:textures/gui/citizen/delivery.png");
+            return new ResourceLocation("slimcolonies", "textures/gui/citizen/delivery.png");
         }
     }
 
@@ -337,7 +342,7 @@ public final class StandardRequests
         public Component getShortDisplayString()
         {
             final MutableComponent result = Component.literal("");
-            result.append(Component.translatable(RequestSystemTranslationConstants.REQUESTS_TYPE_PICKUP));
+            result.append(Component.translatableEscape(RequestSystemTranslationConstants.REQUESTS_TYPE_PICKUP));
             return result;
         }
 
@@ -353,7 +358,7 @@ public final class StandardRequests
         public ResourceLocation getDisplayIcon()
         {
             // This can be just the delivery icon. For the user, it's no big deal.
-            return ResourceLocation.parse("slimcolonies:textures/gui/citizen/delivery.png");
+            return new ResourceLocation("slimcolonies", "textures/gui/citizen/delivery.png");
         }
 
         @Override
@@ -362,7 +367,7 @@ public final class StandardRequests
             final String requester = getRequester().getRequesterDisplayName(colony.getRequestManager(), this).getString();
 
             int posInList = -1;
-            for (IBuildingView view : colony.getBuildings())
+            for (IBuildingView view : colony.getClientBuildingManager().getBuildings().values())
             {
                 if (view.getBuildingType() == ModBuildings.deliveryman.get())
                 {
@@ -384,15 +389,14 @@ public final class StandardRequests
 
             if (posInList >= 0)
             {
-                return posInList == 0
-                    ? ImmutableList.of(Component.translatable(FROM, requester), Component.translatable(IN_PROGRESS))
-                    : ImmutableList.of(Component.translatable(FROM, requester), Component.translatable(IN_QUEUE, posInList));
+                return posInList == 0 ? ImmutableList.of(Component.translatableEscape(FROM, requester), Component.translatableEscape(IN_PROGRESS)) : ImmutableList.of(Component.translatableEscape(FROM, requester), Component.translatableEscape(IN_QUEUE, posInList));
             }
             else
             {
-                return ImmutableList.of(Component.translatable(FROM, requester));
+                return ImmutableList.of(Component.translatableEscape(FROM, requester));
             }
         }
+
     }
 
     /**
@@ -407,10 +411,10 @@ public final class StandardRequests
         }
 
         protected AbstractCraftingRequest(
-            @NotNull final IRequester requester,
-            @NotNull final IToken<?> token,
-            @NotNull final RequestState state,
-            @NotNull final C requested)
+          @NotNull final IRequester requester,
+          @NotNull final IToken<?> token,
+          @NotNull final RequestState state,
+          @NotNull final C requested)
         {
             super(requester, token, state, requested);
         }
@@ -419,15 +423,13 @@ public final class StandardRequests
         @Override
         public final Component getShortDisplayString()
         {
-            return Component.translatable(RequestSystemTranslationConstants.REQUEST_SYSTEM_CRAFTING_DISPLAY,
-                Component.literal(String.valueOf(getRequest().getMinCount())),
-                getRequest().getStack().getDisplayName());
+            return Component.translatableEscape(RequestSystemTranslationConstants.REQUEST_SYSTEM_CRAFTING_DISPLAY, Component.literal(String.valueOf(getRequest().getMinCount())), getRequest().getStack().getDisplayName());
         }
 
         @Override
         public MutableComponent getDisplayPrefix()
         {
-            return Component.translatable(RequestSystemTranslationConstants.REQUEST_SYSTEM_CRAFTING_DISPLAY_SHORT, Component.literal(String.valueOf(getRequest().getMinCount())));
+            return Component.translatableEscape(RequestSystemTranslationConstants.REQUEST_SYSTEM_CRAFTING_DISPLAY_SHORT, Component.literal(String.valueOf(getRequest().getMinCount())));
         }
 
         @Override
@@ -459,27 +461,25 @@ public final class StandardRequests
             try
             {
                 final BlockPos resolver = colony.getRequestManager().getResolverForRequest(getId()).getLocation().getInDimensionLocation();
-                final IBuildingView view = colony.getBuilding(resolver);
+                final IBuildingView view = colony.getClientBuildingManager().getBuilding(resolver);
 
                 int posInList = getPosInList(colony, view, getId());
                 if (posInList >= 0)
                 {
-                    return posInList == 0
-                        ? ImmutableList.of(Component.translatable(AT, requester), Component.translatable(IN_PROGRESS))
-                        : ImmutableList.of(Component.translatable(FROM, requester), Component.translatable(IN_QUEUE, posInList));
+                	return posInList == 0 ? ImmutableList.of(Component.translatableEscape(AT, requester), Component.translatableEscape(IN_PROGRESS)) : ImmutableList.of(Component.translatableEscape(FROM, requester), Component.translatableEscape(IN_QUEUE, posInList));
                 }
                 else if (getState() == RequestState.FOLLOWUP_IN_PROGRESS)
                 {
-                    return ImmutableList.of(Component.translatable(AT, requester), Component.translatable(FINISHED));
+                    return ImmutableList.of(Component.translatableEscape(AT, requester), Component.translatableEscape(FINISHED));
                 }
                 else
                 {
-                    return ImmutableList.of(Component.translatable(AT, requester), Component.translatable(MISSING_DELIVERIES));
+                    return ImmutableList.of(Component.translatableEscape(AT, requester), Component.translatableEscape(MISSING_DELIVERIES));
                 }
             }
             catch (IllegalArgumentException ex)
             {
-                return ImmutableList.of(Component.translatable(AT, requester), Component.translatable(NOT_RESOLVED));
+                return ImmutableList.of(Component.translatableEscape(AT, requester), Component.translatableEscape(NOT_RESOLVED));
             }
         }
 
@@ -500,17 +500,17 @@ public final class StandardRequests
     {
 
         protected PrivateCraftingRequest(
-            @NotNull final IRequester requester,
-            @NotNull final IToken<?> token,
-            @NotNull final PrivateCrafting requested)
+          @NotNull final IRequester requester,
+          @NotNull final IToken<?> token,
+          @NotNull final PrivateCrafting requested)
         {
             super(requester, token, requested);
         }
 
         protected PrivateCraftingRequest(
-            @NotNull final IRequester requester,
-            @NotNull final IToken<?> token,
-            @NotNull final RequestState state, @NotNull final PrivateCrafting requested)
+          @NotNull final IRequester requester,
+          @NotNull final IToken<?> token,
+          @NotNull final RequestState state, @NotNull final PrivateCrafting requested)
         {
             super(requester, token, state, requested);
         }
@@ -535,17 +535,17 @@ public final class StandardRequests
     {
 
         protected PublicCraftingRequest(
-            @NotNull final IRequester requester,
-            @NotNull final IToken<?> token,
-            @NotNull final PublicCrafting requested)
+          @NotNull final IRequester requester,
+          @NotNull final IToken<?> token,
+          @NotNull final PublicCrafting requested)
         {
             super(requester, token, requested);
         }
 
         protected PublicCraftingRequest(
-            @NotNull final IRequester requester,
-            @NotNull final IToken<?> token,
-            @NotNull final RequestState state, @NotNull final PublicCrafting requested)
+          @NotNull final IRequester requester,
+          @NotNull final IToken<?> token,
+          @NotNull final RequestState state, @NotNull final PublicCrafting requested)
         {
             super(requester, token, state, requested);
         }
@@ -584,6 +584,29 @@ public final class StandardRequests
         {
             final MutableComponent result = Component.literal("");
             result.append(getRequest().getEquipmentType().getDisplayName());
+
+            if (getRequest().getMinLevel() > EquipmentLevelConstants.TOOL_LEVEL_HAND)
+            {
+                result.append(Component.literal(" "));
+                result.append(Component.translatableEscape(RequestSystemTranslationConstants.REQUESTS_TYPE_TOOL_MINIMUM_LEVEL_PREFIX));
+                result.append(Component.literal(" "));
+                result.append(getRequest().isArmor() ? ItemStackUtils.swapArmorGrade(getRequest().getMinLevel()) : ItemStackUtils.swapToolGrade(getRequest().getMinLevel()));
+            }
+
+            if (getRequest().getMaxLevel() < EquipmentLevelConstants.TOOL_LEVEL_MAXIMUM)
+            {
+                if (getRequest().getMinLevel() > EquipmentLevelConstants.TOOL_LEVEL_HAND)
+                {
+                    result.append(Component.literal(" "));
+                    result.append(Component.translatableEscape(TranslationConstants.COM_MINECOLONIES_GENERAL_AND));
+                }
+
+                result.append(Component.literal(" "));
+                result.append(Component.translatableEscape(RequestSystemTranslationConstants.REQUESTS_TYPE_TOOL_MAXIMUM_LEVEL_PREFIX));
+                result.append(Component.literal(" "));
+                result.append(getRequest().isArmor() ? ItemStackUtils.swapArmorGrade(getRequest().getMaxLevel()) : ItemStackUtils.swapToolGrade(getRequest().getMaxLevel()));
+            }
+
             return result;
         }
 
@@ -613,10 +636,10 @@ public final class StandardRequests
         }
 
         FoodRequest(
-            @NotNull final IRequester requester,
-            @NotNull final IToken<?> token,
-            @NotNull final RequestState state,
-            @NotNull final Food requested)
+          @NotNull final IRequester requester,
+          @NotNull final IToken<?> token,
+          @NotNull final RequestState state,
+          @NotNull final Food requested)
         {
             super(requester, token, state, requested);
         }
@@ -626,7 +649,7 @@ public final class StandardRequests
         public Component getShortDisplayString()
         {
             final MutableComponent result = Component.literal("");
-            result.append(Component.translatable(RequestSystemTranslationConstants.REQUESTS_TYPE_FOOD));
+            result.append(Component.translatableEscape(RequestSystemTranslationConstants.REQUESTS_TYPE_FOOD));
             return result;
         }
 
@@ -637,18 +660,17 @@ public final class StandardRequests
             if (foodExamples == null)
             {
                 foodExamples = ImmutableList.copyOf(IColonyManager.getInstance()
-                    .getCompatibilityManager()
-                    .getListOfAllItems()
-                    .stream()
-                    .filter(item -> item.isEdible())
-                    .collect(Collectors.toList()));
+                                                      .getCompatibilityManager().getFood()
+                                                      .stream()
+                                                      .map(ItemStorage::getItemStack)
+                                                      .collect(Collectors.toList()));
             }
 
             if (!this.getRequest().getExclusionList().isEmpty())
             {
                 return ImmutableList.copyOf(foodExamples.stream()
-                    .filter(item -> this.getRequest().matches(item))
-                    .collect(Collectors.toList()));
+                        .filter(item -> this.getRequest().matches(item))
+                        .collect(Collectors.toList()));
             }
 
             return foodExamples;
@@ -671,10 +693,10 @@ public final class StandardRequests
         }
 
         SmeltAbleOreRequest(
-            @NotNull final IRequester requester,
-            @NotNull final IToken<?> token,
-            @NotNull final RequestState state,
-            @NotNull final SmeltableOre requested)
+          @NotNull final IRequester requester,
+          @NotNull final IToken<?> token,
+          @NotNull final RequestState state,
+          @NotNull final SmeltableOre requested)
         {
             super(requester, token, state, requested);
         }
@@ -683,7 +705,7 @@ public final class StandardRequests
         @Override
         public Component getShortDisplayString()
         {
-            return Component.translatable(RequestSystemTranslationConstants.REQUESTS_TYPE_SMELTABLE_ORE);
+            return Component.translatableEscape(RequestSystemTranslationConstants.REQUESTS_TYPE_SMELTABLE_ORE);
         }
 
         @NotNull
@@ -693,11 +715,11 @@ public final class StandardRequests
             if (oreExamples == null)
             {
                 oreExamples = ImmutableList.copyOf(IColonyManager.getInstance()
-                    .getCompatibilityManager()
-                    .getListOfAllItems()
-                    .stream()
-                    .filter(IColonyManager.getInstance().getCompatibilityManager()::isOre)
-                    .collect(Collectors.toList()));
+                                                     .getCompatibilityManager()
+                                                     .getListOfAllItems()
+                                                     .stream()
+                                                     .filter(IColonyManager.getInstance().getCompatibilityManager()::isOre)
+                                                     .collect(Collectors.toList()));
             }
             return oreExamples;
         }
@@ -719,10 +741,10 @@ public final class StandardRequests
         }
 
         BurnableRequest(
-            @NotNull final IRequester requester,
-            @NotNull final IToken<?> token,
-            @NotNull final RequestState state,
-            @NotNull final Burnable requested)
+          @NotNull final IRequester requester,
+          @NotNull final IToken<?> token,
+          @NotNull final RequestState state,
+          @NotNull final Burnable requested)
         {
             super(requester, token, state, requested);
         }
@@ -732,7 +754,7 @@ public final class StandardRequests
         public Component getShortDisplayString()
         {
             final MutableComponent result = Component.literal("");
-            result.append(Component.translatable(RequestSystemTranslationConstants.REQUESTS_TYPE_BURNABLE));
+            result.append(Component.translatableEscape(RequestSystemTranslationConstants.REQUESTS_TYPE_BURNABLE));
             return result;
         }
 
@@ -743,11 +765,11 @@ public final class StandardRequests
             if (burnableExamples == null)
             {
                 burnableExamples = ImmutableList.copyOf(IColonyManager.getInstance()
-                    .getCompatibilityManager()
-                    .getListOfAllItems()
-                    .stream()
-                    .filter(FurnaceBlockEntity::isFuel)
-                    .collect(Collectors.toList()));
+                                                          .getCompatibilityManager()
+                                                          .getListOfAllItems()
+                                                          .stream()
+                                                          .filter(FurnaceBlockEntity::isFuel)
+                                                          .collect(Collectors.toList()));
             }
 
             return burnableExamples;
@@ -799,10 +821,9 @@ public final class StandardRequests
 
     /**
      * Find the position the request is in the list.
-     *
-     * @param colony the colony.
-     * @param view   the building view.
      * @return the position.
+     * @param colony the colony.
+     * @param view the building view.
      */
     private static int getPosInList(final IColonyView colony, final IBuildingView view, final IToken<?> id)
     {

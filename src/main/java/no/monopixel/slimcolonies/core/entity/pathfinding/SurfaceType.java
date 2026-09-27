@@ -4,16 +4,17 @@ import com.ldtteam.domumornamentum.block.decorative.FloatingCarpetBlock;
 import com.ldtteam.domumornamentum.block.decorative.PanelBlock;
 import com.ldtteam.domumornamentum.block.vanilla.TrapdoorBlock;
 import com.ldtteam.structurize.util.BlockUtils;
+import no.monopixel.slimcolonies.api.blocks.decorative.AbstractBlockMinecoloniesConstructionTape;
+import no.monopixel.slimcolonies.api.blocks.huts.AbstractBlockMinecoloniesDefault;
+import no.monopixel.slimcolonies.api.util.ShapeUtil;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.block.*;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.material.FluidState;
+import net.minecraft.world.level.pathfinder.PathFinder;
 import net.minecraft.world.phys.shapes.VoxelShape;
-import no.monopixel.slimcolonies.api.blocks.decorative.AbstractBlockSlimColoniesConstructionTape;
-import no.monopixel.slimcolonies.api.blocks.huts.AbstractBlockSlimColoniesDefault;
-import no.monopixel.slimcolonies.api.util.ShapeUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -67,10 +68,10 @@ public enum SurfaceType
         }
 
         if (block instanceof FenceBlock
-            || block instanceof WallBlock
-            || block instanceof AbstractBlockSlimColoniesDefault
-            || block instanceof BambooStalkBlock
-            || block instanceof BambooSaplingBlock)
+              || block instanceof WallBlock
+              || block instanceof AbstractBlockMinecoloniesDefault
+              || block instanceof BambooStalkBlock
+              || block instanceof BambooSaplingBlock)
         {
             return SurfaceType.NOT_PASSABLE;
         }
@@ -113,17 +114,17 @@ public enum SurfaceType
             return SurfaceType.NOT_PASSABLE;
         }
 
-        if (block instanceof AbstractBlockSlimColoniesConstructionTape || block instanceof SignBlock || block instanceof VineBlock)
+        if (block instanceof AbstractBlockMinecoloniesConstructionTape || block instanceof SignBlock || block instanceof VineBlock)
         {
             return SurfaceType.DROPABLE;
         }
 
-        if ((BlockUtils.isAnySolid(blockState) && ShapeUtil.max(shape, Direction.Axis.X) - ShapeUtil.min(shape, Direction.Axis.X) > 0.75
-            && (ShapeUtil.max(shape, Direction.Axis.Z) - ShapeUtil.min(shape, Direction.Axis.Z)) > 0.75)
-            || (blockState.getBlock() == Blocks.SNOW && blockState.getValue(SnowLayerBlock.LAYERS) > 1)
-            || block instanceof FloatingCarpetBlock
-            || block instanceof CarpetBlock
-            || block instanceof WaterlilyBlock)
+        if ((blockState.getBlock().hasCollision && ShapeUtil.max(shape, Direction.Axis.X) - ShapeUtil.min(shape, Direction.Axis.X) >= 0.85
+               && (ShapeUtil.max(shape, Direction.Axis.Z) - ShapeUtil.min(shape, Direction.Axis.Z)) >= 0.85)
+              || (blockState.getBlock() == Blocks.SNOW && blockState.getValue(SnowLayerBlock.LAYERS) > 1)
+              || block instanceof FloatingCarpetBlock
+              || block instanceof CarpetBlock
+              || block instanceof WaterlilyBlock)
         {
             return SurfaceType.WALKABLE;
         }

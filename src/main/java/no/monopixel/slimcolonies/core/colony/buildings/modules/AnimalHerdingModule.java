@@ -1,25 +1,40 @@
 package no.monopixel.slimcolonies.core.colony.buildings.modules;
 
 import no.monopixel.slimcolonies.api.colony.buildings.modules.AbstractBuildingModule;
+import no.monopixel.slimcolonies.api.colony.buildings.modules.IHasRequiredItemsModule;
 import no.monopixel.slimcolonies.api.colony.jobs.IJob;
 import no.monopixel.slimcolonies.api.colony.jobs.registry.JobEntry;
+import no.monopixel.slimcolonies.api.colony.requestsystem.request.IRequest;
+import no.monopixel.slimcolonies.api.colony.requestsystem.requestable.IDeliverable;
 import no.monopixel.slimcolonies.api.crafting.GenericRecipe;
 import no.monopixel.slimcolonies.api.crafting.IGenericRecipe;
 import no.monopixel.slimcolonies.api.crafting.ItemStorage;
 import no.monopixel.slimcolonies.api.equipment.ModEquipmentTypes;
+import no.monopixel.slimcolonies.api.util.InventoryUtils;
+import no.monopixel.slimcolonies.api.util.ItemStackUtils;
+import no.monopixel.slimcolonies.core.colony.buildings.workerbuildings.BuildingHospital;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.util.Tuple;
 import net.minecraft.world.entity.animal.Animal;
-import net.minecraftforge.registries.ForgeRegistries;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.storage.loot.LootTable;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Predicate;
+
+import static no.monopixel.slimcolonies.api.util.constant.EquipmentLevelConstants.TOOL_LEVEL_WOOD_OR_GOLD;
 
 /**
  * Provides some basic definitions used by the animal herding AI (and JEI).
  */
-public class AnimalHerdingModule extends AbstractBuildingModule
+public class AnimalHerdingModule extends AbstractBuildingModule implements IHasRequiredItemsModule
 {
     private final JobEntry jobEntry;
     private final Predicate<Animal> animalPredicate;
@@ -75,10 +90,24 @@ public class AnimalHerdingModule extends AbstractBuildingModule
      * @param animal An example animal. (Don't use specific properties of this; it's only for checking type.)
      * @return The list of loot table ids
      */
-    @NotNull
-    public List<ResourceLocation> getLootTables(@NotNull final Animal animal)
+    public List<ResourceKey<LootTable>> getLootTables(@NotNull final Animal animal)
     {
         return Collections.singletonList(animal.getLootTable());
+    }
+
+    @Override
+    public Map<Predicate<ItemStack>, Tuple<Integer, Boolean>> getRequiredItemsAndAmount()
+    {
+        final Map<Predicate<ItemStack>, Tuple<Integer, Boolean>> map = new HashMap<>();
+        map.put(itemStack -> ItemStackUtils.hasEquipmentLevel(itemStack, ModEquipmentTypes.axe.get(), TOOL_LEVEL_WOOD_OR_GOLD, building.getMaxEquipmentLevel()), new Tuple<>(1, true));
+        map.put(stack -> getBreedingItems().contains(new ItemStorage(stack)), new Tuple<>(1, true));
+        return map;
+    }
+
+    @Override
+    public Map<ItemStorage, Integer> reservedStacksExcluding(final @Nullable IRequest<? extends IDeliverable> excluded)
+    {
+        return Collections.emptyMap();
     }
 
     /**
@@ -94,7 +123,7 @@ public class AnimalHerdingModule extends AbstractBuildingModule
     public List<IGenericRecipe> getRecipesForDisplayPurposesOnly(@NotNull final Animal animal)
     {
         return List.of(GenericRecipe.builder()
-            .withRecipeId(ForgeRegistries.ENTITY_TYPES.getKey(animal.getType()))
+                .withRecipeId(BuiltInRegistries.ENTITY_TYPE.getKey(animal.getType()))
             .withInputs(List.of(getBreedingItems().stream().map(ItemStorage::getItemStack).toList()))
             .withLootTable(animal.getLootTable())
             .withRequiredTool(ModEquipmentTypes.axe.get())

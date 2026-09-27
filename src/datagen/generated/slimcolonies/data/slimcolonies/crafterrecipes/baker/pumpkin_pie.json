@@ -1,18 +1,14 @@
 {
   "type": "recipe",
-  "crafter": "baker_crafting",
+  "crafter": "baker_smelting",
   "inputs": [
     {
-      "item": "minecraft:pumpkin"
-    },
-    {
-      "item": "minecraft:sugar"
-    },
-    {
-      "item": "minecraft:egg"
+      "id": "slimcolonies:raw_pumpkin_pie"
     }
   ],
-  "intermediate": "minecraft:air",
+  "intermediate": "minecraft:furnace",
   "min-building-level": 3,
-  "result": "minecraft:pumpkin_pie"
+  "result": {
+    "id": "minecraft:pumpkin_pie"
+  }
 }

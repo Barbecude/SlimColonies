@@ -1,0 +1,30 @@
+{
+  "parent": "slimcolonies:production/root",
+  "criteria": {
+    "library": {
+      "conditions": {
+        "hut_name": "library",
+        "level": 1
+      },
+      "trigger": "slimcolonies:complete_build_request"
+    }
+  },
+  "display": {
+    "description": {
+      "translate": "advancements.slimcolonies.build.library.description"
+    },
+    "icon": {
+      "count": 1,
+      "id": "slimcolonies:blockhutlibrary"
+    },
+    "title": {
+      "translate": "advancements.slimcolonies.build.library.title"
+    }
+  },
+  "requirements": [
+    [
+      "library"
+    ]
+  ],
+  "sends_telemetry_event": true
+}

@@ -1,13 +1,14 @@
 package no.monopixel.slimcolonies.core.colony.permissions;
 
+import no.monopixel.slimcolonies.api.IMinecoloniesAPI;
 import no.monopixel.slimcolonies.api.colony.permissions.Action;
 import no.monopixel.slimcolonies.api.colony.permissions.ColonyPlayer;
 import no.monopixel.slimcolonies.api.colony.permissions.IPermissions;
 import no.monopixel.slimcolonies.api.colony.permissions.Rank;
-import no.monopixel.slimcolonies.api.network.PacketUtils;
+import no.monopixel.slimcolonies.api.util.Log;
 import no.monopixel.slimcolonies.api.util.Utils;
 import com.mojang.authlib.GameProfile;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
 import org.jetbrains.annotations.NotNull;
@@ -23,7 +24,7 @@ import java.util.stream.Collectors;
 public class PermissionsView implements IPermissions
 {
     /** this rank is used if something asks for permissions before they have been synched from server */
-    private static final Rank MISSINGNO_RANK = new Rank(-1, "missingno", false, true);
+    private static final Rank MISSINGNO_RANK = new Rank(-1, "missingno", true);
 
     @NotNull
     private final Map<UUID, ColonyPlayer>  players     = new HashMap<>();
@@ -226,13 +227,13 @@ public class PermissionsView implements IPermissions
      *
      * @param buf the buffer.
      */
-    public void deserialize(@NotNull final FriendlyByteBuf buf)
+    public void deserialize(@NotNull final RegistryFriendlyByteBuf buf)
     {
         final int ranksSize = buf.readVarInt();
         for (int i = 0; i < ranksSize; ++i)
         {
             final int id = buf.readVarInt();
-            final Rank rank = new Rank(id, buf.readLong(), buf.readUtf(32767), buf.readBoolean(), buf.readBoolean(), buf.readBoolean(), buf.readBoolean());
+            final Rank rank = new Rank(id, buf.readLong(), buf.readUtf(32767), buf.readBoolean(), buf.readBoolean(), buf.readBoolean());
             ranks.put(id, rank);
         }
         userRank = ranks.get(buf.readVarInt());
@@ -242,7 +243,7 @@ public class PermissionsView implements IPermissions
         final int numOwners = buf.readVarInt();
         for (int i = 0; i < numOwners; ++i)
         {
-            final UUID id = PacketUtils.readUUID(buf);
+            final UUID id = buf.readUUID();
             final String name = buf.readUtf(32767);
             final Rank rank = ranks.get(buf.readVarInt());
             if (rank.getId() == OWNER_RANK_ID)
@@ -283,6 +284,11 @@ public class PermissionsView implements IPermissions
     @Override
     public boolean hasPermission(@NotNull final Player player, @NotNull final Action action)
     {
+        if (player.hasPermissions(IMinecoloniesAPI.getInstance().getConfig().getServer().permissionEventMinBypassPermLevel.get()))
+        {
+            return true;
+        }
+
         return hasPermission(getRank(player), action);
     }
 
@@ -311,12 +317,6 @@ public class PermissionsView implements IPermissions
             }
         }
         return ownerName;
-    }
-
-    @Override
-    public boolean isSubscriber(@NotNull final Player player)
-    {
-        return false;
     }
 
     @Override

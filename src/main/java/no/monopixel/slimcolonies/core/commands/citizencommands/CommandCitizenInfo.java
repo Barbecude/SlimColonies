@@ -2,11 +2,11 @@ package no.monopixel.slimcolonies.core.commands.citizencommands;
 
 import no.monopixel.slimcolonies.api.colony.ICitizenData;
 import no.monopixel.slimcolonies.api.colony.IColony;
-import no.monopixel.slimcolonies.api.colony.IColonyManager;
 import no.monopixel.slimcolonies.api.entity.citizen.AbstractEntityCitizen;
 import no.monopixel.slimcolonies.api.entity.pathfinding.IMinecoloniesNavigator;
 import no.monopixel.slimcolonies.api.util.constant.translation.CommandTranslationConstants;
 import no.monopixel.slimcolonies.core.colony.buildings.modules.WorkerBuildingModule;
+import no.monopixel.slimcolonies.core.commands.arguments.ColonyIdArgument;
 import no.monopixel.slimcolonies.core.commands.commandTypes.IMCColonyOfficerCommand;
 import no.monopixel.slimcolonies.core.commands.commandTypes.IMCCommand;
 import no.monopixel.slimcolonies.core.entity.citizen.EntityCitizen;
@@ -18,10 +18,8 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.ClickEvent;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.Style;
-import net.minecraft.world.entity.Entity;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.level.Level;
 
 import java.util.Optional;
 
@@ -41,17 +39,7 @@ public class CommandCitizenInfo implements IMCColonyOfficerCommand
     @Override
     public int onExecute(final CommandContext<CommandSourceStack> context)
     {
-
-        final Entity sender = context.getSource().getEntity();
-        // Colony
-        final int colonyID = IntegerArgumentType.getInteger(context, COLONYID_ARG);
-        final IColony colony = IColonyManager.getInstance().getColonyByDimension(colonyID, sender == null ? Level.OVERWORLD : context.getSource().getLevel().dimension());
-        if (colony == null)
-        {
-            context.getSource().sendSuccess(() -> Component.translatable(CommandTranslationConstants.COMMAND_COLONY_ID_NOT_FOUND, colonyID), false);
-            return 0;
-        }
-
+        final IColony colony = ColonyIdArgument.getColony(context, COLONYID_ARG);
         final ICitizenData citizenData = colony.getCitizenManager().getCivilian(IntegerArgumentType.getInteger(context, CITIZENID_ARG));
 
         if (citizenData == null)
@@ -153,6 +141,8 @@ public class CommandCitizenInfo implements IMCColonyOfficerCommand
             context.getSource()
                 .sendSuccess(() -> Component.translatable(CommandTranslationConstants.COMMAND_CITIZEN_INFO_FOOD,
                     citizenData.getCitizenFoodHandler().hasFullFoodHistory(),
+                    citizenData.getCitizenFoodHandler().getFoodHappinessStats().quality(),
+                    citizenData.getCitizenFoodHandler().getFoodHappinessStats().diversity(),
                     lastEatenCompiled), false);
         }
 
@@ -183,7 +173,7 @@ public class CommandCitizenInfo implements IMCColonyOfficerCommand
     public LiteralArgumentBuilder<CommandSourceStack> build()
     {
         return IMCCommand.newLiteral(getName())
-                 .then(IMCCommand.newArgument(COLONYID_ARG, IntegerArgumentType.integer(1))
+                 .then(IMCCommand.newArgument(COLONYID_ARG, ColonyIdArgument.id())
                          .then(IMCCommand.newArgument(CITIZENID_ARG, IntegerArgumentType.integer(1)).executes(this::checkPreConditionAndExecute)));
     }
 }

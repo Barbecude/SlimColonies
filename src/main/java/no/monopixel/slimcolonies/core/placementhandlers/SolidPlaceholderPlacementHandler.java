@@ -9,10 +9,10 @@ import com.ldtteam.structurize.util.BlockUtils;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.util.Tuple;
-import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -20,9 +20,8 @@ import org.jetbrains.annotations.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 
-import static com.ldtteam.structurize.api.util.constant.Constants.UPDATE_FLAG;
+import static no.monopixel.slimcolonies.api.util.constant.Constants.UPDATE_FLAG;
 
-@SuppressWarnings("removal")
 public class SolidPlaceholderPlacementHandler implements IPlacementHandler
 {
     /**
@@ -99,21 +98,21 @@ public class SolidPlaceholderPlacementHandler implements IPlacementHandler
 
     @Override
     public ActionProcessingResult handle(
-        Level world,
-        BlockPos pos,
-        BlockState blockState,
-        @Nullable CompoundTag tileEntityData,
+        final Level world,
+        final BlockPos pos,
+        final BlockState blockState,
+        @Nullable final CompoundTag tileEntityData,
         @NotNull final IPlacementContext placementContext)
     {
         if (!placementContext.fancyPlacement())
         {
             world.setBlock(pos, ModBlocks.blockSubstitution.get().defaultBlockState(), UPDATE_FLAG);
-            return ActionProcessingResult.PASS;
+            return ActionProcessingResult.SUCCESS;
         }
 
         if (BlockUtils.isAnySolid(world.getBlockState(pos)))
         {
-            return ActionProcessingResult.DENY;
+            return ActionProcessingResult.PASS;
         }
 
         searchHandler(world, pos);
@@ -121,8 +120,12 @@ public class SolidPlaceholderPlacementHandler implements IPlacementHandler
     }
 
     @Override
-    public boolean doesWorldStateMatchBlueprintState(final BlockState worldState, final BlockState blueprintState, @Nullable final Tuple<BlockEntity, CompoundTag> blockEntityData, @NotNull final IPlacementContext placementContext)
+    public boolean doesWorldStateMatchBlueprintState(
+        final BlockState worldState,
+        final BlockState blueprintState,
+        final Tuple<BlockEntity, CompoundTag> blockEntityData,
+        @NotNull final IPlacementContext placementContext)
     {
-        return worldState.equals(blueprintState);
+        return worldState.equals(blueprintState) || (placementContext.fancyPlacement() && BlockUtils.isGoodFloorBlock(worldState));
     }
 }

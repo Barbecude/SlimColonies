@@ -2,14 +2,16 @@ package no.monopixel.slimcolonies.api.inventory.container;
 
 import no.monopixel.slimcolonies.api.inventory.ModContainers;
 import net.minecraft.core.BlockPos;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.Container;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.*;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.crafting.CraftingInput;
 import net.minecraft.world.item.crafting.CraftingRecipe;
+import net.minecraft.world.item.crafting.RecipeHolder;
 import net.minecraft.world.item.crafting.RecipeType;
 import net.minecraft.world.level.GameRules;
 import net.minecraft.world.level.Level;
@@ -89,7 +91,7 @@ public class ContainerCrafting extends AbstractContainerMenu
      * @param packetBuffer network buffer
      * @return new instance
      */
-    public static ContainerCrafting fromFriendlyByteBuf(final int windowId, final Inventory inv, final FriendlyByteBuf packetBuffer)
+    public static ContainerCrafting fromFriendlyByteBuf(final int windowId, final Inventory inv, final RegistryFriendlyByteBuf packetBuffer)
     {
         final boolean complete = packetBuffer.readBoolean();
         final BlockPos tePos = packetBuffer.readBlockPos();
@@ -208,8 +210,8 @@ public class ContainerCrafting extends AbstractContainerMenu
         if (!world.isClientSide)
         {
             final ServerPlayer player = (ServerPlayer) inv.player;
-            final List<CraftingRecipe> recipes = player.server.getRecipeManager().getRecipesFor(RecipeType.CRAFTING, craftMatrix, world)
-                    .stream().filter(recipe -> recipe.isSpecial()
+            final List<RecipeHolder<CraftingRecipe>> recipes = player.server.getRecipeManager().getRecipesFor(RecipeType.CRAFTING, craftMatrix.asCraftInput(), world)
+                    .stream().filter(recipe -> recipe.value().isSpecial()
                             || !world.getGameRules().getBoolean(GameRules.RULE_LIMITED_CRAFTING)
                             || player.getRecipeBook().contains(recipe)
                             || player.isCreative())
@@ -223,8 +225,8 @@ public class ContainerCrafting extends AbstractContainerMenu
             {
                 this.switchableSlot.set(recipes.size());
                 this.recipeIndexSlot.set(this.recipeIndexSlot.get() % recipes.size());
-                final ItemStack stack = recipes.get(this.recipeIndexSlot.get())
-                        .assemble(this.craftMatrix, this.world.registryAccess());
+                final ItemStack stack = recipes.get(this.recipeIndexSlot.get()).value()
+                        .assemble(this.craftMatrix.asCraftInput(), this.world.registryAccess());
                 this.craftResultSlot.set(stack);
             }
         }
@@ -421,10 +423,10 @@ public class ContainerCrafting extends AbstractContainerMenu
      */
     public List<ItemStack> getRemainingItems()
     {
-        final Optional<CraftingRecipe> iRecipe = this.world.getRecipeManager().getRecipeFor(RecipeType.CRAFTING, craftMatrix, world);
+        final Optional<RecipeHolder<CraftingRecipe>> iRecipe = this.world.getRecipeManager().getRecipeFor(RecipeType.CRAFTING, craftMatrix.asCraftInput(), world);
         if (iRecipe.isPresent())
         {
-            List<ItemStack> ri = iRecipe.get().getRemainingItems(this.craftMatrix);
+            List<ItemStack> ri = iRecipe.get().value().getRemainingItems(this.craftMatrix.asCraftInput());
             remainingItems.clear();
             for(int i = 0; i< ri.size(); i++)
             {

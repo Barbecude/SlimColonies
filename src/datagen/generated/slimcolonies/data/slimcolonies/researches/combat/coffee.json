@@ -1,0 +1,19 @@
+{
+  "branch": "slimcolonies:combat",
+  "costs": [
+    {
+      "count": 4,
+      "item": "minecraft:golden_carrot"
+    }
+  ],
+  "effects": [
+    {
+      "id": "slimcolonies:effects/sleeplessmultiplier",
+      "level": 1
+    }
+  ],
+  "icon": "minecraft:lime_bed",
+  "parentResearch": "slimcolonies:combat/tactictraining",
+  "researchLevel": 2,
+  "subtitle": "no.monopixel.slimcolonies.research.combat.coffee.subtitle"
+}

@@ -6,15 +6,16 @@ import no.monopixel.slimcolonies.api.colony.buildings.modules.AbstractBuildingMo
 import no.monopixel.slimcolonies.api.colony.buildings.modules.IBuildingModule;
 import no.monopixel.slimcolonies.api.colony.buildings.modules.IPersistentModule;
 import no.monopixel.slimcolonies.api.colony.buildings.modules.ITickingModule;
-import no.monopixel.slimcolonies.core.SlimColonies;
-import it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap;
+import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Predicate;
@@ -22,7 +23,7 @@ import java.util.function.Predicate;
 import static no.monopixel.slimcolonies.api.util.constant.NbtTagConstants.*;
 
 /**
- * Abstract class to list all extensions (assigned) to a building.
+ * Abstract class to list all building extensions (assigned) to a building.
  */
 public abstract class BuildingExtensionsModule extends AbstractBuildingModule implements IPersistentModule, IBuildingModule, ITickingModule
 {
@@ -33,9 +34,9 @@ public abstract class BuildingExtensionsModule extends AbstractBuildingModule im
     private static final String TAG_CURRENT_EXTENSION = "currex";
 
     /**
-     * A map of building extensions, along with their world time (ticks) of when they were last reset.
+     * A map of building extensions, along with their unix timestamp of when they can next be checked again.
      */
-    private final Map<IBuildingExtension.ExtensionId, Long> checkedExtensions = new Object2LongOpenHashMap<>();
+    private final Map<IBuildingExtension.ExtensionId, Integer> checkedExtensions = new Object2IntOpenHashMap<>();
 
     /**
      * The building extension the citizen is currently working on.
@@ -55,71 +56,46 @@ public abstract class BuildingExtensionsModule extends AbstractBuildingModule im
     }
 
     @Override
-    public void deserializeNBT(final CompoundTag compound)
+    public void deserializeNBT(@NotNull final HolderLookup.Provider provider, final CompoundTag compound)
     {
         shouldAssignManually = compound.getBoolean(TAG_ASSIGN_MANUALLY);
         final ListTag listTag = compound.getList(TAG_BUILDING_EXTENSIONS, Tag.TAG_COMPOUND);
         for (int i = 0; i < listTag.size(); ++i)
         {
             final CompoundTag tag = listTag.getCompound(i);
-            checkedExtensions.put(IBuildingExtension.ExtensionId.deserializeNBT(tag.getCompound(TAG_ID)), tag.getLong(TAG_TIME));
+            checkedExtensions.put(IBuildingExtension.ExtensionId.deserializeNBT(provider, tag.getCompound(TAG_ID)), compound.getInt(TAG_DAY));
         }
         if (compound.contains(TAG_CURRENT_EXTENSION))
         {
-            currentExtensionId = IBuildingExtension.ExtensionId.deserializeNBT(compound.getCompound(TAG_CURRENT_EXTENSION));
+            currentExtensionId = IBuildingExtension.ExtensionId.deserializeNBT(provider, compound.getCompound(TAG_CURRENT_EXTENSION));
         }
-
-        // Clean up stale entries for extensions that no longer exist
-        cleanupStaleEntries();
-    }
-
-    /**
-     * Removes entries from checkedExtensions for building extensions that no longer exist.
-     * Called after deserializing from NBT to clean up deleted fields.
-     */
-    private void cleanupStaleEntries()
-    {
-        final List<IBuildingExtension> ownedExtensions = getOwnedExtensions();
-        checkedExtensions.keySet().removeIf(id -> ownedExtensions.stream().noneMatch(ext -> ext.getId().equals(id)));
     }
 
     @Override
-    public void serializeNBT(final CompoundTag compound)
+    public void serializeNBT(@NotNull final HolderLookup.Provider provider, CompoundTag compound)
     {
         compound.putBoolean(TAG_ASSIGN_MANUALLY, shouldAssignManually);
 
         final ListTag listTag = new ListTag();
-        for (final Map.Entry<IBuildingExtension.ExtensionId, Long> entry : checkedExtensions.entrySet())
+        for (final Map.Entry<IBuildingExtension.ExtensionId, Integer> entry : checkedExtensions.entrySet())
         {
             final CompoundTag listEntry = new CompoundTag();
-            listEntry.put(TAG_ID, entry.getKey().serializeNBT());
-            listEntry.putLong(TAG_TIME, entry.getValue());
+            compound.put(TAG_ID, entry.getKey().serializeNBT(provider));
+            listEntry.putLong(TAG_DAY, entry.getValue());
             listTag.add(listEntry);
         }
         compound.put(TAG_LIST, listTag);
         if (currentExtensionId != null)
         {
-            compound.put(TAG_CURRENT_EXTENSION, currentExtensionId.serializeNBT());
+            compound.put(TAG_CURRENT_EXTENSION, currentExtensionId.serializeNBT(provider));
         }
     }
 
     @Override
-    public void serializeToView(@NotNull final FriendlyByteBuf buf)
+    public void serializeToView(@NotNull final RegistryFriendlyByteBuf buf)
     {
         buf.writeBoolean(shouldAssignManually);
         buf.writeInt(getMaxExtensionCount());
-
-        // Send cooldown data to client
-        buf.writeInt(checkedExtensions.size());
-        for (final Map.Entry<IBuildingExtension.ExtensionId, Long> entry : checkedExtensions.entrySet())
-        {
-            buf.writeNbt((CompoundTag) entry.getKey().serializeNBT());
-            buf.writeLong(entry.getValue());
-        }
-
-        // Send current game time and cooldown config so client can compute cooldown status
-        buf.writeLong(building.getColony().getWorld().getGameTime());
-        buf.writeInt(SlimColonies.getConfig().getServer().fieldCooldownMinutes.get());
     }
 
     /**
@@ -130,7 +106,7 @@ public abstract class BuildingExtensionsModule extends AbstractBuildingModule im
     protected abstract int getMaxExtensionCount();
 
     /**
-     * Get the class type which is expected for the building extension to have.
+     * Get the class type which is expected for the building extensions to have.
      *
      * @return the class type.
      */
@@ -148,7 +124,7 @@ public abstract class BuildingExtensionsModule extends AbstractBuildingModule im
         {
             return null;
         }
-        return building.getColony().getBuildingManager().getMatchingBuildingExtension(currentExtensionId);
+        return building.getColony().getServerBuildingManager().getMatchingBuildingExtension(currentExtensionId);
     }
 
     /**
@@ -156,10 +132,10 @@ public abstract class BuildingExtensionsModule extends AbstractBuildingModule im
      * Else it will retrieve a random building extension to work on for the citizen.
      * This method will also automatically claim any building extensions that are not in use if the building is on automatic assignment mode.
      *
-     * @return a building extension to work on, or null if all extensions are on cooldown.
+     * @return a building extension to work on.
      */
     @Nullable
-    public IBuildingExtension getExtensionToWorkOn()
+    public IBuildingExtension getBuildingExtensionToWorkOn()
     {
         final IBuildingExtension currentExtension = getCurrentExtension();
         if (currentExtension != null)
@@ -167,8 +143,8 @@ public abstract class BuildingExtensionsModule extends AbstractBuildingModule im
             return currentExtension;
         }
 
-        IBuildingExtension.ExtensionId oldestExtension = null;
-        long oldestResetTime = Long.MAX_VALUE;
+        IBuildingExtension.ExtensionId lastUsedExtension = null;
+        int lastUsedExtensionDay = building.getColony().getDay();
 
         for (final IBuildingExtension extension : getOwnedExtensions())
         {
@@ -178,30 +154,15 @@ public abstract class BuildingExtensionsModule extends AbstractBuildingModule im
                 return extension;
             }
 
-            final long resetTime = checkedExtensions.get(extension.getId());
-            if (resetTime < oldestResetTime)
+            final int lastDay = checkedExtensions.get(extension.getId());
+            if (lastDay < lastUsedExtensionDay)
             {
-                oldestExtension = extension.getId();
-                oldestResetTime = resetTime;
+                lastUsedExtension = extension.getId();
+                lastUsedExtensionDay = lastDay;
             }
         }
-
-        // Check if the oldest field is still on cooldown
-        if (oldestExtension != null)
-        {
-            final long currentTime = building.getColony().getWorld().getGameTime();
-            final long cooldownTicks = SlimColonies.getConfig().getServer().fieldCooldownMinutes.get() * 60L * 20L;
-
-            if (currentTime - oldestResetTime >= cooldownTicks)
-            {
-                // Cooldown expired - this field can be worked on
-                currentExtensionId = oldestExtension;
-                return getCurrentExtension();
-            }
-        }
-
-        // All fields are on cooldown
-        return null;
+        currentExtensionId = lastUsedExtension;
+        return getCurrentExtension();
     }
 
     /**
@@ -281,7 +242,7 @@ public abstract class BuildingExtensionsModule extends AbstractBuildingModule im
     public void markDirty()
     {
         super.markDirty();
-        building.getColony().getBuildingManager().markBuildingExtensionsDirty();
+        building.getColony().getServerBuildingManager().markBuildingExtensionsDirty();
     }
 
     /**
@@ -290,7 +251,7 @@ public abstract class BuildingExtensionsModule extends AbstractBuildingModule im
      * @param extension the building extension which is being added.
      * @return true if so.
      */
-    protected abstract boolean canAssignExtensionOverride(IBuildingExtension extension);
+    protected abstract boolean canAssignExtensionOverride(final IBuildingExtension extension);
 
     /**
      * Getter for the assign manually.
@@ -332,9 +293,6 @@ public abstract class BuildingExtensionsModule extends AbstractBuildingModule im
         extension.resetOwningBuilding();
         markDirty();
 
-        // Remove from checked extensions to prevent memory leak
-        checkedExtensions.remove(extension.getId());
-
         if (currentExtensionId == extension.getId())
         {
             resetCurrentExtension();
@@ -348,7 +306,7 @@ public abstract class BuildingExtensionsModule extends AbstractBuildingModule im
     {
         if (currentExtensionId != null)
         {
-            checkedExtensions.put(currentExtensionId, building.getColony().getWorld().getGameTime());
+            checkedExtensions.put(currentExtensionId, building.getColony().getDay());
         }
         currentExtensionId = null;
     }

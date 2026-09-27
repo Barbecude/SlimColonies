@@ -47,3 +47,4 @@ public interface IResearchEffectFactory<T extends IResearchEffect> extends IFact
     @NotNull
     T getNewInstance(@NotNull final String id, final Object obj);
 }
+

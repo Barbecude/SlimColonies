@@ -1,0 +1,162 @@
+{
+  "type": "minecraft:block",
+  "pools": [
+    {
+      "bonus_rolls": 0.0,
+      "entries": [
+        {
+          "type": "minecraft:item",
+          "conditions": [
+            {
+              "chance": 0.005,
+              "condition": "minecraft:random_chance"
+            }
+          ],
+          "name": "slimcolonies:bell_pepper"
+        },
+        {
+          "type": "minecraft:item",
+          "conditions": [
+            {
+              "chance": 0.005,
+              "condition": "minecraft:random_chance"
+            }
+          ],
+          "name": "slimcolonies:cabbage"
+        },
+        {
+          "type": "minecraft:item",
+          "conditions": [
+            {
+              "chance": 0.005,
+              "condition": "minecraft:random_chance"
+            }
+          ],
+          "name": "slimcolonies:chickpea"
+        },
+        {
+          "type": "minecraft:item",
+          "conditions": [
+            {
+              "chance": 0.005,
+              "condition": "minecraft:random_chance"
+            }
+          ],
+          "name": "slimcolonies:durum"
+        },
+        {
+          "type": "minecraft:item",
+          "conditions": [
+            {
+              "chance": 0.005,
+              "condition": "minecraft:random_chance"
+            }
+          ],
+          "name": "slimcolonies:eggplant"
+        },
+        {
+          "type": "minecraft:item",
+          "conditions": [
+            {
+              "chance": 0.005,
+              "condition": "minecraft:random_chance"
+            }
+          ],
+          "name": "slimcolonies:garlic"
+        },
+        {
+          "type": "minecraft:item",
+          "conditions": [
+            {
+              "chance": 0.005,
+              "condition": "minecraft:random_chance"
+            }
+          ],
+          "name": "slimcolonies:onion"
+        },
+        {
+          "type": "minecraft:item",
+          "conditions": [
+            {
+              "chance": 0.005,
+              "condition": "minecraft:random_chance"
+            }
+          ],
+          "name": "slimcolonies:soybean"
+        },
+        {
+          "type": "minecraft:item",
+          "conditions": [
+            {
+              "chance": 0.005,
+              "condition": "minecraft:random_chance"
+            }
+          ],
+          "name": "slimcolonies:tomato"
+        },
+        {
+          "type": "minecraft:item",
+          "conditions": [
+            {
+              "chance": 0.005,
+              "condition": "minecraft:random_chance"
+            }
+          ],
+          "name": "slimcolonies:rice"
+        },
+        {
+          "type": "minecraft:item",
+          "conditions": [
+            {
+              "chance": 0.005,
+              "condition": "minecraft:random_chance"
+            }
+          ],
+          "name": "slimcolonies:corn"
+        },
+        {
+          "type": "minecraft:item",
+          "conditions": [
+            {
+              "chance": 0.005,
+              "condition": "minecraft:random_chance"
+            }
+          ],
+          "name": "slimcolonies:nether_pepper"
+        },
+        {
+          "type": "minecraft:item",
+          "conditions": [
+            {
+              "chance": 0.005,
+              "condition": "minecraft:random_chance"
+            }
+          ],
+          "name": "slimcolonies:peas"
+        },
+        {
+          "type": "minecraft:item",
+          "conditions": [
+            {
+              "chance": 0.005,
+              "condition": "minecraft:random_chance"
+            }
+          ],
+          "name": "slimcolonies:mint"
+        },
+        {
+          "type": "minecraft:item",
+          "conditions": [
+            {
+              "chance": 0.005,
+              "condition": "minecraft:random_chance"
+            }
+          ],
+          "name": "slimcolonies:butternut_squash"
+        }
+      ],
+      "rolls": 1.0
+    }
+  ],
+  "random_sequence": "slimcolonies:crops/dungeon"
+}

@@ -1,5 +1,6 @@
 package no.monopixel.slimcolonies.core.network.messages.server.colony.building;
 
+import com.ldtteam.common.network.PlayMessageType;
 import no.monopixel.slimcolonies.api.colony.ICitizenData;
 import no.monopixel.slimcolonies.api.colony.IColony;
 import no.monopixel.slimcolonies.api.colony.buildings.IBuilding;
@@ -7,14 +8,15 @@ import no.monopixel.slimcolonies.api.entity.citizen.AbstractEntityCitizen;
 import no.monopixel.slimcolonies.api.util.EntityUtils;
 import no.monopixel.slimcolonies.api.util.Log;
 import no.monopixel.slimcolonies.api.util.MessageUtils;
+import no.monopixel.slimcolonies.api.util.constant.Constants;
 import no.monopixel.slimcolonies.core.colony.buildings.views.AbstractBuildingView;
 import no.monopixel.slimcolonies.core.network.messages.server.AbstractBuildingServerMessage;
 import no.monopixel.slimcolonies.core.util.TeleportHelper;
-import net.minecraft.world.entity.player.Player;
-import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.core.BlockPos;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.level.Level;
-import net.minecraftforge.network.NetworkEvent;
+import net.neoforged.neoforge.network.handling.IPayloadContext;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Optional;
@@ -26,13 +28,7 @@ import static no.monopixel.slimcolonies.api.util.constant.TranslationConstants.W
  */
 public class RecallCitizenHutMessage extends AbstractBuildingServerMessage<IBuilding>
 {
-    /**
-     * Empty public constructor.
-     */
-    public RecallCitizenHutMessage()
-    {
-        super();
-    }
+    public static final PlayMessageType<?> TYPE = PlayMessageType.forServer(Constants.MOD_ID, "recall_citizen_hut", RecallCitizenHutMessage::new);
 
     /**
      * Creates a message to recall all citizens to their hut.
@@ -41,11 +37,16 @@ public class RecallCitizenHutMessage extends AbstractBuildingServerMessage<IBuil
      */
     public RecallCitizenHutMessage(@NotNull final AbstractBuildingView building)
     {
-        super(building);
+        super(TYPE, building);
+    }
+
+    protected RecallCitizenHutMessage(final RegistryFriendlyByteBuf buf, final PlayMessageType<?> type)
+    {
+        super(buf, type);
     }
 
     @Override
-    protected void onExecute(@NotNull final NetworkEvent.Context ctxIn, final boolean isLogicalServer, @NotNull final IColony colony, @NotNull final IBuilding building)
+    protected void onExecute(final IPayloadContext ctxIn, final ServerPlayer player, final IColony colony, final  IBuilding building)
     {
         final BlockPos location = building.getPosition();
         final Level world = colony.getWorld();
@@ -62,26 +63,8 @@ public class RecallCitizenHutMessage extends AbstractBuildingServerMessage<IBuil
 
             if (optionalEntityCitizen.isPresent() && !TeleportHelper.teleportCitizen(optionalEntityCitizen.get(), world, location))
             {
-                final Player player = ctxIn.getSender();
-                if (player == null)
-                {
-                    return;
-                }
-
                 MessageUtils.format(WARNING_CITIZEN_RECALL_FAILED).sendTo(player);
             }
         }
-    }
-
-    @Override
-    protected void toBytesOverride(final FriendlyByteBuf buf)
-    {
-
-    }
-
-    @Override
-    protected void fromBytesOverride(final FriendlyByteBuf buf)
-    {
-
     }
 }

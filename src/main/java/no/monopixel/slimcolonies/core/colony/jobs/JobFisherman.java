@@ -8,6 +8,7 @@ import no.monopixel.slimcolonies.api.util.StatsUtil;
 import no.monopixel.slimcolonies.api.util.Tuple;
 import no.monopixel.slimcolonies.core.entity.ai.workers.production.agriculture.EntityAIWorkFisherman;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
@@ -64,9 +65,9 @@ public class JobFisherman extends AbstractJob<EntityAIWorkFisherman, JobFisherma
     }
 
     @Override
-    public CompoundTag serializeNBT()
+    public CompoundTag serializeNBT(@NotNull final HolderLookup.Provider provider)
     {
-        final CompoundTag compound = super.serializeNBT();
+        final CompoundTag compound = super.serializeNBT(provider);
 
         @NotNull final CompoundTag waterTag = new CompoundTag();
         if (water != null)
@@ -89,9 +90,9 @@ public class JobFisherman extends AbstractJob<EntityAIWorkFisherman, JobFisherma
     }
 
     @Override
-    public void deserializeNBT(final CompoundTag compound)
+    public void deserializeNBT(@NotNull final HolderLookup.Provider provider, final CompoundTag compound)
     {
-        super.deserializeNBT(compound);
+        super.deserializeNBT(provider, compound);
 
         if (compound.contains(TAG_WATER_POND))
         {
@@ -194,3 +195,4 @@ public class JobFisherman extends AbstractJob<EntityAIWorkFisherman, JobFisherma
         return super.onStackPickUp(pickedUpStack);
     }
 }
+

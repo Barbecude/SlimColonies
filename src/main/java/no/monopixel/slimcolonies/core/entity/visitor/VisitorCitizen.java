@@ -1,8 +1,38 @@
 package no.monopixel.slimcolonies.core.entity.visitor;
 
+import no.monopixel.slimcolonies.api.colony.*;
+import no.monopixel.slimcolonies.api.colony.buildings.IBuilding;
+import no.monopixel.slimcolonies.api.colony.permissions.Action;
+import no.monopixel.slimcolonies.api.colony.requestsystem.StandardFactoryController;
+import no.monopixel.slimcolonies.api.colony.requestsystem.location.ILocation;
+import no.monopixel.slimcolonies.api.entity.citizen.AbstractEntityCitizen;
+import no.monopixel.slimcolonies.api.entity.citizen.citizenhandlers.*;
+import no.monopixel.slimcolonies.api.inventory.InventoryCitizen;
+import no.monopixel.slimcolonies.api.inventory.container.ContainerCitizenInventory;
+import no.monopixel.slimcolonies.api.util.*;
+import no.monopixel.slimcolonies.api.util.MessageUtils.MessagePriority;
+import no.monopixel.slimcolonies.api.util.constant.TypeConstants;
+import no.monopixel.slimcolonies.core.MineColonies;
+import no.monopixel.slimcolonies.core.client.gui.WindowInteraction;
+import no.monopixel.slimcolonies.core.colony.buildings.modules.BuildingModules;
+import no.monopixel.slimcolonies.core.colony.buildings.modules.TavernBuildingModule;
+import no.monopixel.slimcolonies.core.entity.ai.minimal.EntityAIInteractToggleAble;
+import no.monopixel.slimcolonies.core.entity.ai.minimal.LookAtEntityGoal;
+import no.monopixel.slimcolonies.core.entity.ai.minimal.LookAtEntityInteractGoal;
+import no.monopixel.slimcolonies.core.entity.ai.visitor.EntityAIVisitor;
+import no.monopixel.slimcolonies.core.entity.citizen.EntityCitizen;
+import no.monopixel.slimcolonies.core.entity.citizen.citizenhandlers.CitizenExperienceHandler;
+import no.monopixel.slimcolonies.core.entity.citizen.citizenhandlers.CitizenInventoryHandler;
+import no.monopixel.slimcolonies.core.entity.citizen.citizenhandlers.CitizenJobHandler;
+import no.monopixel.slimcolonies.core.entity.citizen.citizenhandlers.CitizenSleepHandler;
+import no.monopixel.slimcolonies.core.entity.pathfinding.navigation.MovementHandler;
+import no.monopixel.slimcolonies.core.network.messages.client.ItemParticleEffectMessage;
+import no.monopixel.slimcolonies.core.network.messages.server.colony.OpenInventoryMessage;
+import no.monopixel.slimcolonies.core.util.citizenutils.CitizenItemUtils;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.syncher.EntityDataAccessor;
+import net.minecraft.network.syncher.SynchedEntityData;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundEvents;
@@ -21,41 +51,12 @@ import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.NameTagItem;
 import net.minecraft.world.level.Level;
-import net.minecraftforge.items.IItemHandler;
-import no.monopixel.slimcolonies.api.colony.*;
-import no.monopixel.slimcolonies.api.colony.buildings.IBuilding;
-import no.monopixel.slimcolonies.api.colony.permissions.Action;
-import no.monopixel.slimcolonies.api.colony.requestsystem.StandardFactoryController;
-import no.monopixel.slimcolonies.api.colony.requestsystem.location.ILocation;
-import no.monopixel.slimcolonies.api.entity.citizen.AbstractEntityCitizen;
-import no.monopixel.slimcolonies.api.entity.citizen.citizenhandlers.*;
-import no.monopixel.slimcolonies.api.inventory.InventoryCitizen;
-import no.monopixel.slimcolonies.api.inventory.container.ContainerCitizenInventory;
-import no.monopixel.slimcolonies.api.util.*;
-import no.monopixel.slimcolonies.api.util.MessageUtils.MessagePriority;
-import no.monopixel.slimcolonies.api.util.constant.TypeConstants;
-import no.monopixel.slimcolonies.core.Network;
-import no.monopixel.slimcolonies.core.SlimColonies;
-import no.monopixel.slimcolonies.core.client.gui.WindowInteraction;
-import no.monopixel.slimcolonies.core.colony.buildings.modules.BuildingModules;
-import no.monopixel.slimcolonies.core.colony.buildings.modules.TavernBuildingModule;
-import no.monopixel.slimcolonies.core.entity.ai.minimal.EntityAIInteractToggleAble;
-import no.monopixel.slimcolonies.core.entity.ai.minimal.LookAtEntityGoal;
-import no.monopixel.slimcolonies.core.entity.ai.minimal.LookAtEntityInteractGoal;
-import no.monopixel.slimcolonies.core.entity.ai.visitor.EntityAIVisitor;
-import no.monopixel.slimcolonies.core.entity.citizen.EntityCitizen;
-import no.monopixel.slimcolonies.core.entity.citizen.citizenhandlers.CitizenExperienceHandler;
-import no.monopixel.slimcolonies.core.entity.citizen.citizenhandlers.CitizenInventoryHandler;
-import no.monopixel.slimcolonies.core.entity.citizen.citizenhandlers.CitizenJobHandler;
-import no.monopixel.slimcolonies.core.entity.citizen.citizenhandlers.CitizenSleepHandler;
-import no.monopixel.slimcolonies.core.entity.pathfinding.navigation.MovementHandler;
-import no.monopixel.slimcolonies.core.network.messages.client.ItemParticleEffectMessage;
-import no.monopixel.slimcolonies.core.network.messages.server.colony.OpenInventoryMessage;
-import no.monopixel.slimcolonies.core.util.citizenutils.CitizenItemUtils;
+import net.neoforged.neoforge.items.IItemHandler;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import static no.monopixel.slimcolonies.api.util.ItemStackUtils.ISFOOD;
+import static no.monopixel.slimcolonies.api.util.constant.CitizenConstants.SATURATION_DECREASE_FACTOR;
 import static no.monopixel.slimcolonies.api.util.constant.CitizenConstants.TICKS_20;
 import static no.monopixel.slimcolonies.api.util.constant.Constants.*;
 import static no.monopixel.slimcolonies.api.util.constant.NbtTagConstants.TAG_CITIZEN;
@@ -111,7 +112,7 @@ public class VisitorCitizen extends AbstractEntityCitizen
     /**
      * The location used for requests
      */
-    private ILocation location = null;
+    private ILocation              location = null;
 
     /**
      * Constructor for a new citizen typed entity.
@@ -130,7 +131,7 @@ public class VisitorCitizen extends AbstractEntityCitizen
 
         this.moveControl = new MovementHandler(this);
         this.setPersistenceRequired();
-        this.setCustomNameVisible(SlimColonies.getConfig().getServer().alwaysRenderNameTag.get());
+        this.setCustomNameVisible(MineColonies.getConfig().getServer().alwaysRenderNameTag.get());
         initTasks();
     }
 
@@ -186,7 +187,7 @@ public class VisitorCitizen extends AbstractEntityCitizen
                     }
                     else
                     {
-                        final IColonyView colonyView = IColonyManager.getInstance().getColonyView(getCitizenColonyHandler().getColonyId(), level.dimension());
+                        final IColonyView colonyView = IColonyManager.getInstance().getColonyView(getCitizenColonyHandler().getColonyId(), level().dimension());
                         return damage <= 1 || colonyView == null || colonyView.getPermissions().hasPermission((Player) sourceEntity, Action.HURT_VISITOR);
                     }
                 }
@@ -260,6 +261,29 @@ public class VisitorCitizen extends AbstractEntityCitizen
     public void playMoveAwaySound()
     {
 
+    }
+
+    @Override
+    public void decreaseSaturationForAction()
+    {
+        if (citizenData != null)
+        {
+            citizenData.decreaseSaturation(SATURATION_DECREASE_FACTOR * 3);
+            citizenData.markDirty(20 * 20);
+        }
+    }
+
+    /**
+     * Decrease the saturation of the citizen for 1 action.
+     */
+    @Override
+    public void decreaseSaturationForContinuousAction()
+    {
+        if (citizenData != null)
+        {
+            citizenData.decreaseSaturation(SATURATION_DECREASE_FACTOR * 3 / 100.0);
+            citizenData.markDirty(20 * 60 * 2);
+        }
     }
 
     /**
@@ -384,7 +408,7 @@ public class VisitorCitizen extends AbstractEntityCitizen
     @Override
     public InteractionResult checkAndHandleImportantInteractions(final Player player, @NotNull final InteractionHand hand)
     {
-        final IColonyView iColonyView = IColonyManager.getInstance().getColonyView(citizenColonyHandler.getColonyId(), player.level.dimension());
+        final IColonyView iColonyView = IColonyManager.getInstance().getColonyView(citizenColonyHandler.getColonyId(), player.level().dimension());
         if (iColonyView != null && !iColonyView.getPermissions().hasPermission(player, Action.ACCESS_HUTS))
         {
             return InteractionResult.FAIL;
@@ -405,7 +429,7 @@ public class VisitorCitizen extends AbstractEntityCitizen
         {
             if (player.isShiftKeyDown())
             {
-                Network.getNetwork().sendToServer(new OpenInventoryMessage(iColonyView, this.getName().getString(), this.getId()));
+                new OpenInventoryMessage(iColonyView, this.getName().getString(), this.getId()).sendToServer();
             }
             else
             {
@@ -431,11 +455,11 @@ public class VisitorCitizen extends AbstractEntityCitizen
         final ItemStack usedStack = player.getItemInHand(hand);
         if (ISFOOD.test(usedStack))
         {
-            if (!level.isClientSide())
+            if (!level().isClientSide())
             {
                 playSound(SoundEvents.GENERIC_EAT, 1.5f, (float) SoundUtils.getRandomPitch(getRandom()));
-                Network.getNetwork().sendToTrackingEntity(new ItemParticleEffectMessage(usedStack, getX(), getY(), getZ(), getXRot(), getYRot(), getEyeHeight()), this);
-                ItemStackUtils.consumeFood(usedStack, this, player.getInventory());
+                new ItemParticleEffectMessage(usedStack.copy(), getX(), getY(), getZ(), getXRot(), getYRot(), getEyeHeight()).sendToTrackingEntity(this);
+                ItemStackUtils.consumeFood(usedStack, this, player);
                 MessageUtils.forCitizen(this, MESSAGE_INTERACTION_VISITOR_FOOD).sendTo(player);
             }
             return InteractionResult.CONSUME;
@@ -451,7 +475,7 @@ public class VisitorCitizen extends AbstractEntityCitizen
             citizenColonyHandler.updateColonyClient();
             if (citizenColonyHandler.getColonyId() != 0 && citizenId != 0)
             {
-                final IColonyView colonyView = IColonyManager.getInstance().getColonyView(citizenColonyHandler.getColonyId(), level.dimension());
+                final IColonyView colonyView = IColonyManager.getInstance().getColonyView(citizenColonyHandler.getColonyId(), level().dimension());
                 if (colonyView != null)
                 {
                     this.citizenDataView = colonyView.getVisitor(citizenId);
@@ -468,11 +492,11 @@ public class VisitorCitizen extends AbstractEntityCitizen
     }
 
     @Override
-    protected void defineSynchedData()
+    protected void defineSynchedData(final SynchedEntityData.Builder builder)
     {
-        super.defineSynchedData();
-        entityData.define(DATA_COLONY_ID, citizenColonyHandler == null ? 0 : citizenColonyHandler.getColonyId());
-        entityData.define(DATA_CITIZEN_ID, citizenId);
+        super.defineSynchedData(builder);
+        builder.define(DATA_COLONY_ID, citizenColonyHandler == null ? 0 : citizenColonyHandler.getColonyId());
+        builder.define(DATA_CITIZEN_ID, citizenId);
     }
 
     @Override
@@ -490,7 +514,7 @@ public class VisitorCitizen extends AbstractEntityCitizen
             citizenColonyHandler.updateColonyClient();
             if (citizenColonyHandler.getColonyId() != 0 && citizenId != 0 && getOffsetTicks() % TICKS_20 == 0)
             {
-                final IColonyView colonyView = IColonyManager.getInstance().getColonyView(citizenColonyHandler.getColonyId(), level.dimension());
+                final IColonyView colonyView = IColonyManager.getInstance().getColonyView(citizenColonyHandler.getColonyId(), level().dimension());
                 if (colonyView != null)
                 {
                     this.citizenDataView = colonyView.getVisitor(citizenId);
@@ -503,7 +527,7 @@ public class VisitorCitizen extends AbstractEntityCitizen
             citizenColonyHandler.registerWithColony(citizenColonyHandler.getColonyId(), citizenId);
             if (tickCount % 500 == 0)
             {
-                this.setCustomNameVisible(SlimColonies.getConfig().getServer().alwaysRenderNameTag.get());
+                this.setCustomNameVisible(MineColonies.getConfig().getServer().alwaysRenderNameTag.get());
             }
         }
     }
@@ -539,7 +563,7 @@ public class VisitorCitizen extends AbstractEntityCitizen
     public void die(DamageSource cause)
     {
         super.die(cause);
-        if (!level.isClientSide())
+        if (!level().isClientSide())
         {
             IColony colony = getCitizenColonyHandler().getColonyOrRegister();
             if (colony != null && getCitizenData() != null)
@@ -548,15 +572,15 @@ public class VisitorCitizen extends AbstractEntityCitizen
                 if (getCitizenData().getHomeBuilding() instanceof TavernBuildingModule)
                 {
                     TavernBuildingModule tavern = (TavernBuildingModule) getCitizenData().getHomeBuilding();
-                    tavern.setNoVisitorTime(level.getRandom().nextInt(5000) + 30000);
+                    tavern.setNoVisitorTime(level().getRandom().nextInt(5000) + 30000);
                 }
 
                 final String deathLocation = BlockPosUtil.getString(blockPosition());
 
                 MessageUtils.format(MESSAGE_INFO_COLONY_VISITOR_DIED, getCitizenData().getName(), cause.getMsgId(), deathLocation)
-                    .withPriority(MessagePriority.DANGER)
-                    .sendTo(colony)
-                    .forManagers();
+                  .withPriority(MessagePriority.DANGER)
+                  .sendTo(colony)
+                  .forManagers();
             }
         }
     }

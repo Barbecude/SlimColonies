@@ -6,9 +6,11 @@ import no.monopixel.slimcolonies.api.colony.requestsystem.factory.IFactoryContro
 import no.monopixel.slimcolonies.api.colony.requestsystem.token.IToken;
 import no.monopixel.slimcolonies.api.util.ItemStackUtils;
 import no.monopixel.slimcolonies.api.util.ReflectionUtils;
+import no.monopixel.slimcolonies.api.util.Utils;
 import no.monopixel.slimcolonies.api.util.constant.TypeConstants;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.world.item.ItemStack;
 import org.jetbrains.annotations.NotNull;
 
@@ -42,13 +44,13 @@ public class PrivateCrafting extends AbstractCrafting
      * @param input      the input.
      * @return the compound.
      */
-    public static CompoundTag serialize(final IFactoryController controller, final PrivateCrafting input)
+    public static CompoundTag serialize(@NotNull final HolderLookup.Provider provider, final IFactoryController controller, final PrivateCrafting input)
     {
         final CompoundTag compound = new CompoundTag();
-        compound.put(NBT_STACK, input.getStack().serializeNBT());
+        compound.put(NBT_STACK, input.getStack().saveOptional(provider));
         compound.putInt(NBT_COUNT, input.getCount());
         compound.putInt(NBT_MIN_COUNT, input.getMinCount());
-        final CompoundTag tokenCompound = StandardFactoryController.getInstance().serialize(input.getRecipeID());
+        final CompoundTag tokenCompound = StandardFactoryController.getInstance().serializeTag(provider, input.getRecipeID());
         compound.put(NBT_TOKEN, tokenCompound);
 
         return compound;
@@ -61,15 +63,15 @@ public class PrivateCrafting extends AbstractCrafting
      * @param compound   the compound.
      * @return the deliverable.
      */
-    public static PrivateCrafting deserialize(final IFactoryController controller, final CompoundTag compound)
+    public static PrivateCrafting deserialize(@NotNull final HolderLookup.Provider provider, final IFactoryController controller, final CompoundTag compound)
     {
-        final ItemStack stack = ItemStackUtils.deserializeFromNBT(compound.getCompound(NBT_STACK));
+        final ItemStack stack = ItemStackUtils.deserializeFromNBT(compound.getCompound(NBT_STACK), provider);
         final int count = compound.getInt(NBT_COUNT);
         final int minCount = compound.getInt(NBT_MIN_COUNT);
         IToken<?> token = null;
         if (compound.contains(NBT_TOKEN))
         {
-            token = StandardFactoryController.getInstance().deserialize(compound.getCompound(NBT_TOKEN));
+            token = StandardFactoryController.getInstance().deserializeTag(provider, compound.getCompound(NBT_TOKEN));
         }
         else
         {
@@ -85,9 +87,9 @@ public class PrivateCrafting extends AbstractCrafting
      * @param buffer     the the buffer to write to.
      * @param input      the input to serialize.
      */
-    public static void serialize(final IFactoryController controller, final FriendlyByteBuf buffer, final PrivateCrafting input)
+    public static void serialize(final IFactoryController controller, final RegistryFriendlyByteBuf buffer, final PrivateCrafting input)
     {
-        buffer.writeItem(input.getStack());
+        Utils.serializeCodecMess(buffer, input.getStack());
         buffer.writeInt(input.getCount());
         buffer.writeInt(input.getMinCount());
         StandardFactoryController.getInstance().serialize(buffer, input.getRecipeID());
@@ -100,9 +102,9 @@ public class PrivateCrafting extends AbstractCrafting
      * @param buffer     the buffer to read.
      * @return the deliverable.
      */
-    public static PrivateCrafting deserialize(final IFactoryController controller, final FriendlyByteBuf buffer)
+    public static PrivateCrafting deserialize(final IFactoryController controller, final RegistryFriendlyByteBuf buffer)
     {
-        final ItemStack stack = buffer.readItem();
+        final ItemStack stack = Utils.deserializeCodecMess(buffer);
         final int count = buffer.readInt();
         final int minCount = buffer.readInt();
         final IToken<?> token = StandardFactoryController.getInstance().deserialize(buffer);

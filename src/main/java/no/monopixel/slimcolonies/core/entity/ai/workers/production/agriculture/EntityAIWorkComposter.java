@@ -37,7 +37,7 @@ import static no.monopixel.slimcolonies.api.entity.ai.statemachine.states.AIWork
 import static no.monopixel.slimcolonies.api.research.util.ResearchConstants.PODZOL_CHANCE;
 import static no.monopixel.slimcolonies.api.util.constant.Constants.DOUBLE;
 import static no.monopixel.slimcolonies.api.util.constant.Constants.TICKS_SECOND;
-import static no.monopixel.slimcolonies.api.util.constant.TranslationConstants.COREMOD_ENTITY_COMPOSTER_EMPTYLIST;
+import static no.monopixel.slimcolonies.api.util.constant.TranslationConstants.COM_MINECOLONIES_COREMOD_ENTITY_COMPOSTER_EMPTYLIST;
 import static no.monopixel.slimcolonies.api.util.constant.StatisticsConstants.ITEMS_COMPOSTED;
 import static no.monopixel.slimcolonies.api.util.constant.StatisticsConstants.PRODUCT_COLLECTED;
 
@@ -82,7 +82,7 @@ public class EntityAIWorkComposter extends AbstractEntityAIInteract<JobComposter
      * Composting icon
      */
     private final static VisibleCitizenStatus COMPOST =
-        new VisibleCitizenStatus(ResourceLocation.fromNamespaceAndPath(Constants.MOD_ID, "textures/icons/work/composter.png"), "no.monopixel.slimcolonies.gui.visiblestatus.composter");
+      new VisibleCitizenStatus(new ResourceLocation(Constants.MOD_ID, "textures/icons/work/composter.png"), "no.monopixel.slimcolonies.gui.visiblestatus.composter");
 
     /**
      * Constructor for the AI
@@ -93,12 +93,12 @@ public class EntityAIWorkComposter extends AbstractEntityAIInteract<JobComposter
     {
         super(job);
         super.registerTargets(
-            new AIEventTarget(AIBlockingEventType.AI_BLOCKING, this::accelerateBarrels, TICKS_SECOND),
-            new AITarget(IDLE, START_WORKING, 1),
-            new AITarget(GET_MATERIALS, this::getMaterials, TICKS_SECOND),
-            new AITarget(START_WORKING, this::decideWhatToDo, 1),
-            new AITarget(COMPOSTER_FILL, this::fillBarrels, 10),
-            new AITarget(COMPOSTER_HARVEST, this::harvestBarrels, 10)
+          new AIEventTarget(AIBlockingEventType.AI_BLOCKING, this::accelerateBarrels, TICKS_SECOND),
+          new AITarget(IDLE, START_WORKING, 1),
+          new AITarget(GET_MATERIALS, this::getMaterials, TICKS_SECOND),
+          new AITarget(START_WORKING, this::decideWhatToDo, 1),
+          new AITarget(COMPOSTER_FILL, this::fillBarrels, 10),
+          new AITarget(COMPOSTER_HARVEST, this::harvestBarrels, 10)
         );
         worker.setCanPickUpLoot(true);
     }
@@ -154,14 +154,14 @@ public class EntityAIWorkComposter extends AbstractEntityAIInteract<JobComposter
         if (InventoryUtils.hasItemInProvider(building, stack -> list.contains(new ItemStorage(stack))))
         {
             InventoryUtils.transferItemStackIntoNextFreeSlotFromProvider(
-                building,
-                InventoryUtils.findFirstSlotInProviderNotEmptyWith(building, stack -> list.contains(new ItemStorage(stack))),
-                worker.getInventoryCitizen());
+              building,
+              InventoryUtils.findFirstSlotInProviderNotEmptyWith(building, stack -> list.contains(new ItemStorage(stack))),
+              worker.getInventoryCitizen());
         }
 
         final int slot = InventoryUtils.findFirstSlotInItemHandlerWith(
-            worker.getInventoryCitizen(),
-            stack -> list.contains(new ItemStorage(stack))
+          worker.getInventoryCitizen(),
+          stack -> list.contains(new ItemStorage(stack))
         );
         if (slot >= 0)
         {
@@ -183,11 +183,11 @@ public class EntityAIWorkComposter extends AbstractEntityAIInteract<JobComposter
             if (!itemList.isEmpty())
             {
                 worker.getCitizenData()
-                    .createRequestAsync(new StackList(itemList,
-                        RequestSystemTranslationConstants.REQUESTS_TYPE_COMPOSTABLE,
-                        Constants.STACKSIZE * building.getBarrels().size(),
-                        1,
-                        building.getSetting(BuildingComposter.MIN).getValue()));
+                  .createRequestAsync(new StackList(itemList,
+                    RequestSystemTranslationConstants.REQUESTS_TYPE_COMPOSTABLE,
+                    Constants.STACKSIZE * building.getBarrels().size(),
+                    1,
+                    building.getSetting(BuildingComposter.MIN).getValue()));
             }
         }
 
@@ -251,12 +251,11 @@ public class EntityAIWorkComposter extends AbstractEntityAIInteract<JobComposter
      */
     private IAIState fillBarrels()
     {
-
         if (worker.getItemInHand(InteractionHand.MAIN_HAND) == ItemStack.EMPTY)
         {
             final int slot = InventoryUtils.findFirstSlotInItemHandlerWith(
-                worker.getInventoryCitizen(),
-                stack -> building.getModuleMatching(ItemListModule.class, m -> m.getId().equals(COMPOSTABLE_LIST)).isItemInList(new ItemStorage(stack)));
+              worker.getInventoryCitizen(),
+              stack -> building.getModuleMatching(ItemListModule.class, m -> m.getId().equals(COMPOSTABLE_LIST)).isItemInList(new ItemStorage(stack)));
 
             if (slot >= 0)
             {
@@ -275,23 +274,20 @@ public class EntityAIWorkComposter extends AbstractEntityAIInteract<JobComposter
 
         if (world.getBlockEntity(currentTarget) instanceof TileEntityBarrel)
         {
-
             final TileEntityBarrel barrel = (TileEntityBarrel) world.getBlockEntity(currentTarget);
 
             CitizenItemUtils.hitBlockWithToolInHand(worker, currentTarget);
 
-            String compostingItem = worker.getItemInHand(InteractionHand.MAIN_HAND).getItem().getDescriptionId();
+            String compostingItem =  worker.getItemInHand(InteractionHand.MAIN_HAND).getItem().getDescriptionId();
             int countBefore = worker.getItemInHand(InteractionHand.MAIN_HAND).getCount();
 
             barrel.addItem(worker.getItemInHand(InteractionHand.MAIN_HAND));
             worker.getCitizenExperienceHandler().addExperience(BASE_XP_GAIN);
-
+            
             StatsUtil.trackStatByName(building, ITEMS_COMPOSTED, compostingItem, countBefore - worker.getItemInHand(InteractionHand.MAIN_HAND).getCount());
 
-            this.incrementActionsDoneAndDecSaturation();
+            worker.decreaseSaturationForContinuousAction();
             worker.setItemInHand(InteractionHand.MAIN_HAND, ItemStackUtils.EMPTY);
-
-            incrementActionsDone();
         }
         setDelay(AFTER_TASK_DELAY);
         return START_WORKING;
@@ -304,7 +300,6 @@ public class EntityAIWorkComposter extends AbstractEntityAIInteract<JobComposter
      */
     private IAIState harvestBarrels()
     {
-
         if (!walkToWorkPos(currentTarget))
         {
             setDelay(2);
@@ -326,10 +321,10 @@ public class EntityAIWorkComposter extends AbstractEntityAIInteract<JobComposter
                  * Two researches to increase it to 10% and 15%, respectively.
                  */
                 if (((worker.getRandom().nextInt(100)) + 1) <= (5 * (1 + worker.getCitizenColonyHandler()
-                    .getColonyOrRegister()
-                    .getResearchManager()
-                    .getResearchEffects()
-                    .getEffectStrength(PODZOL_CHANCE))))
+                                                                           .getColonyOrRegister()
+                                                                           .getResearchManager()
+                                                                           .getResearchEffects()
+                                                                           .getEffectStrength(PODZOL_CHANCE))))
                 {
                     ItemStack product = new ItemStack(Blocks.PODZOL, 1);
                     StatsUtil.trackStatByName(building, PRODUCT_COLLECTED, product.getItem().getDescriptionId(), compost.getCount());
@@ -337,7 +332,7 @@ public class EntityAIWorkComposter extends AbstractEntityAIInteract<JobComposter
                 }
                 else
                 {
-                    ItemStack product = new ItemStack(Blocks.DIRT, 1);
+                    ItemStack product =  new ItemStack(Blocks.DIRT, 1);
                     StatsUtil.trackStatByName(building, PRODUCT_COLLECTED, product.getItem().getDescriptionId(), compost.getCount());
                     InventoryUtils.addItemStackToItemHandler(worker.getInventoryCitizen(), product);
                 }
@@ -397,8 +392,8 @@ public class EntityAIWorkComposter extends AbstractEntityAIInteract<JobComposter
         if (ticksToComplain <= 0)
         {
             ticksToComplain = TICKS_UNTIL_COMPLAIN;
-            MessageUtils.format(COREMOD_ENTITY_COMPOSTER_EMPTYLIST)
-                .sendTo(building.getColony()).forAllPlayers();
+            MessageUtils.format(COM_MINECOLONIES_COREMOD_ENTITY_COMPOSTER_EMPTYLIST)
+              .sendTo(building.getColony()).forAllPlayers();
         }
         else
         {

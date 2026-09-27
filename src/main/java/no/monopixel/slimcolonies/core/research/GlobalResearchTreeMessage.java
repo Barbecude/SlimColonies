@@ -1,72 +1,54 @@
 package no.monopixel.slimcolonies.core.research;
 
-import no.monopixel.slimcolonies.api.network.IMessage;
+import com.ldtteam.common.network.AbstractClientPlayMessage;
+import com.ldtteam.common.network.PlayMessageType;
 import no.monopixel.slimcolonies.api.research.IGlobalResearchTree;
-import net.minecraft.client.Minecraft;
+import no.monopixel.slimcolonies.api.util.constant.Constants;
+import io.netty.buffer.Unpooled;
 import net.minecraft.network.FriendlyByteBuf;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.api.distmarker.OnlyIn;
-import net.minecraftforge.fml.LogicalSide;
-import net.minecraftforge.network.NetworkEvent;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.world.entity.player.Player;
+import net.neoforged.neoforge.network.handling.IPayloadContext;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 /**
  * The message used to synchronize global research trees from a server to a remote client.
  */
-public class GlobalResearchTreeMessage implements IMessage
+public class GlobalResearchTreeMessage extends AbstractClientPlayMessage
 {
+    public static final PlayMessageType<?> TYPE = PlayMessageType.forClient(Constants.MOD_ID, "global_research_tree", GlobalResearchTreeMessage::new, true, false);
 
     /**
      * The buffer with the data.
      */
-    private FriendlyByteBuf treeBuffer;
-
-    /**
-     * Empty constructor used when registering the message
-     */
-    public GlobalResearchTreeMessage()
-    {
-        super();
-    }
+    private final RegistryFriendlyByteBuf treeBuffer;
 
     /**
      * Add or Update a GlobalResearchTree on the client.
      *
      * @param buf               the bytebuffer.
      */
-    public GlobalResearchTreeMessage(final FriendlyByteBuf buf)
+    public GlobalResearchTreeMessage(final RegistryFriendlyByteBuf buf)
     {
-        this.treeBuffer = new FriendlyByteBuf(buf.copy());
+        super(TYPE);
+        this.treeBuffer = new RegistryFriendlyByteBuf(new FriendlyByteBuf(buf.copy()), buf.registryAccess());
+    }
+
+    protected GlobalResearchTreeMessage(final RegistryFriendlyByteBuf buf, final PlayMessageType<?> type)
+    {
+        super(buf, type);
+        treeBuffer = new RegistryFriendlyByteBuf(new FriendlyByteBuf(Unpooled.wrappedBuffer(buf.readByteArray())), buf.registryAccess());
     }
 
     @Override
-    public void fromBytes(@NotNull final FriendlyByteBuf buf)
+    protected void toBytes(@NotNull final RegistryFriendlyByteBuf buf)
     {
-        treeBuffer = new FriendlyByteBuf(buf.retain());
+        buf.writeByteArray(treeBuffer.array());
     }
 
     @Override
-    public void toBytes(@NotNull final FriendlyByteBuf buf)
+    public void onExecute(final IPayloadContext context, final Player player)
     {
-        buf.writeBytes(treeBuffer);
-    }
-
-    @Nullable
-    @Override
-    public LogicalSide getExecutionSide()
-    {
-        return LogicalSide.CLIENT;
-    }
-
-    @OnlyIn(Dist.CLIENT)
-    @Override
-    public void onExecute(final NetworkEvent.Context ctxIn, final boolean isLogicalServer)
-    {
-        if (Minecraft.getInstance().level != null)
-        {
-            IGlobalResearchTree.getInstance().handleGlobalResearchTreeMessage(treeBuffer);
-        }
-        treeBuffer.release();
+        IGlobalResearchTree.getInstance().handleGlobalResearchTreeMessage(treeBuffer);
     }
 }

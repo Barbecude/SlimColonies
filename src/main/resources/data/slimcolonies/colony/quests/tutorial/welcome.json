@@ -1,47 +1,47 @@
 {
-  "name": "Welcome",
+  "name": "Selamat Datang di Desa",
   "max-occurrences": 1,
   "parents": [],
   "triggers": [
     {
       "type": "slimcolonies:citizen",
-      "state": { }
+      "state": {}
     }
   ],
   "objectives": [
     {
       "type": "slimcolonies:dialogue",
       "target": 0,
-      "text": "Hello there! I just arrived here and wondered if you wish any guidance setting up the colony?",
+      "text": "Halo Kepala Desa! Saya baru saja tiba di sini. Apakah kamu butuh panduan untuk mulai membangun desa kita?",
       "options": [
         {
-          "answer": "Yes please!",
+          "answer": "Boleh, tolong pandu saya!",
           "result": {
             "type": "slimcolonies:dialogue",
-            "text": "So let's start by picking a style for your colony first! You can pick a unique style for your colony by going to your Town Hall and right clicking the block. This is the main page. Now, on the right hand side, click the button next to 'Colony Pack' to select your colony style.",
+            "text": "Mari kita mulai dengan memilih gaya arsitektur untuk desamu! Pergi ke Balai Desa (Town Hall) dan klik kanan bloknya. Di halaman utama sebelah kanan, klik tombol di samping 'Colony Pack' untuk memilih gaya bangunan desamu.",
             "options": [
               {
-                "answer": "Alright! Let me get to it!",
+                "answer": "Siap! Saya akan melakukannya sekarang!",
                 "result": {
                   "type": "slimcolonies:advanceobjective",
                   "go-to": 1
                 }
               },
               {
-                "answer": "I already picked a style!",
+                "answer": "Saya sudah memilih gaya arsitektur!",
                 "result": {
                   "type": "slimcolonies:dialogue",
-                  "text": "Okay great. Next, I suggest you to browse the Build Tool to find different buildings you can build. With the Build Tool in your hand, right click on the ground, try to locate the Builder's Hut, then come back to me!",
+                  "text": "Bagus sekali! Selanjutnya, coba gunakan Build Tool di tanganmu dan klik kanan di tanah. Cari bangunan Builder's Hut, lalu kembali bicara padaku!",
                   "options": [
                     {
-                      "answer": "Okay, let me do that!",
+                      "answer": "Oke, saya cek dulu!",
                       "result": {
                         "type": "slimcolonies:advanceobjective",
                         "go-to": 2
                       }
                     },
                     {
-                      "answer": "Okay, I'll do that again!",
+                      "answer": "Siap, akan saya coba lagi!",
                       "result": {
                         "type": "slimcolonies:advanceobjective",
                         "go-to": 2
@@ -54,13 +54,13 @@
           }
         },
         {
-          "answer": "Yes, but not now. I will come back to you later!",
+          "answer": "Nanti saja, saya akan kembali lagi!",
           "result": {
             "type": "slimcolonies:return"
           }
         },
         {
-          "answer": "I'm a Colony Master! You underestimate my power!",
+          "answer": "Saya sudah ahli membangun desa! Lewati panduan ini!",
           "result": {
             "type": "slimcolonies:advanceobjective",
             "go-to": -1
@@ -71,16 +71,16 @@
     {
       "type": "slimcolonies:dialogue",
       "target": 0,
-      "text": "Hi! Did you choose a colony style already?",
+      "text": "Halo! Apakah kamu sudah memilih gaya arsitektur desa?",
       "options": [
         {
-          "answer": "No, I forgot what I had to do!",
+          "answer": "Belum, saya lupa caranya!",
           "result": {
             "type": "slimcolonies:dialogue",
-            "text": "No Problem! You can pick a unique style for your colony by going to your Town Hall and right clicking the block. This is the main page. Now, on the right hand side, click the button next to 'Colony Pack' to select your colony style.",
+            "text": "Tidak masalah! Pergi ke Balai Desa (Town Hall) dan klik kanan bloknya. Di sebelah kanan halaman utama, klik tombol di samping 'Colony Pack' untuk memilih gaya desamu.",
             "options": [
               {
-                "answer": "Thanks! Let me check again!",
+                "answer": "Terima kasih! Saya cek lagi!",
                 "result": {
                   "type": "slimcolonies:return"
                 }
@@ -89,20 +89,20 @@
           }
         },
         {
-          "answer": "Yes, all done, what is next?",
+          "answer": "Sudah beres! Apa langkah selanjutnya?",
           "result": {
             "type": "slimcolonies:dialogue",
-            "text": "Okay great. Next, I suggest you browse the Build Tool a little bit. With the Build Tool in your hand, right click on the ground, try to locate the Builder's Hut, then come back to me!",
+            "text": "Mantap! Sekarang pegang Build Tool di tanganmu, klik kanan di tanah, coba cari Builder's Hut di dalamnya, lalu kembali bicara padaku!",
             "options": [
               {
-                "answer": "Okay, let me do that!",
+                "answer": "Oke, segera saya lakukan!",
                 "result": {
                   "type": "slimcolonies:advanceobjective",
                   "go-to": 2
                 }
               },
               {
-                "answer": "Okay, I'll do that again!",
+                "answer": "Baik, saya cek lagi!",
                 "result": {
                   "type": "slimcolonies:advanceobjective",
                   "go-to": 2
@@ -112,7 +112,7 @@
           }
         },
         {
-          "answer": "Not yet, I will get to it later!",
+          "answer": "Belum, nanti saya kembali lagi!",
           "result": {
             "type": "slimcolonies:return"
           }
@@ -122,16 +122,16 @@
     {
       "type": "slimcolonies:dialogue",
       "target": 0,
-      "text": "Welcome back! Were you able to navigate the Build Tool?",
+      "text": "Selamat datang kembali! Apakah kamu sudah berhasil melihat menu Build Tool?",
       "options": [
         {
-          "answer": "Yes; mission accomplished!",
+          "answer": "Sudah! Misi berhasil!",
           "result": {
             "type": "slimcolonies:dialogue",
-            "text": "Awesome! Then, before placing it, we first have to craft a Builder's Hut hut block. Just surround a door with planks in the crafting table and put the Build Tool in the middle top slot. Come back to me after you have crafted the hut block!",
+            "text": "Luar biasa! Sebelum meletakkannya, kita harus membuat blok Builder's Hut terlebih dahulu. Di Crafting Table, kelilingi pintu kayu dengan papan kayu (planks) dan taruh Build Tool di slot tengah atas. Kembali ke sini setelah kamu membuatnya!",
             "options": [
               {
-                "answer": "Alright! Let me get to it!",
+                "answer": "Siap, saya buat dulu!",
                 "result": {
                   "type": "slimcolonies:advanceobjective",
                   "go-to": 3
@@ -141,13 +141,13 @@
           }
         },
         {
-          "answer": "No, what did I have to do again?",
+          "answer": "Belum, tadi harus bagaimana ya?",
           "result": {
             "type": "slimcolonies:dialogue",
-            "text": "Skill is the child of patience. Browse the Build Tool a little bit. With the Build Tool in your hand, right click on the ground, try to locate the Builder's Hut, then come back to me!",
+            "text": "Sabar adalah kunci kesuksesan. Pegang Build Tool di tanganmu, klik kanan di tanah, cari Builder's Hut, lalu kembali bicara padaku!",
             "options": [
               {
-                "answer": "Sure! I'll try!",
+                "answer": "Baik, akan saya coba!",
                 "result": {
                   "type": "slimcolonies:return"
                 }
@@ -156,7 +156,7 @@
           }
         },
         {
-          "answer": "Not yet, but I will come back to you later!",
+          "answer": "Belum sempat, nanti saya kembali lagi!",
           "result": {
             "type": "slimcolonies:return"
           }
@@ -166,16 +166,16 @@
     {
       "type": "slimcolonies:dialogue",
       "target": 0,
-      "text": "Welcome back! Did you craft the hut block already?",
+      "text": "Halo! Apakah kamu sudah selesai membuat blok Builder's Hut?",
       "options": [
         {
-          "answer": "No, I forgot the recipe!",
+          "answer": "Belum, saya lupa resepnya!",
           "result": {
             "type": "slimcolonies:dialogue",
-            "text": "A great leap forward often requires taking two steps back! Just surround a door with planks in the crafting table and put the Build Tool in the top slot.",
+            "text": "Tidak apa-apa! Di Crafting Table, kelilingi sebuah pintu dengan papan kayu (planks) dan letakkan Build Tool di slot tengah paling atas.",
             "options": [
               {
-                "answer": "Alright! Let me get to it!",
+                "answer": "Oke, saya buat sekarang!",
                 "result": {
                   "type": "slimcolonies:return"
                 }
@@ -184,20 +184,20 @@
           }
         },
         {
-          "answer": "Yes, all done. What's next?",
+          "answer": "Sudah jadi! Apa langkah berikutnya?",
           "result": {
             "type": "slimcolonies:dialogue",
-            "text": "Perfect! The next step is placing it with the help of the Build Tool. Right click the Build Tool on the ground. Navigate to the Builder's Hut (typically in the fundamentals category) and click on Builder's Hut. Then, you can select a level to preview and in some cases also different alternatives. Use the arrow buttons to adjust the position, rotation, and mirroring. Finally, click the checkmark to place it.",
+            "text": "Sempurna! Langkah berikutnya adalah meletakkan bangunan tersebut menggunakan Build Tool. Klik kanan Build Tool di tanah, pilih Builder's Hut (di kategori fundamentals), atur posisi dan rotasinya dengan tombol panah, lalu klik tanda centang hijau untuk meletakkannya.",
             "options": [
               {
-                "answer": "Alrighty then! Let me check this out!",
+                "answer": "Siap! Saya pasang sekarang!",
                 "result": {
                   "type": "slimcolonies:advanceobjective",
                   "go-to": 4
                 }
               },
               {
-                "answer": "Already done!",
+                "answer": "Sudah saya pasang!",
                 "result": {
                   "type": "slimcolonies:advanceobjective",
                   "go-to": 5
@@ -207,7 +207,7 @@
           }
         },
         {
-          "answer": "Not yet, I will get to it later!",
+          "answer": "Nanti dulu, saya kembali lagi nanti!",
           "result": {
             "type": "slimcolonies:return"
           }
@@ -227,10 +227,10 @@
       "unlocks-rewards": [0, 1],
       "type": "slimcolonies:dialogue",
       "target": 0,
-      "text": "Perfect! The building is placed, and a worker will start working there soon. Take this quest log and shift+right-click it on any of the hut blocks in the colony to stay updated with the next steps!",
+      "text": "Luar biasa! Bangunan sudah diletakkan dan pekerja akan segera bertugas di sana. Ambillah Quest Log ini dan Shift+Klik Kanan pada blok bangunan mana pun di desa untuk memantau misi selanjutnya!",
       "options": [
         {
-          "answer": "Perfect! Thanks!",
+          "answer": "Mantap! Terima kasih banyak!",
           "result": {
             "type": "slimcolonies:advanceobjective",
             "go-to": 6
@@ -243,8 +243,9 @@
     {
       "type": "slimcolonies:item",
       "details": {
-        "item": "slimcolonies:questlog",
-        "qty": 1
+        "item": {
+          "id": "slimcolonies:questlog"
+        }
       }
     },
     {

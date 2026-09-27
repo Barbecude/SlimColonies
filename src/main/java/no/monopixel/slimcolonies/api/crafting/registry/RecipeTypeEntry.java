@@ -4,8 +4,8 @@ import no.monopixel.slimcolonies.api.colony.ICitizenData;
 import no.monopixel.slimcolonies.api.crafting.AbstractRecipeType;
 import no.monopixel.slimcolonies.api.crafting.IRecipeStorage;
 import net.minecraft.resources.ResourceLocation;
-import org.apache.commons.lang3.Validate;
 
+import java.util.Objects;
 import java.util.function.Function;
 
 /**
@@ -58,8 +58,8 @@ public final class RecipeTypeEntry
         @SuppressWarnings("PMD.AccessorClassGeneration") //The builder is explicitly allowed to create one.
         public RecipeTypeEntry createRecipeTypeEntry()
         {
-            Validate.notNull(recipeTypeProducer);
-            Validate.notNull(registryName);
+            Objects.requireNonNull(recipeTypeProducer);
+            Objects.requireNonNull(registryName);
 
             return new RecipeTypeEntry(recipeTypeProducer, registryName);
         }

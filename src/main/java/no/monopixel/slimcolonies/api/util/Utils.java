@@ -1,6 +1,17 @@
 package no.monopixel.slimcolonies.api.util;
 
+import com.google.gson.JsonElement;
+import com.mojang.serialization.Codec;
+import com.mojang.serialization.JsonOps;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Holder;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.nbt.NbtOps;
+import net.minecraft.nbt.Tag;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import org.jetbrains.annotations.NotNull;
@@ -20,7 +31,7 @@ import java.util.regex.Pattern;
 public final class Utils
 {
     private static final NavigableMap<Long, String> suffixes = new TreeMap<> ();
-
+    
     static
     {
     suffixes.put(1_000L, "k");
@@ -169,7 +180,7 @@ public final class Utils
             Log.getLogger().error("Directory doesn't exist and failed to be created: " + directory.toString());
         }
     }
-
+    
     /**
      * Formats a long value into a abbreviated string, ie: 1000 to 1k, 1200 to 1.2k, 13000 to 13k
      * @param value to format
@@ -216,5 +227,54 @@ public final class Utils
         }
 
         return -1;
+    }
+
+    public static <T extends Object> Holder<T> getRegistryValue(final ResourceKey<T> resourceKey, final Level level)
+    {
+        return level.holderOrThrow(resourceKey);
+    }
+
+    public static <T extends Object> Tag serializeCodecMess(final Codec<T> codec, HolderLookup.Provider provider, final T obj)
+    {
+        return codec.encodeStart(provider.createSerializationContext(NbtOps.INSTANCE), obj).getOrThrow();
+    }
+
+    public static <T extends Object> T deserializeCodecMess(final Codec<T> codec, HolderLookup.Provider provider, final Tag tag)
+    {
+        return codec.parse(provider.createSerializationContext(NbtOps.INSTANCE), tag).resultOrPartial((res) -> {
+            Log.getLogger().error("Failed to parse thing: '{}'", res);
+        }).get();
+    }
+
+    public static <T extends Object> JsonElement serializeCodecMessToJson(final Codec<T> codec, HolderLookup.Provider provider, final T obj)
+    {
+        return codec.encodeStart(provider.createSerializationContext(JsonOps.INSTANCE), obj).getOrThrow();
+    }
+
+    public static <T extends Object> T deserializeCodecMessFromJson(final Codec<T> codec, HolderLookup.Provider provider, final JsonElement tag)
+    {
+        return codec.parse(provider.createSerializationContext(JsonOps.INSTANCE), tag).resultOrPartial((res) -> {
+            Log.getLogger().error("Failed to parse thing: '{}'", res);
+        }).get();
+    }
+
+    public static <T extends Object> void serializeCodecMess(final StreamCodec<RegistryFriendlyByteBuf, T> codec, RegistryFriendlyByteBuf buf, final T obj)
+    {
+        codec.encode(buf, obj);
+    }
+
+    public static <T extends Object> T deserializeCodecMess(final StreamCodec<RegistryFriendlyByteBuf, T> codec, final RegistryFriendlyByteBuf buf)
+    {
+        return codec.decode(buf);
+    }
+
+    public static void serializeCodecMess(RegistryFriendlyByteBuf buf, final ItemStack obj)
+    {
+        ItemStack.OPTIONAL_STREAM_CODEC.encode(buf, obj);
+    }
+
+    public static ItemStack deserializeCodecMess(final RegistryFriendlyByteBuf buf)
+    {
+        return ItemStack.OPTIONAL_STREAM_CODEC.decode(buf);
     }
 }

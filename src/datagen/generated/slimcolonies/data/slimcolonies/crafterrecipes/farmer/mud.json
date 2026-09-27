@@ -3,9 +3,15 @@
   "crafter": "farmer_crafting",
   "inputs": [
     {
-      "item": "minecraft:dirt"
+      "id": "minecraft:dirt"
+    },
+    {
+      "id": "slimcolonies:large_water_bottle"
     }
   ],
   "intermediate": "minecraft:air",
-  "result": "minecraft:mud"
+  "loot-table": "slimcolonies:recipes/large_bottle",
+  "result": {
+    "id": "minecraft:mud"
+  }
 }

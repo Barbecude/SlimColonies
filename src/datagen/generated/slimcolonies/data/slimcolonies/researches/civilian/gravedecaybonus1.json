@@ -1,5 +1,11 @@
 {
   "branch": "slimcolonies:civilian",
+  "costs": [
+    {
+      "count": 64,
+      "item": "minecraft:rotten_flesh"
+    }
+  ],
   "effects": [
     {
       "id": "slimcolonies:effects/gravedecaybonus",

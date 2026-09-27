@@ -1,12 +1,5 @@
 package no.monopixel.slimcolonies.core.colony.buildings.workerbuildings;
 
-import net.minecraft.core.BlockPos;
-import net.minecraft.tags.ItemTags;
-import net.minecraft.world.item.BlockItem;
-import net.minecraft.world.item.Item;
-import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.MinecartItem;
-import net.minecraft.world.level.block.HopperBlock;
 import no.monopixel.slimcolonies.api.colony.IColony;
 import no.monopixel.slimcolonies.api.colony.buildings.modules.ICraftingBuildingModule;
 import no.monopixel.slimcolonies.api.colony.jobs.registry.JobEntry;
@@ -15,7 +8,13 @@ import no.monopixel.slimcolonies.api.util.CraftingUtils;
 import no.monopixel.slimcolonies.api.util.OptionalPredicate;
 import no.monopixel.slimcolonies.core.colony.buildings.AbstractBuilding;
 import no.monopixel.slimcolonies.core.colony.buildings.modules.AbstractCraftingBuildingModule;
-import no.monopixel.slimcolonies.core.colony.buildings.modules.AbstractDOCraftingBuildingModule;
+import net.minecraft.core.BlockPos;
+import net.minecraft.tags.ItemTags;
+import net.minecraft.world.item.BlockItem;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.MinecartItem;
+import net.minecraft.world.level.block.HopperBlock;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Optional;
@@ -78,56 +77,24 @@ public class BuildingMechanic extends AbstractBuilding
         public OptionalPredicate<ItemStack> getIngredientValidator()
         {
             return CraftingUtils.getIngredientValidatorBasedOnTags(CRAFTING_MECHANIC)
-                .combine(super.getIngredientValidator());
-        }
-
-        /**
-         * Check if an item is a GregTech wire or cable based on its registry ID.
-         * Wires/cables don't have reliable item tags, so we check the item ID directly.
-         */
-        private static boolean isGregTechWireOrCable(final ItemStack stack)
-        {
-            final net.minecraft.resources.ResourceLocation itemId = net.minecraftforge.registries.ForgeRegistries.ITEMS.getKey(stack.getItem());
-            if (itemId == null || !itemId.getNamespace().equals("gtceu"))
-            {
-                return false;
-            }
-
-            final String path = itemId.getPath();
-            return path.endsWith("_wire") || path.endsWith("_cable");
+                    .combine(super.getIngredientValidator());
         }
 
         @Override
         public boolean isRecipeCompatible(@NotNull final IGenericRecipe recipe)
         {
-            if (!super.isRecipeCompatible(recipe))
-            {
-                return false;
-            }
+            if (!super.isRecipeCompatible(recipe)) return false;
 
-            if (recipe.matchesInput(OptionalPredicate.passIf(CraftingModule::isGregTechWireOrCable))
-                .equals(Optional.of(true)))
-            {
-                return true;
-            }
-            if (recipe.matchesOutput(OptionalPredicate.passIf(CraftingModule::isGregTechWireOrCable))
-                .equals(Optional.of(true)))
-            {
-                return true;
-            }
+            final Optional<Boolean> isRecipeAllowed = CraftingUtils.isRecipeCompatibleBasedOnTags(recipe, CRAFTING_MECHANIC);
+            if (isRecipeAllowed.isPresent()) { return isRecipeAllowed.get(); }
 
             final Item item = recipe.getPrimaryOutput().getItem();
-            if (item instanceof MinecartItem
-                || (item instanceof BlockItem && ((BlockItem) item).getBlock() instanceof HopperBlock))
-            {
-                return true;
-            }
-
-            return CraftingUtils.isRecipeCompatibleBasedOnTags(recipe, CRAFTING_MECHANIC).orElse(false);
+            return item instanceof MinecartItem
+                     || (item instanceof BlockItem && ((BlockItem) item).getBlock() instanceof HopperBlock);
         }
     }
 
-    public static class DOCraftingModule extends AbstractDOCraftingBuildingModule
+    public static class DOCraftingModule extends AbstractCraftingBuildingModule.Domum
     {
         /**
          * Create a new module.
@@ -141,20 +108,18 @@ public class BuildingMechanic extends AbstractBuilding
 
         /**
          * See {@link ICraftingBuildingModule#getIngredientValidator}.
-         *
          * @return the validator
          */
-        public @NotNull
-        static OptionalPredicate<ItemStack> getStaticIngredientValidator()
+        public @NotNull static OptionalPredicate<ItemStack> getStaticIngredientValidator()
         {
             final OptionalPredicate<ItemStack> sawmill = CraftingUtils.getIngredientValidatorBasedOnTags(CRAFTING_SAWMILL, true)
-                .combine(stack -> Optional.of(stack.is(ItemTags.PLANKS) || stack.is(ItemTags.LOGS)));
+                    .combine(stack -> Optional.of(stack.is(ItemTags.PLANKS) || stack.is(ItemTags.LOGS)));
 
             final Predicate<ItemStack> handled = sawmill
-                .or(CraftingUtils.getIngredientValidatorBasedOnTags(CRAFTING_FLETCHER, true))
-                .or(CraftingUtils.getIngredientValidatorBasedOnTags(CRAFTING_STONEMASON, true))
-                .or(CraftingUtils.getIngredientValidatorBasedOnTags(CRAFTING_GLASSBLOWER, true))
-                .orElse(false);
+                    .or(CraftingUtils.getIngredientValidatorBasedOnTags(CRAFTING_FLETCHER, true))
+                    .or(CraftingUtils.getIngredientValidatorBasedOnTags(CRAFTING_STONEMASON, true))
+                    .or(CraftingUtils.getIngredientValidatorBasedOnTags(CRAFTING_GLASSBLOWER, true))
+                    .orElse(false);
 
             // mechanic accepts every ingredient not otherwise handled
             return OptionalPredicate.of(handled.negate());

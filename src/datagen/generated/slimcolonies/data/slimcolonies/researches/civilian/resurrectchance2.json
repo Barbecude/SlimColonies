@@ -1,5 +1,11 @@
 {
   "branch": "slimcolonies:civilian",
+  "costs": [
+    {
+      "count": 16,
+      "item": "minecraft:chorus_fruit"
+    }
+  ],
   "effects": [
     {
       "id": "slimcolonies:effects/resurrectchanceaddition",

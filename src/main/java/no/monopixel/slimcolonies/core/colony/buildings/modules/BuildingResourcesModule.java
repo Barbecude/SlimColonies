@@ -14,15 +14,16 @@ import no.monopixel.slimcolonies.api.crafting.ItemStorage;
 import no.monopixel.slimcolonies.api.inventory.InventoryCitizen;
 import no.monopixel.slimcolonies.api.util.InventoryUtils;
 import no.monopixel.slimcolonies.api.util.ItemStackUtils;
+import no.monopixel.slimcolonies.api.util.Utils;
 import no.monopixel.slimcolonies.core.colony.buildings.AbstractBuildingStructureBuilder;
 import no.monopixel.slimcolonies.core.colony.buildings.utils.BuilderBucket;
 import no.monopixel.slimcolonies.core.colony.buildings.utils.BuildingBuilderResource;
 import no.monopixel.slimcolonies.core.colony.jobs.AbstractJobStructure;
 import no.monopixel.slimcolonies.core.entity.ai.workers.util.BuildingProgressStage;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.world.item.ItemStack;
-import net.minecraftforge.common.capabilities.ForgeCapabilities;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -53,14 +54,14 @@ public class BuildingResourcesModule extends AbstractBuildingModule implements I
     private int currentStage = 0;
 
     @Override
-    public void deserializeNBT(final CompoundTag compound)
+    public void deserializeNBT(@NotNull final HolderLookup.Provider provider, final CompoundTag compound)
     {
         currentStage = compound.getInt(TAG_CURR_STAGE);
         totalStages = compound.getInt(TAG_TOTAL_STAGES);
     }
 
     @Override
-    public void serializeNBT(final CompoundTag compound)
+    public void serializeNBT(@NotNull final HolderLookup.Provider provider, CompoundTag compound)
     {
         compound.putInt(TAG_TOTAL_STAGES, totalStages);
         compound.putInt(TAG_CURR_STAGE, currentStage);
@@ -72,14 +73,14 @@ public class BuildingResourcesModule extends AbstractBuildingModule implements I
      * @param buf the used ByteBuffer.
      */
     @Override
-    public void serializeToView(@NotNull final FriendlyByteBuf buf)
+    public void serializeToView(@NotNull final RegistryFriendlyByteBuf buf)
     {
         updateAvailableResources();
         buf.writeInt(neededResources.size());
         double qty = 0;
         for (@NotNull final BuildingBuilderResource resource : neededResources.values())
         {
-            buf.writeItem(resource.getItemStack());
+            Utils.serializeCodecMess(buf, resource.getItemStack());
             buf.writeInt(resource.getAvailable());
             buf.writeInt(resource.getAmount());
             qty += resource.getAmount();
@@ -140,15 +141,15 @@ public class BuildingResourcesModule extends AbstractBuildingModule implements I
 
                 if (building.getTileEntity() != null)
                 {
-                    resource.addAvailable(InventoryUtils.getItemCountInItemHandler(building.getCapability(ForgeCapabilities.ITEM_HANDLER, null).orElseGet(null),
+                    resource.addAvailable(InventoryUtils.getItemCountInItemHandler(building.getItemHandlerCap(),
                       stack -> ItemStackUtils.compareItemStacksIgnoreStackSize(stack, resource.getItemStack(), true, true)));
                 }
 
-                if (data.getJob() instanceof IJobWithExternalWorkStations)
+                if (data.getJob() instanceof final IJobWithExternalWorkStations jobExternalStations)
                 {
-                    for (final IBuilding station : ((IJobWithExternalWorkStations) data.getJob()).getWorkStations())
+                    for (final IBuilding station : jobExternalStations.getWorkStations())
                     {
-                        resource.addAvailable(InventoryUtils.getItemCountInItemHandler(station.getCapability(ForgeCapabilities.ITEM_HANDLER, null).orElseGet(null),
+                        resource.addAvailable(InventoryUtils.getItemCountInItemHandler(station.getItemHandlerCap(),
                           stack -> ItemStackUtils.compareItemStacksIgnoreStackSize(stack, resource.getItemStack(), true, true)));
                     }
                 }
@@ -163,7 +164,7 @@ public class BuildingResourcesModule extends AbstractBuildingModule implements I
      */
     public Map<String, BuildingBuilderResource> getNeededResources()
     {
-        return new HashMap<>(neededResources);
+        return Collections.unmodifiableMap(neededResources);
     }
 
     /**
@@ -202,7 +203,7 @@ public class BuildingResourcesModule extends AbstractBuildingModule implements I
         {
             return;
         }
-        final int hashCode = res.hasTag() ? res.getTag().hashCode() : 0;
+        final int hashCode = res.getComponentsPatch().hashCode();
         final String key = res.getDescriptionId() + "-" + hashCode;
         BuildingBuilderResource resource = this.neededResources.get(key);
         if (resource == null)
@@ -254,7 +255,7 @@ public class BuildingResourcesModule extends AbstractBuildingModule implements I
      */
     public void reduceNeededResource(final ItemStack res, final int amount)
     {
-        final int hashCode = res.hasTag() ? res.getTag().hashCode() : 0;
+        final int hashCode = res.getComponentsPatch().hashCode();
         final String name = res.getDescriptionId() + "-" + hashCode;
 
         final BuilderBucket last = buckets.isEmpty() ? null : getRequiredResources();
@@ -316,7 +317,7 @@ public class BuildingResourcesModule extends AbstractBuildingModule implements I
      */
     public boolean requiresResourceForBuilding(final ItemStack stack)
     {
-        final int hashCode = stack.hasTag() ? stack.getTag().hashCode() : 0;
+        final int hashCode = stack.getComponentsPatch().hashCode();
         return neededResources.containsKey(stack.getDescriptionId() + "-" + hashCode);
     }
 

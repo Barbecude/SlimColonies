@@ -1,5 +1,11 @@
 {
   "branch": "slimcolonies:technology",
+  "costs": [
+    {
+      "count": 8,
+      "item": "minecraft:podzol"
+    }
+  ],
   "effects": [
     {
       "id": "slimcolonies:effects/podzolchancemultiplier",

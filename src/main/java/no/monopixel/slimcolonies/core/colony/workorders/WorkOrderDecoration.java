@@ -1,14 +1,18 @@
 package no.monopixel.slimcolonies.core.colony.workorders;
 
+import com.ldtteam.structurize.api.RotationMirror;
+import no.monopixel.slimcolonies.api.colony.ICitizenData;
 import no.monopixel.slimcolonies.api.colony.IColony;
 import no.monopixel.slimcolonies.api.colony.buildings.IBuilding;
 import no.monopixel.slimcolonies.api.colony.workorders.WorkOrderType;
 import no.monopixel.slimcolonies.api.util.MessageUtils;
 import no.monopixel.slimcolonies.core.colony.buildings.workerbuildings.BuildingBuilder;
+import no.monopixel.slimcolonies.core.colony.jobs.JobBuilder;
 import no.monopixel.slimcolonies.core.entity.ai.workers.util.ConstructionTapeHelper;
 import net.minecraft.core.BlockPos;
 import org.jetbrains.annotations.NotNull;
 
+import static no.monopixel.slimcolonies.api.util.constant.Suppression.UNUSED_METHOD_PARAMETERS_SHOULD_BE_REMOVED;
 import static no.monopixel.slimcolonies.api.util.constant.TranslationConstants.MESSAGE_NEW_DECORATION_REQUEST;
 
 /**
@@ -22,8 +26,7 @@ public class WorkOrderDecoration extends AbstractWorkOrder
       final String path,
       final String translationKey,
       final BlockPos location,
-      final int rotation,
-      final boolean mirror,
+      final RotationMirror rotMir,
       final int currentLevel)
     {
         int targetLevel = currentLevel;
@@ -46,8 +49,7 @@ public class WorkOrderDecoration extends AbstractWorkOrder
           translationKey,
           type,
           location,
-          rotation,
-          mirror,
+          rotMir,
           currentLevel,
           targetLevel);
     }
@@ -61,10 +63,10 @@ public class WorkOrderDecoration extends AbstractWorkOrder
     }
 
     private WorkOrderDecoration(
-      String packName, String path, final String translationKey, WorkOrderType workOrderType, BlockPos location, int rotation, boolean isMirrored, int currentLevel,
+      String packName, String path, final String translationKey, WorkOrderType workOrderType, BlockPos location, RotationMirror rotMir, int currentLevel,
       int targetLevel)
     {
-        super(packName, path, translationKey, workOrderType, location, rotation, isMirrored, currentLevel, targetLevel);
+        super(packName, path, translationKey, workOrderType, location, rotMir, currentLevel, targetLevel);
     }
 
     /**
@@ -73,7 +75,7 @@ public class WorkOrderDecoration extends AbstractWorkOrder
      * @param building which could build it or not
      * @return true if he is able to.
      */
-    
+    @SuppressWarnings(UNUSED_METHOD_PARAMETERS_SHOULD_BE_REMOVED)
     public boolean canBuild(final IBuilding building)
     {
         return building instanceof BuildingBuilder && building.getBuildingLevel() > 0;
@@ -86,7 +88,7 @@ public class WorkOrderDecoration extends AbstractWorkOrder
      * @param level    level of the builders hut.
      * @return true if so.
      */
-    
+    @SuppressWarnings(UNUSED_METHOD_PARAMETERS_SHOULD_BE_REMOVED)
     public boolean canBuildIgnoringDistance(@NotNull IBuilding building, final BlockPos position, final int level)
     {
         return level > 0;

@@ -1,12 +1,12 @@
 package no.monopixel.slimcolonies.api.colony.jobs.registry;
 
-import net.minecraftforge.registries.IForgeRegistry;
-import no.monopixel.slimcolonies.api.ISlimColoniesAPI;
+import no.monopixel.slimcolonies.api.IMinecoloniesAPI;
+import net.minecraft.core.Registry;
 
 public interface IJobRegistry
 {
-    static IForgeRegistry<JobEntry> getInstance()
+    static Registry<JobEntry> getInstance()
     {
-        return ISlimColoniesAPI.getInstance().getJobRegistry();
+        return IMinecoloniesAPI.getInstance().getJobRegistry();
     }
 }

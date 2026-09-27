@@ -1,12 +1,15 @@
 package no.monopixel.slimcolonies.core.network.messages.server.colony.building.miner;
 
+import com.ldtteam.common.network.PlayMessageType;
 import no.monopixel.slimcolonies.api.colony.IColony;
 import no.monopixel.slimcolonies.api.colony.buildings.views.IBuildingView;
+import no.monopixel.slimcolonies.api.util.constant.Constants;
 import no.monopixel.slimcolonies.core.colony.buildings.modules.BuildingModules;
 import no.monopixel.slimcolonies.core.colony.buildings.workerbuildings.BuildingMiner;
 import no.monopixel.slimcolonies.core.network.messages.server.AbstractBuildingServerMessage;
-import net.minecraft.network.FriendlyByteBuf;
-import net.minecraftforge.network.NetworkEvent;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.server.level.ServerPlayer;
+import net.neoforged.neoforge.network.handling.IPayloadContext;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -14,15 +17,9 @@ import org.jetbrains.annotations.NotNull;
  */
 public class MinerSetLevelMessage extends AbstractBuildingServerMessage<BuildingMiner>
 {
-    private int level;
+    public static final PlayMessageType<?> TYPE = PlayMessageType.forServer(Constants.MOD_ID, "miner_set_level", MinerSetLevelMessage::new);
 
-    /**
-     * Empty constructor used when registering the
-     */
-    public MinerSetLevelMessage()
-    {
-        super();
-    }
+    private int level;
 
     /**
      * Creates object for the miner set level
@@ -32,24 +29,25 @@ public class MinerSetLevelMessage extends AbstractBuildingServerMessage<Building
      */
     public MinerSetLevelMessage(@NotNull final IBuildingView building, final int level)
     {
-        super(building);
+        super(TYPE, building);
         this.level = level;
     }
 
-    @Override
-    public void fromBytesOverride(@NotNull final FriendlyByteBuf buf)
+    protected MinerSetLevelMessage(final RegistryFriendlyByteBuf buf, final PlayMessageType<?> type)
     {
+        super(buf, type);
         level = buf.readInt();
     }
 
     @Override
-    public void toBytesOverride(@NotNull final FriendlyByteBuf buf)
+    protected void toBytes(@NotNull final RegistryFriendlyByteBuf buf)
     {
+        super.toBytes(buf);
         buf.writeInt(level);
     }
 
     @Override
-    protected void onExecute(final NetworkEvent.Context ctxIn, final boolean isLogicalServer, final IColony colony, final BuildingMiner building)
+    protected void onExecute(final IPayloadContext ctxIn, final ServerPlayer player, final IColony colony, final BuildingMiner building)
     {
         building.getModule(BuildingModules.MINER_LEVELS).setCurrentLevel(level);
     }

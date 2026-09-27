@@ -9,8 +9,9 @@ import no.monopixel.slimcolonies.api.util.constant.SerializationIdentifierConsta
 import no.monopixel.slimcolonies.api.util.constant.TypeConstants;
 import no.monopixel.slimcolonies.core.colony.buildings.AbstractBuilding;
 import no.monopixel.slimcolonies.core.colony.requestsystem.requesters.BuildingBasedRequester;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import org.jetbrains.annotations.NotNull;
 
 public class BuildingBasedRequesterFactory implements IFactory<AbstractBuilding, BuildingBasedRequester>
@@ -47,26 +48,26 @@ public class BuildingBasedRequesterFactory implements IFactory<AbstractBuilding,
 
     @NotNull
     @Override
-    public CompoundTag serialize(@NotNull final IFactoryController controller, @NotNull final BuildingBasedRequester output)
+    public CompoundTag serialize(@NotNull final HolderLookup.Provider provider, @NotNull final IFactoryController controller, @NotNull final BuildingBasedRequester output)
     {
-        return output.serialize(controller);
+        return output.serialize(provider, controller);
     }
 
     @NotNull
     @Override
-    public BuildingBasedRequester deserialize(@NotNull final IFactoryController controller, @NotNull final CompoundTag nbt)
+    public BuildingBasedRequester deserialize(@NotNull final HolderLookup.Provider provider, @NotNull final IFactoryController controller, @NotNull final CompoundTag nbt)
     {
-        return BuildingBasedRequester.deserialize(controller, nbt);
+        return BuildingBasedRequester.deserialize(provider, controller, nbt);
     }
 
     @Override
-    public void serialize(IFactoryController controller, BuildingBasedRequester output, FriendlyByteBuf packetBuffer)
+    public void serialize(IFactoryController controller, BuildingBasedRequester output, RegistryFriendlyByteBuf packetBuffer)
     {
         output.serialize(controller, packetBuffer);
     }
 
     @Override
-    public BuildingBasedRequester deserialize(IFactoryController controller, FriendlyByteBuf buffer) throws Throwable
+    public BuildingBasedRequester deserialize(IFactoryController controller, RegistryFriendlyByteBuf buffer) throws Throwable
     {
         return BuildingBasedRequester.deserialize(controller, buffer);
     }

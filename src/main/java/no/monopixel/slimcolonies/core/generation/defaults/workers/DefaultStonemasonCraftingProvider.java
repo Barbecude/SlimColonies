@@ -4,15 +4,16 @@ import no.monopixel.slimcolonies.api.colony.jobs.ModJobs;
 import no.monopixel.slimcolonies.api.crafting.ItemStorage;
 import no.monopixel.slimcolonies.api.research.util.ResearchConstants;
 import no.monopixel.slimcolonies.core.generation.CustomRecipeProvider;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.data.PackOutput;
-import net.minecraft.data.recipes.FinishedRecipe;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.ItemLike;
-import net.minecraftforge.registries.ForgeRegistries;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 
 import static no.monopixel.slimcolonies.api.util.constant.BuildingConstants.MODULE_CRAFTING;
@@ -24,9 +25,9 @@ public class DefaultStonemasonCraftingProvider extends CustomRecipeProvider
 {
     private static final String STONEMASON = ModJobs.STONEMASON_ID.getPath();
 
-    public DefaultStonemasonCraftingProvider(@NotNull final PackOutput packOutput)
+    public DefaultStonemasonCraftingProvider(@NotNull final PackOutput packOutput, final CompletableFuture<HolderLookup.Provider> lookupProvider)
     {
-        super(packOutput);
+        super(packOutput, lookupProvider);
     }
 
     @NotNull
@@ -37,14 +38,14 @@ public class DefaultStonemasonCraftingProvider extends CustomRecipeProvider
     }
 
     @Override
-    protected void registerRecipes(@NotNull final Consumer<FinishedRecipe> consumer)
+    protected void registerRecipes(@NotNull final Consumer<CustomRecipeBuilder> consumer)
     {
         convert(consumer, Items.COBBLESTONE, Items.SAND, Items.SANDSTONE);
         convert(consumer, Items.COBBLESTONE, Items.RED_SAND, Items.RED_SANDSTONE);
         convert(consumer, Items.COBBLESTONE, Items.PRISMARINE_SHARD, Items.PRISMARINE);
         convert(consumer, Items.STONE_BRICKS, Items.PRISMARINE_SHARD, Items.PRISMARINE_BRICKS);
 
-        CustomRecipeBuilder.create(STONEMASON, MODULE_CRAFTING, "end_stone")
+        recipe(STONEMASON, MODULE_CRAFTING, "end_stone")
                 .inputs(List.of(new ItemStorage(new ItemStack(Items.SANDSTONE), 8),
                         new ItemStorage(new ItemStack(Items.ENDER_PEARL))))
                 .result(new ItemStack(Items.END_STONE, 8))
@@ -52,13 +53,13 @@ public class DefaultStonemasonCraftingProvider extends CustomRecipeProvider
                 .build(consumer);
     }
 
-    private void convert(@NotNull final Consumer<FinishedRecipe> consumer,
+    private void convert(@NotNull final Consumer<CustomRecipeBuilder> consumer,
                          @NotNull final ItemLike input1,
                          @NotNull final ItemLike input2,
                          @NotNull final ItemLike output)
     {
-        CustomRecipeBuilder.create(STONEMASON, MODULE_CRAFTING,
-                        ForgeRegistries.ITEMS.getKey(output.asItem()).getPath())
+        recipe(STONEMASON, MODULE_CRAFTING,
+                        BuiltInRegistries.ITEM.getKey(output.asItem()).getPath())
                 .inputs(List.of(new ItemStorage(new ItemStack(input1)), new ItemStorage(new ItemStack(input2))))
                 .result(new ItemStack(output))
                 .build(consumer);

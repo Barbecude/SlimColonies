@@ -1,0 +1,31 @@
+{
+  "criteria": {
+    "guardtower": {
+      "conditions": {
+        "hut_name": "guardtower",
+        "level": 1
+      },
+      "trigger": "slimcolonies:complete_build_request"
+    }
+  },
+  "display": {
+    "announce_to_chat": false,
+    "background": "minecraft:textures/block/stone_bricks.png",
+    "description": {
+      "translate": "advancements.slimcolonies.root.military.description"
+    },
+    "icon": {
+      "count": 1,
+      "id": "slimcolonies:blockhutbarracks"
+    },
+    "title": {
+      "translate": "advancements.slimcolonies.root.military.title"
+    }
+  },
+  "requirements": [
+    [
+      "guardtower"
+    ]
+  ],
+  "sends_telemetry_event": true
+}

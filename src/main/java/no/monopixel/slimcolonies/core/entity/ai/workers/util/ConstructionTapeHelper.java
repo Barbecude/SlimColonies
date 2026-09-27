@@ -15,10 +15,7 @@ import net.minecraft.core.Direction;
 import net.minecraft.util.Tuple;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
-import net.minecraft.world.level.block.HorizontalDirectionalBlock;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.level.block.state.properties.BooleanProperty;
-import net.minecraft.world.level.block.state.properties.DirectionProperty;
 import net.minecraft.world.phys.AABB;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -30,9 +27,6 @@ import static no.monopixel.slimcolonies.api.util.constant.Constants.EMPTY_AABB;
  */
 public final class ConstructionTapeHelper
 {
-    public static final DirectionProperty FACING = HorizontalDirectionalBlock.FACING;
-    public static final BooleanProperty   CORNER = BooleanProperty.create("corner");
-
     /**
      * Private Constructor to hide implicit one. Intentionally empty.
      */
@@ -61,9 +55,9 @@ public final class ConstructionTapeHelper
     public static void placeConstructionTape(@NotNull final IBuilding building)
     {
         ServerFutureProcessor.queueBlueprint(new ServerFutureProcessor.BlueprintProcessingData(StructurePacks.getBlueprintFuture(building.getStructurePack(),
-          building.getBlueprintPath()), building.getColony().getWorld(), (blueprint -> {
+          building.getBlueprintPath(), building.getColony().getWorld().registryAccess()), building.getColony().getWorld(), (blueprint -> {
             final Tuple<BlockPos, BlockPos> corners =
-              ColonyUtils.calculateCorners(building.getPosition(), building.getColony().getWorld(), blueprint, building.getRotation(), building.isMirrored());
+              ColonyUtils.calculateCorners(building.getPosition(), building.getColony().getWorld(), blueprint, building.getRotationMirror());
             building.setCorners(corners.getA(), corners.getB());
             placeConstructionTape(corners, building.getColony());
         })));
@@ -103,14 +97,14 @@ public final class ConstructionTapeHelper
                 if (working != null)
                 {
                     world.setBlockAndUpdate(working,
-                      BlockConstructionTape.getPlacementState(constructionTape.setValue(CORNER, place.getX() == x), world, working, Direction.SOUTH));
+                      BlockConstructionTape.getPlacementState(constructionTape.setValue(BlockConstructionTape.CORNER, place.getX() == x), world, working, Direction.SOUTH));
                 }
 
                 working = firstValidPosition(new BlockPos(place.getX(), y, z + sizeZ), world, sizeY);
                 if (working != null)
                 {
                     world.setBlockAndUpdate(working,
-                      BlockConstructionTape.getPlacementState(constructionTape.setValue(CORNER, place.getX() == x), world, working, Direction.NORTH));
+                      BlockConstructionTape.getPlacementState(constructionTape.setValue(BlockConstructionTape.CORNER, place.getX() == x), world, working, Direction.NORTH));
                 }
             }
 
@@ -119,14 +113,14 @@ public final class ConstructionTapeHelper
                 working = firstValidPosition(new BlockPos(x, y, place.getZ()), world, sizeY);
                 if (working != null)
                 {
-                    world.setBlockAndUpdate(working, BlockConstructionTape.getPlacementState(constructionTape.setValue(CORNER, place.getZ() == z), world, working, Direction.EAST));
+                    world.setBlockAndUpdate(working, BlockConstructionTape.getPlacementState(constructionTape.setValue(BlockConstructionTape.CORNER, place.getZ() == z), world, working, Direction.EAST));
                 }
 
                 working = firstValidPosition(new BlockPos(x + sizeX, y, place.getZ()), world, sizeY);
                 if (working != null)
                 {
                     world.setBlockAndUpdate(working,
-                      BlockConstructionTape.getPlacementState(constructionTape.setValue(CORNER, place.getZ() == z),
+                      BlockConstructionTape.getPlacementState(constructionTape.setValue(BlockConstructionTape.CORNER, place.getZ() == z),
                         world,
                         working,
                         place.getZ() == z ? Direction.SOUTH : Direction.WEST));
@@ -139,7 +133,7 @@ public final class ConstructionTapeHelper
         working = firstValidPosition(new BlockPos(x + sizeX, y, z + sizeZ), world, sizeY);
         if (working != null)
         {
-            world.setBlockAndUpdate(working, BlockConstructionTape.getPlacementState(constructionTape.setValue(CORNER, true), world, working, Direction.WEST));
+            world.setBlockAndUpdate(working, BlockConstructionTape.getPlacementState(constructionTape.setValue(BlockConstructionTape.CORNER, true), world, working, Direction.WEST));
         }
     }
 

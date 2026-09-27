@@ -1,5 +1,11 @@
 {
   "branch": "slimcolonies:civilian",
+  "costs": [
+    {
+      "count": 1,
+      "item": "minecraft:carrot"
+    }
+  ],
   "effects": [
     {
       "id": "slimcolonies:effects/blockhuthospital",

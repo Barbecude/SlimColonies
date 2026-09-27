@@ -3,12 +3,10 @@ package no.monopixel.slimcolonies.api.colony.requestsystem.manager;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.google.common.collect.ImmutableBiMap;
-import no.monopixel.slimcolonies.api.colony.requestsystem.request.IRequest;
-import no.monopixel.slimcolonies.api.colony.requestsystem.requestable.IRequestable;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * Class used to manage {@link IRequestable} to {@link IRequest} mappings.
+ * Class used to manage {@link no.monopixel.slimcolonies.api.colony.requestsystem.requestable.IRequestable} to {@link no.monopixel.slimcolonies.api.colony.requestsystem.request.IRequest} mappings.
  */
 public final class RequestMappingHandler
 {

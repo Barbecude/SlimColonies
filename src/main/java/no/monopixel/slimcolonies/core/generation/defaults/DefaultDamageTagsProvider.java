@@ -8,7 +8,7 @@ import net.minecraft.data.PackOutput;
 import net.minecraft.data.tags.TagsProvider;
 import net.minecraft.tags.DamageTypeTags;
 import net.minecraft.world.damagesource.DamageType;
-import net.minecraftforge.common.data.ExistingFileHelper;
+import net.neoforged.neoforge.common.data.ExistingFileHelper;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.concurrent.CompletableFuture;
@@ -27,6 +27,8 @@ public class DefaultDamageTagsProvider extends TagsProvider<DamageType>
     @Override
     protected void addTags(final HolderLookup.Provider lookup)
     {
-        tag(DamageTypeTags.BYPASSES_ARMOR).add(DamageSourceKeys.WAKEY, DamageSourceKeys.GUARD_PVP);
+        tag(DamageTypeTags.BYPASSES_ARMOR).add(DamageSourceKeys.WAKEY, DamageSourceKeys.GUARD_PVP, DamageSourceKeys.PIERCE);
+        tag(DamageTypeTags.IS_PROJECTILE).add(DamageSourceKeys.SPEAR, DamageSourceKeys.PIERCE);
+        tag(DamageTypeTags.BYPASSES_SHIELD).add(DamageSourceKeys.PIERCE);
     }
 }

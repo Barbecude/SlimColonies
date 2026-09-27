@@ -45,5 +45,5 @@ public class ClassicRecipe extends AbstractRecipeType<IRecipeStorage>
     {
         return ModRecipeTypes.CLASSIC_ID;
     }
-
+    
 }

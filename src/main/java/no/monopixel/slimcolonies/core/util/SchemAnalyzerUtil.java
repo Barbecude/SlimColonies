@@ -1,25 +1,27 @@
 package no.monopixel.slimcolonies.core.util;
 
 import com.ldtteam.domumornamentum.client.model.data.MaterialTextureData;
-import com.ldtteam.structurize.api.util.ItemStorage;
+import com.ldtteam.domumornamentum.util.Constants;
 import com.ldtteam.structurize.blocks.schematic.BlockSolidSubstitution;
 import com.ldtteam.structurize.blocks.schematic.BlockSubstitution;
 import com.ldtteam.structurize.blueprints.v1.Blueprint;
 import com.ldtteam.structurize.util.BlockInfo;
 import no.monopixel.slimcolonies.api.blocks.AbstractBlockHut;
+import no.monopixel.slimcolonies.api.crafting.ItemStorage;
 import no.monopixel.slimcolonies.api.items.ModTags;
+import no.monopixel.slimcolonies.api.util.Utils;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.tags.BlockTags;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraftforge.common.Tags;
+import net.neoforged.neoforge.common.Tags;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-
-import static no.monopixel.slimcolonies.core.util.DomumOrnamentumUtils.DO_NBT_TEXTURE_DATA;
 
 public class SchemAnalyzerUtil
 {
@@ -125,7 +127,7 @@ public class SchemAnalyzerUtil
      * @param blueprint
      * @return
      */
-    public static SchematicAnalyzationResult analyzeSchematic(final Blueprint blueprint)
+    public static SchematicAnalyzationResult analyzeSchematic(final Blueprint blueprint, @NotNull final HolderLookup.Provider provider)
     {
         double complexityScore = 0;
         int containedBuildings = 0;
@@ -144,9 +146,9 @@ public class SchemAnalyzerUtil
 
             if (DomumOrnamentumUtils.isDoBlock(block) && blockInfo.hasTileEntityData())
             {
-                final MaterialTextureData textureData = DomumOrnamentumUtils.getTextureDataFromNBT(blockInfo.getTileEntityData());
+                final MaterialTextureData textureData = Utils.deserializeCodecMess(MaterialTextureData.CODEC, provider, blockInfo.getTileEntityData().getCompound(Constants.BLOCK_ENTITY_TEXTURE_DATA));
                 final ItemStack result = new ItemStack(block);
-                if (textureData != null)
+                if (!textureData.isEmpty())
                 {
                     double doComplexity = 0;
                     for (final Block doBlockPart : textureData.getTexturedComponents().values())
@@ -157,7 +159,7 @@ public class SchemAnalyzerUtil
                     // Estimate for do recipes giving higher output per block usually, increased minimum of 2 due to added complexity for crafting
                     blockComplexity = Math.max(2, doComplexity / 3);
 
-                    result.getOrCreateTag().put(DO_NBT_TEXTURE_DATA, blockInfo.getTileEntityData().getCompound(DO_NBT_TEXTURE_DATA));
+                    textureData.writeToItemStack(result);
                 }
 
                 storage = new ItemStorage(result);

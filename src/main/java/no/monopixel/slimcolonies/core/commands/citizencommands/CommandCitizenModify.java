@@ -1,5 +1,13 @@
 package no.monopixel.slimcolonies.core.commands.citizencommands;
 
+import no.monopixel.slimcolonies.api.colony.ICitizenData;
+import no.monopixel.slimcolonies.api.colony.IColony;
+import no.monopixel.slimcolonies.api.util.Log;
+import no.monopixel.slimcolonies.api.util.constant.translation.CommandTranslationConstants;
+import no.monopixel.slimcolonies.core.MineColonies;
+import no.monopixel.slimcolonies.core.commands.arguments.ColonyIdArgument;
+import no.monopixel.slimcolonies.core.commands.commandTypes.IMCColonyOfficerCommand;
+import no.monopixel.slimcolonies.core.commands.commandTypes.IMCCommand;
 import com.mojang.brigadier.arguments.DoubleArgumentType;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
@@ -8,14 +16,6 @@ import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.SharedSuggestionProvider;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.MinecraftServer;
-import no.monopixel.slimcolonies.api.colony.ICitizenData;
-import no.monopixel.slimcolonies.api.colony.IColony;
-import no.monopixel.slimcolonies.api.colony.IColonyManager;
-import no.monopixel.slimcolonies.api.util.Log;
-import no.monopixel.slimcolonies.api.util.constant.translation.CommandTranslationConstants;
-import no.monopixel.slimcolonies.core.SlimColonies;
-import no.monopixel.slimcolonies.core.commands.commandTypes.IMCColonyOfficerCommand;
-import no.monopixel.slimcolonies.core.commands.commandTypes.IMCCommand;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
@@ -52,7 +52,7 @@ public class CommandCitizenModify implements IMCColonyOfficerCommand
     public LiteralArgumentBuilder<CommandSourceStack> build()
     {
         return IMCCommand.newLiteral(getName())
-            .then(IMCCommand.newArgument(COLONYID_ARG, IntegerArgumentType.integer(1))
+                .then(IMCCommand.newArgument(COLONYID_ARG, ColonyIdArgument.id())
                 .then(IMCCommand.newArgument(CITIZENID_ARG, IntegerArgumentType.integer(1))
                     .then(IMCCommand.newLiteral("saturation")
                         .then(IMCCommand.newLiteral("=")
@@ -100,7 +100,7 @@ public class CommandCitizenModify implements IMCColonyOfficerCommand
                 return 0;
             }
 
-            if (!context.getSource().hasPermission(OP_PERM_LEVEL) && !SlimColonies.getConfig().getServer().canPlayerUseModifyCitizensCommand.get())
+            if (!context.getSource().hasPermission(OP_PERM_LEVEL) && !MineColonies.getConfig().getServer().canPlayerUseModifyCitizensCommand.get())
             {
                 context.getSource().sendSuccess(() -> Component.translatable(CommandTranslationConstants.COMMAND_DISABLED_IN_CONFIG), true);
                 return 0;
@@ -120,14 +120,7 @@ public class CommandCitizenModify implements IMCColonyOfficerCommand
                 return 0;
             }
 
-            final int colonyID = IntegerArgumentType.getInteger(context, COLONYID_ARG);
-            final IColony colony = IColonyManager.getInstance().getColonyByDimension(colonyID, context.getSource().getLevel().dimension());
-            if (colony == null)
-            {
-                context.getSource().sendSuccess(() -> Component.translatable(CommandTranslationConstants.COMMAND_COLONY_ID_NOT_FOUND, colonyID), true);
-                return 0;
-            }
-
+            final IColony colony = ColonyIdArgument.getColony(context, COLONYID_ARG);
             final ICitizenData citizenData = colony.getCitizenManager().getCivilian(IntegerArgumentType.getInteger(context, CITIZENID_ARG));
             if (citizenData == null)
             {

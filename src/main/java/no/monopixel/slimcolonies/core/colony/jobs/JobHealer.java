@@ -1,17 +1,19 @@
 package no.monopixel.slimcolonies.core.colony.jobs;
 
+import no.monopixel.slimcolonies.core.colony.buildings.modules.BuildingModules;
+import net.minecraft.resources.ResourceLocation;
 import no.monopixel.slimcolonies.api.client.render.modeltype.ModModelTypes;
 import no.monopixel.slimcolonies.api.colony.ICitizenData;
 import no.monopixel.slimcolonies.api.entity.citizen.AbstractEntityCitizen;
-import no.monopixel.slimcolonies.core.colony.buildings.modules.BuildingModules;
+import no.monopixel.slimcolonies.core.colony.buildings.modules.WorkerBuildingModule;
 import no.monopixel.slimcolonies.core.entity.ai.workers.service.EntityAIWorkHealer;
 import no.monopixel.slimcolonies.core.util.AttributeModifierUtils;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.ai.attributes.AttributeModifier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import org.jetbrains.annotations.NotNull;
 
 import static no.monopixel.slimcolonies.api.util.constant.CitizenConstants.SKILL_BONUS_ADD;
+import static no.monopixel.slimcolonies.api.util.constant.CitizenConstants.SKILL_BONUS_ADD_NAME;
 
 /**
  * The healer job class.
@@ -63,9 +65,15 @@ public class JobHealer extends AbstractJob<EntityAIWorkHealer, JobHealer>
         if (getCitizen().getEntity().isPresent())
         {
             final AbstractEntityCitizen worker = getCitizen().getEntity().get();
-            final AttributeModifier speedModifier = new AttributeModifier(SKILL_BONUS_ADD, getCitizen().getCitizenSkillHandler().getLevel(getCitizen().getWorkBuilding().getModule(
-              BuildingModules.HEALER_WORK).getPrimarySkill()) * BONUS_SPEED_PER_LEVEL, AttributeModifier.Operation.ADDITION);
+            final AttributeModifier speedModifier = new AttributeModifier(SKILL_BONUS_ADD_NAME, getCitizen().getCitizenSkillHandler().getLevel(getCitizen().getWorkBuilding().getModule(
+              BuildingModules.HEALER_WORK).getPrimarySkill()) * BONUS_SPEED_PER_LEVEL, AttributeModifier.Operation.ADD_VALUE);
             AttributeModifierUtils.addModifier(worker, speedModifier, Attributes.MOVEMENT_SPEED);
         }
+    }
+
+    @Override
+    public double getDiseaseModifier()
+    {
+        return 0;
     }
 }

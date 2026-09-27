@@ -6,6 +6,7 @@ import net.minecraft.world.entity.Mob;
 import net.minecraft.world.item.CrossbowItem;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.UseAnim;
+import net.neoforged.neoforge.client.extensions.common.IClientItemExtensions;
 
 public class RenderUtils
 {
@@ -43,6 +44,11 @@ public class RenderUtils
                     return HumanoidModel.ArmPose.BOW_AND_ARROW;
                 }
 
+                if (useanim == UseAnim.SPEAR)
+                {
+                    return HumanoidModel.ArmPose.THROW_SPEAR;
+                }
+
                 if (useanim == UseAnim.CROSSBOW && hand == entity.getUsedItemHand())
                 {
                     return HumanoidModel.ArmPose.CROSSBOW_CHARGE;
@@ -68,7 +74,7 @@ public class RenderUtils
                 return HumanoidModel.ArmPose.CROSSBOW_HOLD;
             }
 
-            HumanoidModel.ArmPose forgeArmPose = net.minecraftforge.client.extensions.common.IClientItemExtensions.of(itemstack).getArmPose(entity, hand, itemstack);
+            HumanoidModel.ArmPose forgeArmPose = IClientItemExtensions.of(itemstack).getArmPose(entity, hand, itemstack);
             if (forgeArmPose != null)
             {
                 return forgeArmPose;

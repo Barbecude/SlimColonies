@@ -1,5 +1,6 @@
 package no.monopixel.slimcolonies.api.research;
 
+import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
@@ -18,14 +19,14 @@ public interface IResearchManager
      *
      * @param compound the compound.
      */
-    void readFromNBT(@NotNull final CompoundTag compound);
+    void readFromNBT(@NotNull final HolderLookup.Provider provider, @NotNull final CompoundTag compound);
 
     /**
      * Write all stats to nbt.
      *
      * @param statsCompound the compound.
      */
-    void writeToNBT(@NotNull final CompoundTag statsCompound);
+    void writeToNBT(@NotNull final HolderLookup.Provider provider, @NotNull final CompoundTag statsCompound);
 
     void sendPackets(Set<ServerPlayer> closeSubscribers, Set<ServerPlayer> newSubscribers);
 

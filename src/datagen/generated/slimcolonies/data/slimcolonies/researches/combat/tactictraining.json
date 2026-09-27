@@ -1,5 +1,11 @@
 {
   "branch": "slimcolonies:combat",
+  "costs": [
+    {
+      "count": 3,
+      "item": "minecraft:iron_block"
+    }
+  ],
   "effects": [
     {
       "id": "slimcolonies:effects/blockhutbarracks",

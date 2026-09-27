@@ -1,7 +1,12 @@
 package no.monopixel.slimcolonies.core.items;
 
+import no.monopixel.slimcolonies.api.items.IBlockOverlayItem;
+import no.monopixel.slimcolonies.api.items.component.BuildingId;
+import no.monopixel.slimcolonies.api.util.MessageUtils;
+import no.monopixel.slimcolonies.api.util.SoundUtils;
+import no.monopixel.slimcolonies.core.colony.buildings.workerbuildings.BuildingBeekeeper;
+import no.monopixel.slimcolonies.core.network.messages.client.colony.ColonyViewBuildingViewMessage;
 import net.minecraft.core.BlockPos;
-import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.world.InteractionResult;
@@ -10,18 +15,6 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.BeehiveBlock;
-import net.minecraft.world.phys.AABB;
-import no.monopixel.slimcolonies.api.colony.IColony;
-import no.monopixel.slimcolonies.api.colony.IColonyManager;
-import no.monopixel.slimcolonies.api.colony.IColonyView;
-import no.monopixel.slimcolonies.api.colony.buildings.IBuilding;
-import no.monopixel.slimcolonies.api.items.IBlockOverlayItem;
-import no.monopixel.slimcolonies.api.util.BlockPosUtil;
-import no.monopixel.slimcolonies.api.util.MessageUtils;
-import no.monopixel.slimcolonies.api.util.SoundUtils;
-import no.monopixel.slimcolonies.core.Network;
-import no.monopixel.slimcolonies.core.colony.buildings.workerbuildings.BuildingBeekeeper;
-import no.monopixel.slimcolonies.core.network.messages.client.colony.ColonyViewBuildingViewMessage;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
@@ -29,16 +22,14 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
-import static no.monopixel.slimcolonies.api.util.constant.NbtTagConstants.TAG_ID;
-import static no.monopixel.slimcolonies.api.util.constant.NbtTagConstants.TAG_POS;
 import static no.monopixel.slimcolonies.api.util.constant.translation.ToolTranslationConstants.*;
 
 /**
  * Beekeeper Scepter Item class. Used to give tasks to Beekeeper.
  */
-public class ItemScepterBeekeeper extends AbstractItemSlimColonies implements IBlockOverlayItem
+public class ItemScepterBeekeeper extends AbstractItemMinecolonies implements IBlockOverlayItem
 {
-    private static final int RED_OVERLAY    = 0xFFFF0000;
+    private static final int RED_OVERLAY = 0xFFFF0000;
     private static final int YELLOW_OVERLAY = 0xFFFFFF00;
 
     /**
@@ -61,18 +52,15 @@ public class ItemScepterBeekeeper extends AbstractItemSlimColonies implements IB
         }
 
         final Player player = useContext.getPlayer();
-
         final ItemStack scepter = useContext.getPlayer().getItemInHand(useContext.getHand());
-        final CompoundTag compound = scepter.getOrCreateTag();
 
-        final IColony colony = IColonyManager.getInstance().getColonyByWorld(compound.getInt(TAG_ID), useContext.getLevel());
-        final BlockPos hutPos = BlockPosUtil.read(compound, TAG_POS);
-        final IBuilding hut = colony.getBuildingManager().getBuilding(hutPos);
-        final BuildingBeekeeper building = (BuildingBeekeeper) hut;
+        if (!(BuildingId.readBuildingFromItemStack(scepter) instanceof final BuildingBeekeeper building))
+        {
+            return InteractionResult.FAIL;
+        }
 
         if (useContext.getLevel().getBlockState(useContext.getClickedPos()).getBlock() instanceof BeehiveBlock)
         {
-
             final Collection<BlockPos> positions = building.getHives();
 
             final BlockPos pos = useContext.getClickedPos();
@@ -80,8 +68,8 @@ public class ItemScepterBeekeeper extends AbstractItemSlimColonies implements IB
             {
                 MessageUtils.format(TOOL_BEEHIVE_SCEPTER_REMOVE_HIVE).sendTo(useContext.getPlayer());
                 building.removeHive(pos);
-                SoundUtils.playSoundForPlayer((ServerPlayer) player, SoundEvents.NOTE_BLOCK_BELL.get(), (float) SoundUtils.VOLUME * 2, 0.5f);
-                Network.getNetwork().sendToPlayer(new ColonyViewBuildingViewMessage(building), (ServerPlayer) player);
+                SoundUtils.playSoundForPlayer((ServerPlayer) player, SoundEvents.NOTE_BLOCK_BELL.value(), (float) SoundUtils.VOLUME * 2, 0.5f);
+                new ColonyViewBuildingViewMessage(building).sendToPlayer((ServerPlayer) player);
             }
             else
             {
@@ -90,18 +78,18 @@ public class ItemScepterBeekeeper extends AbstractItemSlimColonies implements IB
                     MessageUtils.format(TOOL_BEEHIVE_SCEPTER_ADD_HIVE).sendTo(useContext.getPlayer());
                     building.addHive(pos);
                     SoundUtils.playSuccessSound(player, player.blockPosition());
-                    Network.getNetwork().sendToPlayer(new ColonyViewBuildingViewMessage(building), (ServerPlayer) player);
+                    new ColonyViewBuildingViewMessage(building).sendToPlayer((ServerPlayer) player);
                 }
                 if (positions.size() >= building.getMaximumHives())
                 {
                     MessageUtils.format(TOOL_BEEHIVE_SCEPTER_MAX_HIVES).sendTo(useContext.getPlayer());
-                    player.getInventory().removeItemNoUpdate(player.getInventory().selected);
+                    player.getInventory().removeItem(scepter);
                 }
             }
         }
         else
         {
-            player.getInventory().removeItemNoUpdate(player.getInventory().selected);
+            player.getInventory().removeItem(scepter);
         }
 
         return super.useOn(useContext);
@@ -111,19 +99,15 @@ public class ItemScepterBeekeeper extends AbstractItemSlimColonies implements IB
     @Override
     public List<OverlayBox> getOverlayBoxes(@NotNull final Level world, @NotNull final Player player, @NotNull ItemStack stack)
     {
-        final CompoundTag compound = stack.getOrCreateTag();
-        final IColonyView colony = IColonyManager.getInstance().getColonyView(compound.getInt(TAG_ID), world.dimension());
-        final BlockPos pos = BlockPosUtil.read(compound, TAG_POS);
-
-        if (colony != null && colony.getBuilding(pos) instanceof final BuildingBeekeeper.View hut)
+        if (BuildingId.readBuildingViewFromItemStack(stack) instanceof final BuildingBeekeeper.View hut)
         {
             final List<OverlayBox> overlays = new ArrayList<>();
 
-            overlays.add(new OverlayBox(new AABB(pos), RED_OVERLAY, 0.02f, true));
+            overlays.add(new OverlayBox(hut.getPosition(), RED_OVERLAY, 0.02f, true));
 
             for (final BlockPos hive : hut.getHives())
             {
-                overlays.add(new OverlayBox(new AABB(hive), YELLOW_OVERLAY, 0.04f, true));
+                overlays.add(new OverlayBox(hive, YELLOW_OVERLAY, 0.04f, true));
             }
 
             return overlays;

@@ -7,20 +7,23 @@ import no.monopixel.slimcolonies.api.colony.ICitizenDataView;
 import no.monopixel.slimcolonies.api.colony.interactionhandling.AbstractInteractionResponseHandler;
 import no.monopixel.slimcolonies.api.colony.interactionhandling.IChatPriority;
 import no.monopixel.slimcolonies.api.colony.interactionhandling.InteractionValidatorRegistry;
+import no.monopixel.slimcolonies.api.util.Log;
+import no.monopixel.slimcolonies.api.util.NBTUtils;
 import no.monopixel.slimcolonies.api.util.Tuple;
-import no.monopixel.slimcolonies.core.Network;
+import no.monopixel.slimcolonies.api.util.Utils;
 import no.monopixel.slimcolonies.core.client.gui.citizen.MainWindowCitizen;
 import no.monopixel.slimcolonies.core.network.messages.server.colony.InteractionResponse;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.Tag;
+import net.minecraft.network.chat.ComponentSerialization;
 import net.minecraft.network.chat.contents.TranslatableContents;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.level.Level;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.api.distmarker.OnlyIn;
-
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.api.distmarker.OnlyIn;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.HashSet;
@@ -72,16 +75,21 @@ public abstract class ServerCitizenInteraction extends AbstractInteractionRespon
      */
     @SafeVarargs
     public ServerCitizenInteraction(
-        final Component inquiry,
-        final boolean primary,
-        final IChatPriority priority,
-        final Predicate<ICitizenData> validator,
-        final Component validatorId,
-        final Tuple<Component, Component>... responseTuples)
+      final Component inquiry,
+      final boolean primary,
+      final IChatPriority priority,
+      final Predicate<ICitizenData> validator,
+      @NotNull final Component validatorId,
+      final Tuple<Component, Component>... responseTuples)
     {
         super(inquiry, primary, priority, responseTuples);
         this.validator = validator;
         this.validatorId = validatorId;
+        if (this.validatorId == null)
+        {
+            this.validatorId = Component.empty();
+            Log.getLogger().error("Validator id is null: " + this.getClass() + " " + this.getInquiry(), new Exception());
+        }
     }
 
     /**
@@ -135,9 +143,8 @@ public abstract class ServerCitizenInteraction extends AbstractInteractionRespon
 
     /**
      * Check if the response was an ignore response.
-     *
      * @param response the response to compare.
-     * @param player   the player that triggered it.
+     * @param player the player that triggered it.
      */
     private void tryHandleIgnoreResponse(final Component response, final Player player)
     {
@@ -146,18 +153,17 @@ public abstract class ServerCitizenInteraction extends AbstractInteractionRespon
             if (((TranslatableContents) response.getContents()).getKey().equals(INTERACTION_R_IGNORE))
             {
                 // 6 hours later
-                displayAtWorldTick = (int) (player.level.getGameTime() + (TICKS_SECOND * 60 * 60 * 6));
+                displayAtWorldTick = (int) (player.level().getGameTime() + (TICKS_SECOND * 60 * 60 * 6));
             }
             else if (((TranslatableContents) response.getContents()).getKey().equals(INTERACTION_R_REMIND))
             {
                 // 1 hour later
-                displayAtWorldTick = (int) (player.level.getGameTime() + (TICKS_SECOND * 60 * 60));
+                displayAtWorldTick = (int) (player.level().getGameTime() + (TICKS_SECOND * 60 * 60));
             }
-            else if (((TranslatableContents) response.getContents()).getKey().equals(INTERACTION_R_OKAY) || ((TranslatableContents) response.getContents()).getKey()
-                .equals(INTERACTION_R_SKIP))
+            else if (((TranslatableContents) response.getContents()).getKey().equals(INTERACTION_R_OKAY) || ((TranslatableContents) response.getContents()).getKey().equals(INTERACTION_R_SKIP))
             {
                 // 5 minutes
-                displayAtWorldTick = (int) (player.level.getGameTime() + (TICKS_SECOND * 60 * 5));
+                displayAtWorldTick = (int) (player.level().getGameTime() + (TICKS_SECOND * 60 * 5));
             }
         }
     }
@@ -174,39 +180,37 @@ public abstract class ServerCitizenInteraction extends AbstractInteractionRespon
             windowCitizen.open();
         }
 
-        Network.getNetwork().sendToServer(new InteractionResponse(data.getColonyId(), data.getId(), player.level.dimension(), this.getInquiry(), responseId));
+        new InteractionResponse(data.getColonyId(), data.getId(), player.level().dimension(), this.getInquiry(), responseId).sendToServer();
         return true;
     }
 
     @Override
-    public CompoundTag serializeNBT()
+    public CompoundTag serializeNBT(@NotNull final HolderLookup.Provider provider)
     {
-        final CompoundTag compoundNBT = super.serializeNBT();
+        final CompoundTag compoundNBT = super.serializeNBT(provider);
         compoundNBT.putInt(TAG_DELAY, displayAtWorldTick);
         final ListTag list = new ListTag();
         for (final Component element : parents)
         {
-            final CompoundTag elementTag = new CompoundTag();
-            elementTag.putString(TAG_PARENT, Component.Serializer.toJson(element));
-            list.add(elementTag);
+            list.add(Utils.serializeCodecMess(ComponentSerialization.CODEC, provider, element));
         }
         compoundNBT.put(TAG_PARENTS, list);
-        compoundNBT.putString(TAG_VALIDATOR_ID, Component.Serializer.toJson(validatorId));
+        compoundNBT.put(TAG_VALIDATOR_ID, Utils.serializeCodecMess(ComponentSerialization.CODEC, provider, validatorId));
         return compoundNBT;
     }
 
     @Override
-    public void deserializeNBT(@NotNull final CompoundTag compoundNBT)
+    public void deserializeNBT(@NotNull final HolderLookup.Provider provider, @NotNull final CompoundTag compoundNBT)
     {
-        super.deserializeNBT(compoundNBT);
+        super.deserializeNBT(provider, compoundNBT);
         this.displayAtWorldTick = compoundNBT.getInt(TAG_DELAY);
         this.parents.clear();
         final ListTag list = compoundNBT.getList(TAG_PARENTS, Tag.TAG_COMPOUND);
-        for (int i = 0; i < list.size(); i++)
+        for (Tag tag : list)
         {
-            this.parents.add(Component.Serializer.fromJson(compoundNBT.getString(TAG_PARENT)));
+            this.parents.add(Utils.deserializeCodecMess(ComponentSerialization.CODEC, provider, tag));
         }
-        this.validatorId = Component.Serializer.fromJson(compoundNBT.getString(TAG_VALIDATOR_ID));
+        this.validatorId = Utils.deserializeCodecMess(ComponentSerialization.CODEC, provider, compoundNBT.get(TAG_VALIDATOR_ID));
         loadValidator();
     }
 

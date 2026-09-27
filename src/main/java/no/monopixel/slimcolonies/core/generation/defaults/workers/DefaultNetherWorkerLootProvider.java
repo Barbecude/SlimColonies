@@ -3,14 +3,15 @@ package no.monopixel.slimcolonies.core.generation.defaults.workers;
 import no.monopixel.slimcolonies.api.colony.jobs.ModJobs;
 import no.monopixel.slimcolonies.api.crafting.ItemStorage;
 import no.monopixel.slimcolonies.api.items.ModItems;
+import no.monopixel.slimcolonies.api.items.component.AdventureData;
 import no.monopixel.slimcolonies.core.colony.crafting.LootTableAnalyzer;
 import no.monopixel.slimcolonies.core.generation.CustomRecipeAndLootTableProvider;
-import no.monopixel.slimcolonies.core.generation.CustomRecipeProvider;
-import no.monopixel.slimcolonies.core.generation.DatagenLootTableManager;
+import no.monopixel.slimcolonies.core.generation.CustomRecipeProvider.CustomRecipeBuilder;
 import no.monopixel.slimcolonies.core.generation.SimpleLootTableProvider;
+import net.minecraft.core.Holder;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.data.PackOutput;
-import net.minecraft.data.recipes.FinishedRecipe;
-import net.minecraft.nbt.CompoundTag;
+import net.minecraft.data.loot.LootTableProvider;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.item.Item;
@@ -23,17 +24,16 @@ import net.minecraft.world.level.storage.loot.entries.LootPoolSingletonContainer
 import net.minecraft.world.level.storage.loot.functions.SetItemCountFunction;
 import net.minecraft.world.level.storage.loot.parameters.LootContextParamSets;
 import net.minecraft.world.level.storage.loot.providers.number.UniformGenerator;
-import net.minecraftforge.registries.ForgeRegistries;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static no.monopixel.slimcolonies.api.util.constant.BuildingConstants.MODULE_CUSTOM;
 import static no.monopixel.slimcolonies.api.util.constant.Constants.MOD_ID;
-import static no.monopixel.slimcolonies.api.util.constant.NbtTagConstants.*;
 
 /**
  * Datagen for Nether Worker
@@ -43,14 +43,12 @@ public class DefaultNetherWorkerLootProvider extends CustomRecipeAndLootTablePro
     public static final String NETHERWORKER = ModJobs.NETHERWORKER_ID.getPath();
     private static final int MAX_BUILDING_LEVEL = 5;
 
-    private final DatagenLootTableManager         lootTableManager;
     private final List<LootTable.Builder> levels;
 
     public DefaultNetherWorkerLootProvider(@NotNull final PackOutput packOutput,
-                                           @NotNull final DatagenLootTableManager lootTableManager)
+                                           @NotNull final CompletableFuture<HolderLookup.Provider> providerFuture)
     {
-        super(packOutput);
-        this.lootTableManager = lootTableManager;
+        super(packOutput, providerFuture);
 
         levels = new ArrayList<>();
 
@@ -204,13 +202,8 @@ public class DefaultNetherWorkerLootProvider extends CustomRecipeAndLootTablePro
 
     private LootPoolSingletonContainer.Builder<?> createAdventureToken(@NotNull final EntityType<?> mob, final int damage_done, final int xp_gained)
     {
-        final CompoundTag nbt = new CompoundTag();
-        nbt.putString(TAG_ENTITY_TYPE, ForgeRegistries.ENTITY_TYPES.getKey(mob).toString());
-        nbt.putInt(TAG_DAMAGE, damage_done);
-        nbt.putInt(TAG_XP_DROPPED, xp_gained);
-
         final ItemStack stack = new ItemStack(ModItems.adventureToken);
-        stack.setTag(nbt);
+        new AdventureData(mob, damage_done, xp_gained).writeToItemStack(stack);
 
         return SimpleLootTableProvider.itemStack(stack);
     }
@@ -223,7 +216,7 @@ public class DefaultNetherWorkerLootProvider extends CustomRecipeAndLootTablePro
     }
 
     @Override
-    protected void registerRecipes(@NotNull final Consumer<FinishedRecipe> consumer)
+    protected void registerRecipes(@NotNull final Consumer<CustomRecipeBuilder> consumer)
     {
         final List<ItemStorage> inputs = Arrays.asList(
                 new ItemStorage(new ItemStack(Items.COBBLESTONE, 64)),
@@ -235,12 +228,12 @@ public class DefaultNetherWorkerLootProvider extends CustomRecipeAndLootTablePro
         {
             final int buildingLevel = i + 1;
 
-            final List<LootTableAnalyzer.LootDrop> drops = LootTableAnalyzer.toDrops(lootTableManager, levels.get(i).build());
+            final List<LootTableAnalyzer.LootDrop> drops = LootTableAnalyzer.toDrops(provider, Holder.direct(levels.get(i).build()));
             final Stream<Item> loot = drops.stream().flatMap(drop -> drop.getItemStacks().stream()
                     .sorted(Comparator.comparing(ItemStack::getCount).reversed().thenComparing(ItemStack::getDescriptionId))
                     .map(ItemStack::getItem));
 
-            CustomRecipeProvider.CustomRecipeBuilder.create(NETHERWORKER, MODULE_CUSTOM, "trip" + buildingLevel)
+            recipe(NETHERWORKER, MODULE_CUSTOM, "trip" + buildingLevel)
                     .minBuildingLevel(buildingLevel)
                     .maxBuildingLevel(buildingLevel)
                     .inputs(inputs)
@@ -250,22 +243,23 @@ public class DefaultNetherWorkerLootProvider extends CustomRecipeAndLootTablePro
         }
 
         // and also a lava bucket recipe for good measure
-        CustomRecipeProvider.CustomRecipeBuilder.create(NETHERWORKER, MODULE_CUSTOM, "lava")
+        recipe(NETHERWORKER, MODULE_CUSTOM, "lava")
                 .inputs(Collections.singletonList(new ItemStorage(new ItemStack(Items.BUCKET))))
                 .result(new ItemStack(Items.LAVA_BUCKET))
                 .build(consumer);
     }
 
+    @NotNull
     @Override
-    protected void registerTables(@NotNull final SimpleLootTableProvider.LootTableRegistrar registrar)
+    protected List<LootTableProvider.SubProviderEntry> registerTables()
     {
-        for (int i = 0; i < levels.size(); ++i)
+        return List.of(new LootTableProvider.SubProviderEntry(provider -> builder ->
         {
-            final int buildingLevel = i + 1;
-            final LootTable.Builder lootTable = levels.get(i);
-
-            registrar.register(new ResourceLocation(MOD_ID, "recipes/" + NETHERWORKER + "/trip" + buildingLevel),
-                    LootContextParamSets.ALL_PARAMS, lootTable);
-        }
+            for (int i = 0; i < levels.size(); ++i)
+            {
+                final int buildingLevel = i + 1;
+                builder.accept(table(new ResourceLocation(MOD_ID, "recipes/" + NETHERWORKER + "/trip" + buildingLevel)), levels.get(i));
+            }
+        }, LootContextParamSets.ALL_PARAMS));
     }
 }

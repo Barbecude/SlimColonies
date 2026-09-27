@@ -5,15 +5,15 @@ import no.monopixel.slimcolonies.api.colony.buildings.modules.AbstractBuildingMo
 import no.monopixel.slimcolonies.api.colony.jobs.ModJobs;
 import no.monopixel.slimcolonies.api.colony.workorders.IWorkOrderView;
 import no.monopixel.slimcolonies.api.util.constant.Constants;
-import no.monopixel.slimcolonies.core.client.gui.modules.WindowHutMinerModule;
-import net.minecraft.network.FriendlyByteBuf;
-import net.minecraft.resources.ResourceLocation;
-
-import no.monopixel.slimcolonies.core.colony.workorders.view.WorkOrderMinerView;
+import no.monopixel.slimcolonies.core.client.gui.modules.building.WindowHutMinerModule;
 import no.monopixel.slimcolonies.core.colony.workorders.AbstractWorkOrder;
+import no.monopixel.slimcolonies.core.colony.workorders.view.WorkOrderMinerView;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Tuple;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.api.distmarker.OnlyIn;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.api.distmarker.OnlyIn;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
@@ -40,7 +40,7 @@ public class MinerLevelManagementModuleView extends AbstractBuildingModuleView
     private List<WorkOrderMinerView> workOrders = new ArrayList<>();
 
     @Override
-    public void deserialize(@NotNull final FriendlyByteBuf buf)
+    public void deserialize(@NotNull final RegistryFriendlyByteBuf buf)
     {
         current = buf.readInt();
         final int size = buf.readInt();
@@ -67,19 +67,19 @@ public class MinerLevelManagementModuleView extends AbstractBuildingModuleView
     @Override
     public BOWindow getWindow()
     {
-        return new WindowHutMinerModule(buildingView, this);
+        return new WindowHutMinerModule(this);
     }
 
     @Override
     public ResourceLocation getIconResourceLocation()
     {
-        return ResourceLocation.fromNamespaceAndPath(Constants.MOD_ID, "textures/gui/modules/info.png");
+        return new ResourceLocation(Constants.MOD_ID, "textures/gui/modules/info.png");
     }
 
     @Override
-    public String getDesc()
+    public Component getDesc()
     {
-        return "no.monopixel.slimcolonies.coremod.gui.miner.levels";
+        return Component.translatable("no.monopixel.slimcolonies.coremod.gui.miner.levels");
     }
 
     @Override

@@ -1,18 +1,19 @@
 package no.monopixel.slimcolonies.api.colony.buildingextensions.registry;
 
-import net.minecraft.core.BlockPos;
-import net.minecraft.resources.ResourceLocation;
-import net.minecraftforge.registries.IForgeRegistry;
-import net.minecraftforge.registries.RegistryObject;
-import no.monopixel.slimcolonies.api.ISlimColoniesAPI;
+import no.monopixel.slimcolonies.api.IMinecoloniesAPI;
 import no.monopixel.slimcolonies.api.colony.buildingextensions.IBuildingExtension;
 import no.monopixel.slimcolonies.api.colony.buildingextensions.modules.IBuildingExtensionModule;
 import no.monopixel.slimcolonies.api.util.constant.Constants;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Registry;
+import net.minecraft.resources.ResourceLocation;
+import net.neoforged.neoforge.registries.DeferredHolder;
 import org.apache.commons.lang3.Validate;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
@@ -21,35 +22,35 @@ import java.util.function.Function;
  */
 public class BuildingExtensionRegistries
 {
-    public static final ResourceLocation FARM_FIELD_ID                      = ResourceLocation.fromNamespaceAndPath(Constants.MOD_ID, "farmfield");
-    public static final ResourceLocation PLANTATION_SUGAR_CANE_FIELD_ID     = ResourceLocation.fromNamespaceAndPath(Constants.MOD_ID, "plantation_sugar_cane");
-    public static final ResourceLocation PLANTATION_CACTUS_FIELD_ID         = ResourceLocation.fromNamespaceAndPath(Constants.MOD_ID, "plantation_cactus");
-    public static final ResourceLocation PLANTATION_BAMBOO_FIELD_ID         = ResourceLocation.fromNamespaceAndPath(Constants.MOD_ID, "plantation_bamboo");
-    public static final ResourceLocation PLANTATION_COCOA_BEANS_FIELD_ID    = ResourceLocation.fromNamespaceAndPath(Constants.MOD_ID, "plantation_cocoa_beans");
-    public static final ResourceLocation PLANTATION_VINES_FIELD_ID          = ResourceLocation.fromNamespaceAndPath(Constants.MOD_ID, "plantation_vines");
-    public static final ResourceLocation PLANTATION_KELP_FIELD_ID           = ResourceLocation.fromNamespaceAndPath(Constants.MOD_ID, "plantation_kelp");
-    public static final ResourceLocation PLANTATION_SEAGRASS_FIELD_ID       = ResourceLocation.fromNamespaceAndPath(Constants.MOD_ID, "plantation_seagrass");
-    public static final ResourceLocation PLANTATION_SEA_PICKLES_FIELD_ID    = ResourceLocation.fromNamespaceAndPath(Constants.MOD_ID, "plantation_sea_pickles");
-    public static final ResourceLocation PLANTATION_GLOWBERRIES_FIELD_ID    = ResourceLocation.fromNamespaceAndPath(Constants.MOD_ID, "plantation_glowberries");
-    public static final ResourceLocation PLANTATION_WEEPING_VINES_FIELD_ID  = ResourceLocation.fromNamespaceAndPath(Constants.MOD_ID, "plantation_weeping_vines");
-    public static final ResourceLocation PLANTATION_TWISTING_VINES_FIELD_ID = ResourceLocation.fromNamespaceAndPath(Constants.MOD_ID, "plantation_twisting_vines");
-    public static final ResourceLocation PLANTATION_CRIMSON_PLANTS_FIELD_ID = ResourceLocation.fromNamespaceAndPath(Constants.MOD_ID, "plantation_crimson_plants");
-    public static final ResourceLocation PLANTATION_WARPED_PLANTS_FIELD_ID  = ResourceLocation.fromNamespaceAndPath(Constants.MOD_ID, "plantation_warped_plants");
+    public static final ResourceLocation FARM_FIELD_ID                      = new ResourceLocation(Constants.MOD_ID, "farmfield");
+    public static final ResourceLocation PLANTATION_SUGAR_CANE_FIELD_ID     = new ResourceLocation(Constants.MOD_ID, "plantation_sugar_cane");
+    public static final ResourceLocation PLANTATION_CACTUS_FIELD_ID         = new ResourceLocation(Constants.MOD_ID, "plantation_cactus");
+    public static final ResourceLocation PLANTATION_BAMBOO_FIELD_ID         = new ResourceLocation(Constants.MOD_ID, "plantation_bamboo");
+    public static final ResourceLocation PLANTATION_COCOA_BEANS_FIELD_ID    = new ResourceLocation(Constants.MOD_ID, "plantation_cocoa_beans");
+    public static final ResourceLocation PLANTATION_VINES_FIELD_ID          = new ResourceLocation(Constants.MOD_ID, "plantation_vines");
+    public static final ResourceLocation PLANTATION_KELP_FIELD_ID           = new ResourceLocation(Constants.MOD_ID, "plantation_kelp");
+    public static final ResourceLocation PLANTATION_SEAGRASS_FIELD_ID       = new ResourceLocation(Constants.MOD_ID, "plantation_seagrass");
+    public static final ResourceLocation PLANTATION_SEA_PICKLES_FIELD_ID    = new ResourceLocation(Constants.MOD_ID, "plantation_sea_pickles");
+    public static final ResourceLocation PLANTATION_GLOWBERRIES_FIELD_ID    = new ResourceLocation(Constants.MOD_ID, "plantation_glowberries");
+    public static final ResourceLocation PLANTATION_WEEPING_VINES_FIELD_ID  = new ResourceLocation(Constants.MOD_ID, "plantation_weeping_vines");
+    public static final ResourceLocation PLANTATION_TWISTING_VINES_FIELD_ID = new ResourceLocation(Constants.MOD_ID, "plantation_twisting_vines");
+    public static final ResourceLocation PLANTATION_CRIMSON_PLANTS_FIELD_ID = new ResourceLocation(Constants.MOD_ID, "plantation_crimson_plants");
+    public static final ResourceLocation PLANTATION_WARPED_PLANTS_FIELD_ID  = new ResourceLocation(Constants.MOD_ID, "plantation_warped_plants");
 
-    public static RegistryObject<BuildingExtensionEntry> farmField;
-    public static RegistryObject<BuildingExtensionEntry> plantationSugarCaneField;
-    public static RegistryObject<BuildingExtensionEntry> plantationCactusField;
-    public static RegistryObject<BuildingExtensionEntry> plantationBambooField;
-    public static RegistryObject<BuildingExtensionEntry> plantationCocoaBeansField;
-    public static RegistryObject<BuildingExtensionEntry> plantationVinesField;
-    public static RegistryObject<BuildingExtensionEntry> plantationKelpField;
-    public static RegistryObject<BuildingExtensionEntry> plantationSeagrassField;
-    public static RegistryObject<BuildingExtensionEntry> plantationSeaPicklesField;
-    public static RegistryObject<BuildingExtensionEntry> plantationGlowberriesField;
-    public static RegistryObject<BuildingExtensionEntry> plantationWeepingVinesField;
-    public static RegistryObject<BuildingExtensionEntry> plantationTwistingVinesField;
-    public static RegistryObject<BuildingExtensionEntry> plantationCrimsonPlantsField;
-    public static RegistryObject<BuildingExtensionEntry> plantationWarpedPlantsField;
+    public static DeferredHolder<BuildingExtensionEntry, BuildingExtensionEntry> farmField;
+    public static DeferredHolder<BuildingExtensionEntry, BuildingExtensionEntry> plantationSugarCaneField;
+    public static DeferredHolder<BuildingExtensionEntry, BuildingExtensionEntry> plantationCactusField;
+    public static DeferredHolder<BuildingExtensionEntry, BuildingExtensionEntry> plantationBambooField;
+    public static DeferredHolder<BuildingExtensionEntry, BuildingExtensionEntry> plantationCocoaBeansField;
+    public static DeferredHolder<BuildingExtensionEntry, BuildingExtensionEntry> plantationVinesField;
+    public static DeferredHolder<BuildingExtensionEntry, BuildingExtensionEntry> plantationKelpField;
+    public static DeferredHolder<BuildingExtensionEntry, BuildingExtensionEntry> plantationSeagrassField;
+    public static DeferredHolder<BuildingExtensionEntry, BuildingExtensionEntry> plantationSeaPicklesField;
+    public static DeferredHolder<BuildingExtensionEntry, BuildingExtensionEntry> plantationGlowberriesField;
+    public static DeferredHolder<BuildingExtensionEntry, BuildingExtensionEntry> plantationWeepingVinesField;
+    public static DeferredHolder<BuildingExtensionEntry, BuildingExtensionEntry> plantationTwistingVinesField;
+    public static DeferredHolder<BuildingExtensionEntry, BuildingExtensionEntry> plantationCrimsonPlantsField;
+    public static DeferredHolder<BuildingExtensionEntry, BuildingExtensionEntry> plantationWarpedPlantsField;
 
     private BuildingExtensionRegistries()
     {
@@ -60,10 +61,11 @@ public class BuildingExtensionRegistries
      *
      * @return the building extension registry.
      */
-    public static IForgeRegistry<BuildingExtensionEntry> getBuildingExtensionRegistry()
+    public static Registry<BuildingExtensionEntry> getBuildingExtensionRegistry()
     {
-        return ISlimColoniesAPI.getInstance().getBuildingExtensionRegistry();
+        return IMinecoloniesAPI.getInstance().getBuildingExtensionRegistry();
     }
+
 
     /**
      * Entry for the {@link IBuildingExtension} registry. Makes it possible to create a single registry for a {@link IBuildingExtension}. Used to lookup how to create {@link IBuildingExtension}.
@@ -78,9 +80,9 @@ public class BuildingExtensionRegistries
          * Default internal constructor.
          */
         private BuildingExtensionEntry(
-            final ResourceLocation registryName,
-            final BiFunction<BuildingExtensionEntry, BlockPos, IBuildingExtension> extensionProducer,
-            final List<Function<IBuildingExtension, IBuildingExtensionModule>> extensionModuleProducers)
+          final ResourceLocation registryName,
+          final BiFunction<BuildingExtensionEntry, BlockPos, IBuildingExtension> extensionProducer,
+          final List<Function<IBuildingExtension, IBuildingExtensionModule>> extensionModuleProducers)
         {
             this.registryName = registryName;
             this.extensionProducer = extensionProducer;

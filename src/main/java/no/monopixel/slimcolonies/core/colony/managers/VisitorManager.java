@@ -8,13 +8,16 @@ import no.monopixel.slimcolonies.api.colony.managers.interfaces.IVisitorManager;
 import no.monopixel.slimcolonies.api.entity.ModEntities;
 import no.monopixel.slimcolonies.api.entity.citizen.AbstractCivilianEntity;
 import no.monopixel.slimcolonies.api.entity.citizen.AbstractEntityCitizen;
+import no.monopixel.slimcolonies.api.util.EntityUtils;
 import no.monopixel.slimcolonies.api.util.Log;
+import no.monopixel.slimcolonies.api.util.MessageUtils;
 import no.monopixel.slimcolonies.api.util.WorldUtil;
-import no.monopixel.slimcolonies.core.Network;
 import no.monopixel.slimcolonies.core.colony.VisitorData;
+import no.monopixel.slimcolonies.core.colony.buildings.workerbuildings.BuildingTownHall;
 import no.monopixel.slimcolonies.core.entity.visitor.VisitorCitizen;
 import no.monopixel.slimcolonies.core.network.messages.client.colony.ColonyVisitorViewDataMessage;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
@@ -27,6 +30,7 @@ import java.util.*;
 
 import static no.monopixel.slimcolonies.api.util.constant.Constants.SLIGHTLY_UP;
 import static no.monopixel.slimcolonies.api.util.constant.PathingConstants.HALF_A_BLOCK;
+import static no.monopixel.slimcolonies.api.util.constant.TranslationConstants.WARNING_COLONY_NO_ARRIVAL_SPACE;
 
 /**
  * Manages all visiting entities to the colony
@@ -70,7 +74,7 @@ public class VisitorManager implements IVisitorManager
     {
         if (visitor.getCivilianID() == 0 || visitorMap.get(visitor.getCivilianID()) == null)
         {
-            if (!visitor.isAddedToWorld())
+            if (!visitor.isAddedToLevel())
             {
                 Log.getLogger().warn("Discarding entity not added to world, should be only called after:", new Exception());
             }
@@ -82,7 +86,7 @@ public class VisitorManager implements IVisitorManager
 
         if (data == null || !visitor.getUUID().equals(data.getUUID()))
         {
-            if (!visitor.isAddedToWorld())
+            if (!visitor.isAddedToLevel())
             {
                 Log.getLogger().warn("Discarding entity not added to world, should be only called after:", new Exception());
             }
@@ -112,7 +116,7 @@ public class VisitorManager implements IVisitorManager
             return;
         }
 
-        if (!visitor.isAddedToWorld())
+        if (!visitor.isAddedToLevel())
         {
             Log.getLogger().warn("Discarding entity not added to world, should be only called after:", new Exception());
         }
@@ -130,7 +134,7 @@ public class VisitorManager implements IVisitorManager
     }
 
     @Override
-    public void read(@NotNull final CompoundTag compound)
+    public void read(@NotNull final HolderLookup.Provider provider, @NotNull final CompoundTag compound)
     {
         if (compound.contains(TAG_VISIT_MANAGER))
         {
@@ -138,7 +142,7 @@ public class VisitorManager implements IVisitorManager
             final ListTag citizenList = visitorManagerNBT.getList(TAG_VISITORS, Tag.TAG_COMPOUND);
             for (final Tag citizen : citizenList)
             {
-                final IVisitorData data = VisitorData.loadVisitorFromNBT(colony, (CompoundTag) citizen);
+                final IVisitorData data = VisitorData.loadVisitorFromNBT(colony, (CompoundTag) citizen, provider);
                 visitorMap.put(data.getId(), data);
             }
 
@@ -148,14 +152,14 @@ public class VisitorManager implements IVisitorManager
     }
 
     @Override
-    public void write(@NotNull final CompoundTag compoundNBT)
+    public void write(@NotNull final HolderLookup.Provider provider, @NotNull final CompoundTag compoundNBT)
     {
         final CompoundTag visitorManagerNBT = new CompoundTag();
 
         final ListTag citizenList = new ListTag();
         for (Map.Entry<Integer, IVisitorData> entry : visitorMap.entrySet())
         {
-            citizenList.add(entry.getValue().serializeNBT());
+            citizenList.add(entry.getValue().serializeNBT(provider));
         }
 
         visitorManagerNBT.put(TAG_VISITORS, citizenList);
@@ -202,13 +206,7 @@ public class VisitorManager implements IVisitorManager
 
         Set<ServerPlayer> players = new HashSet<>(newSubscribers);
         players.addAll(closeSubscribers);
-
-        final ColonyVisitorViewDataMessage message = new ColonyVisitorViewDataMessage(colony, toSend, refresh);
-
-        for (final ServerPlayer player : players)
-        {
-            Network.getNetwork().sendToPlayer(message, player);
-        }
+        new ColonyVisitorViewDataMessage(colony, toSend, refresh).sendToPlayer(players);
     }
 
     @NotNull
@@ -231,37 +229,60 @@ public class VisitorManager implements IVisitorManager
     }
 
     @Override
-    public IVisitorData spawnOrCreateCivilian(ICivilianData data, final Level world, final BlockPos spawnPos, final boolean force)
+    public <T extends ICivilianData> T spawnOrCreateCivilian(T data, final Level world, List<BlockPos> spawnPositions, final boolean force)
     {
-        if (!WorldUtil.isEntityBlockLoaded(world, spawnPos))
+        if (!colony.getServerBuildingManager().hasTownHall() || (!colony.getSettings().getSetting(BuildingTownHall.MOVE_IN).getValue() && !force))
         {
-            return (IVisitorData) data;
+            return data;
         }
 
-        if (data == null)
+        if (colony.getServerBuildingManager().hasTownHall())
         {
-            data = createAndRegisterCivilianData();
+            spawnPositions = new ArrayList<>(spawnPositions);
+            spawnPositions.add(colony.getServerBuildingManager().getTownHall().getPosition());
         }
 
-        VisitorCitizen citizenEntity = (VisitorCitizen) ModEntities.VISITOR.create(colony.getWorld());
-
-        if (citizenEntity == null)
+        for (final BlockPos spawnLocation : spawnPositions)
         {
-            return (IVisitorData) data;
+            if (spawnLocation == null || spawnLocation.equals(BlockPos.ZERO))
+            {
+                continue;
+            }
+
+            if (WorldUtil.isEntityBlockLoaded(world, spawnLocation))
+            {
+                BlockPos calculatedSpawn = EntityUtils.getSpawnPoint(world, spawnLocation);
+                if (calculatedSpawn != null)
+                {
+                    VisitorCitizen citizenEntity = (VisitorCitizen) ModEntities.VISITOR.create(colony.getWorld());
+
+                    if (citizenEntity == null)
+                    {
+                        return data;
+                    }
+
+                    citizenEntity.setUUID(data.getUUID());
+                    citizenEntity.setPos(calculatedSpawn.getX() + HALF_A_BLOCK, calculatedSpawn.getY() + SLIGHTLY_UP, calculatedSpawn.getZ() + HALF_A_BLOCK);
+                    world.addFreshEntity(citizenEntity);
+
+                    citizenEntity.setCitizenId(data.getId());
+                    citizenEntity.getCitizenColonyHandler().setColonyId(colony.getID());
+                    if (citizenEntity.isAddedToLevel())
+                    {
+                        citizenEntity.getCitizenColonyHandler().registerWithColony(data.getColony().getID(), data.getId());
+                    }
+
+                    return data;
+                }
+            }
         }
 
-        citizenEntity.setUUID(data.getUUID());
-        citizenEntity.setPos(spawnPos.getX() + HALF_A_BLOCK, spawnPos.getY() + SLIGHTLY_UP, spawnPos.getZ() + HALF_A_BLOCK);
-        world.addFreshEntity(citizenEntity);
-
-        citizenEntity.setCitizenId(data.getId());
-        citizenEntity.getCitizenColonyHandler().setColonyId(colony.getID());
-        if (citizenEntity.isAddedToWorld())
+        if (colony.getServerBuildingManager().hasTownHall() && WorldUtil.isEntityBlockLoaded(world, colony.getServerBuildingManager().getTownHall().getPosition()))
         {
-            citizenEntity.getCitizenColonyHandler().registerWithColony(data.getColony().getID(), data.getId());
+            final BlockPos townhallPos = colony.getServerBuildingManager().getTownHall().getPosition();
+            MessageUtils.format(WARNING_COLONY_NO_ARRIVAL_SPACE, townhallPos.getX(), townhallPos.getY(), townhallPos.getZ()).sendTo(colony).forAllPlayers();
         }
-
-        return (IVisitorData) data;
+        return data;
     }
 
     @Override
@@ -299,7 +320,7 @@ public class VisitorManager implements IVisitorManager
     @Override
     public void onColonyTick(final IColony colony)
     {
-        if (colony.hasTownHall())
+        if (colony.getServerBuildingManager().hasTownHall())
         {
             for (final IVisitorData data : visitorMap.values())
             {

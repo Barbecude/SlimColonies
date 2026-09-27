@@ -5,15 +5,16 @@ import no.monopixel.slimcolonies.api.crafting.ItemStorage;
 import no.monopixel.slimcolonies.api.equipment.ModEquipmentTypes;
 import no.monopixel.slimcolonies.api.items.ModItems;
 import no.monopixel.slimcolonies.core.generation.CustomRecipeProvider;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.data.PackOutput;
-import net.minecraft.data.recipes.FinishedRecipe;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
-import net.minecraftforge.registries.ForgeRegistries;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 
 import static no.monopixel.slimcolonies.api.util.constant.BuildingConstants.MODULE_CRAFTING;
@@ -25,9 +26,9 @@ public class DefaultMechanicCraftingProvider extends CustomRecipeProvider
 {
     private static final String MECHANIC = ModJobs.MECHANIC_ID.getPath();
 
-    public DefaultMechanicCraftingProvider(@NotNull final PackOutput packOutput)
+    public DefaultMechanicCraftingProvider(@NotNull final PackOutput packOutput, final CompletableFuture<HolderLookup.Provider> lookupProvider)
     {
-        super(packOutput);
+        super(packOutput, lookupProvider);
     }
 
     @NotNull
@@ -38,28 +39,28 @@ public class DefaultMechanicCraftingProvider extends CustomRecipeProvider
     }
 
     @Override
-    protected void registerRecipes(@NotNull final Consumer<FinishedRecipe> consumer)
+    protected void registerRecipes(@NotNull final Consumer<CustomRecipeBuilder> consumer)
     {
-        CustomRecipeBuilder.create(MECHANIC, MODULE_CRAFTING, "gate_wood")
+        recipe(MECHANIC, MODULE_CRAFTING, "gate_wood")
                 .inputs(List.of(new ItemStorage(new ItemStack(Items.OAK_LOG, 5))))
                 .result(new ItemStack(ModItems.woodgate))
                 .showTooltip(true)
                 .build(consumer);
 
-        CustomRecipeBuilder.create(MECHANIC, MODULE_CRAFTING, "gate_iron")
+        recipe(MECHANIC, MODULE_CRAFTING, "gate_iron")
                 .inputs(List.of(new ItemStorage(new ItemStack(Items.IRON_NUGGET, 5))))
                 .result(new ItemStack(ModItems.irongate))
                 .showTooltip(true)
                 .build(consumer);
 
-        CustomRecipeBuilder.create(MECHANIC, MODULE_CRAFTING, "rails")
+        recipe(MECHANIC, MODULE_CRAFTING, "rails")
                 .inputs(List.of(new ItemStorage(new ItemStack(Items.STICK, 5)),
                         new ItemStorage(new ItemStack(Items.IRON_INGOT, 2))))
                 .result(new ItemStack(Items.RAIL, 16))
                 .minBuildingLevel(3)
                 .build(consumer);
 
-        CustomRecipeBuilder.create(MECHANIC, MODULE_CRAFTING, "lantern")
+        recipe(MECHANIC, MODULE_CRAFTING, "lantern")
                 .inputs(List.of(new ItemStorage(new ItemStack(Items.IRON_NUGGET, 3)),
                         new ItemStorage(new ItemStack(Items.GLASS_BOTTLE)),
                         new ItemStorage(new ItemStack(Items.TORCH))))
@@ -67,7 +68,7 @@ public class DefaultMechanicCraftingProvider extends CustomRecipeProvider
                 .minBuildingLevel(3)
                 .build(consumer);
 
-        CustomRecipeBuilder.create(MECHANIC, MODULE_CRAFTING, "soul_lantern")
+        recipe(MECHANIC, MODULE_CRAFTING, "soul_lantern")
                 .inputs(List.of(new ItemStorage(new ItemStack(Items.IRON_NUGGET, 3)),
                         new ItemStorage(new ItemStack(Items.GLASS_BOTTLE)),
                         new ItemStorage(new ItemStack(Items.SOUL_TORCH))))
@@ -83,11 +84,11 @@ public class DefaultMechanicCraftingProvider extends CustomRecipeProvider
         deoxidize(consumer, Items.EXPOSED_CUT_COPPER, Items.CUT_COPPER);
     }
 
-    private void deoxidize(@NotNull final Consumer<FinishedRecipe> consumer,
+    private void deoxidize(@NotNull final Consumer<CustomRecipeBuilder> consumer,
                            @NotNull final Item input,
                            @NotNull final Item output)
     {
-        CustomRecipeBuilder.create(MECHANIC, MODULE_CRAFTING, "deoxidize_" + ForgeRegistries.ITEMS.getKey(input).getPath())
+        recipe(MECHANIC, MODULE_CRAFTING, "deoxidize_" + BuiltInRegistries.ITEM.getKey(input).getPath())
                 .inputs(List.of(new ItemStorage(new ItemStack(input))))
                 .result(new ItemStack(output))
                 .requiredTool(ModEquipmentTypes.axe.get())

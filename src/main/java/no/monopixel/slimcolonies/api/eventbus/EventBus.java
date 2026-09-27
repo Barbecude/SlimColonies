@@ -1,7 +1,5 @@
 package no.monopixel.slimcolonies.api.eventbus;
-
 import org.jetbrains.annotations.NotNull;
-
 /**
  * Interface for the mod event bus.
  */
@@ -15,14 +13,12 @@ public interface EventBus
      * @param <T>       the generic type of the event class.
      */
     <T extends IModEvent> void subscribe(final @NotNull Class<T> eventType, final @NotNull EventHandler<T> handler);
-
     /**
      * Posts a new event on the event bus for the given type.
      *
      * @param event the event to send.
      */
     void post(final @NotNull IModEvent event);
-
     /**
      * The event handler lambda definition.
      *

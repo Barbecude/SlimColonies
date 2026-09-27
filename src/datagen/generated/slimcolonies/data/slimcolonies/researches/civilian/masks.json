@@ -1,0 +1,26 @@
+{
+  "branch": "slimcolonies:civilian",
+  "costs": [
+    {
+      "count": 32,
+      "item": "minecraft:white_wool"
+    }
+  ],
+  "effects": [
+    {
+      "id": "slimcolonies:effects/masks",
+      "level": 1
+    }
+  ],
+  "icon": "slimcolonies:textures/icons/research/hp4.png",
+  "parentResearch": "slimcolonies:civilian/firstaid2",
+  "requirements": [
+    {
+      "type": "slimcolonies:building",
+      "building": "slimcolonies:library",
+      "level": 3
+    }
+  ],
+  "researchLevel": 3,
+  "subtitle": "no.monopixel.slimcolonies.research.civilian.masks.subtitle"
+}

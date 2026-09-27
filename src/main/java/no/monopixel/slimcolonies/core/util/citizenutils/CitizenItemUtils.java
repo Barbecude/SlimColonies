@@ -1,7 +1,11 @@
 package no.monopixel.slimcolonies.core.util.citizenutils;
 
+import no.monopixel.slimcolonies.api.entity.citizen.AbstractEntityCitizen;
+import no.monopixel.slimcolonies.api.util.*;
+import no.monopixel.slimcolonies.core.network.messages.client.BlockParticleEffectMessage;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.InteractionHand;
@@ -14,11 +18,6 @@ import net.minecraft.world.item.enchantment.Enchantments;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
-import net.minecraftforge.network.PacketDistributor;
-import no.monopixel.slimcolonies.api.entity.citizen.AbstractEntityCitizen;
-import no.monopixel.slimcolonies.api.util.*;
-import no.monopixel.slimcolonies.core.Network;
-import no.monopixel.slimcolonies.core.network.messages.client.BlockParticleEffectMessage;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -59,11 +58,11 @@ public class CitizenItemUtils
                 if (ItemStackUtils.isEmpty(resultStack) || ItemStackUtils.getSize(resultStack) != ItemStackUtils.getSize(compareStack))
                 {
                     CompatibilityUtils.getWorldFromCitizen(citizen).playSound(null,
-                        citizen.blockPosition(),
-                        SoundEvents.ITEM_PICKUP,
-                        SoundSource.AMBIENT,
-                        (float) DEFAULT_VOLUME,
-                        (float) ((citizen.getRandom().nextGaussian() * DEFAULT_PITCH_MULTIPLIER + 1.0D) * 2.0D));
+                      citizen.blockPosition(),
+                      SoundEvents.ITEM_PICKUP,
+                      SoundSource.AMBIENT,
+                      (float) DEFAULT_VOLUME,
+                      (float) ((citizen.getRandom().nextGaussian() * DEFAULT_PITCH_MULTIPLIER + 1.0D) * 2.0D));
                     citizen.take(itemEntity, ItemStackUtils.getSize(itemStack) - resultingStackSize);
 
                     final ItemStack overrulingStack = itemStack.copy();
@@ -167,17 +166,15 @@ public class CitizenItemUtils
         {
             if (!CompatibilityUtils.getWorldFromCitizen(citizen).isClientSide)
             {
-                Network.getNetwork().sendToPosition(
-                    new BlockParticleEffectMessage(blockPos, CompatibilityUtils.getWorldFromCitizen(citizen).getBlockState(blockPos), BlockParticleEffectMessage.BREAK_BLOCK),
-                    new PacketDistributor.TargetPoint(
-                        blockPos.getX(), blockPos.getY(), blockPos.getZ(), BLOCK_BREAK_SOUND_RANGE, citizen.level.dimension()));
+                new BlockParticleEffectMessage(blockPos, CompatibilityUtils.getWorldFromCitizen(citizen).getBlockState(blockPos), BlockParticleEffectMessage.BREAK_BLOCK)
+                    .sendToTargetPoint((ServerLevel) citizen.level(), null, blockPos.getX(), blockPos.getY(), blockPos.getZ(), BLOCK_BREAK_SOUND_RANGE);
             }
             CompatibilityUtils.getWorldFromCitizen(citizen).playSound(null,
-                blockPos,
-                block.getSoundType(blockState, CompatibilityUtils.getWorldFromCitizen(citizen), blockPos, citizen).getBreakSound(),
-                SoundSource.BLOCKS,
-                (block.getSoundType(blockState, CompatibilityUtils.getWorldFromCitizen(citizen), blockPos, citizen).getVolume() + 1.0F) * 0.5F,
-                block.getSoundType(blockState, CompatibilityUtils.getWorldFromCitizen(citizen), blockPos, citizen).getPitch() * 0.8F);
+              blockPos,
+              block.getSoundType(blockState, CompatibilityUtils.getWorldFromCitizen(citizen), blockPos, citizen).getBreakSound(),
+              SoundSource.BLOCKS,
+              block.getSoundType(blockState, CompatibilityUtils.getWorldFromCitizen(citizen), blockPos, citizen).getVolume(),
+              block.getSoundType(blockState, CompatibilityUtils.getWorldFromCitizen(citizen), blockPos, citizen).getPitch());
             WorldUtil.removeBlock(CompatibilityUtils.getWorldFromCitizen(citizen), blockPos, false);
 
             damageItemInHand(citizen, citizen.getUsedItemHand(), 1);
@@ -189,17 +186,15 @@ public class CitizenItemUtils
                 final BlockPos vector = blockPos.subtract(citizen.blockPosition());
                 final Direction facing = BlockPosUtil.directionFromDelta(vector.getX(), vector.getY(), vector.getZ()).getOpposite();
 
-                Network.getNetwork().sendToPosition(
-                    new BlockParticleEffectMessage(blockPos, CompatibilityUtils.getWorldFromCitizen(citizen).getBlockState(blockPos), facing.ordinal()),
-                    new PacketDistributor.TargetPoint(blockPos.getX(),
-                        blockPos.getY(), blockPos.getZ(), BLOCK_BREAK_PARTICLE_RANGE, citizen.level.dimension()));
+                new BlockParticleEffectMessage(blockPos, CompatibilityUtils.getWorldFromCitizen(citizen).getBlockState(blockPos), facing.ordinal())
+                    .sendToTargetPoint((ServerLevel) citizen.level(), null, blockPos.getX(), blockPos.getY(), blockPos.getZ(), BLOCK_BREAK_PARTICLE_RANGE);
             }
             CompatibilityUtils.getWorldFromCitizen(citizen).playSound(null,
-                blockPos,
-                block.getSoundType(blockState, CompatibilityUtils.getWorldFromCitizen(citizen), blockPos, citizen).getHitSound(),
-                SoundSource.BLOCKS,
-                (block.getSoundType(blockState, CompatibilityUtils.getWorldFromCitizen(citizen), blockPos, citizen).getVolume() + 1.0F) * 0.125F,
-                block.getSoundType(blockState, CompatibilityUtils.getWorldFromCitizen(citizen), blockPos, citizen).getPitch() * 0.5F);
+              blockPos,
+              block.getSoundType(blockState, CompatibilityUtils.getWorldFromCitizen(citizen), blockPos, citizen).getBreakSound(),
+              SoundSource.BLOCKS,
+              block.getSoundType(blockState, CompatibilityUtils.getWorldFromCitizen(citizen), blockPos, citizen).getVolume(),
+              block.getSoundType(blockState, CompatibilityUtils.getWorldFromCitizen(citizen), blockPos, citizen).getPitch());
         }
     }
 
@@ -221,10 +216,10 @@ public class CitizenItemUtils
         if (citizen.getCitizenColonyHandler().getColonyOrRegister().getResearchManager().getResearchEffects().getEffectStrength(TOOL_DURABILITY) > 0)
         {
             if (citizen.getRandom().nextDouble() > (1 / (1 + citizen.getCitizenColonyHandler()
-                .getColonyOrRegister()
-                .getResearchManager()
-                .getResearchEffects()
-                .getEffectStrength(TOOL_DURABILITY))))
+                                                               .getColonyOrRegister()
+                                                               .getResearchManager()
+                                                               .getResearchEffects()
+                                                               .getEffectStrength(TOOL_DURABILITY))))
             {
                 return;
             }
@@ -232,8 +227,8 @@ public class CitizenItemUtils
 
         //check if tool breaks
         if (citizen.getCitizenData()
-            .getInventory()
-            .damageInventoryItem(citizen.getCitizenData().getInventory().getHeldItemSlot(hand), damage, citizen, item -> item.broadcastBreakEvent(hand)))
+              .getInventory()
+              .damageInventoryItem(citizen.getCitizenData().getInventory().getHeldItemSlot(hand), damage, citizen, item -> {}))
         {
             if (hand == InteractionHand.MAIN_HAND)
             {
@@ -252,9 +247,9 @@ public class CitizenItemUtils
     public static void pickupItems(AbstractEntityCitizen citizen)
     {
         for (final ItemEntity item : CompatibilityUtils.getWorldFromCitizen(citizen).getEntitiesOfClass(ItemEntity.class,
-            new AABB(citizen.blockPosition())
-                .expandTowards(2.0F, 1.0F, 2.0F)
-                .expandTowards(-2.0F, -1.0F, -2.0F)))
+          new AABB(citizen.blockPosition())
+            .expandTowards(2.0F, 1.0F, 2.0F)
+            .expandTowards(-2.0F, -1.0F, -2.0F)))
         {
             if (item != null && item.isAlive())
             {
@@ -300,25 +295,26 @@ public class CitizenItemUtils
         if (citizen.getCitizenColonyHandler().getColonyOrRegister().getResearchManager().getResearchEffects().getEffectStrength(ARMOR_DURABILITY) > 0)
         {
             if (citizen.getRandom().nextDouble() > (1 / (1 + citizen.getCitizenColonyHandler()
-                .getColonyOrRegister()
-                .getResearchManager()
-                .getResearchEffects()
-                .getEffectStrength(ARMOR_DURABILITY))))
+                                                               .getColonyOrRegister()
+                                                               .getResearchManager()
+                                                               .getResearchEffects()
+                                                               .getEffectStrength(ARMOR_DURABILITY))))
             {
                 return;
             }
         }
 
         final int armorDmg = Math.max(1, (int) (damage / 4));
-        for (int i = 0; i < 4; i++)
+        for (EquipmentSlot equipmentSlot : EquipmentSlot.values())
         {
-            final EquipmentSlot equipmentSlot = EquipmentSlot.byTypeAndIndex(EquipmentSlot.Type.ARMOR, i);
-            final ItemStack equipment = citizen.getInventoryCitizen().getArmorInSlot(equipmentSlot);
-            equipment.hurtAndBreak(armorDmg, citizen, (s) -> {
-                s.broadcastBreakEvent(equipmentSlot);
-                citizen.onArmorRemove(equipment, equipmentSlot);
-                citizen.getInventoryCitizen().markDirty();
-            });
+            if (equipmentSlot.getType() == EquipmentSlot.Type.HUMANOID_ARMOR)
+            {
+                final ItemStack equipment = citizen.getInventoryCitizen().getArmorInSlot(equipmentSlot);
+                equipment.hurtAndBreak(armorDmg, (ServerLevel) citizen.level(), citizen, (s) -> {
+                    citizen.onArmorRemove(equipment, equipmentSlot);
+                    citizen.getInventoryCitizen().markDirty();
+                });
+            }
         }
     }
 
@@ -343,7 +339,7 @@ public class CitizenItemUtils
                 tool = citizen.getInventoryCitizen().getHeldItem(equipmentSlot == EquipmentSlot.MAINHAND ? InteractionHand.MAIN_HAND : InteractionHand.OFF_HAND);
             }
 
-            if (!ItemStackUtils.isEmpty(tool) && tool.isDamaged() && tool.isEnchanted() && EnchantmentHelper.getEnchantments(tool).containsKey(Enchantments.MENDING))
+            if (!ItemStackUtils.isEmpty(tool) && tool.isDamaged() && tool.isEnchanted() && EnchantmentHelper.getTagEnchantmentLevel(Utils.getRegistryValue(Enchantments.MENDING, citizen.level()), tool) > 0)
             {
                 //2 xp to heal 1 dmg
                 final double dmgHealed = Math.min(localXp / 2, tool.getDamageValue());

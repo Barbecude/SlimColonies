@@ -1,13 +1,12 @@
 package no.monopixel.slimcolonies.core.commands.colonycommands;
 
 import no.monopixel.slimcolonies.api.colony.IColony;
-import no.monopixel.slimcolonies.api.colony.IColonyManager;
 import no.monopixel.slimcolonies.api.colony.permissions.Rank;
 import no.monopixel.slimcolonies.api.util.constant.translation.CommandTranslationConstants;
+import no.monopixel.slimcolonies.core.commands.arguments.ColonyIdArgument;
 import no.monopixel.slimcolonies.core.commands.commandTypes.IMCCommand;
 import no.monopixel.slimcolonies.core.commands.commandTypes.IMCOPCommand;
 import com.mojang.authlib.GameProfile;
-import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
@@ -31,13 +30,7 @@ public class CommandSetRank implements IMCOPCommand
     @Override
     public int onExecute(final CommandContext<CommandSourceStack> context)
     {
-        final int colonyID = IntegerArgumentType.getInteger(context, COLONYID_ARG);
-        final IColony colony = IColonyManager.getInstance().getColonyByDimension(colonyID, context.getSource().getLevel().dimension());
-        if (colony == null)
-        {
-            context.getSource().sendSuccess(() -> Component.translatable(CommandTranslationConstants.COMMAND_COLONY_ID_NOT_FOUND, colonyID), true);
-            return 0;
-        }
+        final IColony colony = ColonyIdArgument.getColony(context, COLONYID_ARG);
 
         GameProfile profile;
         try
@@ -97,17 +90,11 @@ public class CommandSetRank implements IMCOPCommand
     public LiteralArgumentBuilder<CommandSourceStack> build()
     {
         return IMCCommand.newLiteral(getName())
-          .then(IMCCommand.newArgument(COLONYID_ARG, IntegerArgumentType.integer(1))
+          .then(IMCCommand.newArgument(COLONYID_ARG, ColonyIdArgument.id())
             .then(IMCCommand.newArgument(PLAYERNAME_ARG, GameProfileArgument.gameProfile())
               .then(IMCCommand.newArgument("rank", StringArgumentType.greedyString())
                 .suggests((context, builder) -> {
-                    final int colonyID = IntegerArgumentType.getInteger(context, COLONYID_ARG);
-                    final IColony colony = IColonyManager.getInstance().getColonyByDimension(colonyID, context.getSource().getLevel().dimension());
-                    if (colony == null)
-                    {
-                        context.getSource().sendSuccess(() -> Component.translatable(CommandTranslationConstants.COMMAND_COLONY_ID_NOT_FOUND, colonyID), true);
-                        return null;
-                    }
+                    final IColony colony = ColonyIdArgument.getColony(context, COLONYID_ARG);
 
                     for (final Rank rank : colony.getPermissions().getRanks().values())
                     {

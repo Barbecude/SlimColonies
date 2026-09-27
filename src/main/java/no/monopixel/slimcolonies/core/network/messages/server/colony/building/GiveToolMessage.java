@@ -1,38 +1,30 @@
 package no.monopixel.slimcolonies.core.network.messages.server.colony.building;
 
+import com.ldtteam.common.network.PlayMessageType;
 import no.monopixel.slimcolonies.api.colony.IColony;
 import no.monopixel.slimcolonies.api.colony.buildings.views.IBuildingView;
-import no.monopixel.slimcolonies.api.util.BlockPosUtil;
 import no.monopixel.slimcolonies.api.util.InventoryUtils;
+import no.monopixel.slimcolonies.api.util.Utils;
+import no.monopixel.slimcolonies.api.util.constant.Constants;
 import no.monopixel.slimcolonies.core.colony.buildings.AbstractBuilding;
 import no.monopixel.slimcolonies.core.network.messages.server.AbstractBuildingServerMessage;
-import net.minecraft.world.entity.player.Player;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.nbt.CompoundTag;
-import net.minecraft.network.FriendlyByteBuf;
-import net.minecraftforge.network.NetworkEvent;
-
-import static no.monopixel.slimcolonies.api.util.constant.NbtTagConstants.TAG_ID;
-import static no.monopixel.slimcolonies.api.util.constant.NbtTagConstants.TAG_POS;
+import net.neoforged.neoforge.network.handling.IPayloadContext;
 
 /**
  * Message to set the beekeeper scepter in the player inventory.
  */
 public class GiveToolMessage extends AbstractBuildingServerMessage<AbstractBuilding>
 {
+    public static final PlayMessageType<?> TYPE = PlayMessageType.forServer(Constants.MOD_ID, "give_tool", GiveToolMessage::new);
+
     /**
      * The item to give.
      */
-    private Item item;
-
-    /**
-     * Empty standard constructor.
-     */
-    public GiveToolMessage()
-    {
-        super();
-    }
+    private final Item item;
 
     /**
      * Create a new tool message.
@@ -41,35 +33,28 @@ public class GiveToolMessage extends AbstractBuildingServerMessage<AbstractBuild
      */
     public GiveToolMessage(final IBuildingView building, final Item item)
     {
-        super(building);
+        super(TYPE, building);
         this.item = item;
     }
 
     @Override
-    protected void toBytesOverride(final FriendlyByteBuf buf)
+    protected void toBytes(final RegistryFriendlyByteBuf buf)
     {
-        buf.writeItem(new ItemStack(item, 1));
+        super.toBytes(buf);
+        Utils.serializeCodecMess(buf, new ItemStack(item, 1));
+    }
+
+    protected GiveToolMessage(final RegistryFriendlyByteBuf buf, final PlayMessageType<?> type)
+    {
+        super(buf, type);
+        item = Utils.deserializeCodecMess(buf).getItem();
     }
 
     @Override
-    protected void fromBytesOverride(final FriendlyByteBuf buf)
+    protected void onExecute(final IPayloadContext ctxIn, final ServerPlayer player, final IColony colony, final AbstractBuilding building)
     {
-        item = buf.readItem().getItem();
-    }
-
-    @Override
-    protected void onExecute(final NetworkEvent.Context ctxIn, final boolean isLogicalServer, final IColony colony, final AbstractBuilding building)
-    {
-        final Player player = ctxIn.getSender();
-        if (player == null)
-        {
-            return;
-        }
-
         final ItemStack scepter = InventoryUtils.getOrCreateItemAndPutToHotbarAndSelectOrDrop(item, player, item::getDefaultInstance, true);
-        final CompoundTag compound = scepter.getOrCreateTag();
-        BlockPosUtil.write(compound, TAG_POS, building.getID());
-        compound.putInt(TAG_ID, colony.getID());
+        building.writeToItemStack(scepter);
 
         player.getInventory().setChanged();
     }

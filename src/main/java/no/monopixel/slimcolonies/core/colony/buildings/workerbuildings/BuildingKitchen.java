@@ -15,6 +15,7 @@ import no.monopixel.slimcolonies.api.util.FoodUtils;
 import no.monopixel.slimcolonies.api.util.OptionalPredicate;
 import no.monopixel.slimcolonies.core.colony.buildings.AbstractBuilding;
 import no.monopixel.slimcolonies.core.colony.buildings.modules.AbstractCraftingBuildingModule;
+import no.monopixel.slimcolonies.core.colony.buildings.modules.WorkerBuildingModule;
 import no.monopixel.slimcolonies.core.util.FurnaceRecipes;
 import no.monopixel.slimcolonies.core.colony.jobs.AbstractJobCrafter;
 import net.minecraft.core.BlockPos;
@@ -23,13 +24,14 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.Optional;
 
+import static no.monopixel.slimcolonies.api.util.constant.Suppression.OVERRIDE_EQUALS;
 import static no.monopixel.slimcolonies.api.util.constant.TagConstants.CRAFTING_COOK;
 import static no.monopixel.slimcolonies.core.colony.buildings.modules.BuildingModules.CHEF_WORK;
 
 /**
  * Class of the kitchen building.
  */
-
+@SuppressWarnings(OVERRIDE_EQUALS)
 public class BuildingKitchen extends AbstractBuilding
 {
     /**
@@ -64,6 +66,12 @@ public class BuildingKitchen extends AbstractBuilding
     public int getMaxBuildingLevel()
     {
         return MAX_BUILDING_LEVEL;
+    }
+
+    @Override
+    protected boolean keepFood()
+    {
+        return false;
     }
 
     @Override
@@ -128,7 +136,7 @@ public class BuildingKitchen extends AbstractBuilding
 
             final ItemStack output = recipe.getPrimaryOutput();
             return FoodUtils.EDIBLE.test(output)
-                || FoodUtils.EDIBLE.test(FurnaceRecipes.getInstance()
+                || FoodUtils.EDIBLE.test(IColonyManager.getInstance().getCompatibilityManager().getFurnaceRecipes()
                     .getSmeltingResult(output));
         }
     }

@@ -5,7 +5,9 @@ import no.monopixel.slimcolonies.api.blocks.ModBlocks;
 import no.monopixel.slimcolonies.api.blocks.types.BarrelType;
 import no.monopixel.slimcolonies.api.util.constant.Constants;
 import no.monopixel.slimcolonies.core.tileentities.TileEntityBarrel;
+import com.mojang.serialization.MapCodec;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.ItemInteractionResult;
 import net.minecraft.world.level.block.*;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.entity.player.Player;
@@ -32,6 +34,8 @@ import net.minecraft.world.InteractionResult;
 
 public class BlockBarrel extends AbstractBlockBarrel<BlockBarrel> implements EntityBlock
 {
+    public static final MapCodec<BlockBarrel> CODEC = simpleCodec(BlockBarrel::new);
+
     /**
      * The hardness this block has.
      */
@@ -47,14 +51,25 @@ public class BlockBarrel extends AbstractBlockBarrel<BlockBarrel> implements Ent
 
     public BlockBarrel()
     {
-        super(Properties.of().mapColor(MapColor.WOOD).sound(SoundType.WOOD).strength(BLOCK_HARDNESS, RESISTANCE));
+        this(Properties.of().mapColor(MapColor.WOOD).sound(SoundType.WOOD).strength(BLOCK_HARDNESS, RESISTANCE));
+    }
+
+    public BlockBarrel(final Properties properties)
+    {
+        super(properties);
         this.registerDefaultState(this.defaultBlockState().setValue(AbstractBlockBarrel.FACING, Direction.NORTH).setValue(VARIANT, BarrelType.ZERO));
+    }
+
+    @Override
+    protected MapCodec<BlockBarrel> codec()
+    {
+        return CODEC;
     }
 
     @Override
     public ResourceLocation getRegistryName()
     {
-        return ResourceLocation.fromNamespaceAndPath(Constants.MOD_ID, BLOCK_NAME);
+        return new ResourceLocation(Constants.MOD_ID, BLOCK_NAME);
     }
 
     @Override
@@ -72,7 +87,8 @@ public class BlockBarrel extends AbstractBlockBarrel<BlockBarrel> implements Ent
 
     @NotNull
     @Override
-    public InteractionResult use(
+    public ItemInteractionResult useItemOn(
+      final ItemStack stack,
       final BlockState state,
       final Level worldIn,
       final BlockPos pos,
@@ -88,7 +104,7 @@ public class BlockBarrel extends AbstractBlockBarrel<BlockBarrel> implements Ent
             ((TileEntityBarrel) te).updateBlock(worldIn);
         }
 
-        return InteractionResult.SUCCESS;
+        return ItemInteractionResult.SUCCESS;
     }
 
     @NotNull

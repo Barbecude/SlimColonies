@@ -1,12 +1,16 @@
 package no.monopixel.slimcolonies.core.generation.defaults;
 
+import no.monopixel.slimcolonies.api.entity.ModEntities;
 import no.monopixel.slimcolonies.api.items.ModTags;
 import net.minecraft.core.HolderLookup;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.data.PackOutput;
 import net.minecraft.data.tags.EntityTypeTagsProvider;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.tags.TagEntry;
+import net.minecraft.tags.TagKey;
 import net.minecraft.world.entity.EntityType;
-import net.minecraftforge.common.data.ExistingFileHelper;
+import net.neoforged.neoforge.common.data.ExistingFileHelper;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.concurrent.CompletableFuture;
@@ -27,7 +31,13 @@ public class DefaultEntityTypeTagsProvider extends EntityTypeTagsProvider
     {
         tag(ModTags.hostile).add(EntityType.SLIME);
         tag(ModTags.mobAttackBlacklist).add(EntityType.ENDERMAN, EntityType.LLAMA);
-        tag(ModTags.freeToInteractWith).addOptional(ResourceLocation.fromNamespaceAndPath("corpse", "corpse"));
+        tag(ModTags.freeToInteractWith).addOptional(new ResourceLocation("corpse", "corpse"));
 
+        final TagAppender<EntityType<?>> raiderTagAppender = tag(ModTags.raiders);
+        ModEntities.getRaiders().forEach(raiderType -> raiderTagAppender.add(TagEntry.element(EntityType.getKey(raiderType))));
+
+        tag(TagKey.create(Registries.ENTITY_TYPE, ResourceLocation.fromNamespaceAndPath("dynamictrees", "falling_tree_damage_immune")))
+                .add(ModEntities.CITIZEN)
+                .add(ModEntities.VISITOR);
     }
 }

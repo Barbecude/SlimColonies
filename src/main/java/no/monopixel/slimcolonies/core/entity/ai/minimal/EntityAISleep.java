@@ -1,16 +1,6 @@
 package no.monopixel.slimcolonies.core.entity.ai.minimal;
 
 import com.ldtteam.domumornamentum.block.decorative.PanelBlock;
-import net.minecraft.core.BlockPos;
-import net.minecraft.tags.BlockTags;
-import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.entity.Pose;
-import net.minecraft.world.level.Level;
-import net.minecraft.world.level.block.BedBlock;
-import net.minecraft.world.level.block.TrapDoorBlock;
-import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.level.block.state.properties.BedPart;
-import net.minecraft.world.phys.AABB;
 import no.monopixel.slimcolonies.api.colony.IColony;
 import no.monopixel.slimcolonies.api.colony.buildings.IBuilding;
 import no.monopixel.slimcolonies.api.entity.ai.IStateAI;
@@ -22,18 +12,28 @@ import no.monopixel.slimcolonies.api.sounds.EventType;
 import no.monopixel.slimcolonies.api.util.CompatibilityUtils;
 import no.monopixel.slimcolonies.api.util.SoundUtils;
 import no.monopixel.slimcolonies.api.util.WorldUtil;
-import no.monopixel.slimcolonies.core.Network;
 import no.monopixel.slimcolonies.core.colony.buildings.AbstractBuilding;
 import no.monopixel.slimcolonies.core.colony.buildings.modules.AbstractAssignedCitizenModule;
 import no.monopixel.slimcolonies.core.colony.buildings.modules.BuildingModules;
 import no.monopixel.slimcolonies.core.entity.citizen.EntityCitizen;
 import no.monopixel.slimcolonies.core.entity.pathfinding.navigation.EntityNavigationUtils;
 import no.monopixel.slimcolonies.core.network.messages.client.SleepingParticleMessage;
+import net.minecraft.core.BlockPos;
+import net.minecraft.tags.BlockTags;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.Pose;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.BedBlock;
+import net.minecraft.world.level.block.TrapDoorBlock;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.properties.BedPart;
+import net.minecraft.world.phys.AABB;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 
 import static no.monopixel.slimcolonies.api.util.constant.CitizenConstants.RANGE_TO_BE_HOME;
+import static no.monopixel.slimcolonies.api.util.constant.HappinessConstants.SLEPTTONIGHT;
 import static no.monopixel.slimcolonies.core.entity.ai.minimal.EntityAISleep.SleepState.*;
 
 /**
@@ -97,6 +97,7 @@ public class EntityAISleep implements IStateAI
     /**
      * Checks for sleep
      *
+     * @return
      */
     private IState checkSleep()
     {
@@ -107,6 +108,7 @@ public class EntityAISleep implements IStateAI
     /**
      * Walking to the home/bed position
      *
+     * @return
      */
     private IState walkHome()
     {
@@ -167,12 +169,11 @@ public class EntityAISleep implements IStateAI
                 if (index >= 0 && index < bedList.size())
                 {
                     final BlockPos pos = bedList.get(index);
-                    if (WorldUtil.isEntityBlockLoaded(citizen.level, pos))
+                    if (WorldUtil.isEntityBlockLoaded(citizen.level(), pos))
                     {
-                        final Level world = citizen.level;
+                        final Level world = citizen.level();
                         final BlockState state = world.getBlockState(pos);
                         final BlockState above = world.getBlockState(pos.above());
-
                         if (!state.is(BlockTags.BEDS))
                         {
                             hut.getModule(BuildingModules.BED).removeBed(pos);
@@ -194,10 +195,10 @@ public class EntityAISleep implements IStateAI
             if (EntityNavigationUtils.walkToPosInBuilding(citizen, usedBed, citizen.getCitizenData().getHomeBuilding(), 12))
             {
                 bedTicks++;
-                final BlockState state = citizen.level.getBlockState(usedBed);
+                final BlockState state = citizen.level().getBlockState(usedBed);
                 if (state.isBed(citizen.level(), usedBed, citizen) && state.getValue(BedBlock.OCCUPIED))
                 {
-                    if (!this.citizen.level.getEntitiesOfClass(LivingEntity.class, new AABB(usedBed), LivingEntity::isSleeping).isEmpty())
+                    if (!this.citizen.level().getEntitiesOfClass(LivingEntity.class, new AABB(usedBed), LivingEntity::isSleeping).isEmpty())
                     {
                         usedBed = homePos;
                     }
@@ -208,6 +209,7 @@ public class EntityAISleep implements IStateAI
                     citizen.getCitizenData().setBedPos(BlockPos.ZERO);
                     usedBed = null;
                 }
+                citizen.getCitizenData().getCitizenHappinessHandler().resetModifier(SLEPTTONIGHT);
             }
             else
             {
@@ -234,7 +236,7 @@ public class EntityAISleep implements IStateAI
             findBedAndTryToSleep();
         }
 
-        Network.getNetwork().sendToTrackingEntity(new SleepingParticleMessage(citizen.getX(), citizen.getY() + 1.0d, citizen.getZ()), citizen);
+        new SleepingParticleMessage(citizen.getX(), citizen.getY() + 1.0d, citizen.getZ()).sendToTrackingEntity(citizen);
         //TODO make sleeping noises here.
         return null;
     }

@@ -4,11 +4,13 @@ import no.monopixel.slimcolonies.api.colony.ICivilianData;
 import no.monopixel.slimcolonies.api.colony.IColony;
 import no.monopixel.slimcolonies.api.entity.citizen.AbstractCivilianEntity;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.level.Level;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -36,14 +38,14 @@ public interface IEntityManager
      *
      * @param compound the compound to read it from.
      */
-    void read(@NotNull CompoundTag compound);
+    void read(@NotNull final HolderLookup.Provider provider, @NotNull CompoundTag compound);
 
     /**
      * Write the civilian to nbt.
      *
      * @param compoundNBT the compound to write it to.
      */
-    void write(@NotNull CompoundTag compoundNBT);
+    void write(@NotNull final HolderLookup.Provider provider, @NotNull CompoundTag compoundNBT);
 
     /**
      * Sends packages to update the civilian.
@@ -76,11 +78,11 @@ public interface IEntityManager
      *
      * @param data     Data to use when spawn, null when new generation.
      * @param world    THe world.
-     * @param spawnPos the pos to spawn it at.
+     * @param spawnPositions the positions to spawn it at, tried in order.
      * @param force    True to skip max civilian test, false when not.
      * @return the new civilian.
      */
-    <T extends ICivilianData> T spawnOrCreateCivilian(T data, Level world, BlockPos spawnPos, boolean force);
+    <T extends ICivilianData> T spawnOrCreateCivilian(T data, Level world, List<BlockPos> spawnPositions, boolean force);
 
     /**
      * Creates Civilian Data for a new civilian

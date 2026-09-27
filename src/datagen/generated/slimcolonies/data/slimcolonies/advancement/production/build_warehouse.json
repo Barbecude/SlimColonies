@@ -1,0 +1,30 @@
+{
+  "parent": "slimcolonies:production/root",
+  "criteria": {
+    "warehouse": {
+      "conditions": {
+        "hut_name": "warehouse",
+        "level": 1
+      },
+      "trigger": "slimcolonies:complete_build_request"
+    }
+  },
+  "display": {
+    "description": {
+      "translate": "advancements.slimcolonies.build.warehouse.description"
+    },
+    "icon": {
+      "count": 1,
+      "id": "slimcolonies:blockhutwarehouse"
+    },
+    "title": {
+      "translate": "advancements.slimcolonies.build.warehouse.title"
+    }
+  },
+  "requirements": [
+    [
+      "warehouse"
+    ]
+  ],
+  "sends_telemetry_event": true
+}

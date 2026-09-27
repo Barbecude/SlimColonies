@@ -1,0 +1,32 @@
+{
+  "parent": "minecraft:recipes/root",
+  "criteria": {
+    "has_durum": {
+      "conditions": {
+        "items": [
+          {
+            "items": "slimcolonies:durum"
+          }
+        ]
+      },
+      "trigger": "minecraft:inventory_changed"
+    },
+    "has_the_recipe": {
+      "conditions": {
+        "recipe": "slimcolonies:raw_noodle"
+      },
+      "trigger": "minecraft:recipe_unlocked"
+    }
+  },
+  "requirements": [
+    [
+      "has_the_recipe",
+      "has_durum"
+    ]
+  ],
+  "rewards": {
+    "recipes": [
+      "slimcolonies:raw_noodle"
+    ]
+  }
+}

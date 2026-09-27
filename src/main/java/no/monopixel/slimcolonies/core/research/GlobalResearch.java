@@ -1,9 +1,21 @@
 package no.monopixel.slimcolonies.core.research;
 
-import net.minecraft.network.chat.contents.TranslatableContents;
-import net.minecraft.resources.ResourceLocation;
+import com.google.common.collect.ImmutableList;
+import no.monopixel.slimcolonies.api.colony.buildings.IBuilding;
+import no.monopixel.slimcolonies.api.colony.buildings.ICommonBuilding;
 import no.monopixel.slimcolonies.api.research.*;
 import no.monopixel.slimcolonies.api.research.util.ResearchState;
+import no.monopixel.slimcolonies.api.util.InventoryUtils;
+import no.monopixel.slimcolonies.core.util.BuildingUtils;
+
+import net.minecraft.core.BlockPos;
+import net.minecraft.network.chat.contents.TranslatableContents;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.entity.player.Player;
+import net.neoforged.neoforge.common.crafting.SizedIngredient;
+import net.neoforged.neoforge.items.IItemHandler;
+import net.neoforged.neoforge.items.wrapper.InvWrapper;
+
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -15,7 +27,10 @@ import java.util.List;
  */
 public class GlobalResearch implements IGlobalResearch
 {
-    // Cost list removed - research no longer has item costs
+    /**
+     * The costList of the research.
+     */
+    private final List<SizedIngredient> costList = new ArrayList<>();
 
     /**
      * The id of the research.
@@ -138,8 +153,9 @@ public class GlobalResearch implements IGlobalResearch
     }
 
     @Override
-    public boolean canResearch(final int uni_level, @NotNull final ILocalResearchTree localTree)
+    public boolean canResearch(@NotNull IBuilding building, @NotNull final ILocalResearchTree localTree)
     {
+        final int uni_level = building.getBuildingLevel() == building.getMaxBuildingLevel() ? Integer.MAX_VALUE : building.getBuildingLevel();
         final IGlobalResearch parentResearch = parent == null ? null : IGlobalResearchTree.getInstance().getResearch(branch, parent);
         final ILocalResearch localParentResearch = parent == null ? null : localTree.getResearch(branch, parent);
         final ILocalResearch localResearch = localTree.getResearch(this.getBranch(), this.getId());
@@ -155,7 +171,70 @@ public class GlobalResearch implements IGlobalResearch
         return uni_level >= depth;
     }
 
-    // hasEnoughResources and getCostList methods removed - research no longer has item costs
+    /**
+     * Checks if there are enough resources between the player inventory 
+     * and the university's inventory to start this research.
+     *
+     * @param player the player to check.
+     * @param universityPos the position of the university to check.
+     * @return true if the player has enough resources.
+     */
+    @Override
+    public boolean hasEnoughResources(final @NotNull Player player, final @NotNull BlockPos universityPos)
+    {
+        if (costList.isEmpty())
+        {
+            return true;
+        }
+
+        final IItemHandler playerInventory = new InvWrapper(player.getInventory());
+
+        ICommonBuilding buildingInv = BuildingUtils.commonBuildingFromPosition(player.level(), universityPos);
+
+        for (final SizedIngredient ingredient : costList)
+        {
+            final int required = ingredient.count();
+            if (required <= 0)
+            {
+                continue;
+            }
+
+            int buildingCount = 0;
+            int playerCount = 0;
+
+            // 1) Count from university/building inventory (allows enchanted/custom named)
+            if (buildingInv != null)
+            {
+                buildingCount += InventoryUtils.hasBuildingEnoughElseCount(
+                    buildingInv,
+                    stack -> IGlobalResearch.isUniversityResearchMatch(stack, ingredient),
+                    required
+                );
+            }
+
+            // 2) If still short, count from player inventory (reject enchanted/custom named)
+            if (buildingCount < required)
+            {
+                playerCount = InventoryUtils.getItemCountInItemHandler(
+                    playerInventory,
+                    stack -> IGlobalResearch.isPlayerResearchMatch(stack, ingredient)
+                );
+            }
+
+            if ((buildingCount + playerCount) < required)
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    @Override
+    public List<SizedIngredient> getCostList()
+    {
+        return ImmutableList.copyOf(costList);
+    }
 
     @Override
     public void startResearch(@NotNull final ILocalResearchTree localResearchTree)
@@ -180,7 +259,7 @@ public class GlobalResearch implements IGlobalResearch
     }
 
     @Override
-    public TranslatableContents getName() {return this.name;}
+    public TranslatableContents getName() { return this.name; }
 
     @Override
     public TranslatableContents getSubtitle()
@@ -188,8 +267,8 @@ public class GlobalResearch implements IGlobalResearch
         return this.subtitle;
     }
 
-    @Override
     @Nullable
+    @Override
     public ResourceLocation getParent()
     {
         return this.parent;
@@ -270,7 +349,11 @@ public class GlobalResearch implements IGlobalResearch
         this.children.add(child);
     }
 
-    // addCost method removed - research no longer has item costs
+    @Override
+    public void addCost(final SizedIngredient cost)
+    {
+        costList.add(cost);
+    }
 
     public void addEffect(final IResearchEffect effect)
     {

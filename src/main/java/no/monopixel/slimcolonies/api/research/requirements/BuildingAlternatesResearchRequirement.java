@@ -127,7 +127,7 @@ public class BuildingAlternatesResearchRequirement implements IResearchRequireme
         {
             final ResourceLocation building = iterator.next();
 
-            final BuildingEntry buildingEntry = IBuildingRegistry.getInstance().getValue(building);
+            final BuildingEntry buildingEntry = IBuildingRegistry.getInstance().get(building);
             final MutableComponent buildingName = buildingEntry != null ? Component.translatable(buildingEntry.getTranslationKey()) : Component.empty();
 
             requirementList.append(Component.translatable("no.monopixel.slimcolonies.coremod.research.requirement.building.level", buildingName, buildingLevel));
@@ -145,7 +145,7 @@ public class BuildingAlternatesResearchRequirement implements IResearchRequireme
     {
         for (final ResourceLocation requirement : buildings)
         {
-            if (colony.hasBuilding(requirement, buildingLevel, false))
+            if (colony.getCommonBuildingManager().hasBuilding(requirement, buildingLevel, false))
             {
                 return true;
             }

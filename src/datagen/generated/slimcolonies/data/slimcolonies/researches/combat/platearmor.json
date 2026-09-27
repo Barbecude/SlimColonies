@@ -1,0 +1,26 @@
+{
+  "branch": "slimcolonies:combat",
+  "costs": [
+    {
+      "count": 32,
+      "item": "minecraft:iron_ingot"
+    }
+  ],
+  "effects": [
+    {
+      "id": "slimcolonies:effects/platearmorunlock",
+      "level": 1
+    }
+  ],
+  "icon": "slimcolonies:plate_armor_helmet",
+  "parentResearch": "slimcolonies:combat/ironarmor",
+  "requirements": [
+    {
+      "type": "slimcolonies:single-building",
+      "building": "slimcolonies:blacksmith",
+      "level": 4
+    }
+  ],
+  "researchLevel": 5,
+  "sortOrder": 2
+}

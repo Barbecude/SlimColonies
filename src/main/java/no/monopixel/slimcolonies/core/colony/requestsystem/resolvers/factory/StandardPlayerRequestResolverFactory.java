@@ -10,9 +10,10 @@ import no.monopixel.slimcolonies.api.util.NBTUtils;
 import no.monopixel.slimcolonies.api.util.constant.SerializationIdentifierConstants;
 import no.monopixel.slimcolonies.api.util.constant.TypeConstants;
 import no.monopixel.slimcolonies.core.colony.requestsystem.resolvers.StandardPlayerRequestResolver;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.Tag;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 
 import org.jetbrains.annotations.NotNull;
 
@@ -72,24 +73,24 @@ public class StandardPlayerRequestResolverFactory implements IFactory<IRequestMa
 
     @NotNull
     @Override
-    public CompoundTag serialize(@NotNull final IFactoryController controller, @NotNull final StandardPlayerRequestResolver playerRequestResolver)
+    public CompoundTag serialize(@NotNull final HolderLookup.Provider provider, @NotNull final IFactoryController controller, @NotNull final StandardPlayerRequestResolver playerRequestResolver)
     {
         final CompoundTag compound = new CompoundTag();
-        compound.put(NBT_TOKEN, controller.serialize(playerRequestResolver.getId()));
-        compound.put(NBT_LOCATION, controller.serialize(playerRequestResolver.getLocation()));
-        compound.put(NBT_ASSIGNED_REQUESTS, playerRequestResolver.getAllAssignedRequests().stream().map(controller::serialize).collect(NBTUtils.toListNBT()));
+        compound.put(NBT_TOKEN, controller.serializeTag(provider, playerRequestResolver.getId()));
+        compound.put(NBT_LOCATION, controller.serializeTag(provider, playerRequestResolver.getLocation()));
+        compound.put(NBT_ASSIGNED_REQUESTS, playerRequestResolver.getAllAssignedRequests().stream().map(s -> controller.serializeTag(provider, s)).collect(NBTUtils.toListNBT()));
         return compound;
     }
 
     @NotNull
     @Override
-    public StandardPlayerRequestResolver deserialize(@NotNull final IFactoryController controller, @NotNull final CompoundTag nbt)
+    public StandardPlayerRequestResolver deserialize(@NotNull final HolderLookup.Provider provider, @NotNull final IFactoryController controller, @NotNull final CompoundTag nbt)
     {
-        final IToken<?> token = controller.deserialize(nbt.getCompound(NBT_TOKEN));
-        final ILocation location = controller.deserialize(nbt.getCompound(NBT_LOCATION));
+        final IToken<?> token = controller.deserializeTag(provider, nbt.getCompound(NBT_TOKEN));
+        final ILocation location = controller.deserializeTag(provider, nbt.getCompound(NBT_LOCATION));
 
         final Set<IToken<?>> assignedRequests =
-          NBTUtils.streamCompound(nbt.getList(NBT_ASSIGNED_REQUESTS, Tag.TAG_COMPOUND)).map(c -> (IToken<?>) controller.deserialize(c)).collect(Collectors.toSet());
+          NBTUtils.streamCompound(nbt.getList(NBT_ASSIGNED_REQUESTS, Tag.TAG_COMPOUND)).map(c -> (IToken<?>) controller.deserializeTag(provider, c)).collect(Collectors.toSet());
 
         final StandardPlayerRequestResolver resolver = new StandardPlayerRequestResolver(location, token);
         resolver.setAllAssignedRequests(assignedRequests);
@@ -98,7 +99,7 @@ public class StandardPlayerRequestResolverFactory implements IFactory<IRequestMa
     }
 
     @Override
-    public void serialize(IFactoryController controller, StandardPlayerRequestResolver input, FriendlyByteBuf packetBuffer)
+    public void serialize(IFactoryController controller, StandardPlayerRequestResolver input, RegistryFriendlyByteBuf packetBuffer)
     {
         controller.serialize(packetBuffer, input.getId());
         controller.serialize(packetBuffer, input.getLocation());
@@ -107,7 +108,7 @@ public class StandardPlayerRequestResolverFactory implements IFactory<IRequestMa
     }
 
     @Override
-    public StandardPlayerRequestResolver deserialize(IFactoryController controller, FriendlyByteBuf buffer) throws Throwable
+    public StandardPlayerRequestResolver deserialize(IFactoryController controller, RegistryFriendlyByteBuf buffer) throws Throwable
     {
         final IToken<?> token = controller.deserialize(buffer);
         final ILocation location = controller.deserialize(buffer);

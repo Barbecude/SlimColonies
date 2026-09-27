@@ -1,12 +1,26 @@
 package no.monopixel.slimcolonies.core.tileentities;
 
+import no.monopixel.slimcolonies.api.blocks.AbstractBlockMinecoloniesGrave;
+import no.monopixel.slimcolonies.api.blocks.types.GraveType;
+import no.monopixel.slimcolonies.api.colony.GraveData;
+import no.monopixel.slimcolonies.api.crafting.ItemStorage;
+import no.monopixel.slimcolonies.api.inventory.container.ContainerGrave;
+import no.monopixel.slimcolonies.api.tileentities.AbstractTileEntityGrave;
+import no.monopixel.slimcolonies.api.tileentities.AbstractTileEntityRack;
+import no.monopixel.slimcolonies.api.tileentities.MinecoloniesTileEntities;
+import no.monopixel.slimcolonies.api.util.InventoryUtils;
+import no.monopixel.slimcolonies.api.util.ItemStackUtils;
+import no.monopixel.slimcolonies.api.util.WorldUtil;
 import io.netty.buffer.Unpooled;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.Connection;
 import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
+import net.minecraft.world.Clearable;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
@@ -14,18 +28,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraftforge.items.ItemStackHandler;
-import no.monopixel.slimcolonies.api.blocks.AbstractBlockSlimColoniesGrave;
-import no.monopixel.slimcolonies.api.blocks.types.GraveType;
-import no.monopixel.slimcolonies.api.colony.GraveData;
-import no.monopixel.slimcolonies.api.crafting.ItemStorage;
-import no.monopixel.slimcolonies.api.inventory.container.ContainerGrave;
-import no.monopixel.slimcolonies.api.tileentities.AbstractTileEntityGrave;
-import no.monopixel.slimcolonies.api.tileentities.AbstractTileEntityRack;
-import no.monopixel.slimcolonies.api.tileentities.SlimColoniesTileEntities;
-import no.monopixel.slimcolonies.api.util.InventoryUtils;
-import no.monopixel.slimcolonies.api.util.ItemStackUtils;
-import no.monopixel.slimcolonies.api.util.WorldUtil;
+import net.neoforged.neoforge.items.ItemStackHandler;
 import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nullable;
@@ -38,7 +41,7 @@ import static no.monopixel.slimcolonies.api.util.constant.NbtTagConstants.TAG_DE
 /**
  * Tile entity for the graves.
  */
-public class TileEntityGrave extends AbstractTileEntityGrave
+public class TileEntityGrave extends AbstractTileEntityGrave implements Clearable
 {
     /**
      * The content of the chest.
@@ -57,7 +60,7 @@ public class TileEntityGrave extends AbstractTileEntityGrave
 
     public TileEntityGrave(final BlockPos pos, final BlockState state)
     {
-        super(SlimColoniesTileEntities.GRAVE.get(), pos, state);
+        super(MinecoloniesTileEntities.GRAVE.get(), pos, state);
     }
 
     /**
@@ -114,9 +117,9 @@ public class TileEntityGrave extends AbstractTileEntityGrave
     @Override
     public void updateBlockState()
     {
-        if (level != null && level.getBlockState(worldPosition).getBlock() instanceof AbstractBlockSlimColoniesGrave)
+        if (level != null && level.getBlockState(worldPosition).getBlock() instanceof AbstractBlockMinecoloniesGrave)
         {
-            final BlockState state = level.getBlockState(worldPosition).setValue(AbstractBlockSlimColoniesGrave.VARIANT, decayed ? GraveType.DECAYED : GraveType.DEFAULT);
+            final BlockState state = level.getBlockState(worldPosition).setValue(AbstractBlockMinecoloniesGrave.VARIANT, decayed ? GraveType.DECAYED : GraveType.DEFAULT);
             if (!level.getBlockState(worldPosition).equals(state))
             {
                 level.setBlockAndUpdate(worldPosition, state);
@@ -138,33 +141,30 @@ public class TileEntityGrave extends AbstractTileEntityGrave
     }
 
     @Override
-    public void load(final CompoundTag compound)
+    public void loadAdditional(final CompoundTag compound, @NotNull final HolderLookup.Provider provider)
     {
-        super.load(compound);
+        super.loadAdditional(compound, provider);
 
-        decay_timer = compound.contains(TAG_DECAY_TIMER) ? compound.getInt(TAG_DECAY_TIMER) : DEFAULT_DECAY_TIMER;
-        decayed = compound.contains(TAG_DECAYED) ? compound.getBoolean(TAG_DECAYED) : false;
+        decay_timer         = compound.contains(TAG_DECAY_TIMER) ? compound.getInt(TAG_DECAY_TIMER) : DEFAULT_DECAY_TIMER;
+        decayed             = compound.contains(TAG_DECAYED) ? compound.getBoolean(TAG_DECAYED) :false;
 
         if (compound.contains(TAG_GRAVE_DATA))
         {
             graveData = new GraveData();
             graveData.read(compound.getCompound(TAG_GRAVE_DATA));
         }
-        else
-        {
-            graveData = null;
-        }
+        else graveData = null;
     }
 
     @Override
-    public void saveAdditional(final CompoundTag compound)
+    public void saveAdditional(final CompoundTag compound, @NotNull final HolderLookup.Provider provider)
     {
-        super.saveAdditional(compound);
+        super.saveAdditional(compound, provider);
 
         compound.putInt(TAG_DECAY_TIMER, decay_timer);
         compound.putBoolean(TAG_DECAYED, decayed);
 
-        if (graveData != null)
+        if(graveData != null)
         {
             compound.put(TAG_GRAVE_DATA, graveData.write());
         }
@@ -178,21 +178,21 @@ public class TileEntityGrave extends AbstractTileEntityGrave
 
     @NotNull
     @Override
-    public CompoundTag getUpdateTag()
+    public CompoundTag getUpdateTag(@NotNull final HolderLookup.Provider provider)
     {
-        return this.saveWithId();
+        return this.saveWithId(provider);
     }
 
     @Override
-    public void onDataPacket(final Connection net, final ClientboundBlockEntityDataPacket packet)
+    public void onDataPacket(final Connection net, final ClientboundBlockEntityDataPacket packet, @NotNull final HolderLookup.Provider provider)
     {
-        this.load(packet.getTag());
+        this.loadAdditional(packet.getTag(), provider);
     }
 
     @Override
-    public void handleUpdateTag(final CompoundTag tag)
+    public void handleUpdateTag(final CompoundTag tag, @NotNull final HolderLookup.Provider provider)
     {
-        this.load(tag);
+        this.loadAdditional(tag, provider);
     }
 
     @Override
@@ -208,7 +208,7 @@ public class TileEntityGrave extends AbstractTileEntityGrave
     @Override
     public AbstractContainerMenu createMenu(final int id, @NotNull final Inventory inv, @NotNull final Player player)
     {
-        final FriendlyByteBuf buffer = new FriendlyByteBuf(Unpooled.buffer());
+        final RegistryFriendlyByteBuf buffer = new RegistryFriendlyByteBuf(new FriendlyByteBuf(Unpooled.buffer()), player.level().registryAccess());
         buffer.writeBlockPos(this.getBlockPos());
 
         return new ContainerGrave(id, inv, buffer);
@@ -251,5 +251,14 @@ public class TileEntityGrave extends AbstractTileEntityGrave
         }
 
         return true;
+    }
+
+    @Override
+    public void clearContent()
+    {
+        for (int i = 0; i < this.getInventory().getSlots(); i++)
+        {
+            this.getInventory().setStackInSlot(i, ItemStack.EMPTY);
+        }
     }
 }

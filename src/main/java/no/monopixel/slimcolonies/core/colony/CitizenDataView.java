@@ -1,9 +1,29 @@
 package no.monopixel.slimcolonies.core.colony;
 
+import no.monopixel.slimcolonies.api.MinecoloniesAPIProxy;
+import no.monopixel.slimcolonies.api.colony.ICitizenDataView;
+import no.monopixel.slimcolonies.api.colony.IColonyManager;
+import no.monopixel.slimcolonies.api.colony.IColonyView;
+import no.monopixel.slimcolonies.api.colony.interactionhandling.ChatPriority;
+import no.monopixel.slimcolonies.api.colony.interactionhandling.IInteractionResponseHandler;
+import no.monopixel.slimcolonies.api.colony.jobs.IJobView;
+import no.monopixel.slimcolonies.api.colony.jobs.registry.IJobDataManager;
+import no.monopixel.slimcolonies.api.entity.citizen.VisibleCitizenStatus;
+import no.monopixel.slimcolonies.api.entity.citizen.citizenhandlers.ICitizenHappinessHandler;
+import no.monopixel.slimcolonies.api.entity.citizen.citizenhandlers.ICitizenSkillHandler;
+import no.monopixel.slimcolonies.api.inventory.InventoryCitizen;
+import no.monopixel.slimcolonies.api.items.ModItems;
+import no.monopixel.slimcolonies.api.util.Tuple;
+import no.monopixel.slimcolonies.api.util.constant.Constants;
+import no.monopixel.slimcolonies.api.util.constant.Suppression;
+import no.monopixel.slimcolonies.core.MineColonies;
+import no.monopixel.slimcolonies.core.colony.interactionhandling.ServerCitizenInteraction;
+import no.monopixel.slimcolonies.core.entity.citizen.citizenhandlers.CitizenHappinessHandler;
+import no.monopixel.slimcolonies.core.entity.citizen.citizenhandlers.CitizenSkillHandler;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.resources.ResourceLocation;
@@ -12,29 +32,16 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.item.ItemStack;
-import no.monopixel.slimcolonies.api.SlimColoniesAPIProxy;
-import no.monopixel.slimcolonies.api.colony.ICitizenDataView;
-import no.monopixel.slimcolonies.api.colony.IColony;
-import no.monopixel.slimcolonies.api.colony.IColonyManager;
-import no.monopixel.slimcolonies.api.colony.IColonyView;
-import no.monopixel.slimcolonies.api.colony.interactionhandling.ChatPriority;
-import no.monopixel.slimcolonies.api.colony.interactionhandling.IInteractionResponseHandler;
-import no.monopixel.slimcolonies.api.colony.jobs.IJobView;
-import no.monopixel.slimcolonies.api.colony.jobs.registry.IJobDataManager;
-import no.monopixel.slimcolonies.api.entity.citizen.VisibleCitizenStatus;
-import no.monopixel.slimcolonies.api.entity.citizen.citizenhandlers.ICitizenSkillHandler;
-import no.monopixel.slimcolonies.api.inventory.InventoryCitizen;
-import no.monopixel.slimcolonies.api.util.Tuple;
-import no.monopixel.slimcolonies.api.util.constant.Constants;
-import no.monopixel.slimcolonies.core.colony.interactionhandling.ServerCitizenInteraction;
-import no.monopixel.slimcolonies.core.entity.citizen.citizenhandlers.CitizenSkillHandler;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.time.Clock;
+import java.time.LocalDate;
+import java.time.Month;
 import java.util.*;
 
 import static no.monopixel.slimcolonies.api.util.constant.NbtTagConstants.TAG_OFFHAND_HELD_ITEM_SLOT;
-import static no.monopixel.slimcolonies.api.util.constant.TranslationConstants.COREMOD_GUI_TOWNHALL_CITIZEN_UNEMPLOYED;
+import static no.monopixel.slimcolonies.api.util.constant.TranslationConstants.COM_MINECOLONIES_COREMOD_GUI_TOWNHALL_CITIZEN_UNEMPLOYED;
 
 /**
  * The CitizenDataView is the client-side representation of a CitizenData. Views contain the CitizenData's data that is relevant to a Client, in a more client-friendly form.
@@ -42,29 +49,33 @@ import static no.monopixel.slimcolonies.api.util.constant.TranslationConstants.C
  */
 public class CitizenDataView implements ICitizenDataView
 {
+    /**
+     * Santa Hat.
+     */
+    private static ItemStack cachedDisplaySantaHat = null;
 
     private static final String TAG_HELD_ITEM_SLOT = "HeldItemSlot";
 
     /**
      * The resource location for the blocking overlay.
      */
-    private static final ResourceLocation BLOCKING_RESOURCE = ResourceLocation.fromNamespaceAndPath(Constants.MOD_ID, "textures/icons/blocking.png");
+    private static final ResourceLocation BLOCKING_RESOURCE = new ResourceLocation(Constants.MOD_ID, "textures/icons/blocking.png");
 
     /**
      * The resource location for the pending overlay.
      */
-    private static final ResourceLocation PENDING_RESOURCE = ResourceLocation.fromNamespaceAndPath(Constants.MOD_ID, "textures/icons/warning.png");
+    private static final ResourceLocation PENDING_RESOURCE = new ResourceLocation(Constants.MOD_ID, "textures/icons/warning.png");
 
     /**
      * Attributes.
      */
-    private final int         id;
+    private final int     id;
     private final IColonyView colonyView;
-    protected     int         entityId;
-    protected     String      name;
-    protected     boolean     female;
-    protected     boolean     paused;
-    protected     boolean     isChild;
+    protected     int     entityId;
+    protected     String  name;
+    protected     boolean female;
+    protected     boolean paused;
+    protected     boolean isChild;
 
     private IJobView jobView;
 
@@ -77,6 +88,11 @@ public class CitizenDataView implements ICitizenDataView
      * Placeholder skills.
      */
     private double saturation;
+
+    /**
+     * holds the current citizen happiness value
+     */
+    private double happiness;
 
     /**
      * The position of the guard.
@@ -114,6 +130,11 @@ public class CitizenDataView implements ICitizenDataView
     private final CitizenSkillHandler citizenSkillHandler;
 
     /**
+     * The citizen happiness handler.
+     */
+    private final CitizenHappinessHandler citizenHappinessHandler;
+
+    /**
      * The citizens status icon
      */
     private VisibleCitizenStatus statusIcon;
@@ -121,8 +142,7 @@ public class CitizenDataView implements ICitizenDataView
     /**
      * The current location of interest.
      */
-    @Nullable
-    private BlockPos statusPosition;
+    @Nullable private BlockPos statusPosition;
 
     /**
      * Parents of the citizen.
@@ -160,6 +180,11 @@ public class CitizenDataView implements ICitizenDataView
     protected UUID textureUUID;
 
     /**
+     * Flag is citizen is sick.
+     */
+    private boolean isSick;
+
+    /**
      * Set View id.
      *
      * @param id the id to set.
@@ -168,6 +193,7 @@ public class CitizenDataView implements ICitizenDataView
     {
         this.id = id;
         this.citizenSkillHandler = new CitizenSkillHandler();
+        this.citizenHappinessHandler = new CitizenHappinessHandler();
         this.colonyView = colonyView;
     }
 
@@ -202,7 +228,7 @@ public class CitizenDataView implements ICitizenDataView
     }
 
     @Override
-    public IColony getColony()
+    public IColonyView getColony()
     {
         return colonyView;
     }
@@ -231,7 +257,7 @@ public class CitizenDataView implements ICitizenDataView
     @Override
     public MutableComponent getJobComponent()
     {
-        return job.isEmpty() ? Component.translatable(COREMOD_GUI_TOWNHALL_CITIZEN_UNEMPLOYED) : Component.translatable(job);
+        return job.isEmpty() ? Component.translatableEscape(COM_MINECOLONIES_COREMOD_GUI_TOWNHALL_CITIZEN_UNEMPLOYED) : Component.translatableEscape(job);
     }
 
     @Override
@@ -264,6 +290,12 @@ public class CitizenDataView implements ICitizenDataView
     public int getColonyId()
     {
         return colonyId;
+    }
+
+    @Override
+    public double getHappiness()
+    {
+        return happiness;
     }
 
     @Override
@@ -305,7 +337,7 @@ public class CitizenDataView implements ICitizenDataView
     }
 
     @Override
-    public void deserialize(@NotNull final FriendlyByteBuf buf)
+    public void deserialize(@NotNull final RegistryFriendlyByteBuf buf)
     {
         name = buf.readUtf(32767);
         female = buf.readBoolean();
@@ -317,6 +349,7 @@ public class CitizenDataView implements ICitizenDataView
         workBuilding = buf.readBoolean() ? buf.readBlockPos() : null;
 
         saturation = buf.readDouble();
+        happiness = buf.readDouble();
 
         citizenSkillHandler.read(buf.readNbt());
 
@@ -326,7 +359,7 @@ public class CitizenDataView implements ICitizenDataView
 
         final CompoundTag compound = buf.readNbt();
         inventory = new InventoryCitizen(this.name, true);
-        this.inventory.read(compound);
+        this.inventory.read(buf.registryAccess(), compound);
         this.inventory.setHeldItem(InteractionHand.MAIN_HAND, compound.getInt(TAG_HELD_ITEM_SLOT));
         this.inventory.setHeldItem(InteractionHand.OFF_HAND, compound.getInt(TAG_OFFHAND_HELD_ITEM_SLOT));
 
@@ -338,12 +371,14 @@ public class CitizenDataView implements ICitizenDataView
         {
             final CompoundTag compoundNBT = buf.readNbt();
             final ServerCitizenInteraction handler =
-                (ServerCitizenInteraction) SlimColoniesAPIProxy.getInstance().getInteractionResponseHandlerDataManager().createFrom(this, compoundNBT);
+              (ServerCitizenInteraction) MinecoloniesAPIProxy.getInstance().getInteractionResponseHandlerDataManager().createFrom(buf.registryAccess(), this, compoundNBT);
             citizenChatOptions.put(handler.getInquiry(), handler);
         }
 
         sortedInteractions = new ArrayList<>(citizenChatOptions.values());
         sortedInteractions.sort(Comparator.comparingInt(e -> -e.getPriority().getPriority()));
+
+        citizenHappinessHandler.read(buf.registryAccess(), buf.readNbt(), false);
 
         int statusindex = buf.readInt();
         statusIcon = statusindex >= 0 ? VisibleCitizenStatus.getForId(statusindex) : null;
@@ -398,6 +433,7 @@ public class CitizenDataView implements ICitizenDataView
         {
             textureUUID = buf.readUUID();
         }
+        this.isSick = buf.readBoolean();
     }
 
     @Override
@@ -493,6 +529,12 @@ public class CitizenDataView implements ICitizenDataView
     }
 
     @Override
+    public ICitizenHappinessHandler getHappinessHandler()
+    {
+        return citizenHappinessHandler;
+    }
+
+    @Override
     public ResourceLocation getStatusIcon()
     {
         if (statusIcon != null && statusIcon.shouldRender())
@@ -582,6 +624,7 @@ public class CitizenDataView implements ICitizenDataView
         return id;
     }
 
+    @SuppressWarnings(Suppression.TOO_MANY_RETURNS)
     @Override
     public boolean equals(final Object o)
     {
@@ -602,6 +645,30 @@ public class CitizenDataView implements ICitizenDataView
     @Override
     public ItemStack getDisplayArmor(final EquipmentSlot equipmentSlot)
     {
-        return getInventory().getArmorInSlot(equipmentSlot);
+        if (cachedDisplaySantaHat == null)
+        {
+            if (MineColonies.getConfig().getClient().holidayFeatures.get() && LocalDate.now(Clock.systemDefaultZone()).getMonth() == Month.DECEMBER)
+            {
+                cachedDisplaySantaHat = new ItemStack(ModItems.santaHat);
+            }
+            else
+            {
+                cachedDisplaySantaHat = ItemStack.EMPTY;
+            }
+        }
+
+        final ItemStack currentHat = getInventory().getArmorInSlot(equipmentSlot);
+        if (currentHat.isEmpty() && cachedDisplaySantaHat != null && cachedDisplaySantaHat != ItemStack.EMPTY && equipmentSlot == EquipmentSlot.HEAD)
+        {
+            return cachedDisplaySantaHat;
+        }
+
+        return currentHat;
+    }
+
+    @Override
+    public boolean isSick()
+    {
+        return this.isSick;
     }
 }

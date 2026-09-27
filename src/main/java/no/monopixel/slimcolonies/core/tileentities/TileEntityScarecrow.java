@@ -4,15 +4,17 @@ import no.monopixel.slimcolonies.api.colony.IColony;
 import no.monopixel.slimcolonies.api.colony.IColonyManager;
 import no.monopixel.slimcolonies.api.tileentities.AbstractTileEntityScarecrow;
 import no.monopixel.slimcolonies.api.tileentities.ScareCrowType;
-import no.monopixel.slimcolonies.core.Network;
-import no.monopixel.slimcolonies.core.network.messages.server.colony.building.fields.FarmFieldRegistrationMessage;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
 import net.minecraft.world.level.block.state.BlockState;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Random;
+
+import static no.monopixel.slimcolonies.core.colony.buildingextensions.FarmField.*;
 
 /**
  * The scarecrow tile entity to store extra data.
@@ -34,6 +36,13 @@ public class TileEntityScarecrow extends AbstractTileEntityScarecrow
      * The type of the scarecrow.
      */
     private ScareCrowType type;
+
+    /**
+     * The size of the field in all four directions
+     * in the same order as {@link Direction}:
+     * S, W, N, E
+     */
+    private int[] fieldSize = {DEFAULT_RANGE, DEFAULT_RANGE, DEFAULT_RANGE, DEFAULT_RANGE};
 
     /**
      * Creates an instance of the tileEntity.
@@ -60,13 +69,35 @@ public class TileEntityScarecrow extends AbstractTileEntityScarecrow
         if (currentColony == null && level != null)
         {
             this.currentColony = IColonyManager.getInstance().getIColony(level, worldPosition);
-            // TODO: Remove in 1.20.2
-            if (this.currentColony != null)
-            {
-                Network.getNetwork().sendToServer(new FarmFieldRegistrationMessage(currentColony, worldPosition));
-            }
         }
         return currentColony;
+    }
+
+    @Override
+    public void saveAdditional(final CompoundTag compoundTag, final HolderLookup.Provider provider)
+    {
+        super.saveAdditional(compoundTag, provider);
+        compoundTag.putIntArray(TAG_RADIUS, fieldSize);
+    }
+
+    @Override
+    public void loadAdditional(final CompoundTag compoundTag, final HolderLookup.Provider provider)
+    {
+        super.loadAdditional(compoundTag, provider);
+        if (compoundTag.contains(TAG_RADIUS))
+        {
+            fieldSize = compoundTag.getIntArray(TAG_RADIUS);
+        }
+    }
+
+    /**
+     * @param direction the direction for the radius
+     * @param radius    the number of blocks from the scarecrow that the farmer will work with
+     */
+    public void setFieldSize(Direction direction, int radius)
+    {
+        this.fieldSize[direction.get2DDataValue()] = Math.min(radius, MAX_RANGE);
+        setChanged();
     }
 
     @Override
@@ -77,8 +108,17 @@ public class TileEntityScarecrow extends AbstractTileEntityScarecrow
 
     @NotNull
     @Override
-    public CompoundTag getUpdateTag()
+    public CompoundTag getUpdateTag(@NotNull final HolderLookup.Provider provider)
     {
-        return saveWithId();
+        return saveWithId(provider);
+    }
+
+    /**
+     * Field size.
+     * @return the field size.
+     */
+    public int[] getFieldSize()
+    {
+        return fieldSize;
     }
 }

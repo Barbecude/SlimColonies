@@ -1,11 +1,5 @@
-buildscript {
-    repositories {
-        maven { url = 'https://files.minecraftforge.net/maven' }
-        mavenCentral()
-    }
-    dependencies {
-        classpath "net.minecraftforge.gradle:ForgeGradle:6.0.44"
-    }
+plugins {
+  id "org.sonarqube" version "3.0"
 }
 
-apply from: 'gradle/local-build.gradle'
+apply from: 'https://raw.githubusercontent.com/ldtteam/OperaPublicaCreator/ng7/gradle/mod.gradle'

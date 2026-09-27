@@ -1,17 +1,18 @@
 package no.monopixel.slimcolonies.core.tileentities;
 
-import net.minecraft.core.BlockPos;
-import net.minecraft.world.level.block.entity.BlockEntityType;
-import net.minecraft.world.level.block.state.BlockState;
-import net.minecraftforge.items.ItemStackHandler;
 import no.monopixel.slimcolonies.api.colony.IColony;
 import no.monopixel.slimcolonies.api.colony.IColonyManager;
 import no.monopixel.slimcolonies.api.colony.buildings.IBuilding;
-import no.monopixel.slimcolonies.api.tileentities.SlimColoniesTileEntities;
+import no.monopixel.slimcolonies.api.tileentities.MinecoloniesTileEntities;
 import no.monopixel.slimcolonies.api.util.MessageUtils;
+import no.monopixel.slimcolonies.api.util.constant.Constants;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.level.block.entity.BlockEntityType;
+import net.minecraft.world.level.block.state.BlockState;
+import net.neoforged.neoforge.items.ItemStackHandler;
 
 import static no.monopixel.slimcolonies.api.colony.requestsystem.requestable.deliveryman.AbstractDeliverymanRequestable.getPlayerActionPriority;
-import static no.monopixel.slimcolonies.api.util.constant.TranslationConstants.COREMOD_ENTITY_DELIVERYMAN_FORCEPICKUP;
+import static no.monopixel.slimcolonies.api.util.constant.TranslationConstants.COM_MINECOLONIES_COREMOD_ENTITY_DELIVERYMAN_FORCEPICKUP;
 
 /**
  * Class which handles the tileEntity for the Stash block.
@@ -33,7 +34,7 @@ public class TileEntityStash extends TileEntityColonyBuilding
      */
     public TileEntityStash(final BlockPos pos, final BlockState state)
     {
-        super(SlimColoniesTileEntities.STASH.get(), pos, state);
+        super(MinecoloniesTileEntities.STASH.get(), pos, state);
     }
 
     @Override
@@ -62,11 +63,11 @@ public class TileEntityStash extends TileEntityColonyBuilding
                 final IColony colony = IColonyManager.getInstance().getClosestColony(level, worldPosition);
                 if (colony != null)
                 {
-                    final IBuilding building = colony.getBuildingManager().getBuilding(worldPosition);
+                    final IBuilding building = colony.getServerBuildingManager().getBuilding(worldPosition);
                     // Note that createPickupRequest will make sure to only create on request per building.
-                    if (!isEmpty() && building != null && building.createPickupRequest(getPlayerActionPriority(true)))
+                    if (!isEmpty() && building != null && building.createPickupRequest(Constants.STACKSIZE, true))
                     {
-                        MessageUtils.format(COREMOD_ENTITY_DELIVERYMAN_FORCEPICKUP).sendToClose(getTilePos(), 6, colony.getMessagePlayerEntities());
+                        MessageUtils.format(COM_MINECOLONIES_COREMOD_ENTITY_DELIVERYMAN_FORCEPICKUP).sendToClose(getTilePos(), 6, colony.getMessagePlayerEntities());
                     }
                 }
             }

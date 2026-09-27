@@ -3,14 +3,16 @@ package no.monopixel.slimcolonies.api.crafting;
 import no.monopixel.slimcolonies.api.colony.buildings.IBuilding;
 import no.monopixel.slimcolonies.api.colony.requestsystem.token.IToken;
 import no.monopixel.slimcolonies.api.equipment.registry.EquipmentTypeEntry;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.storage.loot.LootParams;
+import net.minecraft.world.level.storage.loot.LootTable;
 import net.minecraft.world.level.storage.loot.parameters.LootContextParamSets;
-import net.minecraftforge.items.IItemHandler;
+import net.neoforged.neoforge.items.IItemHandler;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -25,6 +27,7 @@ import java.util.function.Predicate;
 public interface IRecipeStorage
 {
     /**
+     * Get the list of input items. Suppressing Sonar Rule Squid:S2384 The rule thinks we should return a copy of the list and not the list itself. But in this case the rule does
      * not apply because the list is an unmodifiable list already
      *
      * @return the list.
@@ -193,11 +196,11 @@ public interface IRecipeStorage
      */
     EquipmentTypeEntry getRequiredTool();
 
-    /**
+    /** 
      * Get the location/id of the Loot table used for optional outputs
      * @return the resource location for the table
      */
-    ResourceLocation getLootTable();
+    ResourceKey<LootTable> getLootTable();
 
     /**
      * Get the unique token of the recipe.

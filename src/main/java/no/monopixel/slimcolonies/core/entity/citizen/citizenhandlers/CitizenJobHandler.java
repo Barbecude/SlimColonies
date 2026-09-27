@@ -112,8 +112,8 @@ public class CitizenJobHandler implements ICitizenJobHandler
                   .stream()
                   .filter(citizen -> citizen.getJob() instanceof AbstractJobGuard)
                   .count());
-                AdvancementUtils.TriggerAdvancementPlayersForColony(citizen.getCitizenColonyHandler().getColonyOrRegister(),
-                  player -> AdvancementTriggers.ARMY_POPULATION.trigger(player, guards));
+                AdvancementUtils.TriggerAdvancementPlayersForColony(citizen.getCitizenColonyHandler().getColony(),
+                  player -> AdvancementTriggers.ARMY_POPULATION.get().trigger(player, guards));
             }
 
             job.initEntityValues(citizen);

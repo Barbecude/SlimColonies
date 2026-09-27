@@ -3,9 +3,6 @@ package no.monopixel.slimcolonies.core.client.gui.questlog;
 import com.ldtteam.blockui.Pane;
 import com.ldtteam.blockui.PaneBuilders;
 import com.ldtteam.blockui.controls.Text;
-import net.minecraft.ChatFormatting;
-import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.Style;
 import no.monopixel.slimcolonies.api.colony.ICitizenDataView;
 import no.monopixel.slimcolonies.api.colony.IColonyView;
 import no.monopixel.slimcolonies.api.quests.IQuestInstance;
@@ -14,6 +11,9 @@ import no.monopixel.slimcolonies.api.quests.IQuestObjectiveTemplate;
 import no.monopixel.slimcolonies.api.quests.IQuestTemplate;
 import no.monopixel.slimcolonies.core.client.render.worldevent.HighlightManager;
 import no.monopixel.slimcolonies.core.client.render.worldevent.highlightmanager.CitizenRenderData;
+import net.minecraft.ChatFormatting;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.Style;
 
 import java.util.List;
 
@@ -37,23 +37,23 @@ public class WindowQuestLogInProgressQuestQuestModule implements WindowQuestLogQ
     {
         IQuestTemplate questTemplate = IQuestManager.GLOBAL_SERVER_QUESTS.get(quest.getId());
 
-        setText(row, LABEL_QUEST_NAME, Component.translatable(QUEST_LOG_NAME_PREFIX).append(questTemplate.getName()));
-        setText(row, LABEL_QUEST_GIVER, Component.translatable(QUEST_LOG_GIVER_PREFIX).append(getQuestGiverName(colonyView, quest)));
+        setText(row, LABEL_QUEST_NAME, Component.translatableEscape(QUEST_LOG_NAME_PREFIX).append(questTemplate.getName()));
+        setText(row, LABEL_QUEST_GIVER, Component.translatableEscape(QUEST_LOG_GIVER_PREFIX).append(getQuestGiverName(colonyView, quest)));
 
         final IQuestObjectiveTemplate objectiveTemplate = questTemplate.getObjective(quest.getObjectiveIndex());
         final Text questObjectiveText = row.findPaneOfTypeByID(LABEL_QUEST_OBJECTIVE, Text.class);
 
         final Component progressText = objectiveTemplate.getProgressText(quest, Style.EMPTY.withColor(ChatFormatting.GOLD));
         final Component mainComponent = Component.literal(" - ")
-            .append(progressText)
-            .withStyle(ChatFormatting.GOLD);
+                                          .append(progressText)
+                                          .withStyle(ChatFormatting.GOLD);
 
         questObjectiveText.setText(mainComponent);
 
         PaneBuilders.tooltipBuilder()
-            .append(objectiveTemplate.getProgressText(quest, Style.EMPTY.withColor(ChatFormatting.WHITE)))
-            .hoverPane(questObjectiveText)
-            .build();
+          .append(objectiveTemplate.getProgressText(quest, Style.EMPTY.withColor(ChatFormatting.WHITE)))
+          .hoverPane(questObjectiveText)
+          .build();
     }
 
     @Override
@@ -77,9 +77,9 @@ public class WindowQuestLogInProgressQuestQuestModule implements WindowQuestLogQ
         if (label.getRenderedTextWidth() > label.getWidth())
         {
             PaneBuilders.tooltipBuilder()
-                .append(component)
-                .hoverPane(label)
-                .build();
+              .append(component)
+              .hoverPane(label)
+              .build();
         }
     }
 

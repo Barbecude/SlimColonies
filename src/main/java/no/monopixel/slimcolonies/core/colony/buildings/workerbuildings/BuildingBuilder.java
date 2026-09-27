@@ -1,16 +1,9 @@
 package no.monopixel.slimcolonies.core.colony.buildings.workerbuildings;
 
 import com.ldtteam.blockui.views.BOWindow;
-import net.minecraft.core.BlockPos;
-import net.minecraft.nbt.CompoundTag;
-import net.minecraft.resources.ResourceLocation;
-import net.minecraft.util.Tuple;
-import net.minecraft.world.item.ItemStack;
-import net.minecraftforge.network.NetworkEvent;
 import no.monopixel.slimcolonies.api.colony.ICitizenData;
 import no.monopixel.slimcolonies.api.colony.IColony;
 import no.monopixel.slimcolonies.api.colony.IColonyView;
-import no.monopixel.slimcolonies.api.colony.buildings.IBuilding;
 import no.monopixel.slimcolonies.api.colony.buildings.modules.settings.ISettingKey;
 import no.monopixel.slimcolonies.api.colony.workorders.IBuilderWorkOrder;
 import no.monopixel.slimcolonies.api.colony.workorders.IServerWorkOrder;
@@ -25,9 +18,17 @@ import no.monopixel.slimcolonies.core.colony.buildings.modules.settings.BuilderM
 import no.monopixel.slimcolonies.core.colony.buildings.modules.settings.SettingKey;
 import no.monopixel.slimcolonies.core.colony.buildings.modules.settings.StringSetting;
 import no.monopixel.slimcolonies.core.colony.buildings.views.AbstractBuildingBuilderView;
-import no.monopixel.slimcolonies.core.colony.jobs.JobBuilder;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.util.Tuple;
+import net.minecraft.world.item.ItemStack;
+
 import org.jetbrains.annotations.NotNull;
 
+import static no.monopixel.slimcolonies.api.util.constant.EquipmentLevelConstants.TOOL_LEVEL_WOOD_OR_GOLD;
 import static no.monopixel.slimcolonies.api.util.constant.NbtTagConstants.TAG_PURGED_MOBS;
 import static no.monopixel.slimcolonies.api.util.constant.TranslationConstants.*;
 
@@ -39,14 +40,14 @@ public class BuildingBuilder extends AbstractBuildingStructureBuilder
     /**
      * Settings key for the building mode.
      */
-    public static final ISettingKey<StringSetting>      MODE          = new SettingKey<>(StringSetting.class, ResourceLocation.fromNamespaceAndPath(Constants.MOD_ID, "mode"));
-    public static final ISettingKey<BuilderModeSetting> BUILDING_MODE = new SettingKey<>(BuilderModeSetting.class, ResourceLocation.fromNamespaceAndPath(Constants.MOD_ID, "buildmode"));
+    public static final ISettingKey<StringSetting> MODE = new SettingKey<>(StringSetting.class, new ResourceLocation(Constants.MOD_ID, "mode"));
+    public static final ISettingKey<BuilderModeSetting> BUILDING_MODE = new SettingKey<>(BuilderModeSetting.class, new ResourceLocation(Constants.MOD_ID, "buildmode"));
 
     /**
      * Both setting options.
      */
     public static final String MANUAL_SETTING = "no.monopixel.slimcolonies.core.builder.setting.manual";
-    public static final String AUTO_SETTING   = "no.monopixel.slimcolonies.core.builder.setting.automatic";
+    public static final String AUTO_SETTING = "no.monopixel.slimcolonies.core.builder.setting.automatic";
 
     /**
      * The job description.
@@ -68,11 +69,11 @@ public class BuildingBuilder extends AbstractBuildingStructureBuilder
     {
         super(c, l);
 
-        keepX.put(itemStack -> ItemStackUtils.isEquipmentType(itemStack, ModEquipmentTypes.pickaxe.get()), new Tuple<>(1, true));
-        keepX.put(itemStack -> ItemStackUtils.isEquipmentType(itemStack, ModEquipmentTypes.shovel.get()), new Tuple<>(1, true));
-        keepX.put(itemStack -> ItemStackUtils.isEquipmentType(itemStack, ModEquipmentTypes.axe.get()), new Tuple<>(1, true));
-        keepX.put(itemStack -> ItemStackUtils.isEquipmentType(itemStack, ModEquipmentTypes.hoe.get()), new Tuple<>(1, true));
-        keepX.put(itemStack -> ItemStackUtils.isEquipmentType(itemStack, ModEquipmentTypes.shears.get()), new Tuple<>(1, true));
+        keepX.put(itemStack -> ItemStackUtils.hasEquipmentLevel(itemStack, ModEquipmentTypes.pickaxe.get(), TOOL_LEVEL_WOOD_OR_GOLD, getMaxEquipmentLevel()), new Tuple<>(1, true));
+        keepX.put(itemStack -> ItemStackUtils.hasEquipmentLevel(itemStack, ModEquipmentTypes.shovel.get(), TOOL_LEVEL_WOOD_OR_GOLD, getMaxEquipmentLevel()), new Tuple<>(1, true));
+        keepX.put(itemStack -> ItemStackUtils.hasEquipmentLevel(itemStack, ModEquipmentTypes.axe.get(), TOOL_LEVEL_WOOD_OR_GOLD, getMaxEquipmentLevel()), new Tuple<>(1, true));
+        keepX.put(itemStack -> ItemStackUtils.hasEquipmentLevel(itemStack, ModEquipmentTypes.hoe.get(), TOOL_LEVEL_WOOD_OR_GOLD, getMaxEquipmentLevel()), new Tuple<>(1, true));
+        keepX.put(itemStack -> ItemStackUtils.hasEquipmentLevel(itemStack, ModEquipmentTypes.shears.get(), TOOL_LEVEL_WOOD_OR_GOLD, getMaxEquipmentLevel()), new Tuple<>(1, true));
     }
 
     /**
@@ -94,16 +95,16 @@ public class BuildingBuilder extends AbstractBuildingStructureBuilder
     }
 
     @Override
-    public void deserializeNBT(final CompoundTag compound)
+    public void deserializeNBT(@NotNull final HolderLookup.Provider provider, final CompoundTag compound)
     {
-        super.deserializeNBT(compound);
+        super.deserializeNBT(provider, compound);
         this.purgedMobsToday = compound.getBoolean(TAG_PURGED_MOBS);
     }
 
     @Override
-    public CompoundTag serializeNBT()
+    public CompoundTag serializeNBT(@NotNull final HolderLookup.Provider provider)
     {
-        final CompoundTag compound = super.serializeNBT();
+        final CompoundTag compound = super.serializeNBT(provider);
         compound.putBoolean(TAG_PURGED_MOBS, this.purgedMobsToday);
         return compound;
     }
@@ -143,25 +144,25 @@ public class BuildingBuilder extends AbstractBuildingStructureBuilder
      *
      * @param orderId the id of the work order to select.
      */
-    public void setWorkOrder(int orderId, final NetworkEvent.Context ctxIn)
+    public void setWorkOrder(int orderId, final ServerPlayer serverPlayer)
     {
         final ICitizenData citizen = getModule(BuildingModules.BUILDER_WORK).getFirstCitizen();
         if (citizen == null)
         {
-            MessageUtils.format(MESSAGE_WARNING_NO_WORKER_ASSIGNED).sendTo(ctxIn.getSender());
+            MessageUtils.format(MESSAGE_WARNING_NO_WORKER_ASSIGNED).sendTo(serverPlayer);
             return;
         }
 
         IServerWorkOrder wo = getColony().getWorkManager().getWorkOrder(orderId);
         if (!(wo instanceof IBuilderWorkOrder))
         {
-            MessageUtils.format(MESSAGE_WARNING_NOTFORBUILDER).sendTo(ctxIn.getSender());
+            MessageUtils.format(MESSAGE_WARNING_NOTFORBUILDER).sendTo(serverPlayer);
             return;
         }
 
         if (!wo.getClaimedBy().equals(BlockPos.ZERO))
         {
-            MessageUtils.format(MESSAGE_WARNING_ALREADY_CLAIMED).sendTo(ctxIn.getSender());
+            MessageUtils.format(MESSAGE_WARNING_ALREADY_CLAIMED).sendTo(serverPlayer);
             return;
         }
 
@@ -179,9 +180,9 @@ public class BuildingBuilder extends AbstractBuildingStructureBuilder
             getColony().getWorkManager().setDirty(true);
             markDirty();
         }
-        else
+        else 
         {
-            MessageUtils.format(MESSAGE_WARNING_CANNOTBUILD).sendTo(ctxIn.getSender());
+            MessageUtils.format(MESSAGE_WARNING_CANNOTBUILD).sendTo(serverPlayer);
         }
     }
 

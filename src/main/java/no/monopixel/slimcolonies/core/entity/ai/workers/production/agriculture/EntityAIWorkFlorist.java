@@ -6,11 +6,7 @@ import no.monopixel.slimcolonies.api.entity.ai.statemachine.states.IAIState;
 import no.monopixel.slimcolonies.api.entity.citizen.VisibleCitizenStatus;
 import no.monopixel.slimcolonies.api.equipment.ModEquipmentTypes;
 import no.monopixel.slimcolonies.api.items.ModItems;
-import no.monopixel.slimcolonies.api.util.BlockPosUtil;
-import no.monopixel.slimcolonies.api.util.InventoryUtils;
-import no.monopixel.slimcolonies.api.util.StatsUtil;
-import no.monopixel.slimcolonies.api.util.Tuple;
-import no.monopixel.slimcolonies.api.util.WorldUtil;
+import no.monopixel.slimcolonies.api.util.*;
 import no.monopixel.slimcolonies.api.util.constant.Constants;
 import no.monopixel.slimcolonies.core.colony.buildings.workerbuildings.BuildingFlorist;
 import no.monopixel.slimcolonies.core.colony.interactionhandling.StandardInteraction;
@@ -25,24 +21,22 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.tags.ItemTags;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
-
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+
+import java.util.ArrayList;
+import java.util.List;
 
 import static no.monopixel.slimcolonies.api.entity.ai.statemachine.states.AIWorkerState.*;
 import static no.monopixel.slimcolonies.api.util.ItemStackUtils.IS_COMPOST;
 import static no.monopixel.slimcolonies.api.util.constant.Constants.STACKSIZE;
 import static no.monopixel.slimcolonies.api.util.constant.Constants.TICKS_SECOND;
+import static no.monopixel.slimcolonies.api.util.constant.StatisticsConstants.FLOWERS_PICKED;
 import static no.monopixel.slimcolonies.api.util.constant.TranslationConstants.*;
 import static no.monopixel.slimcolonies.core.util.WorkerUtil.isThereCompostedLand;
-import static no.monopixel.slimcolonies.api.util.constant.StatisticsConstants.FLOWERS_PICKED;
-
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * Florist AI class.
@@ -93,7 +87,7 @@ public class EntityAIWorkFlorist extends AbstractEntityAIInteract<JobFlorist, Bu
      * Gardening icon
      */
     private final static VisibleCitizenStatus GARDENING =
-        new VisibleCitizenStatus(ResourceLocation.fromNamespaceAndPath(Constants.MOD_ID, "textures/icons/work/florist.png"), "no.monopixel.slimcolonies.gui.visiblestatus.florist");
+      new VisibleCitizenStatus(new ResourceLocation(Constants.MOD_ID, "textures/icons/work/florist.png"), "no.monopixel.slimcolonies.gui.visiblestatus.florist");
 
     /**
      * Xp gained on harvest
@@ -131,11 +125,11 @@ public class EntityAIWorkFlorist extends AbstractEntityAIInteract<JobFlorist, Bu
     {
         super(job);
         super.registerTargets(
-            new AITarget(IDLE, START_WORKING, 1),
-            new AITarget(START_WORKING, DECIDE, TICKS_SECOND),
-            new AITarget(DECIDE, this::decide, 200),
-            new AITarget(FLORIST_HARVEST, this::harvest, TICKS_SECOND),
-            new AITarget(FLORIST_COMPOST, this::compost, TICKS_SECOND)
+          new AITarget(IDLE, START_WORKING, 1),
+          new AITarget(START_WORKING, DECIDE, TICKS_SECOND),
+          new AITarget(DECIDE, this::decide, 200),
+          new AITarget(FLORIST_HARVEST, this::harvest, TICKS_SECOND),
+          new AITarget(FLORIST_COMPOST, this::compost, TICKS_SECOND)
         );
         worker.setCanPickUpLoot(true);
     }
@@ -144,8 +138,8 @@ public class EntityAIWorkFlorist extends AbstractEntityAIInteract<JobFlorist, Bu
     protected void updateRenderMetaData()
     {
         worker.setRenderMetadata(
-            (InventoryUtils.hasItemInItemHandler(worker.getItemHandlerCitizen(), stack -> stack.is(ItemTags.FLOWERS)) ? RENDER_META_FLOWERS : "")
-                + (getState() == IDLE ? "" : RENDER_META_WORKING));
+          (InventoryUtils.hasItemInItemHandler(worker.getItemHandlerCitizen(), stack -> stack.is(ItemTags.FLOWERS)) ? RENDER_META_FLOWERS : "")
+            + (getState() == IDLE ? "" : RENDER_META_WORKING));
     }
 
     /**
@@ -158,7 +152,7 @@ public class EntityAIWorkFlorist extends AbstractEntityAIInteract<JobFlorist, Bu
         worker.getCitizenData().setVisibleStatus(VisibleCitizenStatus.WORKING);
         if (building.getPlantGround().isEmpty())
         {
-            worker.getCitizenData().triggerInteraction(new StandardInteraction(Component.translatable(NO_PLANT_GROUND_FLORIST), ChatPriority.BLOCKING));
+            worker.getCitizenData().triggerInteraction(new StandardInteraction(Component.translatableEscape(NO_PLANT_GROUND_FLORIST), ChatPriority.BLOCKING));
             return IDLE;
         }
 
@@ -199,7 +193,7 @@ public class EntityAIWorkFlorist extends AbstractEntityAIInteract<JobFlorist, Bu
         {
             if (!isThereCompostedLand(building, world))
             {
-                worker.getCitizenData().triggerInteraction(new StandardInteraction(Component.translatable(NO_COMPOST), ChatPriority.BLOCKING));
+                worker.getCitizenData().triggerInteraction(new StandardInteraction(Component.translatableEscape(NO_COMPOST), ChatPriority.BLOCKING));
                 return START_WORKING;
             }
             return DECIDE;
@@ -243,11 +237,12 @@ public class EntityAIWorkFlorist extends AbstractEntityAIInteract<JobFlorist, Bu
             }
             else
             {
-                worker.getCitizenData().triggerInteraction(new StandardInteraction(Component.translatable(NO_FLOWERS_IN_CONFIG), ChatPriority.BLOCKING));
+                worker.getCitizenData().triggerInteraction(new StandardInteraction(Component.translatableEscape(NO_FLOWERS_IN_CONFIG), ChatPriority.BLOCKING));
             }
         }
 
         incrementActionsDone();
+        worker.decreaseSaturationForContinuousAction();
         compostPosition = null;
         return START_WORKING;
     }
@@ -286,8 +281,20 @@ public class EntityAIWorkFlorist extends AbstractEntityAIInteract<JobFlorist, Bu
         }
 
         incrementActionsDone();
+        worker.decreaseSaturationForContinuousAction();
         harvestPosition = null;
         return START_WORKING;
+    }
+
+    @Override
+    public boolean holdEfficientTool(@NotNull final BlockState target, final BlockPos pos)
+    {
+        final int bestSlot = getMostEfficientTool(target, pos);
+        if (bestSlot == NO_TOOL)
+        {
+            return true;
+        }
+        return super.holdEfficientTool(target, pos);
     }
 
     // ------------------------------------------------ HELPER METHODS ------------------------------------------------ //
@@ -303,24 +310,13 @@ public class EntityAIWorkFlorist extends AbstractEntityAIInteract<JobFlorist, Bu
             return false;
         }
 
-        final int shearSlot = InventoryUtils.getFirstSlotOfItemHandlerContainingEquipment(worker.getInventoryCitizen(), ModEquipmentTypes.shears.get(), 0, Integer.MAX_VALUE);
+        final int shearSlot = InventoryUtils.getFirstSlotOfItemHandlerContainingEquipment(worker.getInventoryCitizen(), ModEquipmentTypes.shears.get(), 0, building.getMaxEquipmentLevel());
         if (shearSlot >= 0)
         {
             CitizenItemUtils.setHeldItem(worker, InteractionHand.MAIN_HAND, shearSlot);
             return true;
         }
         return false;
-    }
-
-    @Override
-    public boolean holdEfficientTool(@NotNull final BlockState target, final BlockPos pos)
-    {
-        final int bestSlot = getMostEfficientTool(target, pos);
-        if (bestSlot == NO_TOOL)
-        {
-            return true;
-        }
-        return super.holdEfficientTool(target, pos);
     }
 
     @Override
@@ -398,22 +394,22 @@ public class EntityAIWorkFlorist extends AbstractEntityAIInteract<JobFlorist, Bu
      * Retrieves the item registry name of the first flower drop at the specified position.
      *
      * @param world the world in which to check for flower drops.
-     * @param pos   the position to check for flower drops.
+     * @param pos the position to check for flower drops.
      * @return an Optional containing the registry name of the flower drop, or an empty Optional if no flower is found.
      */
-    protected static List<String> getFlowerDropAtPos(Level world, BlockPos pos)
+    protected List<String> getFlowerDropAtPos(ServerLevel world, BlockPos pos)
     {
         List<String> flowerDrops = new ArrayList<>();
         BlockState state = world.getBlockState(pos);
-        List<ItemStack> drops = Block.getDrops(state, (ServerLevel) world, pos, null);
-        for (ItemStack drop : drops)
+        List<ItemStack> drops = Block.getDrops(state, world, pos, null, worker, worker.getMainHandItem());
+        for (ItemStack drop : drops) 
         {
-            if (drop.is(ItemTags.FLOWERS))
-            {
+            if (drop.is(ItemTags.FLOWERS)) 
+            { 
                 flowerDrops.add(drop.getItem().getDescriptionId());
             }
         }
-
+        
         return flowerDrops;
     }
 }

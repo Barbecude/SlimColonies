@@ -1,32 +1,28 @@
 package no.monopixel.slimcolonies.core.network.messages.server.colony;
 
-import net.minecraft.nbt.CompoundTag;
-import net.minecraft.nbt.ListTag;
-import net.minecraft.network.FriendlyByteBuf;
-import net.minecraftforge.network.NetworkEvent;
-import no.monopixel.slimcolonies.api.ISlimColoniesAPI;
+import com.ldtteam.common.network.PlayMessageType;
+import no.monopixel.slimcolonies.api.IMinecoloniesAPI;
 import no.monopixel.slimcolonies.api.colony.IColony;
 import no.monopixel.slimcolonies.api.eventbus.events.colony.ColonyFlagChangedModEvent;
+import no.monopixel.slimcolonies.api.util.Utils;
 import no.monopixel.slimcolonies.api.util.constant.Constants;
-import no.monopixel.slimcolonies.core.client.gui.WindowBannerPicker;
 import no.monopixel.slimcolonies.core.network.messages.server.AbstractColonyServerMessage;
-
-import static no.monopixel.slimcolonies.api.util.constant.NbtTagConstants.TAG_BANNER_PATTERNS;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.level.block.entity.BannerPatternLayers;
+import net.neoforged.neoforge.network.handling.IPayloadContext;
 
 /**
- * Message to update the colony flag once set in the {@link WindowBannerPicker}.
+ * Message to update the colony flag once set in the {@link no.monopixel.slimcolonies.core.client.gui.WindowBannerPicker}.
  */
 public class ColonyFlagChangeMessage extends AbstractColonyServerMessage
 {
+    public static final PlayMessageType<?> TYPE = PlayMessageType.forServer(Constants.MOD_ID, "colony_flag_change", ColonyFlagChangeMessage::new);
+
     /**
      * The chosen list of patterns from the window
      */
-    private ListTag patterns;
-
-    /**
-     * Default constructor
-     **/
-    public ColonyFlagChangeMessage() {super();}
+    private final BannerPatternLayers patterns;
 
     /**
      * Spawn a new change message
@@ -34,35 +30,29 @@ public class ColonyFlagChangeMessage extends AbstractColonyServerMessage
      * @param colony      the colony the player changed the banner in
      * @param patternList the list of patterns they set in the banner picker
      */
-    public ColonyFlagChangeMessage(IColony colony, ListTag patternList)
+    public ColonyFlagChangeMessage(final IColony colony, final BannerPatternLayers patternList)
     {
-        super(colony);
-
+        super(TYPE, colony);
         this.patterns = patternList;
     }
 
     @Override
-    protected void onExecute(NetworkEvent.Context ctxIn, boolean isLogicalServer, IColony colony)
+    protected void onExecute(final IPayloadContext ctxIn, final ServerPlayer player, final IColony colony)
     {
         colony.setColonyFlag(patterns);
-        ISlimColoniesAPI.getInstance().getEventBus().post(new ColonyFlagChangedModEvent(colony));
+        IMinecoloniesAPI.getInstance().getEventBus().post(new ColonyFlagChangedModEvent(colony));
     }
 
     @Override
-    protected void toBytesOverride(FriendlyByteBuf buf)
+    protected void toBytes(final RegistryFriendlyByteBuf buf)
     {
-        CompoundTag nbt = new CompoundTag();
-        nbt.put(TAG_BANNER_PATTERNS, this.patterns);
-        buf.writeNbt(nbt);
+        super.toBytes(buf);
+        Utils.serializeCodecMess(BannerPatternLayers.STREAM_CODEC, buf, this.patterns);
     }
 
-    @Override
-    protected void fromBytesOverride(FriendlyByteBuf buf)
+    protected ColonyFlagChangeMessage(final RegistryFriendlyByteBuf buf, final PlayMessageType<?> type)
     {
-        CompoundTag nbt = buf.readNbt();
-        if (nbt != null)
-        {
-            this.patterns = nbt.getList(TAG_BANNER_PATTERNS, Constants.TAG_COMPOUND);
-        }
+        super(buf, type);
+        this.patterns = Utils.deserializeCodecMess(BannerPatternLayers.STREAM_CODEC, buf);
     }
 }

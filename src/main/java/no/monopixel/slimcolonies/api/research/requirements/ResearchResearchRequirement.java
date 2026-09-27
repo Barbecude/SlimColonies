@@ -19,10 +19,12 @@ public class ResearchResearchRequirement implements IResearchRequirement
      * The property name for a non-parent research requirement.
      */
     public static final String RESEARCH_REQUIRED_RESEARCH_PROP = "research";
+
     /**
      * The nbtProperty identifying the research resource location which must be unlocked.
      */
     private static final String TAG_ID = "id";
+
     /**
      * The research id.
      */
@@ -35,7 +37,7 @@ public class ResearchResearchRequirement implements IResearchRequirement
      */
     public ResearchResearchRequirement(final CompoundTag nbt)
     {
-        this.researchId = new ResourceLocation(nbt.getString(TAG_ID));
+        this.researchId = ResourceLocation.parse(nbt.getString(TAG_ID));
     }
 
     /**

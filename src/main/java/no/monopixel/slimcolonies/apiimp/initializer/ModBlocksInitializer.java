@@ -1,14 +1,7 @@
 package no.monopixel.slimcolonies.apiimp.initializer;
 
-import net.minecraft.world.item.Item;
-import net.minecraft.world.level.block.Block;
-import net.minecraft.world.level.block.ComposterBlock;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.fml.common.Mod;
-import net.minecraftforge.registries.ForgeRegistries;
-import net.minecraftforge.registries.IForgeRegistry;
-import net.minecraftforge.registries.RegisterEvent;
 import no.monopixel.slimcolonies.api.blocks.ModBlocks;
+import no.monopixel.slimcolonies.api.items.ModTags;
 import no.monopixel.slimcolonies.api.util.constant.Constants;
 import no.monopixel.slimcolonies.core.blocks.*;
 import no.monopixel.slimcolonies.core.blocks.decorative.BlockColonyFlagBanner;
@@ -17,14 +10,27 @@ import no.monopixel.slimcolonies.core.blocks.decorative.BlockConstructionTape;
 import no.monopixel.slimcolonies.core.blocks.decorative.BlockGate;
 import no.monopixel.slimcolonies.core.blocks.huts.*;
 import no.monopixel.slimcolonies.core.blocks.schematic.BlockWaypoint;
+import net.minecraft.core.Registry;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.Blocks;
+import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.fml.common.EventBusSubscriber;
+import net.neoforged.neoforge.registries.RegisterEvent;
+
+import java.util.List;
 
 import static no.monopixel.slimcolonies.api.blocks.decorative.AbstractBlockGate.IRON_GATE;
 import static no.monopixel.slimcolonies.api.blocks.decorative.AbstractBlockGate.WOODEN_GATE;
+import static no.monopixel.slimcolonies.core.blocks.MinecoloniesCropBlock.*;
+import static no.monopixel.slimcolonies.core.blocks.MinecoloniesFarmland.FARMLAND;
+import static no.monopixel.slimcolonies.core.blocks.MinecoloniesFarmland.FLOODED_FARMLAND;
 
 /**
  * This class deals with the initialization of blocks and their items.
  */
-@Mod.EventBusSubscriber(modid = Constants.MOD_ID, bus = Mod.EventBusSubscriber.Bus.MOD)
+@EventBusSubscriber(modid = Constants.MOD_ID, bus = EventBusSubscriber.Bus.MOD)
 public final class ModBlocksInitializer
 {
 
@@ -36,9 +42,9 @@ public final class ModBlocksInitializer
     @SubscribeEvent
     public static void registerBlocks(RegisterEvent event)
     {
-        if (event.getRegistryKey().equals(ForgeRegistries.Keys.BLOCKS))
+        if (event.getRegistryKey().equals(Registries.BLOCK))
         {
-            ModBlocksInitializer.init(event.getForgeRegistry());
+            ModBlocksInitializer.init(event.getRegistry(Registries.BLOCK));
         }
     }
 
@@ -48,7 +54,7 @@ public final class ModBlocksInitializer
      * @param registry The registry to register the new blocks.
      */
     @SuppressWarnings("PMD.ExcessiveMethodLength")
-    public static void init(final IForgeRegistry<Block> registry)
+    public static void init(final Registry<Block> registry)
     {
         ModBlocks.blockHutBaker = new BlockHutBaker().registerBlock(registry);
         ModBlocks.blockHutBlacksmith = new BlockHutBlacksmith().registerBlock(registry);
@@ -101,11 +107,12 @@ public final class ModBlocksInitializer
         ModBlocks.blockHutAlchemist = new BlockHutAlchemist().registerBlock(registry);
         ModBlocks.blockHutKitchen = new BlockHutKitchen().registerBlock(registry);
         ModBlocks.blockHutGateHouse = new BlockHutGateHouse().registerBlock(registry);
+        ModBlocks.blockHutStable = new BlockHutStable().registerBlock(registry);
 
         ModBlocks.blockConstructionTape = new BlockConstructionTape().registerBlock(registry);
-        ModBlocks.blockRack = new BlockSlimColoniesRack().registerBlock(registry);
-        ModBlocks.blockGrave = new BlockSlimColoniesGrave().registerBlock(registry);
-        ModBlocks.blockNamedGrave = new BlockSlimColoniesNamedGrave().registerBlock(registry);
+        ModBlocks.blockRack = new BlockMinecoloniesRack().registerBlock(registry);
+        ModBlocks.blockGrave = new BlockMinecoloniesGrave().registerBlock(registry);
+        ModBlocks.blockNamedGrave = new BlockMinecoloniesNamedGrave().registerBlock(registry);
         ModBlocks.blockWayPoint = new BlockWaypoint().registerBlock(registry);
         ModBlocks.blockPostBox = new BlockPostBox().registerBlock(registry);
         ModBlocks.blockStash = new BlockStash().registerBlock(registry);
@@ -116,8 +123,27 @@ public final class ModBlocksInitializer
         ModBlocks.blockColonyWallBanner = new BlockColonyFlagWallBanner().registerBlock(registry);
         ModBlocks.blockIronGate = new BlockGate(IRON_GATE, 10f, 6, 8).registerBlock(registry);
         ModBlocks.blockWoodenGate = new BlockGate(WOODEN_GATE, 7f, 6, 5).registerBlock(registry);
+        ModBlocks.farmland = new MinecoloniesFarmland(FARMLAND, false, 15.0).registerBlock(registry);
+        ModBlocks.floodedFarmland = new MinecoloniesFarmland(FLOODED_FARMLAND, true, 13.0).registerBlock(registry);
+        ModBlocks.blockColonySign = new BlockColonySign().registerBlock(registry);
 
-        // Crops removed for simplification
+        // Could in the future add alternative versions of these crops that can be planted by the player and grow at a slower rate.
+        ModBlocks.blockBellPepper = new MinecoloniesCropBlock(BELL_PEPPER, ModBlocks.farmland, List.of(Blocks.SHORT_GRASS, Blocks.TALL_GRASS), ModTags.temperateBiomes).registerBlock(registry);
+        ModBlocks.blockCabbage = new MinecoloniesCropBlock(CABBAGE, ModBlocks.farmland, List.of(Blocks.FERN), ModTags.coldBiomes).registerBlock(registry);
+        ModBlocks.blockChickpea = new MinecoloniesCropBlock(CHICKPEA, ModBlocks.farmland, List.of(Blocks.SHORT_GRASS, Blocks.TALL_GRASS, Blocks.DEAD_BUSH), ModTags.dryBiomes).registerBlock(registry);
+        ModBlocks.blockDurum = new MinecoloniesCropBlock(DURUM, ModBlocks.farmland, List.of(Blocks.SHORT_GRASS, Blocks.TALL_GRASS), null).registerBlock(registry);
+        ModBlocks.blockEggplant = new MinecoloniesCropBlock(EGGPLANT, ModBlocks.farmland, List.of(Blocks.SHORT_GRASS, Blocks.TALL_GRASS), null).registerBlock(registry);
+        ModBlocks.blockGarlic = new MinecoloniesCropBlock(GARLIC, ModBlocks.farmland, List.of(Blocks.SHORT_GRASS, Blocks.TALL_GRASS), null).registerBlock(registry);
+        ModBlocks.blockOnion = new MinecoloniesCropBlock(ONION, ModBlocks.farmland, List.of(Blocks.SHORT_GRASS, Blocks.TALL_GRASS), null).registerBlock(registry);
+        ModBlocks.blockSoyBean = new MinecoloniesCropBlock(SOYBEAN, ModBlocks.farmland, List.of(Blocks.SHORT_GRASS, Blocks.TALL_GRASS, Blocks.FERN), ModTags.humidBiomes).registerBlock(registry);
+        ModBlocks.blockTomato = new MinecoloniesCropBlock(TOMATO, ModBlocks.farmland, List.of(Blocks.SHORT_GRASS, Blocks.TALL_GRASS), ModTags.temperateBiomes).registerBlock(registry);
+        ModBlocks.blockRice = new MinecoloniesCropBlock(RICE, ModBlocks.floodedFarmland, List.of(Blocks.SEAGRASS, Blocks.SMALL_DRIPLEAF), ModTags.humidBiomes).registerBlock(registry);
+
+        ModBlocks.blockButternutSquash = new MinecoloniesCropBlock(BUTTERNUT_SQUASH, ModBlocks.farmland, List.of(Blocks.SHORT_GRASS, Blocks.TALL_GRASS), ModTags.coldBiomes).registerBlock(registry);
+        ModBlocks.blockCorn = new MinecoloniesCropBlock(CORN, ModBlocks.farmland, List.of(Blocks.SHORT_GRASS, Blocks.TALL_GRASS), ModTags.temperateBiomes).registerBlock(registry);
+        ModBlocks.blockMint = new MinecoloniesCropBlock(MINT, ModBlocks.farmland, List.of(Blocks.SHORT_GRASS, Blocks.TALL_GRASS), null).registerBlock(registry);
+        ModBlocks.blockNetherPepper = new MinecoloniesCropBlock(NETHER_PEPPER, ModBlocks.farmland, List.of(Blocks.SHORT_GRASS, Blocks.TALL_GRASS), ModTags.dryBiomes).registerBlock(registry);
+        ModBlocks.blockPeas = new MinecoloniesCropBlock(PEAS, ModBlocks.farmland, List.of(Blocks.SHORT_GRASS, Blocks.TALL_GRASS), ModTags.humidBiomes).registerBlock(registry);
 
         ModBlocks.blockSimpleQuarry = new SimpleQuarry().registerBlock(registry);
         ModBlocks.blockMediumQuarry = new MediumQuarry().registerBlock(registry);
@@ -127,11 +153,9 @@ public final class ModBlocksInitializer
     @SubscribeEvent
     public static void registerItems(RegisterEvent event)
     {
-        if (event.getRegistryKey().equals(ForgeRegistries.Keys.ITEMS))
+        if (event.getRegistryKey().equals(Registries.ITEM))
         {
-            ModBlocksInitializer.registerBlockItem(event.getForgeRegistry());
-
-            registerCompostItems();
+            ModBlocksInitializer.registerBlockItem(event.getRegistry(Registries.ITEM));
         }
     }
 
@@ -140,7 +164,7 @@ public final class ModBlocksInitializer
      *
      * @param registry The item registry to add the items too.
      */
-    public static void registerBlockItem(final IForgeRegistry<Item> registry)
+    public static void registerBlockItem(final Registry<Item> registry)
     {
         ModBlocks.blockHutBaker.registerBlockItem(registry, new Item.Properties());
         ModBlocks.blockHutBlacksmith.registerBlockItem(registry, new Item.Properties());
@@ -193,6 +217,7 @@ public final class ModBlocksInitializer
         ModBlocks.blockHutAlchemist.registerBlockItem(registry, new Item.Properties());
         ModBlocks.blockHutKitchen.registerBlockItem(registry, new Item.Properties());
         ModBlocks.blockHutGateHouse.registerBlockItem(registry, new Item.Properties());
+        ModBlocks.blockHutStable.registerBlockItem(registry, new Item.Properties());
 
         ModBlocks.blockConstructionTape.registerBlockItem(registry, new Item.Properties());
         ModBlocks.blockRack.registerBlockItem(registry, new Item.Properties());
@@ -204,17 +229,28 @@ public final class ModBlocksInitializer
         ModBlocks.blockStash.registerBlockItem(registry, new Item.Properties());
         ModBlocks.blockDecorationPlaceholder.registerBlockItem(registry, new Item.Properties());
         ModBlocks.blockCompostedDirt.registerBlockItem(registry, new Item.Properties());
+        ModBlocks.farmland.registerBlockItem(registry, new Item.Properties());
+        ModBlocks.floodedFarmland.registerBlockItem(registry, new Item.Properties());
+        ModBlocks.blockColonySign.registerBlockItem(registry, new Item.Properties());
 
-        // Crop items removed for simplification
+        ModBlocks.blockBellPepper.registerBlockItem(registry, new Item.Properties());
+        ModBlocks.blockCabbage.registerBlockItem(registry, new Item.Properties());
+        ModBlocks.blockChickpea.registerBlockItem(registry, new Item.Properties());
+        ModBlocks.blockDurum.registerBlockItem(registry, new Item.Properties());
+        ModBlocks.blockEggplant.registerBlockItem(registry, new Item.Properties());
+        ModBlocks.blockGarlic.registerBlockItem(registry, new Item.Properties());
+        ModBlocks.blockOnion.registerBlockItem(registry, new Item.Properties());
+        ModBlocks.blockSoyBean.registerBlockItem(registry, new Item.Properties());
+        ModBlocks.blockTomato.registerBlockItem(registry, new Item.Properties());
+        ModBlocks.blockRice.registerBlockItem(registry, new Item.Properties());
+        ModBlocks.blockButternutSquash.registerBlockItem(registry, new Item.Properties());
+        ModBlocks.blockCorn.registerBlockItem(registry, new Item.Properties());
+        ModBlocks.blockMint.registerBlockItem(registry, new Item.Properties());
+        ModBlocks.blockNetherPepper.registerBlockItem(registry, new Item.Properties());
+        ModBlocks.blockPeas.registerBlockItem(registry, new Item.Properties());
 
         ModBlocks.blockSimpleQuarry.registerBlockItem(registry, new Item.Properties());
         ModBlocks.blockMediumQuarry.registerBlockItem(registry, new Item.Properties());
         //ModBlocks.blockLargeQuarry.registerBlockItem(registry, new Item.Properties());
-    }
-
-    private static void registerCompostItems()
-    {
-        // Crops removed, only keeping composted dirt
-        ComposterBlock.COMPOSTABLES.put(ModBlocks.blockCompostedDirt.asItem(), 1f);
     }
 }

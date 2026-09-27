@@ -113,7 +113,7 @@ public class EntityAIWorkPlanter extends AbstractEntityAICrafting<JobPlanter, Bu
         {
             if (worker.getCitizenData() != null)
             {
-                worker.getCitizenData().triggerInteraction(new StandardInteraction(Component.translatable(NO_FREE_FIELDS), ChatPriority.BLOCKING));
+                worker.getCitizenData().triggerInteraction(new StandardInteraction(Component.translatableEscape(NO_FREE_FIELDS), ChatPriority.BLOCKING));
             }
             worker.getCitizenData().setJobStatus(JobStatus.STUCK);
             return IDLE;
@@ -121,7 +121,7 @@ public class EntityAIWorkPlanter extends AbstractEntityAICrafting<JobPlanter, Bu
 
         // Get the next field to work on, if any.
         final IBuildingExtension lastField = module.getCurrentExtension();
-        final IBuildingExtension fieldToWork = module.getExtensionToWorkOn();
+        final IBuildingExtension fieldToWork = module.getBuildingExtensionToWorkOn();
         if (fieldToWork != null)
         {
             // If we suddenly have to work on a new field, always reset the working position.
@@ -227,7 +227,8 @@ public class EntityAIWorkPlanter extends AbstractEntityAICrafting<JobPlanter, Bu
             if (activeModuleResult.getAction().increasesActionCount())
             {
                 currentFieldActionCount++;
-                incrementActionsDoneAndDecSaturation();
+                incrementActionsDone();
+                worker.decreaseSaturationForContinuousAction();
             }
 
             IAIState result = PLANTATION_WORK_FIELD;
@@ -472,7 +473,7 @@ public class EntityAIWorkPlanter extends AbstractEntityAICrafting<JobPlanter, Bu
     @Override
     public boolean canGoIdle()
     {
-        if (building.getModule(PLANTATION_FIELDS).getExtensionToWorkOn() == null)
+        if (building.getModule(PLANTATION_FIELDS).getBuildingExtensionToWorkOn() == null)
         {
             return !super.hasWorkToDo();
         }

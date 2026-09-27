@@ -11,19 +11,20 @@ import no.monopixel.slimcolonies.api.colony.IColonyView;
 import no.monopixel.slimcolonies.api.colony.buildings.HiringMode;
 import no.monopixel.slimcolonies.api.util.BlockPosUtil;
 import no.monopixel.slimcolonies.api.util.constant.Constants;
-import no.monopixel.slimcolonies.core.Network;
 import no.monopixel.slimcolonies.core.colony.buildings.moduleviews.LivingBuildingModuleView;
 import no.monopixel.slimcolonies.core.colony.buildings.views.LivingBuildingView;
+import no.monopixel.slimcolonies.core.colony.buildings.workerbuildings.BuildingTownHall;
 import no.monopixel.slimcolonies.core.network.messages.server.colony.building.home.AssignUnassignMessage;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.resources.ResourceLocation;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
 
-import static no.monopixel.slimcolonies.api.util.constant.TranslationConstants.COREMOD_GUI_TOWNHALL_CITIZEN_UNEMPLOYED;
+import static no.monopixel.slimcolonies.api.util.constant.TranslationConstants.COM_MINECOLONIES_COREMOD_GUI_TOWNHALL_CITIZEN_UNEMPLOYED;
 import static no.monopixel.slimcolonies.api.util.constant.WindowConstants.*;
 
 /**
@@ -69,12 +70,12 @@ public class WindowAssignCitizen extends AbstractWindowSkeleton implements Butto
     /**
      * Constructor for the window when the player wants to assign a worker for a certain home building.
      *
-     * @param c        the colony view.
+     * @param c          the colony view.
      * @param building the building.
      */
     public WindowAssignCitizen(final IColonyView c, final LivingBuildingView building)
     {
-        super(Constants.MOD_ID + ASSIGN_CITIZEN_RESOURCE_SUFFIX);
+        super(new ResourceLocation(Constants.MOD_ID, "gui/windowassigncitizen.xml"));
         this.colony = c;
         this.building = building;
         unassignedCitizenList = findPaneOfTypeByID(UNASSIGNED_CITIZEN_LIST, ScrollingList.class);
@@ -93,7 +94,6 @@ public class WindowAssignCitizen extends AbstractWindowSkeleton implements Butto
 
     /**
      * When hire was clicked.
-     *
      * @param button the clicked button.
      */
     private void hireClicked(@NotNull final Button button)
@@ -108,7 +108,7 @@ public class WindowAssignCitizen extends AbstractWindowSkeleton implements Butto
         building.addResident(data.getId());
         data.setHomeBuilding(building.getPosition());
 
-        Network.getNetwork().sendToServer(new AssignUnassignMessage(this.building, true, data.getId(), null));
+        new AssignUnassignMessage(this.building, true, data.getId(), null).sendToServer();
 
         updateCitizens();
         unassignedCitizenList.refreshElementPanes();
@@ -117,7 +117,6 @@ public class WindowAssignCitizen extends AbstractWindowSkeleton implements Butto
 
     /**
      * When fire was clicked.
-     *
      * @param button the clicked button.
      */
     private void fireClicked(@NotNull final Button button)
@@ -128,12 +127,13 @@ public class WindowAssignCitizen extends AbstractWindowSkeleton implements Butto
         building.removeResident(data.getId());
         data.setHomeBuilding(null);
 
-        Network.getNetwork().sendToServer(new AssignUnassignMessage(this.building, false, data.getId(), null));
+        new AssignUnassignMessage(this.building, false, data.getId(), null).sendToServer();
 
         updateCitizens();
         unassignedCitizenList.refreshElementPanes();
         assignedCitizenList.refreshElementPanes();
     }
+
 
     /**
      * Hiring mode switch clicked.
@@ -170,7 +170,7 @@ public class WindowAssignCitizen extends AbstractWindowSkeleton implements Butto
      */
     private void cancelClicked(@NotNull final Button button)
     {
-        if (button.getID().equals(BUTTON_CANCEL) && colony.getTownHall() != null)
+        if (button.getID().equals(BUTTON_CANCEL) && colony.getClientBuildingManager().getTownHall() != null)
         {
             building.openGui(false);
         }
@@ -193,21 +193,20 @@ public class WindowAssignCitizen extends AbstractWindowSkeleton implements Butto
     {
         //Removes citizens that work from home and remove citizens already living here.
         unassignedCitizens = colony.getCitizens().values().stream()
-            .filter(cit -> (!Objects.equals(cit.getHomeBuilding(), cit.getWorkBuilding()) || cit.getHomeBuilding() == null) && !building.getPosition()
-                .equals(cit.getHomeBuilding()))
-            .sorted(Comparator.comparing((ICitizenDataView cit) -> cit.getHomeBuilding() == null ? 0 : 1)
-                .thenComparingLong(cit -> {
-                    if (cit.getWorkBuilding() == null)
-                    {
-                        if (cit.getHomeBuilding() == null)
-                        {
-                            return 0;
-                        }
-                        return Integer.MAX_VALUE;
-                    }
+                     .filter(cit -> (!Objects.equals(cit.getHomeBuilding(), cit.getWorkBuilding()) || cit.getHomeBuilding() == null) && !building.getPosition().equals(cit.getHomeBuilding()))
+                     .sorted(Comparator.comparing((ICitizenDataView cit) -> cit.getHomeBuilding() == null ? 0 : 1)
+                               .thenComparingLong(cit -> {
+                                   if (cit.getWorkBuilding() == null)
+                                   {
+                                       if (cit.getHomeBuilding() == null)
+                                       {
+                                           return 0;
+                                       }
+                                       return Integer.MAX_VALUE;
+                                   }
 
-                    return (int) BlockPosUtil.getDistance(cit.getWorkBuilding(), building.getPosition());
-                })).toList();
+                                   return (int) BlockPosUtil.getDistance(cit.getWorkBuilding(), building.getPosition());
+                               })).toList();
 
         assignedCitizens.clear();
         for (final int id : building.getModuleViewByType(LivingBuildingModuleView.class).getAssignedCitizens())
@@ -258,17 +257,17 @@ public class WindowAssignCitizen extends AbstractWindowSkeleton implements Butto
                 if (work != null)
                 {
                     newDistance = (int) BlockPosUtil.getDistance(work, building.getPosition());
-                    workString = Component.translatable("no.monopixel.slimcolonies.coremod.gui.home.new", newDistance);
+                    workString = Component.translatableEscape("no.monopixel.slimcolonies.coremod.gui.home.new", newDistance);
                 }
 
-                MutableComponent homeString = Component.translatable("no.monopixel.slimcolonies.coremod.gui.home.homeless");
+                MutableComponent homeString = Component.translatableEscape("no.monopixel.slimcolonies.coremod.gui.home.homeless");
                 boolean better = false;
                 if (home != null)
                 {
                     if (work != null)
                     {
                         final int oldDistance = (int) BlockPosUtil.getDistance(work, home);
-                        homeString = Component.translatable("no.monopixel.slimcolonies.coremod.gui.home.currently", oldDistance);
+                        homeString = Component.translatableEscape("no.monopixel.slimcolonies.coremod.gui.home.currently", oldDistance);
                         better = newDistance < oldDistance;
                         if (oldDistance > FAR_DISTANCE_THRESHOLD)
                         {
@@ -290,20 +289,15 @@ public class WindowAssignCitizen extends AbstractWindowSkeleton implements Butto
                 final Text newLivingLabel = rowPane.findPaneOfTypeByID(CITIZEN_JOB, Text.class);
                 if (citizen.getJobView() != null)
                 {
-                    newLivingLabel.setText(Component.empty()
-                        .append(Component.translatable(citizen.getJobView().getEntry().getTranslationKey()))
-                        .append(": ")
-                        .append(workString)
-                        .append(" ")
-                        .append(homeString));
+                    newLivingLabel.setText(Component.empty().append(Component.translatable(citizen.getJobView().getEntry().getTranslationKey())).append(": ").append(workString).append(" ").append(homeString));
                 }
                 else
                 {
-                    newLivingLabel.setText(Component.translatable(COREMOD_GUI_TOWNHALL_CITIZEN_UNEMPLOYED).append("\n").append(homeString));
+                    newLivingLabel.setText(Component.translatable(COM_MINECOLONIES_COREMOD_GUI_TOWNHALL_CITIZEN_UNEMPLOYED).append("\n").append(homeString));
                 }
                 newLivingLabel.setTextWrap(true);
 
-                if (((colony.isManualHousing() && building.getHiringMode() == HiringMode.DEFAULT) || (building.getHiringMode() == HiringMode.MANUAL)))
+                if (((!colony.getSettings().getSetting(BuildingTownHall.AUTO_HOUSING_MODE).getValue() && building.getHiringMode() == HiringMode.DEFAULT) || (building.getHiringMode() == HiringMode.MANUAL)))
                 {
                     if (building.getResidents().size() < building.getMax())
                     {
@@ -318,7 +312,7 @@ public class WindowAssignCitizen extends AbstractWindowSkeleton implements Butto
                 else
                 {
                     hireButton.disable();
-                    PaneBuilders.tooltipBuilder().hoverPane(hireButton).build().setText(Component.translatable("no.monopixel.slimcolonies.coremod.gui.home.hire.warning"));
+                    PaneBuilders.tooltipBuilder().hoverPane(hireButton).build().setText(Component.translatableEscape("no.monopixel.slimcolonies.coremod.gui.home.hire.warning"));
                 }
             }
         });
@@ -349,7 +343,7 @@ public class WindowAssignCitizen extends AbstractWindowSkeleton implements Butto
                 @NotNull final ICitizenDataView citizen = assignedCitizens.get(index);
                 final Button fireButton = rowPane.findPaneOfTypeByID(BUTTON_FIRE, Button.class);
                 final BlockPos work = citizen.getWorkBuilding();
-                fireButton.setText(Component.translatable("no.monopixel.slimcolonies.coremod.gui.hiring.buttonunassign"));
+                fireButton.setText(Component.translatableEscape("no.monopixel.slimcolonies.coremod.gui.hiring.buttonunassign"));
 
                 final Text citizenLabel = rowPane.findPaneOfTypeByID(CITIZEN_LABEL, Text.class);
                 citizenLabel.setText(Component.literal(citizen.getName()));
@@ -359,7 +353,7 @@ public class WindowAssignCitizen extends AbstractWindowSkeleton implements Butto
                 if (work != null)
                 {
                     newDistance = (int) BlockPosUtil.getDistance(work, building.getPosition());
-                    workString = Component.translatable("no.monopixel.slimcolonies.coremod.gui.home.new", newDistance);
+                    workString = Component.translatableEscape("no.monopixel.slimcolonies.coremod.gui.home.new", newDistance);
                 }
 
                 final Text newLivingLabel = rowPane.findPaneOfTypeByID(CITIZEN_JOB, Text.class);
@@ -374,17 +368,14 @@ public class WindowAssignCitizen extends AbstractWindowSkeleton implements Butto
                             workString = workString.withStyle(ChatFormatting.RED);
                         }
                     }
-                    newLivingLabel.setText(Component.empty()
-                        .append(Component.translatable(citizen.getJobView().getEntry().getTranslationKey()))
-                        .append(Component.literal(": "))
-                        .append(workString));
+                    newLivingLabel.setText(Component.empty().append(Component.translatableEscape(citizen.getJobView().getEntry().getTranslationKey())).append(Component.literal(": ")).append(workString));
                 }
                 else
                 {
-                    newLivingLabel.setText(Component.translatable(COREMOD_GUI_TOWNHALL_CITIZEN_UNEMPLOYED));
+                    newLivingLabel.setText(Component.translatableEscape(COM_MINECOLONIES_COREMOD_GUI_TOWNHALL_CITIZEN_UNEMPLOYED));
                 }
 
-                if (((colony.isManualHousing() && building.getHiringMode() == HiringMode.DEFAULT) || (building.getHiringMode() == HiringMode.MANUAL)))
+                if (((!colony.getSettings().getSetting(BuildingTownHall.AUTO_HOUSING_MODE).getValue() && building.getHiringMode() == HiringMode.DEFAULT) || (building.getHiringMode() == HiringMode.MANUAL)))
                 {
                     if (citizen.getColony().getTravellingManager().isTravelling(citizen.getId()))
                     {
@@ -401,7 +392,7 @@ public class WindowAssignCitizen extends AbstractWindowSkeleton implements Butto
                 else
                 {
                     fireButton.disable();
-                    PaneBuilders.tooltipBuilder().hoverPane(fireButton).build().setText(Component.translatable("no.monopixel.slimcolonies.coremod.gui.home.hire.warning"));
+                    PaneBuilders.tooltipBuilder().hoverPane(fireButton).build().setText(Component.translatableEscape("no.monopixel.slimcolonies.coremod.gui.home.hire.warning"));
                 }
             }
         });

@@ -15,10 +15,11 @@ import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
@@ -172,17 +173,17 @@ public class StandardRequestSystemBuildingDataStore implements IRequestSystemBui
 
         @NotNull
         @Override
-        public CompoundTag serialize(@NotNull final IFactoryController controller, @NotNull final StandardRequestSystemBuildingDataStore dataStore)
+        public CompoundTag serialize(@NotNull final HolderLookup.Provider provider, @NotNull final IFactoryController controller, @NotNull final StandardRequestSystemBuildingDataStore dataStore)
         {
             final CompoundTag compound = new CompoundTag();
 
-            compound.put(TAG_TOKEN, controller.serialize(dataStore.id));
+            compound.put(TAG_TOKEN, controller.serializeTag(provider, dataStore.id));
             final ListTag openRequestsByRequestableTag = new ListTag();
             for (final Map.Entry<TypeToken<?>, Collection<IToken<?>>> data : dataStore.openRequestsByRequestableType.entrySet())
             {
                 final CompoundTag entryCompound = new CompoundTag();
-                entryCompound.put(TAG_TOKEN, controller.serialize(data.getKey()));
-                entryCompound.put(TAG_LIST, controller.serializeList(data.getValue()));
+                entryCompound.put(TAG_TOKEN, controller.serializeTag(provider, data.getKey()));
+                entryCompound.put(TAG_LIST, controller.serializeList(provider, data.getValue()));
                 openRequestsByRequestableTag.add(entryCompound);
             }
             compound.put(TAG_OPEN_REQUESTS_BY_TYPE, openRequestsByRequestableTag);
@@ -191,8 +192,8 @@ public class StandardRequestSystemBuildingDataStore implements IRequestSystemBui
             for (final Map.Entry<Integer, Collection<IToken<?>>> data : dataStore.openRequestsByCitizen.entrySet())
             {
                 final CompoundTag entryCompound = new CompoundTag();
-                entryCompound.put(TAG_TOKEN, controller.serialize(data.getKey()));
-                entryCompound.put(TAG_LIST, controller.serializeList(data.getValue()));
+                entryCompound.put(TAG_TOKEN, controller.serializeTag(provider, data.getKey()));
+                entryCompound.put(TAG_LIST, controller.serializeList(provider, data.getValue()));
                 openRequestsByCitizenTag.add(entryCompound);
             }
             compound.put(TAG_OPEN_REQUESTS_BY_CITIZEN, openRequestsByCitizenTag);
@@ -201,8 +202,8 @@ public class StandardRequestSystemBuildingDataStore implements IRequestSystemBui
             for (final Map.Entry<Integer, Collection<IToken<?>>> data : dataStore.completedRequestsByCitizen.entrySet())
             {
                 final CompoundTag entryCompound = new CompoundTag();
-                entryCompound.put(TAG_TOKEN, controller.serialize(data.getKey()));
-                entryCompound.put(TAG_LIST, controller.serializeList(data.getValue()));
+                entryCompound.put(TAG_TOKEN, controller.serializeTag(provider, data.getKey()));
+                entryCompound.put(TAG_LIST, controller.serializeList(provider, data.getValue()));
                 completedRequestsByCitizenTag.add(entryCompound);
             }
             compound.put(TAG_COMPLETED_REQUESTS_BY_CITIZEN, completedRequestsByCitizenTag);
@@ -211,8 +212,8 @@ public class StandardRequestSystemBuildingDataStore implements IRequestSystemBui
             for (final Map.Entry<IToken<?>, Integer> data : dataStore.citizenByOpenRequest.entrySet())
             {
                 final CompoundTag entryCompound = new CompoundTag();
-                entryCompound.put(TAG_TOKEN, controller.serialize(data.getKey()));
-                entryCompound.put(TAG_VALUE, controller.serialize(data.getValue()));
+                entryCompound.put(TAG_TOKEN, controller.serializeTag(provider, data.getKey()));
+                entryCompound.put(TAG_VALUE, controller.serializeTag(provider, data.getValue()));
                 citizenByOpenRequestTag.add(entryCompound);
             }
             compound.put(TAG_CITIZEN_BY_OPEN_REQUEST, citizenByOpenRequestTag);
@@ -222,35 +223,35 @@ public class StandardRequestSystemBuildingDataStore implements IRequestSystemBui
 
         @NotNull
         @Override
-        public StandardRequestSystemBuildingDataStore deserialize(@NotNull final IFactoryController controller, @NotNull final CompoundTag nbt) throws Throwable
+        public StandardRequestSystemBuildingDataStore deserialize(@NotNull final HolderLookup.Provider provider, @NotNull final IFactoryController controller, @NotNull final CompoundTag nbt) throws Throwable
         {
-            final IToken<?> token = controller.deserialize(nbt.getCompound(TAG_TOKEN));
+            final IToken<?> token = controller.deserializeTag(provider, nbt.getCompound(TAG_TOKEN));
             final Map<TypeToken<?>, Collection<IToken<?>>> openRequestsByRequestableType = new HashMap<>();
             for (final Tag tag : nbt.getList(TAG_OPEN_REQUESTS_BY_TYPE, Tag.TAG_COMPOUND))
             {
                 final CompoundTag compoundTag = (CompoundTag) tag;
-                openRequestsByRequestableType.put(controller.deserialize(compoundTag.getCompound(TAG_TOKEN)), controller.deserializeList(compoundTag.getList(TAG_LIST, Tag.TAG_COMPOUND)));
+                openRequestsByRequestableType.put(controller.deserializeTag(provider, compoundTag.getCompound(TAG_TOKEN)), controller.deserializeList(provider, compoundTag.getList(TAG_LIST, Tag.TAG_COMPOUND)));
             }
 
             final Int2ObjectMap<Collection<IToken<?>>> openRequestsByCitizen = new Int2ObjectOpenHashMap<>();
             for (final Tag tag : nbt.getList(TAG_OPEN_REQUESTS_BY_CITIZEN, Tag.TAG_COMPOUND))
             {
                 final CompoundTag compoundTag = (CompoundTag) tag;
-                openRequestsByCitizen.put(controller.deserialize(compoundTag.getCompound(TAG_TOKEN)), controller.deserializeList(compoundTag.getList(TAG_LIST, Tag.TAG_COMPOUND)));
+                openRequestsByCitizen.put(controller.deserializeTag(provider, compoundTag.getCompound(TAG_TOKEN)), controller.deserializeList(provider, compoundTag.getList(TAG_LIST, Tag.TAG_COMPOUND)));
             }
 
             final Int2ObjectMap<Collection<IToken<?>>> completedRequestsByCitizen = new Int2ObjectOpenHashMap<>();
             for (final Tag tag : nbt.getList(TAG_COMPLETED_REQUESTS_BY_CITIZEN, Tag.TAG_COMPOUND))
             {
                 final CompoundTag compoundTag = (CompoundTag) tag;
-                completedRequestsByCitizen.put(controller.deserialize(compoundTag.getCompound(TAG_TOKEN)), controller.deserializeList(compoundTag.getList(TAG_LIST, Tag.TAG_COMPOUND)));
+                completedRequestsByCitizen.put(controller.deserializeTag(provider, compoundTag.getCompound(TAG_TOKEN)), controller.deserializeList(provider, compoundTag.getList(TAG_LIST, Tag.TAG_COMPOUND)));
             }
 
             final Object2IntMap<IToken<?>> citizenByOpenRequest = new Object2IntOpenHashMap<>();
             for (final Tag tag : nbt.getList(TAG_CITIZEN_BY_OPEN_REQUEST, Tag.TAG_COMPOUND))
             {
                 final CompoundTag compoundTag = (CompoundTag) tag;
-                citizenByOpenRequest.put(controller.deserialize(compoundTag.getCompound(TAG_TOKEN)), controller.deserialize(compoundTag.getCompound(TAG_VALUE)));
+                citizenByOpenRequest.put(controller.deserializeTag(provider, compoundTag.getCompound(TAG_TOKEN)), controller.deserializeTag(provider, compoundTag.getCompound(TAG_VALUE)));
             }
 
             return new StandardRequestSystemBuildingDataStore(token, openRequestsByRequestableType, openRequestsByCitizen, completedRequestsByCitizen, citizenByOpenRequest);
@@ -260,7 +261,7 @@ public class StandardRequestSystemBuildingDataStore implements IRequestSystemBui
         public void serialize(
             @NotNull final IFactoryController controller,
             @NotNull final StandardRequestSystemBuildingDataStore input,
-            @NotNull final FriendlyByteBuf packetBuffer)
+            @NotNull final RegistryFriendlyByteBuf packetBuffer)
         {
             controller.serialize(packetBuffer, input.id);
             packetBuffer.writeInt(input.openRequestsByRequestableType.size());
@@ -292,7 +293,7 @@ public class StandardRequestSystemBuildingDataStore implements IRequestSystemBui
         }
 
         @Override
-        public StandardRequestSystemBuildingDataStore deserialize(@NotNull final IFactoryController controller, @NotNull final FriendlyByteBuf buffer) throws Throwable
+        public StandardRequestSystemBuildingDataStore deserialize(@NotNull final IFactoryController controller, @NotNull final RegistryFriendlyByteBuf buffer) throws Throwable
         {
             final IToken<?> id = controller.deserialize(buffer);
             final Map<TypeToken<?>, Collection<IToken<?>>> openRequestsByRequestableType = new HashMap<>();

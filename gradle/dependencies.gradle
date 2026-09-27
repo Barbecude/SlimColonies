@@ -1,88 +1,65 @@
-configurations {
-    library
-    implementation.extendsFrom library
-}
-
-minecraft.runs.all {
-    lazyToken('minecraft_classpath') {
-        configurations.library.copyRecursive().resolve().collect { it.absolutePath }.join(File.pathSeparator)
-    }
-}
-
-// Use WARN to catch any future duplicate resource issues
-project.tasks.getByName("processResources", { task ->
-    task.duplicatesStrategy = DuplicatesStrategy.WARN
-})
-
-repositories {
-    maven { url = 'https://files.minecraftforge.net/maven' }
-    maven { url = 'https://maven.blamejared.com' } // JEI
-    maven { url = 'https://jm.gserv.me/repository/maven-public/' } // JourneyMap
-    maven { url = 'https://ldtteam.jfrog.io/artifactory/ldtteam/' } // MineColonies dependencies
-    maven { url = 'https://maven.architectury.dev/' }
-    maven { url = 'https://maven.shedaniel.me/' } // Rei
-    maven { url = 'https://maven.pkg.jetbrains.space/public/p/kotlinx-html/maven' }
-    maven { url = 'https://plugins.gradle.org/m2/' }
+/*repositories {
     maven {
-        name = "CurseMaven"
-        url = "https://cursemaven.com"
-        content {
-            includeGroup "curse.maven"
-        }
+        name "JEI"
+        url 'https://maven.blamejared.com/'
     }
-    mavenCentral()
-    mavenLocal()
-}
+    maven {
+        name "JourneyMap"
+        url "https://jm.gserv.me/repository/maven-public/"
+    }
+    maven {
+        name "Rei"
+        url "https://maven.shedaniel.me/"
+    }
+}*/
 
 dependencies {
-    compileOnly(fg.deobf("com.ldtteam:domum_ornamentum:${project.domumOrnamentumVersion}:universal")) {
-        transitive = false
-    }
-    runtimeOnly(fg.deobf("com.ldtteam:domum_ornamentum:${project.domumOrnamentumVersion}:universal")) {
+    implementation ("com.ldtteam:domum-ornamentum:${project.domumOrnamentumVersion}"){
         transitive = false
     }
 
-    implementation(fg.deobf("com.ldtteam:blockui:${project.blockUI_version}")) {
+    implementation ("com.ldtteam:blockui:${project.blockUI_version}"){
         transitive = false
     }
 
-    implementation(fg.deobf("com.ldtteam:structurize:${project.structurize_version}")) {
+    implementation ("com.ldtteam:structurize:${project.structurize_version}"){
         transitive = false
     }
 
-    implementation(fg.deobf("com.ldtteam:multipiston:${project.multiPistonVersion}")) {
+    implementation ("com.ldtteam:multipiston:${project.multiPistonVersion}"){
         transitive = false
     }
 
-    implementation fg.deobf("com.ldtteam:datagenerators:${project.dataGeneratorsVersion}:universal") {
+    implementation ("com.ldtteam:datagenerators:${project.dataGeneratorsVersion}:universal") {
         transitive = false
     }
 
     // optional compat mods (not included in test environment by default)
 
-    compileOnly fg.deobf("mezz.jei:jei-${project.jei_mcversion}-common-api:${project.jei_version}")
-    compileOnly fg.deobf("mezz.jei:jei-${project.jei_mcversion}-forge-api:${project.jei_version}")
-    runtimeOnly fg.deobf("mezz.jei:jei-${project.jei_mcversion}-forge:${project.jei_version}")
+    compileOnly "mezz.jei:jei-${project.jei_mcversion}-neoforge-api:${project.jei_version}"
+    runtimeOnly "mezz.jei:jei-${project.jei_mcversion}-neoforge:${project.jei_version}"
 
-    compileOnly fg.deobf("info.journeymap:journeymap-api:${project.jmapApiVersion}")
-    if (project.hasProperty("runWithJourneymap") && project.runWithJourneymap.toBoolean()) {
-        runtimeOnly fg.deobf("flat:journeymap:${project.jmapMcVersion}-${project.jmapVersion}-forge")
+    compileOnly "info.journeymap:journeymap-api-neoforge:${project.jmapApiVersion}"
+    if (project.findProperty("runWithJourneymap")?.toString()?.toBoolean() == true) {
+         runtimeOnly "flat:journeymap-neoforge:${project.jmapVersion}"
     }
-    // Farmer's Delight - for development/debugging
-//    runtimeOnly fg.deobf("curse.maven:farmers-delight-398521:6917255")
 
-    // Jade - for development/debugging
-    runtimeOnly fg.deobf("curse.maven:jade-324717:6855440")
+    if (project.hasProperty("dynamicTreesVersion")) {
+        if (project.findProperty("runWithDynamicTrees")?.toString()?.toBoolean() == true) {
+            implementation ("com.dtteam.dynamictrees:dynamictrees-neoforge-${project.dynamicTreesMcVersion}:${project.dynamicTreesVersion}") {
+                transitive = false
+            }
+        } else {
+            compileOnly ("com.dtteam.dynamictrees:dynamictrees-neoforge-${project.dynamicTreesMcVersion}:${project.dynamicTreesVersion}") {
+                transitive = false
+            }
+        }
+    }
 
-    // JourneyMap - for development/debugging
-    runtimeOnly fg.deobf("curse.maven:journeymap-32274:5789363")
+    // replace "compileOnly" with "implementation" when you want to include it for testing
+    // compileOnly "slimeknights.tconstruct:TConstruct:${project.exactMinecraftVersion}-${project.tinkersConstructVersion}")
+    // compileOnly "slimeknights.mantle:Mantle:${project.exactMinecraftVersion}-${project.mantleVersion}")
 
-    // GregTech - for development/debugging
-//    runtimeOnly fg.deobf("curse.maven:gregtechceu-modern-890405:7150919")
-
-    // implementation fg.deobf("curse.maven:emi-580555:6420945")
-//    runtimeOnly fg.deobf("curse.maven:emi-580555:6420945")
-
-    // implementation fg.deobf("curse.maven:jei-integration-265917:4999754")
-    runtimeOnly fg.deobf("curse.maven:jei-integration-265917:4999754")
+    // apiCompileOnly "slimeknights.mantle:Mantle:${project.exactMinecraftVersion}-${project.mantleVersion}")
+    // apiCompileOnly "slimeknights.tconstruct:TConstruct:${project.exactMinecraftVersion}-${project.tinkersConstructVersion}")
 }

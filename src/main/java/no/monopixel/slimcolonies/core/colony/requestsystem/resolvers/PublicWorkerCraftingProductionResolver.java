@@ -9,6 +9,7 @@ import no.monopixel.slimcolonies.api.colony.jobs.registry.JobEntry;
 import no.monopixel.slimcolonies.api.colony.requestsystem.location.ILocation;
 import no.monopixel.slimcolonies.api.colony.requestsystem.manager.IRequestManager;
 import no.monopixel.slimcolonies.api.colony.requestsystem.request.IRequest;
+import no.monopixel.slimcolonies.api.colony.requestsystem.request.RequestState;
 import no.monopixel.slimcolonies.api.colony.requestsystem.requestable.crafting.PublicCrafting;
 import no.monopixel.slimcolonies.api.colony.requestsystem.requestable.deliveryman.Delivery;
 import no.monopixel.slimcolonies.api.colony.requestsystem.requester.IRequester;
@@ -28,6 +29,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.Comparator;
 import java.util.List;
+import java.util.Optional;
 
 import static no.monopixel.slimcolonies.api.colony.requestsystem.requestable.deliveryman.AbstractDeliverymanRequestable.getDefaultDeliveryPriority;
 
@@ -139,12 +141,12 @@ public class PublicWorkerCraftingProductionResolver extends AbstractCraftingProd
         if (requester instanceof IBuildingView)
         {
             final IBuildingView bwv = (IBuildingView) requester;
-            return Component.translatable(bwv.getModuleViewMatching(WorkerBuildingModuleView.class, m -> m.getJobEntry() == getJobEntry()).getJobDisplayName());
+            return Component.translatableEscape(bwv.getModuleViewMatching(WorkerBuildingModuleView.class, m -> m.getJobEntry() == getJobEntry()).getJobDisplayName());
         }
         if (requester instanceof IBuilding)
         {
             final IBuilding building = (IBuilding) requester;
-            return Component.translatable(building.getModuleMatching(WorkerBuildingModule.class, m -> m.getJobEntry() == getJobEntry()).getJobDisplayName());
+            return Component.translatableEscape(building.getModuleMatching(WorkerBuildingModule.class, m -> m.getJobEntry() == getJobEntry()).getJobDisplayName());
         }
         return super.getRequesterDisplayName(manager, request);
     }
@@ -211,6 +213,7 @@ public class PublicWorkerCraftingProductionResolver extends AbstractCraftingProd
 
         if (freeCrafter == null)
         {
+            manager.updateRequestState(request.getId(), RequestState.CANCELLED);
             onAssignedRequestBeingCancelled(manager, request);
             return;
         }

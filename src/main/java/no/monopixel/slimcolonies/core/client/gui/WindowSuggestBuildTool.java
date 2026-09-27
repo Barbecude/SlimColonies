@@ -5,17 +5,17 @@ import com.ldtteam.structurize.items.ModItems;
 import no.monopixel.slimcolonies.api.util.InventoryUtils;
 import no.monopixel.slimcolonies.api.util.MessageUtils;
 import no.monopixel.slimcolonies.api.util.constant.Constants;
-import no.monopixel.slimcolonies.core.Network;
 import no.monopixel.slimcolonies.core.network.messages.server.DirectPlaceMessage;
 import no.monopixel.slimcolonies.core.network.messages.server.SwitchBuildingWithToolMessage;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.client.Minecraft;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.core.BlockPos;
-import net.minecraftforge.items.wrapper.InvWrapper;
+import net.neoforged.neoforge.items.wrapper.InvWrapper;
 import org.jetbrains.annotations.NotNull;
 
-import static com.ldtteam.structurize.api.util.constant.Constants.GROUNDSTYLE_RELATIVE;
+import static com.ldtteam.structurize.api.constants.Constants.GROUNDSTYLE_RELATIVE;
 import static no.monopixel.slimcolonies.api.util.constant.TranslationConstants.WARNING_MISSING_BUILD_TOOL;
 import static no.monopixel.slimcolonies.api.util.constant.WindowConstants.*;
 
@@ -51,7 +51,7 @@ public class WindowSuggestBuildTool extends AbstractWindowSkeleton
      */
     public WindowSuggestBuildTool(@NotNull final BlockPos pos, @NotNull final BlockState state, @NotNull final ItemStack stack)
     {
-        super(Constants.MOD_ID + SUGGEST_BUILDING_SOURCE_SUFFIX);
+        super(new ResourceLocation(Constants.MOD_ID, "gui/windowsuggestbuildtool.xml"));
         this.pos = pos;
         this.building = state;
         this.stack = stack;
@@ -65,7 +65,7 @@ public class WindowSuggestBuildTool extends AbstractWindowSkeleton
      */
     private void directClicked()
     {
-        Network.getNetwork().sendToServer(new DirectPlaceMessage(building, pos, stack));
+        new DirectPlaceMessage(building, pos, stack).sendToServer();
         close();
     }
 
@@ -76,8 +76,8 @@ public class WindowSuggestBuildTool extends AbstractWindowSkeleton
     {
         if (InventoryUtils.findFirstSlotInItemHandlerWith(new InvWrapper(Minecraft.getInstance().player.getInventory()), ModItems.buildTool.get()) != -1)
         {
-            Network.getNetwork().sendToServer(new SwitchBuildingWithToolMessage(stack));
-            new WindowExtendedBuildTool(this.pos, GROUNDSTYLE_RELATIVE).open();
+            new SwitchBuildingWithToolMessage(stack).sendToServer();
+            new WindowExtendedBuildTool(this.pos, GROUNDSTYLE_RELATIVE, mc.level.registryAccess()).open();
             return;
         }
         MessageUtils.format(WARNING_MISSING_BUILD_TOOL).sendTo(Minecraft.getInstance().player);

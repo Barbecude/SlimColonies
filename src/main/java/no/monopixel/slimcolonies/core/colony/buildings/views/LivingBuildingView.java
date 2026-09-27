@@ -2,7 +2,11 @@ package no.monopixel.slimcolonies.core.colony.buildings.views;
 
 import no.monopixel.slimcolonies.api.colony.IColonyView;
 import no.monopixel.slimcolonies.api.colony.buildings.HiringMode;
-import no.monopixel.slimcolonies.core.Network;
+import no.monopixel.slimcolonies.api.colony.buildings.ModBuildings;
+import no.monopixel.slimcolonies.api.colony.buildings.views.IBuildingView;
+import no.monopixel.slimcolonies.api.crafting.ItemStorage;
+import no.monopixel.slimcolonies.api.items.IMinecoloniesFoodItem;
+import no.monopixel.slimcolonies.core.colony.buildings.modules.BuildingModules;
 import no.monopixel.slimcolonies.core.colony.buildings.moduleviews.LivingBuildingModuleView;
 import no.monopixel.slimcolonies.core.network.messages.server.colony.building.worker.BuildingHiringModeMessage;
 import net.minecraft.core.BlockPos;
@@ -82,6 +86,69 @@ public abstract class LivingBuildingView extends AbstractBuildingView
     public void setHiringMode(final HiringMode value)
     {
         getModuleViewByType(LivingBuildingModuleView.class).setHiringMode(value);
-        Network.getNetwork().sendToServer(new BuildingHiringModeMessage(this, value, getModuleViewByType(LivingBuildingModuleView.class).getProducer().getRuntimeID()));
+        new BuildingHiringModeMessage(this, value, getModuleViewByType(LivingBuildingModuleView.class).getProducer().getRuntimeID()).sendToServer();
+    }
+
+    @Override
+    public String getHoverWarningForLevel()
+    {
+        switch (getBuildingLevel())
+        {
+            case 1 ->
+                {
+                    // Have a fisher or farmer
+                    if (getColony().getCommonBuildingManager().hasBuilding(ModBuildings.fisherman.get().getRegistryName(), 1, false)
+                        || getColony().getCommonBuildingManager().hasBuilding(ModBuildings.farmer.get().getRegistryName(), 1, false)
+                    )
+                    {
+                        return "";
+                    }
+                    return "no.monopixel.slimcolonies.core.gui.residence.warning." + (getBuildingLevel() + 1);
+                }
+            case 2 ->
+            {
+                if (checkColonyMenu(getColony(), 1))
+                {
+                    return "";
+                }
+
+                return "no.monopixel.slimcolonies.core.gui.residence.warning." + (getBuildingLevel() + 1);
+            }
+            case 3, 4 ->
+            {
+                if (checkColonyMenu(getColony(), 2))
+                {
+                    return "";
+                }
+
+                return "no.monopixel.slimcolonies.core.gui.residence.warning." + (getBuildingLevel() + 1);
+            }
+            default -> super.getHoverWarningForLevel();
+        }
+        return "";
+    }
+
+    /**
+     * Check if the colony has a dining hall with some min food on the menu.
+     * @param colonyView the colony to check this for.
+     * @param minTier the min food tier.
+     * @return true if so.
+     */
+    private static boolean checkColonyMenu(final IColonyView colonyView, final int minTier)
+    {
+        for (final IBuildingView buildingView : colonyView.getClientBuildingManager().getBuildings().values())
+        {
+            if (buildingView.getBuildingType() == ModBuildings.cook.get())
+            {
+                for (final ItemStorage storage : buildingView.getModuleView(BuildingModules.RESTAURANT_MENU).getMenu())
+                {
+                    if (storage.getItem() instanceof IMinecoloniesFoodItem slimcoloniesFoodItem && slimcoloniesFoodItem.getTier() >= minTier)
+                    {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
     }
 }

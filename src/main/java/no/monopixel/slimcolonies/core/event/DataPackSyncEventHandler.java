@@ -1,42 +1,40 @@
 package no.monopixel.slimcolonies.core.event;
 
-import com.mojang.authlib.GameProfile;
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.server.IntegratedServer;
-import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.level.ServerPlayer;
-import net.minecraftforge.client.event.RecipesUpdatedEvent;
-import net.minecraftforge.common.MinecraftForge;
-import net.minecraftforge.event.OnDatapackSyncEvent;
-import net.minecraftforge.event.server.ServerStartedEvent;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
-import no.monopixel.slimcolonies.api.ISlimColoniesAPI;
-import no.monopixel.slimcolonies.api.eventbus.events.CustomRecipesReloadedEvent;
+import no.monopixel.slimcolonies.api.IMinecoloniesAPI;
+import no.monopixel.slimcolonies.api.colony.IColonyManager;
 import no.monopixel.slimcolonies.api.research.IGlobalResearchTree;
 import no.monopixel.slimcolonies.api.util.Log;
-import no.monopixel.slimcolonies.core.Network;
-import no.monopixel.slimcolonies.core.SlimColonies;
+import no.monopixel.slimcolonies.core.MineColonies;
 import no.monopixel.slimcolonies.core.colony.crafting.CustomRecipeManager;
 import no.monopixel.slimcolonies.core.compatibility.CraftingTagAuditor;
+import no.monopixel.slimcolonies.core.datalistener.DiseasesListener;
 import no.monopixel.slimcolonies.core.datalistener.QuestJsonListener;
 import no.monopixel.slimcolonies.core.network.messages.client.UpdateClientWithCompatibilityMessage;
-import no.monopixel.slimcolonies.core.util.FurnaceRecipes;
+import com.mojang.authlib.GameProfile;
+import net.minecraft.client.Minecraft;
+import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.level.ServerPlayer;
+import net.neoforged.bus.api.EventPriority;
+import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.neoforge.client.event.RecipesUpdatedEvent;
+import net.neoforged.neoforge.event.OnDatapackSyncEvent;
+import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 import org.jetbrains.annotations.NotNull;
 
 /**
  * Handles synching of custom datapack and compatibility data from server to client (and initial population
  * for the server in both single-player and dedicated).
- * <p>
+ *
  * As of Forge 36.2.4, at least, events happen in this order:
- * <p>
+ *
  * For Single Player, on startup:
- * -- JsonReloadListeners, TagsUpdatedEvent, FMLServerAboutToStart, FMLServerStarted, OnDatapackSyncEvent, RecipesUpdatedEvent
+ *  -- JsonReloadListeners, TagsUpdatedEvent, FMLServerAboutToStart, FMLServerStarted, OnDatapackSyncEvent, RecipesUpdatedEvent
  * For Dedicated Server, on startup:
- * -- JsonReloadListeners, TagsUpdatedEvent, FMLServerAboutToStart, FMLServerStarted
+ *  -- JsonReloadListeners, TagsUpdatedEvent, FMLServerAboutToStart, FMLServerStarted
  * For Remote Client, on login:
- * -- OnDatapackSyncEvent [server], PlayerLoggedInEvent [server], RecipesUpdatedEvent [client], TagsUpdatedEvent [client]
+ *  -- OnDatapackSyncEvent [server], PlayerLoggedInEvent [server], RecipesUpdatedEvent [client], TagsUpdatedEvent [client]
  * On /reload:
- * -- JsonReloadListeners, TagsUpdatedEvent [server], OnDatapackSyncEvent [server], TagsUpdatedEvent [remote client], RecipesUpdatedEvent [client]
+ *  -- JsonReloadListeners, TagsUpdatedEvent [server], OnDatapackSyncEvent [server], TagsUpdatedEvent [remote client], RecipesUpdatedEvent [client]
  */
 public class DataPackSyncEventHandler
 {
@@ -46,6 +44,11 @@ public class DataPackSyncEventHandler
     public static class ServerEvents
     {
         /**
+         * If the initial worldload was done.
+         */
+        private static boolean loaded = false;
+
+        /**
          * Updates internal caches of vanilla recipes and tags.
          * This is only called server-side, after JsonReloadListeners have finished.
          *
@@ -53,20 +56,11 @@ public class DataPackSyncEventHandler
          */
         private static void discoverCompatLists(@NotNull final MinecraftServer server)
         {
-            FurnaceRecipes.getInstance().loadRecipes(server.getRecipeManager(), server.overworld());
-            ISlimColoniesAPI.getInstance().getColonyManager().getCompatibilityManager().discover(server.getRecipeManager(), server.overworld());
-            CustomRecipeManager.getInstance().resolveTemplates();
-            CustomRecipeManager.getInstance().buildLootData(server.getLootData(), server.overworld());
-
-            // Fire event for compatibility integrations
-            try
-            {
-                MinecraftForge.EVENT_BUS.post(new CustomRecipesReloadedEvent());
-            }
-            catch (final Exception e)
-            {
-                Log.getLogger().error("Error during CustomRecipesReloadedEvent", e);
-            }
+            Log.getLogger().warn("Starting Compat Discovery");
+            IMinecoloniesAPI.getInstance().getColonyManager().getCompatibilityManager().getFurnaceRecipes().loadRecipes(server.getRecipeManager(), server.overworld());
+            IMinecoloniesAPI.getInstance().getColonyManager().getCompatibilityManager().discover(server.getRecipeManager(), server.overworld());
+            CustomRecipeManager.getInstance().resolveTemplates(server.registryAccess());
+            CustomRecipeManager.getInstance().buildLootData(server.overworld());
         }
 
         /**
@@ -75,24 +69,27 @@ public class DataPackSyncEventHandler
          * @param player    the player to send the sync packets to.
          * @param compatMsg a cached copy of this message, to avoid rebuilding it for each player.
          */
-        private static void sendPackets(
-            @NotNull final ServerPlayer player,
-            @NotNull final UpdateClientWithCompatibilityMessage compatMsg)
+        private static void sendPackets(@NotNull final ServerPlayer player,
+                                        @NotNull final UpdateClientWithCompatibilityMessage compatMsg)
         {
-            Network.getNetwork().sendToPlayer(compatMsg, player);
-            CustomRecipeManager.getInstance().sendCustomRecipeManagerPackets(player);
+            compatMsg.sendToPlayer(player);
             IGlobalResearchTree.getInstance().sendGlobalResearchTreePackets(player);
             QuestJsonListener.sendGlobalQuestPackets(player);
+            DiseasesListener.sendGlobalDiseasesPackets(player);
+
+            // always send this last; we rely on CustomRecipesReloadedEvent signalling that all packets are processed
+            CustomRecipeManager.getInstance().sendCustomRecipeManagerPackets(player);
         }
+
 
         /**
          * This event fires on server-side both at initial world load and whenever a new player
          * joins the server (with getPlayer() != null), and also on datapack reload (with null).
          * Note that at this point the client has not yet received the recipes/tags.
          *
-         * @param event {@link net.minecraftforge.event.OnDatapackSyncEvent}
+         * @param event {@link net.neoforged.neoforge.event.OnDatapackSyncEvent}
          */
-        @SubscribeEvent
+        @SubscribeEvent(priority = EventPriority.LOWEST)
         public static void onDataPackSync(final OnDatapackSyncEvent event)
         {
             final CustomRecipeManager recipeManager = CustomRecipeManager.getInstance();
@@ -105,38 +102,63 @@ public class DataPackSyncEventHandler
                 discoverCompatLists(server);
 
                 // and then finally update every player with the results
-                final UpdateClientWithCompatibilityMessage compatMsg = new UpdateClientWithCompatibilityMessage(true);
+                final UpdateClientWithCompatibilityMessage compatMsg = new UpdateClientWithCompatibilityMessage(server.registryAccess());
                 for (final ServerPlayer player : event.getPlayerList().getPlayers())
                 {
-                    if (player.getGameProfile() != owner)   // don't need to send them in SP, or LAN owner
+                    if (player.getGameProfile() == owner)
+                    {
+                        // SP 'server' doesn't need most of the packets, but does need compatmgr since we keep separate instances
+                        compatMsg.sendToPlayer(player);
+                    }
+                    else
                     {
                         sendPackets(player, compatMsg);
                     }
                 }
             }
-            else if (event.getPlayer().getGameProfile() != owner)
-            {
-                sendPackets(event.getPlayer(), new UpdateClientWithCompatibilityMessage(true));
-            }
 
-            if (SlimColonies.getConfig().getServer().auditCraftingTags.get() &&
-                (event.getPlayer() == null || event.getPlayerList().getPlayers().isEmpty()))
+            if (MineColonies.getConfig().getServer().auditCraftingTags.get() &&
+                    (event.getPlayer() == null || event.getPlayerList().getPlayers().isEmpty()))
             {
                 CraftingTagAuditor.doRecipeAudit(server, recipeManager);
             }
         }
 
         /**
-         * Fires on a server side only, when the server has started.
-         * This event is the first reliable point for server-only parsing of available smelting recipes, which are
-         * required for FurnaceRecipes and CompatibilityManager.discoverOres and .discoverFood.
+         * Sends compat manager data on login, has to be after datapack sync registries are loaded
          *
-         * @param event {@link ServerStartedEvent}
+         * @param event
          */
-        @SubscribeEvent
-        public static void onServerStarted(@NotNull final ServerStartedEvent event)
+        @SubscribeEvent(priority = EventPriority.LOWEST)
+        public static void sendOnLogin(final PlayerEvent.PlayerLoggedInEvent event)
         {
-            discoverCompatLists(event.getServer());
+            if (!event.getEntity().level().isClientSide && event.getEntity() instanceof ServerPlayer)
+            {
+                final MinecraftServer server = event.getEntity().getServer();
+                sendPackets((ServerPlayer) event.getEntity(), new UpdateClientWithCompatibilityMessage(server.registryAccess()));
+            }
+        }
+
+        /**
+         * Handle initial load. But only once.
+         * @param server the server to load it for.
+         */
+        public static void load(@NotNull final MinecraftServer server)
+        {
+            if (loaded)
+            {
+                return;
+            }
+            loaded = true;
+            discoverCompatLists(server);
+        }
+
+        /**
+         * Reset on shutdown.
+         */
+        public static void reset()
+        {
+            loaded = false;
         }
     }
 
@@ -153,16 +175,7 @@ public class DataPackSyncEventHandler
         @SubscribeEvent
         public static void onRecipesLoaded(@NotNull final RecipesUpdatedEvent event)
         {
-            final IntegratedServer server = Minecraft.getInstance().getSingleplayerServer();
-            final GameProfile owner = server == null ? null : server.getSingleplayerProfile();
-
-            if (owner != null && owner == Minecraft.getInstance().player.getGameProfile())
-            {
-                // don't need to update on single player, this already happened "server-side".
-                return;
-            }
-
-            FurnaceRecipes.getInstance().loadRecipes(event.getRecipeManager(), Minecraft.getInstance().level);
+            IColonyManager.getInstance().getCompatibilityManager().getFurnaceRecipes().loadRecipes(event.getRecipeManager(), Minecraft.getInstance().level);
         }
     }
 }

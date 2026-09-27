@@ -1,10 +1,15 @@
 package no.monopixel.slimcolonies.api.research;
 
+import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.contents.TranslatableContents;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ItemStack;
+import net.neoforged.neoforge.common.crafting.SizedIngredient;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import no.monopixel.slimcolonies.api.colony.buildings.IBuilding;
 import java.util.List;
 
 /**
@@ -15,11 +20,11 @@ public interface IGlobalResearch
     /**
      * Check if this research can be executed at this moment.
      *
-     * @param uni_level the level of the university.
+     * @param building the university building trying to do the research.
      * @param localTree the local tree of the colony.
      * @return true if so.
      */
-    boolean canResearch(int uni_level, @NotNull final ILocalResearchTree localTree);
+    public boolean canResearch(@NotNull IBuilding building, @NotNull final ILocalResearchTree localTree);
 
     /**
      * Check if this research can be displayed in the GUI.
@@ -29,9 +34,20 @@ public interface IGlobalResearch
      */
     boolean canDisplay(int uni_level);
 
-    // hasEnoughResources method removed - research no longer has item costs
+    /**
+     * Check whether all resources are available to execute the research.
+     *
+     * @param inventory the inventory to check in.
+     * @return true if so
+     */
+    boolean hasEnoughResources(final @NotNull Player player, final @NotNull BlockPos universityPos);
 
-    // getCostList method removed - research no longer has item costs
+    /**
+     * Get the cost list from the research.
+     *
+     * @return the list.
+     */
+    List<SizedIngredient> getCostList();
 
     /**
      * Start the research.
@@ -142,7 +158,11 @@ public interface IGlobalResearch
      */
     void addChild(final ResourceLocation child);
 
-    // addCost method removed - research no longer has item costs
+    /**
+     * Add item costs.
+     * @param cost the items to add to the cost list.
+     */
+    void addCost(final SizedIngredient cost);
 
     /**
      * Add an individual effect.
@@ -176,4 +196,34 @@ public interface IGlobalResearch
      * @return the effect.
      */
     List<IResearchEffect> getEffects();
+
+    /**
+     * A stack "matches" a research ingredient if:
+     * - It has the same Item
+     * - It does NOT carry enchantments, custom names, etc.
+     */
+    public static boolean isPlayerResearchMatch(ItemStack stack, final SizedIngredient sizedIngredient)
+    {
+        if (stack.isEmpty() || !sizedIngredient.ingredient().test(stack))
+        {
+            return false;
+        }
+
+        // Reject anything enchanted or custom-named
+        if (stack.isEnchanted() || !stack.getHoverName().equals(stack.getItem().getDefaultInstance().getHoverName()))
+        {
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * A stack "matches" a research ingredient if:
+     * - It has the same Item (even if they are enchanted or have a custom name)
+     */
+    public static boolean isUniversityResearchMatch(ItemStack stack, final SizedIngredient sizedIngredient)
+    {
+        return !stack.isEmpty() && sizedIngredient.ingredient().test(stack);
+    }
 }

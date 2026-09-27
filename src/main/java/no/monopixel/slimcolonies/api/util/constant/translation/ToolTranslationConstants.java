@@ -23,6 +23,8 @@ public class ToolTranslationConstants
     @NonNls
     public static final String TOOL_TYPE_BOW         = "no.monopixel.slimcolonies.coremod.tooltype.bow";
     @NonNls
+    public static final String TOOL_TYPE_CROSSBOW    = "no.monopixel.slimcolonies.coremod.tooltype.crossbow";
+    @NonNls
     public static final String TOOL_TYPE_FISHING_ROD = "no.monopixel.slimcolonies.coremod.tooltype.fishingrod";
     @NonNls
     public static final String TOOL_TYPE_SHEARS      = "no.monopixel.slimcolonies.coremod.tooltype.shears";
@@ -38,6 +40,36 @@ public class ToolTranslationConstants
     public static final String TOOL_TYPE_BOOTS       = "no.monopixel.slimcolonies.coremod.tooltype.boots";
     @NonNls
     public static final String TOOL_TYPE_LIGHTER     = "no.monopixel.slimcolonies.coremod.tooltype.lighter";
+    @NonNls
+    public static final String TOOL_TYPE_LEAD        = "no.monopixel.slimcolonies.coremod.tooltype.lead";
+    @NonNls
+    public static final String TOOL_TYPE_SPEAR       = "no.monopixel.slimcolonies.coremod.tooltype.spear";
+
+    @NonNls
+    public static final String TOOL_RALLY_BANNER_ACTIVATED   = "item.slimcolonies.banner_rally_guards.activated";
+    @NonNls
+    public static final String TOOL_RALLY_BANNER_DEACTIVATED = "item.slimcolonies.banner_rally_guards.deactivated";
+    @NonNls
+    public static final String TOOL_RALLY_BANNER_NO_GUARDS   = "item.slimcolonies.banner_rally_guards.activated.noguards";
+    @NonNls
+    public static final String TOOL_RALLY_BANNER_NEEDS_RESEARCH   = "item.slimcolonies.banner_rally_guards.activated.needsresearch";
+
+    @NonNls
+    public static final String TOOL_GENERIC_SCROLL_HIGHLIGHT_DESCRIPTION = "item.slimcolonies.scroll_highlight.tip";
+    @NonNls
+    public static final String TOOL_GENERIC_SCROLL_BUFF_DESCRIPTION      = "item.slimcolonies.scroll_buff.tip";
+
+    @NonNls
+    public static final String TOOL_COLONY_TELEPORT_SCROLL_NO_COLONY        = "item.slimcolonies.scroll.colony.none";
+    @NonNls
+    public static final String TOOL_COLONY_TELEPORT_SCROLL_COLONY_NAME      = "item.slimcolonies.scroll.colony.tip";
+    @NonNls
+    public static final String TOOL_COLONY_TELEPORT_SCROLL_DESCRIPTION      = "item.slimcolonies.scroll_tp.tip";
+    @NonNls
+    public static final String TOOL_COLONY_TELEPORT_AREA_SCROLL_DESCRIPTION = "item.slimcolonies.scroll_area_tp.tip";
+
+    @NonNls
+    public static final String TOOL_GUARD_SCROLL_NO_GUARD_BUILDING = "slimcolonies.scroll.noguardbuilding";
 
     @NonNls
     public static final String TOOL_BEEHIVE_SCEPTER_ADD_HIVE    = "item.slimcolonies.scepterbeekeeper.addhive";

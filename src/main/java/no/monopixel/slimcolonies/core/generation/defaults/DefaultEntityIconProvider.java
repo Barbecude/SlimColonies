@@ -9,13 +9,16 @@ import net.minecraft.data.CachedOutput;
 import net.minecraft.data.DataGenerator;
 import net.minecraft.data.DataProvider;
 import net.minecraft.data.PackOutput;
+import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.packs.PackLocationInfo;
 import net.minecraft.server.packs.PackResources;
 import net.minecraft.server.packs.PackType;
+import net.minecraft.server.packs.repository.PackSource;
 import net.minecraft.server.packs.resources.IoSupplier;
-import net.minecraftforge.fml.ModList;
-import net.minecraftforge.forgespi.language.IModFileInfo;
-import net.minecraftforge.resource.ResourcePackLoader;
+import net.neoforged.fml.ModList;
+import net.neoforged.neoforge.resource.ResourcePackLoader;
+import net.neoforged.neoforgespi.language.IModFileInfo;
 import org.jetbrains.annotations.NotNull;
 
 import javax.imageio.ImageIO;
@@ -26,6 +29,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
 import static no.monopixel.slimcolonies.api.util.constant.Constants.MOD_ID;
@@ -53,7 +57,7 @@ public class DefaultEntityIconProvider implements DataProvider
     private static boolean IsEntitySkin(@NotNull final ResourceLocation id)
     {
         return id.getPath().endsWith(".png") &&
-                id.getPath().startsWith("textures/entity/citizen/");
+                (id.getPath().startsWith("textures/entity/citizen/") || id.getPath().startsWith("textures/entity/raiders/"));
     }
 
     @NotNull
@@ -63,7 +67,7 @@ public class DefaultEntityIconProvider implements DataProvider
         final PackOutput.PathProvider outputProvider = generator.getPackOutput().createPathProvider(PackOutput.Target.RESOURCE_PACK, "textures/entity_icon");
 
         final IModFileInfo modFileInfo = ModList.get().getModFileById(MOD_ID);
-        try (final PackResources pack = ResourcePackLoader.createPackForMod(modFileInfo))
+        try (final PackResources pack = ResourcePackLoader.createPackForMod(modFileInfo).openPrimary(new PackLocationInfo("mod/" + MOD_ID, Component.empty(), PackSource.BUILT_IN, Optional.empty())))
         {
             final List<CompletableFuture<?>> icons = new ArrayList<>();
 

@@ -1,13 +1,11 @@
 package no.monopixel.slimcolonies.core.client.render.worldevent;
 
 import com.ldtteam.structurize.blueprints.v1.Blueprint;
-import com.ldtteam.structurize.client.BlueprintHandler;
 import com.ldtteam.structurize.storage.StructurePacks;
 import com.ldtteam.structurize.storage.rendering.RenderingCache;
 import com.ldtteam.structurize.storage.rendering.types.BlueprintPreviewData;
 import net.minecraft.core.BlockPos;
 
-import java.util.ArrayList;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
@@ -28,7 +26,7 @@ public class ColonyWaypointRenderer
 
     /**
      * Renders waypoints of current colony.
-     *
+     * 
      * @param ctx rendering context
      */
     static void render(final WorldEventContext ctx)
@@ -42,7 +40,7 @@ public class ColonyWaypointRenderer
         {
             if (wayPointTemplate == null && pendingTemplate == null)
             {
-                pendingTemplate = StructurePacks.getBlueprintFuture(STORAGE_STYLE, "infrastructure/misc/waypoint.blueprint");
+                pendingTemplate = StructurePacks.getBlueprintFuture(STORAGE_STYLE, "infrastructure/misc/waypoint.blueprint", ctx.clientLevel.registryAccess());
             }
 
             if (pendingTemplate != null)
@@ -73,8 +71,11 @@ public class ColonyWaypointRenderer
                 return;
             }
 
-            BlueprintHandler.getInstance().drawAtListOfPositions(RenderingCache.getOrCreateBlueprintPreviewData("waypoint").getBlueprint().hashCode() == wayPointTemplate.hashCode() ? RenderingCache.getOrCreateBlueprintPreviewData("waypoint")
-              : wayPointTemplate, new ArrayList<>(ctx.nearestColony.getWayPoints().keySet()), ctx.stageEvent);
+            ctx.renderBlueprint(
+                RenderingCache.getOrCreateBlueprintPreviewData("waypoint").getBlueprint().hashCode() == wayPointTemplate.hashCode() ?
+                    RenderingCache.getOrCreateBlueprintPreviewData("waypoint") :
+                    wayPointTemplate,
+                ctx.nearestColony.getWayPoints().keySet());
         }
     }
 }

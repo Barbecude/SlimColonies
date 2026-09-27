@@ -4,15 +4,16 @@ import com.ldtteam.blockui.Pane;
 import com.ldtteam.blockui.PaneBuilders;
 import com.ldtteam.blockui.controls.ButtonImage;
 import com.ldtteam.blockui.views.BOWindow;
-import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
-import net.minecraft.server.level.ServerPlayer;
 import no.monopixel.slimcolonies.api.colony.buildings.IBuilding;
+import no.monopixel.slimcolonies.api.colony.buildings.modules.ICommonSettingsModule;
 import no.monopixel.slimcolonies.api.colony.buildings.modules.settings.ISettingKey;
 import no.monopixel.slimcolonies.api.colony.buildings.modules.settings.ISettingsModuleView;
 import no.monopixel.slimcolonies.api.colony.buildings.views.IBuildingView;
 import no.monopixel.slimcolonies.core.colony.buildings.AbstractBuildingGuards;
 import no.monopixel.slimcolonies.core.colony.buildings.modules.BuildingModules;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.level.ServerPlayer;
 
 import java.util.List;
 
@@ -49,15 +50,14 @@ public class GuardTaskSetting extends StringSettingWithDesc
     /**
      * Create a new guard task list setting.
      */
-    public GuardTaskSetting(final String... list)
+    public GuardTaskSetting(final String...list)
     {
         super(list);
     }
 
     /**
      * Create a new string list setting.
-     *
-     * @param settings     the overall list of settings.
+     * @param settings the overall list of settings.
      * @param currentIndex the current selected index.
      */
     public GuardTaskSetting(final List<String> settings, final int currentIndex)
@@ -68,7 +68,7 @@ public class GuardTaskSetting extends StringSettingWithDesc
     @Override
     public ResourceLocation getLayoutItem()
     {
-        return new ResourceLocation("slimcolonies:gui/layouthuts/layoutguardtasksetting.xml");
+        return new ResourceLocation("slimcolonies", "gui/layouthuts/layoutguardtasksetting.xml");
     }
 
     @Override
@@ -81,7 +81,7 @@ public class GuardTaskSetting extends StringSettingWithDesc
     }
 
     @Override
-    public void setupHandler(final ISettingKey<?> key, final Pane pane, final ISettingsModuleView settingsModuleView, final IBuildingView building, final BOWindow window)
+    public void setupHandler(final ISettingKey<?> key, final Pane pane, final ICommonSettingsModule settingsModuleView, final IBuildingView building, final BOWindow window)
     {
         super.setupHandler(key, pane, settingsModuleView, building, window);
 
@@ -93,7 +93,7 @@ public class GuardTaskSetting extends StringSettingWithDesc
     }
 
     @Override
-    public void render(final ISettingKey<?> key, final Pane pane, final ISettingsModuleView settingsModuleView, final IBuildingView building, final BOWindow window)
+    public void render(final ISettingKey<?> key, final Pane pane, final ICommonSettingsModule settingsModuleView, final IBuildingView building, final BOWindow window)
     {
         super.render(key, pane, settingsModuleView, building, window);
 
@@ -150,15 +150,15 @@ public class GuardTaskSetting extends StringSettingWithDesc
         Component component;
         if (building.getMinePos() != null)
         {
-            component = Component.translatable("no.monopixel.slimcolonies.coremod.gui.worherhuts.patrollingmine", building.getMinePos().toShortString());
+            component = Component.translatableEscape("no.monopixel.slimcolonies.coremod.gui.worherhuts.patrollingmine", building.getMinePos().toShortString());
         }
         else
         {
-            component = Component.translatable("no.monopixel.slimcolonies.coremod.job.guard.assignmine");
+            component = Component.translatableEscape("no.monopixel.slimcolonies.coremod.job.guard.assignmine");
         }
         PaneBuilders.tooltipBuilder()
-            .append(component)
-            .hoverPane(button)
-            .build();
+          .append(component)
+          .hoverPane(button)
+          .build();
     }
 }

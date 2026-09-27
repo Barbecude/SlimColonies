@@ -1,12 +1,14 @@
 package no.monopixel.slimcolonies.core.colony.buildings.workerbuildings;
 
-import net.minecraft.core.BlockPos;
-import net.minecraft.util.Tuple;
 import no.monopixel.slimcolonies.api.colony.IColony;
 import no.monopixel.slimcolonies.api.equipment.ModEquipmentTypes;
 import no.monopixel.slimcolonies.api.util.ItemStackUtils;
 import no.monopixel.slimcolonies.core.colony.buildings.AbstractBuilding;
+import net.minecraft.core.BlockPos;
+import net.minecraft.util.Tuple;
 import org.jetbrains.annotations.NotNull;
+
+import static no.monopixel.slimcolonies.api.util.constant.EquipmentLevelConstants.TOOL_LEVEL_WOOD_OR_GOLD;
 
 /**
  * The fishermans building.
@@ -20,7 +22,7 @@ public class BuildingFisherman extends AbstractBuilding
     /**
      * The job description.
      */
-    private static final String FISHERMAN          = "fisherman";
+    private static final String FISHERMAN = "fisherman";
 
     /**
      * Public constructor of the building, creates an object of the building.
@@ -31,7 +33,7 @@ public class BuildingFisherman extends AbstractBuilding
     public BuildingFisherman(final IColony c, final BlockPos l)
     {
         super(c, l);
-        keepX.put(itemStack -> ItemStackUtils.isEquipmentType(itemStack, ModEquipmentTypes.fishing_rod.get()), new Tuple<>(1, true));
+        keepX.put(itemStack -> ItemStackUtils.hasEquipmentLevel(itemStack, ModEquipmentTypes.fishing_rod.get(), TOOL_LEVEL_WOOD_OR_GOLD, getMaxEquipmentLevel()), new Tuple<>(1, true));
     }
 
     /**

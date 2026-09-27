@@ -3,8 +3,9 @@ package no.monopixel.slimcolonies.api.colony.requestsystem.token;
 import com.google.common.reflect.TypeToken;
 import no.monopixel.slimcolonies.api.colony.requestsystem.factory.IFactoryController;
 import no.monopixel.slimcolonies.api.util.constant.TypeConstants;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.UUID;
@@ -35,7 +36,7 @@ public abstract class AbstractTokenFactory<I> implements ITokenFactory<I, Standa
      */
     @NotNull
     @Override
-    public CompoundTag serialize(@NotNull final IFactoryController controller, @NotNull final StandardToken request)
+    public CompoundTag serialize(@NotNull final HolderLookup.Provider provider, @NotNull final IFactoryController controller, @NotNull final StandardToken request)
     {
         final CompoundTag compound = new CompoundTag();
 
@@ -54,7 +55,7 @@ public abstract class AbstractTokenFactory<I> implements ITokenFactory<I, Standa
      */
     @NotNull
     @Override
-    public StandardToken deserialize(@NotNull final IFactoryController controller, @NotNull final CompoundTag nbt)
+    public StandardToken deserialize(@NotNull final HolderLookup.Provider provider, @NotNull final IFactoryController controller, @NotNull final CompoundTag nbt)
     {
         final Long msb = nbt.getLong(NBT_MSB);
         final Long lsb = nbt.getLong(NBT_LSB);
@@ -65,14 +66,14 @@ public abstract class AbstractTokenFactory<I> implements ITokenFactory<I, Standa
     }
 
     @Override
-    public void serialize(IFactoryController controller, StandardToken input, FriendlyByteBuf packetBuffer)
+    public void serialize(IFactoryController controller, StandardToken input, RegistryFriendlyByteBuf packetBuffer)
     {
         packetBuffer.writeLong(input.getIdentifier().getLeastSignificantBits());
         packetBuffer.writeLong(input.getIdentifier().getMostSignificantBits());
     }
 
     @Override
-    public StandardToken deserialize(IFactoryController controller, FriendlyByteBuf buffer) throws Throwable
+    public StandardToken deserialize(IFactoryController controller, RegistryFriendlyByteBuf buffer) throws Throwable
     {
         final long lsb = buffer.readLong();
         final long msb = buffer.readLong();

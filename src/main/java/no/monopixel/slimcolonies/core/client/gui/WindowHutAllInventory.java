@@ -4,16 +4,6 @@ import com.ldtteam.blockui.Pane;
 import com.ldtteam.blockui.controls.*;
 import com.ldtteam.blockui.views.BOWindow;
 import com.ldtteam.blockui.views.ScrollingList;
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.core.BlockPos;
-import net.minecraft.network.chat.Component;
-import net.minecraft.util.Mth;
-import net.minecraft.world.item.Item;
-import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.TooltipFlag;
-import net.minecraft.world.level.Level;
-import net.minecraft.world.level.block.entity.BlockEntity;
 import no.monopixel.slimcolonies.api.colony.buildings.views.IBuildingView;
 import no.monopixel.slimcolonies.api.crafting.ItemStorage;
 import no.monopixel.slimcolonies.api.util.MessageUtils;
@@ -23,12 +13,24 @@ import no.monopixel.slimcolonies.core.client.render.worldevent.HighlightManager;
 import no.monopixel.slimcolonies.core.client.render.worldevent.highlightmanager.TimedBoxRenderData;
 import no.monopixel.slimcolonies.core.colony.buildings.AbstractBuilding;
 import no.monopixel.slimcolonies.core.tileentities.TileEntityRack;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.core.BlockPos;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.util.Mth;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.TooltipFlag;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.entity.BlockEntity;
 import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
 
 import java.time.Duration;
 import java.util.*;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 import static no.monopixel.slimcolonies.api.util.constant.TranslationConstants.MESSAGE_LOCATING_ITEMS;
 import static no.monopixel.slimcolonies.api.util.constant.WindowConstants.*;
@@ -57,7 +59,7 @@ public class WindowHutAllInventory extends AbstractWindowSkeleton
     /**
      * The sortDescriptor so how we want to sort
      */
-    private int sortDescriptor = COUNT_DESC_SORT;
+    private int sortDescriptor = 0;
 
     /**
      * The building associated to the GUI.
@@ -82,7 +84,7 @@ public class WindowHutAllInventory extends AbstractWindowSkeleton
      */
     public WindowHutAllInventory(final IBuildingView b, final BOWindow prev)
     {
-        super(Constants.MOD_ID + HUT_ALL_INVENTORY_SUFFIX);
+        super(new ResourceLocation(Constants.MOD_ID, "gui/windowhutallinventory.xml"));
         this.building = b;
         registerButton(BUTTON_SORT, this::setSortFlag);
         registerButton(BUTTON_BACK, this::back);
@@ -115,7 +117,7 @@ public class WindowHutAllInventory extends AbstractWindowSkeleton
     {
         final int row = stackList.getListElementIndexByPane(button);
         final ItemStorage storage = allItems.get(row);
-        final Set<BlockPos> containerList = new HashSet<>(building.getContainerList());
+        final Set<BlockPos> containerList = new HashSet<>(building.getContainers());
         containerList.add(building.getID());
         HighlightManager.clearHighlightsForKey("inventoryHighlight");
 
@@ -131,14 +133,14 @@ public class WindowHutAllInventory extends AbstractWindowSkeleton
                 if (count > 0)
                 {
                     // Varies the color between red(1 pc) over yellow(32 pcs) to green(64+ pcs)
-                    // mixing equation: alpha | red part | green part
+                    // mixing equation: alpha | red part | green part 
                     final int color = 0x80000000 | (Mth.clamp((int) (0xff * (2.0f - count / 32.0f)), 0, 255) << 16)
                         | (Mth.clamp((int) (0xff * count / 32.0f), 0, 255) << 8);
                     HighlightManager.addHighlight("inventoryHighlight", blockPos.toString(),
-                        new TimedBoxRenderData(blockPos)
-                            .setDuration(Duration.ofSeconds(60))
-                            .addText("" + count)
-                            .setColor(color));
+                      new TimedBoxRenderData(blockPos)
+                        .setDuration(Duration.ofSeconds(60))
+                        .addText("" + count)
+                        .setColor(color));
                 }
             }
         }
@@ -153,19 +155,35 @@ public class WindowHutAllInventory extends AbstractWindowSkeleton
     }
 
     /**
-     * Toggles between COUNT_DESC_SORT (most abundant first) and ASC_SORT (alphabetical A-Z)
+     * Increments the sortDescriptor and sets the GUI Button accordingly Valid Stages 0 - 4 NO_SORT 0   No Sorting, like wysiwyg ASC_SORT 1   Name Ascending DESC_SORT 2   Name
+     * Descending COUNT_ASC_SORT 3   Itemcount Ascending COUNT_DESC_SORT 4   Itemcount Descending
      **/
     private void setSortFlag()
     {
-        if (sortDescriptor == COUNT_DESC_SORT)
+        sortDescriptor++;
+        if (sortDescriptor > 4)
         {
-            sortDescriptor = ASC_SORT;
-            findPaneOfTypeByID(BUTTON_SORT, ButtonImage.class).setText(Component.literal("A^"));
+            sortDescriptor = NO_SORT;
         }
-        else
+        switch (sortDescriptor)
         {
-            sortDescriptor = COUNT_DESC_SORT;
-            findPaneOfTypeByID(BUTTON_SORT, ButtonImage.class).setText(Component.literal("1v"));
+            case NO_SORT:
+                findPaneOfTypeByID(BUTTON_SORT, ButtonImage.class).setText(Component.literal("v^"));
+                break;
+            case ASC_SORT:
+                findPaneOfTypeByID(BUTTON_SORT, ButtonImage.class).setText(Component.literal("A^"));
+                break;
+            case DESC_SORT:
+                findPaneOfTypeByID(BUTTON_SORT, ButtonImage.class).setText(Component.literal("Av"));
+                break;
+            case COUNT_ASC_SORT:
+                findPaneOfTypeByID(BUTTON_SORT, ButtonImage.class).setText(Component.literal("1^"));
+                break;
+            case COUNT_DESC_SORT:
+                findPaneOfTypeByID(BUTTON_SORT, ButtonImage.class).setText(Component.literal("1v"));
+                break;
+            default:
+                break;
         }
 
         updateResources();
@@ -176,7 +194,7 @@ public class WindowHutAllInventory extends AbstractWindowSkeleton
      */
     private void updateResources()
     {
-        final Set<BlockPos> containerList = new HashSet<>(building.getContainerList());
+        final Set<BlockPos> containerList = new HashSet<>(building.getContainers());
 
         final Map<ItemStorage, Integer> storedItems = new HashMap<>();
         final Level world = building.getColony().getWorld();
@@ -209,10 +227,10 @@ public class WindowHutAllInventory extends AbstractWindowSkeleton
             filterItems.add(storage);
         });
         final Predicate<ItemStorage> filterPredicate = stack -> filter.isEmpty()
-            || stack.getItemStack().getDescriptionId().toLowerCase(Locale.US).contains(filter.toLowerCase(Locale.US))
-            || getString(stack.getItemStack())
-            .toLowerCase(Locale.US)
-            .contains(filter.toLowerCase(Locale.US));
+                                                                  || stack.getItemStack().getDescriptionId().toLowerCase(Locale.US).contains(filter.toLowerCase(Locale.US))
+                                                                  || getString(stack.getItemStack())
+                                                                       .toLowerCase(Locale.US)
+                                                                       .contains(filter.toLowerCase(Locale.US));
 
         allItems.clear();
         if (filter.isEmpty())
@@ -221,19 +239,29 @@ public class WindowHutAllInventory extends AbstractWindowSkeleton
         }
         else
         {
-            allItems.addAll(filterItems.stream().filter(filterPredicate).toList());
-            allItems.sort(Comparator.comparingInt(s1 -> StringUtils.getLevenshteinDistance(s1.getItemStack().getHoverName().getString(), filter)));
+            allItems.addAll(filterItems.stream().filter(filterPredicate).collect(Collectors.toList()));
         }
+        allItems.sort(Comparator.comparingInt(s1 -> StringUtils.getLevenshteinDistance(s1.getItemStack().getHoverName().getString(), filter)));
 
         final Comparator<ItemStorage> compareByName = Comparator.comparing((ItemStorage o) -> o.getItemStack().getHoverName().getString());
         final Comparator<ItemStorage> compareByCount = Comparator.comparingInt(ItemStorage::getAmount);
         switch (sortDescriptor)
         {
+            case NO_SORT:
+                break;
             case ASC_SORT:
                 allItems.sort(compareByName);
                 break;
+            case DESC_SORT:
+                allItems.sort(compareByName.reversed());
+                break;
+            case COUNT_ASC_SORT:
+                allItems.sort(compareByCount);
+                break;
             case COUNT_DESC_SORT:
                 allItems.sort(compareByCount.reversed());
+                break;
+            default:
                 break;
         }
 
@@ -242,14 +270,13 @@ public class WindowHutAllInventory extends AbstractWindowSkeleton
 
     /**
      * Get identifying string from itemstack.
-     *
      * @param stack the stack to gen the string from.
      * @return a single string.
      */
     private static String getString(final ItemStack stack)
     {
         final StringBuilder output = new StringBuilder();
-        for (final Component comp : stack.getTooltipLines(Minecraft.getInstance().player, TooltipFlag.Default.NORMAL))
+        for (final Component comp : stack.getTooltipLines(Item.TooltipContext.of(Minecraft.getInstance().level), Minecraft.getInstance().player, TooltipFlag.Default.NORMAL))
         {
             output.append(comp.getString()).append(" ");
         }
@@ -297,10 +324,9 @@ public class WindowHutAllInventory extends AbstractWindowSkeleton
                 {
                     qtys.setText(Component.literal(Integer.toString(resource.getAmount())));
                 }
-                final Item imagesrc = resource.getItemStack().getItem();
-                final ItemStack image = new ItemStack(imagesrc, 1);
-                image.setTag(resource.getItemStack().getTag());
-                rowPane.findPaneOfTypeByID(RESOURCE_ICON, ItemIcon.class).setItem(image);
+                final ItemStack imageStk = resource.getItemStack().copy();
+                imageStk.setCount(1);
+                rowPane.findPaneOfTypeByID(RESOURCE_ICON, ItemIcon.class).setItem(imageStk);
             }
         });
     }

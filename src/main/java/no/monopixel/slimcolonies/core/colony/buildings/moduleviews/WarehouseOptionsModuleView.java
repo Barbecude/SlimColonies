@@ -3,11 +3,12 @@ package no.monopixel.slimcolonies.core.colony.buildings.moduleviews;
 import com.ldtteam.blockui.views.BOWindow;
 import no.monopixel.slimcolonies.api.colony.buildings.modules.AbstractBuildingModuleView;
 import no.monopixel.slimcolonies.api.util.constant.Constants;
-import no.monopixel.slimcolonies.core.client.gui.modules.WarehouseOptionsModuleWindow;
-import net.minecraft.network.FriendlyByteBuf;
+import no.monopixel.slimcolonies.core.client.gui.modules.building.WarehouseOptionsModuleWindow;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.api.distmarker.OnlyIn;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.api.distmarker.OnlyIn;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -21,13 +22,13 @@ public class WarehouseOptionsModuleView extends AbstractBuildingModuleView
     private int storageUpgrade = 0;
 
     @Override
-    public String getDesc()
+    public Component getDesc()
     {
-        return "no.monopixel.slimcolonies.coremod.gui.workerhuts.settings";
+        return Component.translatable("no.monopixel.slimcolonies.coremod.gui.workerhuts.settings");
     }
 
     @Override
-    public void deserialize(@NotNull final FriendlyByteBuf buf)
+    public void deserialize(@NotNull final RegistryFriendlyByteBuf buf)
     {
         storageUpgrade = buf.readInt();
     }
@@ -36,13 +37,13 @@ public class WarehouseOptionsModuleView extends AbstractBuildingModuleView
     @OnlyIn(Dist.CLIENT)
     public BOWindow getWindow()
     {
-        return new WarehouseOptionsModuleWindow(buildingView, this);
+        return new WarehouseOptionsModuleWindow(this);
     }
 
     @Override
     public ResourceLocation getIconResourceLocation()
     {
-        return ResourceLocation.fromNamespaceAndPath(Constants.MOD_ID, "textures/gui/modules/settings.png");
+        return new ResourceLocation(Constants.MOD_ID, "textures/gui/modules/settings.png");
     }
 
     /**

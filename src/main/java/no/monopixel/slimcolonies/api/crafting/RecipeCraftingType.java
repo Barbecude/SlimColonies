@@ -4,9 +4,7 @@ import no.monopixel.slimcolonies.api.crafting.registry.CraftingType;
 import no.monopixel.slimcolonies.api.util.Log;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.Container;
-import net.minecraft.world.item.crafting.Recipe;
-import net.minecraft.world.item.crafting.RecipeManager;
-import net.minecraft.world.item.crafting.RecipeType;
+import net.minecraft.world.item.crafting.*;
 import net.minecraft.world.level.Level;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -20,10 +18,10 @@ import java.util.function.Predicate;
  * @param <C> the crafting inventory type
  * @param <T> the recipe type
  */
-public class RecipeCraftingType<C extends Container, T extends Recipe<C>> extends CraftingType
+public class RecipeCraftingType<C extends RecipeInput, T extends Recipe<C>> extends CraftingType
 {
     private final RecipeType<T> recipeType;
-    private final Predicate<T> predicate;
+    private final Predicate<RecipeHolder<T>> predicate;
 
     /**
      * Create a new instance
@@ -33,7 +31,7 @@ public class RecipeCraftingType<C extends Container, T extends Recipe<C>> extend
      */
     public RecipeCraftingType(@NotNull final ResourceLocation id,
                               @NotNull final RecipeType<T> recipeType,
-                              @Nullable final Predicate<T> predicate)
+                              @Nullable final Predicate<RecipeHolder<T>> predicate)
     {
         super(id);
         this.recipeType = recipeType;
@@ -46,7 +44,7 @@ public class RecipeCraftingType<C extends Container, T extends Recipe<C>> extend
                                             @NotNull final Level world)
     {
         final List<IGenericRecipe> recipes = new ArrayList<>();
-        for (final T recipe : recipeManager.getAllRecipesFor(recipeType))
+        for (final RecipeHolder<T> recipe : recipeManager.getAllRecipesFor(recipeType))
         {
             if (predicate != null && !predicate.test(recipe)) continue;
 
@@ -55,20 +53,21 @@ public class RecipeCraftingType<C extends Container, T extends Recipe<C>> extend
         return recipes;
     }
 
-    private static void tryAddingVanillaRecipe(@NotNull final List<IGenericRecipe> recipes,
-                                               @NotNull final Recipe<?> recipe,
+    private void tryAddingVanillaRecipe(@NotNull final List<IGenericRecipe> recipes,
+                                               @NotNull final RecipeHolder<T> holder,
                                                @NotNull final Level world)
     {
+        final T recipe = holder.value();
         if (recipe.isSpecial() || recipe.getResultItem(world.registryAccess()).isEmpty()) return;     // invalid or special recipes
         try
         {
-            final IGenericRecipe genericRecipe = GenericRecipe.of(recipe, world);
+            final IGenericRecipe genericRecipe = GenericRecipe.of(holder, world);
             if (genericRecipe == null || genericRecipe.getInputs().isEmpty()) return;
             recipes.add(genericRecipe);
         }
         catch (final Exception ex)
         {
-            Log.getLogger().warn("Error evaluating recipe " + recipe.getId() + "; ignoring.", ex);
+            Log.getLogger().warn("Error evaluating recipe " + holder.id() + "; ignoring.", ex);
         }
     }
 }

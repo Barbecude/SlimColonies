@@ -4,11 +4,11 @@ import com.ldtteam.blockui.views.BOWindow;
 import no.monopixel.slimcolonies.api.colony.buildings.modules.AbstractBuildingModuleView;
 import no.monopixel.slimcolonies.api.colony.managers.interfaces.IStatisticsManager;
 import no.monopixel.slimcolonies.api.util.constant.Constants;
-import no.monopixel.slimcolonies.core.client.gui.modules.WindowStatsModule;
+import no.monopixel.slimcolonies.core.client.gui.modules.building.WindowStatsModule;
 import no.monopixel.slimcolonies.core.colony.managers.StatisticsManager;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
-
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -22,7 +22,7 @@ public class BuildingStatisticsModuleView extends AbstractBuildingModuleView
     private IStatisticsManager statisticsManager = new StatisticsManager();
 
     @Override
-    public void deserialize(final @NotNull FriendlyByteBuf buf)
+    public void deserialize(final @NotNull RegistryFriendlyByteBuf buf)
     {
         statisticsManager.deserialize(buf);
     }
@@ -30,24 +30,23 @@ public class BuildingStatisticsModuleView extends AbstractBuildingModuleView
     @Override
     public BOWindow getWindow()
     {
-        return new WindowStatsModule(getBuildingView(), this);
+        return new WindowStatsModule(this);
     }
 
     @Override
     public ResourceLocation getIconResourceLocation()
     {
-        return ResourceLocation.fromNamespaceAndPath(Constants.MOD_ID, "textures/gui/modules/stats.png");
+        return new ResourceLocation(Constants.MOD_ID, "textures/gui/modules/stats.png");
     }
 
     @Override
-    public String getDesc()
+    public Component getDesc()
     {
-        return "no.monopixel.slimcolonies.core.gui.modules.stats";
+        return Component.translatable("no.monopixel.slimcolonies.core.gui.modules.stats");
     }
 
     /**
      * Get the statistic manager of the building.
-     *
      * @return the manager.
      */
     public IStatisticsManager getBuildingStatisticsManager()

@@ -1,0 +1,15 @@
+{
+  "type": "slimcolonies:zero_waste",
+  "ingredients": [
+    {
+      "item": "slimcolonies:large_water_bottle"
+    },
+    {
+      "item": "slimcolonies:soybean"
+    }
+  ],
+  "result": {
+    "count": 1,
+    "id": "slimcolonies:large_soy_milk_bottle"
+  }
+}

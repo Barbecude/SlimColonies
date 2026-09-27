@@ -1,10 +1,14 @@
 package no.monopixel.slimcolonies.core.entity.ai.workers;
 
 import com.ldtteam.domumornamentum.item.interfaces.IDoItem;
+import no.monopixel.slimcolonies.api.entity.ai.workers.util.IBuilderUndestroyable;
+import no.monopixel.slimcolonies.api.util.*;
+import no.monopixel.slimcolonies.core.MineColonies;
+import no.monopixel.slimcolonies.core.colony.buildings.AbstractBuilding;
+import no.monopixel.slimcolonies.core.colony.jobs.AbstractJob;
+import no.monopixel.slimcolonies.core.entity.pathfinding.navigation.EntityNavigationUtils;
+import no.monopixel.slimcolonies.core.util.citizenutils.CitizenItemUtils;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.Direction;
-import net.minecraft.world.InteractionHand;
-import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.enchantment.Enchantments;
@@ -13,15 +17,6 @@ import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
-import net.minecraft.world.phys.BlockHitResult;
-import net.minecraft.world.phys.Vec3;
-import no.monopixel.slimcolonies.api.entity.ai.workers.util.IBuilderUndestroyable;
-import no.monopixel.slimcolonies.api.util.*;
-import no.monopixel.slimcolonies.core.SlimColonies;
-import no.monopixel.slimcolonies.core.colony.buildings.AbstractBuilding;
-import no.monopixel.slimcolonies.core.colony.jobs.AbstractJob;
-import no.monopixel.slimcolonies.core.entity.pathfinding.navigation.EntityNavigationUtils;
-import no.monopixel.slimcolonies.core.util.citizenutils.CitizenItemUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -110,7 +105,7 @@ public abstract class AbstractEntityAIInteract<J extends AbstractJob<?, J>, B ex
     {
         super(job);
         super.registerTargets(
-            //no new targets for now
+          //no new targets for now
         );
     }
 
@@ -134,7 +129,7 @@ public abstract class AbstractEntityAIInteract<J extends AbstractJob<?, J>, B ex
      * @param safeStand   the block we want to stand on to do that
      * @return true once we're done
      */
-    protected boolean mineBlock(@NotNull final BlockPos blockToMine, @Nullable final BlockPos safeStand)
+    protected boolean mineBlock(@NotNull final BlockPos blockToMine, @NotNull final BlockPos safeStand)
     {
         return mineBlock(blockToMine, safeStand, true, true, null);
     }
@@ -151,17 +146,17 @@ public abstract class AbstractEntityAIInteract<J extends AbstractJob<?, J>, B ex
      * @return true once we're done
      */
     protected final boolean mineBlock(
-        @NotNull final BlockPos blockToMine,
-        @Nullable final BlockPos safeStand,
-        final boolean damageTool,
-        final boolean getDrops,
-        final Runnable blockBreakAction)
+      @NotNull final BlockPos blockToMine,
+      @NotNull final BlockPos safeStand,
+      final boolean damageTool,
+      final boolean getDrops,
+      final Runnable blockBreakAction)
     {
         final BlockState curBlockState = world.getBlockState(blockToMine);
         @Nullable final Block curBlock = curBlockState.getBlock();
         if (curBlock instanceof AirBlock
-            || curBlock instanceof IBuilderUndestroyable
-            || curBlock == Blocks.BEDROCK)
+              || curBlock instanceof IBuilderUndestroyable
+              || curBlock == Blocks.BEDROCK)
         {
             if (!curBlockState.getFluidState().isEmpty())
             {
@@ -182,7 +177,7 @@ public abstract class AbstractEntityAIInteract<J extends AbstractJob<?, J>, B ex
         if (getDrops)
         {
             //calculate fortune enchantment
-            final int fortune = ItemStackUtils.getFortuneOf(tool);
+            final int fortune = ItemStackUtils.getFortuneOf(tool, worker.level());
 
             //create list for all item drops to be stored in
             List<ItemStack> localItems = new ArrayList<>();
@@ -191,7 +186,7 @@ public abstract class AbstractEntityAIInteract<J extends AbstractJob<?, J>, B ex
             if (!tool.isEmpty() && shouldSilkTouchBlock(curBlockState))
             {
                 final ItemStack fakeTool = tool.copy();
-                fakeTool.enchant(Enchantments.SILK_TOUCH, 1);
+                fakeTool.enchant(Utils.getRegistryValue(Enchantments.SILK_TOUCH, worker.level()), 1);
                 localItems.addAll(BlockPosUtil.getBlockDrops(world, blockToMine, fortune, fakeTool, worker));
             }
             //If Silk Touch doesn't work, get blocks with Fortune value as normal.
@@ -236,49 +231,6 @@ public abstract class AbstractEntityAIInteract<J extends AbstractJob<?, J>, B ex
         worker.getCitizenExperienceHandler().addExperience(XP_PER_BLOCK);
         this.incrementActionsDone();
         return true;
-    }
-
-    /**
-     * Simulates right-clicking a block.
-     *
-     * @param blockToUse the block to right-click
-     * @return the InteractionResult from the use() call
-     */
-    protected final InteractionResult useBlock(@NotNull final BlockPos blockToUse)
-    {
-        final BlockState curBlockState = world.getBlockState(blockToUse);
-        @Nullable final Block curBlock = curBlockState.getBlock();
-
-        if (curBlock instanceof AirBlock)
-        {
-            return InteractionResult.PASS;
-        }
-
-        worker.swing(worker.getUsedItemHand());
-
-        final BlockHitResult hitResult = new BlockHitResult(
-            Vec3.atCenterOf(blockToUse),
-            Direction.UP,
-            blockToUse,
-            false
-        );
-
-        final InteractionResult result = curBlock.use(
-            curBlockState,
-            world,
-            blockToUse,
-            getFakePlayer(),
-            InteractionHand.MAIN_HAND,
-            hitResult
-        );
-
-        if (result.consumesAction())
-        {
-            worker.getCitizenExperienceHandler().addExperience(XP_PER_BLOCK);
-            this.incrementActionsDone();
-        }
-
-        return result;
     }
 
     /**
@@ -331,7 +283,7 @@ public abstract class AbstractEntityAIInteract<J extends AbstractJob<?, J>, B ex
      * @param safeStand   a safe stand to mine from (empty Block!)
      * @return true if you should wait
      */
-    private boolean checkMiningLocation(@NotNull final BlockPos blockToMine, @Nullable final BlockPos safeStand)
+    private boolean checkMiningLocation(@NotNull final BlockPos blockToMine, @NotNull final BlockPos safeStand)
     {
         final BlockState curBlock = world.getBlockState(blockToMine);
 
@@ -364,9 +316,9 @@ public abstract class AbstractEntityAIInteract<J extends AbstractJob<?, J>, B ex
             return (int) state.getDestroySpeed(world, pos);
         }
 
-        return SlimColonies.getConfig().getServer().pvp_mode.get()
-            ? BLOCK_MINING_DELAY / 2
-            : calculateWorkerMiningDelay(state, pos);
+        return MineColonies.getConfig().getServer().pvp_mode.get()
+                 ? BLOCK_MINING_DELAY / 2
+                 : calculateWorkerMiningDelay(state, pos);
     }
 
     /**
@@ -381,10 +333,10 @@ public abstract class AbstractEntityAIInteract<J extends AbstractJob<?, J>, B ex
         final double reduction = 1 - worker.getCitizenColonyHandler().getColonyOrRegister().getResearchManager().getResearchEffects().getEffectStrength(BLOCK_BREAK_SPEED);
 
         return (int) (((BLOCK_MINING_DELAY * Math.pow(LEVEL_MODIFIER, getBreakSpeedLevel() / 2.0))
-            * (double) world.getBlockState(pos).getDestroySpeed(world, pos) / (double) (worker.getMainHandItem()
-            .getItem()
-            .getDestroySpeed(worker.getMainHandItem(), state)))
-            * reduction);
+                         * (double) world.getBlockState(pos).getDestroySpeed(world, pos) / (double) (worker.getMainHandItem()
+                                                                                                       .getItem()
+                                                                                                       .getDestroySpeed(worker.getMainHandItem(), state)))
+                        * reduction);
     }
 
     /**
@@ -403,8 +355,8 @@ public abstract class AbstractEntityAIInteract<J extends AbstractJob<?, J>, B ex
     public void fillItemsList()
     {
         searchForItems(worker.getBoundingBox()
-            .expandTowards(RANGE_HORIZONTAL_PICKUP, RANGE_VERTICAL_PICKUP, RANGE_HORIZONTAL_PICKUP)
-            .expandTowards(-RANGE_HORIZONTAL_PICKUP, -RANGE_VERTICAL_PICKUP, -RANGE_HORIZONTAL_PICKUP));
+                         .expandTowards(RANGE_HORIZONTAL_PICKUP, RANGE_VERTICAL_PICKUP, RANGE_HORIZONTAL_PICKUP)
+                         .expandTowards(-RANGE_HORIZONTAL_PICKUP, -RANGE_VERTICAL_PICKUP, -RANGE_HORIZONTAL_PICKUP));
     }
 
     /**
@@ -415,12 +367,12 @@ public abstract class AbstractEntityAIInteract<J extends AbstractJob<?, J>, B ex
     public void searchForItems(final AABB boundingBox)
     {
         items = world.getEntitiesOfClass(ItemEntity.class, boundingBox)
-            .stream()
-            .filter(item -> item != null && item.isAlive() &&
-                (!item.getPersistentData().contains("PreventRemoteMovement") || !item.getPersistentData().getBoolean("PreventRemoteMovement")) &&
-                isItemWorthPickingUp(item.getItem()))
-            .map(BlockPosUtil::fromEntity)
-            .collect(Collectors.toList());
+                  .stream()
+                  .filter(item -> item != null && item.isAlive() &&
+                                    (!item.getPersistentData().contains("PreventRemoteMovement") || !item.getPersistentData().getBoolean("PreventRemoteMovement")) &&
+                                    isItemWorthPickingUp(item.getItem()))
+                  .map(BlockPosUtil::fromEntity)
+                  .collect(Collectors.toList());
     }
 
     /**

@@ -7,14 +7,15 @@ import no.monopixel.slimcolonies.api.inventory.ModContainers;
 import no.monopixel.slimcolonies.core.tileentities.TileEntityColonyBuilding;
 import no.monopixel.slimcolonies.api.util.ItemStackUtils;
 import net.minecraft.core.BlockPos;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
-import net.minecraftforge.items.IItemHandler;
-import net.minecraftforge.items.SlotItemHandler;
+import net.neoforged.neoforge.items.IItemHandler;
+import net.neoforged.neoforge.items.SlotItemHandler;
 import org.jetbrains.annotations.NotNull;
 
 import static no.monopixel.slimcolonies.api.util.constant.InventoryConstants.*;
@@ -44,7 +45,7 @@ public class ContainerBuildingInventory extends AbstractContainerMenu
      * @param packetBuffer network buffer
      * @return new instance
      */
-    public static ContainerBuildingInventory fromFriendlyByteBuf(final int windowId, final Inventory inv, final FriendlyByteBuf packetBuffer)
+    public static ContainerBuildingInventory fromFriendlyByteBuf(final int windowId, final Inventory inv, final RegistryFriendlyByteBuf packetBuffer)
     {
         final int colonyId = packetBuffer.readVarInt();
         final BlockPos tePos = packetBuffer.readBlockPos();
@@ -90,7 +91,7 @@ public class ContainerBuildingInventory extends AbstractContainerMenu
                               if (!inv.player.level().isClientSide && !ItemStackUtils.isEmpty(stack))
                               {
                                   final IColony colony = IColonyManager.getInstance().getColonyByWorld(colonyId, inv.player.level());
-                                  final IBuilding building = colony.getBuildingManager().getBuilding(pos);
+                                  final IBuilding building = colony.getServerBuildingManager().getBuilding(pos);
                                   if (building != null)
                                   {
                                       building.overruleNextOpenRequestWithStack(stack);
@@ -172,7 +173,34 @@ public class ContainerBuildingInventory extends AbstractContainerMenu
             slot.set(stackCopy);
         }
 
+        if (playerIn instanceof ServerPlayer)
+        {
+            this.updateRacks(stackCopy);
+        }
+
         return stackCopy;
+    }
+
+    @Override
+    protected boolean moveItemStackTo(final ItemStack stack, final int startIndex, final int endIndex, final boolean reverseDirection)
+    {
+        final ItemStack before = stack.copy();
+        final boolean merge =  super.moveItemStackTo(stack, startIndex, endIndex, reverseDirection);
+        if (merge)
+        {
+            this.updateRacks(before);
+        }
+        return merge;
+    }
+
+    /**
+     * Update the racks (combined inv and warehouse).
+     * @param stack the stack to set.
+     */
+    private void updateRacks(final ItemStack stack)
+    {
+        tileEntityColonyBuilding.updateItemStorage();
+        tileEntityColonyBuilding.updateWarehouseIfAvailable(stack);
     }
 
     /**

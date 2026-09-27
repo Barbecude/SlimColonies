@@ -1,25 +1,22 @@
 package no.monopixel.slimcolonies.core.colony.buildings.modules;
 
-import net.minecraft.core.BlockPos;
+import no.monopixel.slimcolonies.api.colony.buildings.modules.*;
+import no.monopixel.slimcolonies.api.util.NBTUtils;
+import no.monopixel.slimcolonies.api.util.WorldUtil;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.nbt.Tag;
+import net.minecraft.world.level.block.BedBlock;
+import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.NbtUtils;
-import net.minecraft.nbt.Tag;
-import net.minecraft.world.level.Level;
-import net.minecraft.world.level.block.BedBlock;
-import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.BedPart;
-import no.monopixel.slimcolonies.api.colony.buildings.modules.AbstractBuildingModule;
-import no.monopixel.slimcolonies.api.colony.buildings.modules.IBuildingEventsModule;
-import no.monopixel.slimcolonies.api.colony.buildings.modules.IModuleWithExternalBlocks;
-import no.monopixel.slimcolonies.api.colony.buildings.modules.IPersistentModule;
-import no.monopixel.slimcolonies.api.util.WorldUtil;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.level.Level;
+
 import org.jetbrains.annotations.NotNull;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 import static no.monopixel.slimcolonies.api.util.constant.NbtTagConstants.TAG_BEDS;
 
@@ -35,26 +32,24 @@ public class BedHandlingModule extends AbstractBuildingModule implements IModule
     private final Set<BlockPos> bedList = new HashSet<>();
 
     @Override
-    public void deserializeNBT(final CompoundTag compound)
+    public void deserializeNBT(@NotNull final HolderLookup.Provider provider, final CompoundTag compound)
     {
-        final ListTag bedTagList = compound.getList(TAG_BEDS, Tag.TAG_COMPOUND);
+        final ListTag bedTagList = compound.getList(TAG_BEDS, Tag.TAG_INT_ARRAY);
         for (int i = 0; i < bedTagList.size(); ++i)
         {
-            final CompoundTag bedCompound = bedTagList.getCompound(i);
-            final BlockPos bedPos = NbtUtils.readBlockPos(bedCompound);
-            bedList.add(bedPos);
+            bedList.add(NBTUtils.readBlockPos(bedTagList.get(i)));
         }
     }
 
     @Override
-    public void serializeNBT(final CompoundTag compound)
+    public void serializeNBT(@NotNull final HolderLookup.Provider provider, CompoundTag compound)
     {
         if (!bedList.isEmpty())
         {
             @NotNull final ListTag bedTagList = new ListTag();
             for (@NotNull final BlockPos pos : bedList)
             {
-                bedTagList.add(NbtUtils.writeBlockPos(pos));
+                bedTagList.add(NBTUtils.writeBlockPos(pos));
             }
             compound.put(TAG_BEDS, bedTagList);
         }
@@ -96,8 +91,8 @@ public class BedHandlingModule extends AbstractBuildingModule implements IModule
             {
                 final BlockState state = world.getBlockState(pos);
                 if (state.getBlock() instanceof BedBlock
-                    && state.getValue(BedBlock.OCCUPIED)
-                    && state.getValue(BedBlock.PART).equals(BedPart.HEAD))
+                      && state.getValue(BedBlock.OCCUPIED)
+                      && state.getValue(BedBlock.PART).equals(BedPart.HEAD))
                 {
                     world.setBlock(pos, state.setValue(BedBlock.OCCUPIED, false), 0x03);
                 }

@@ -8,9 +8,11 @@ import no.monopixel.slimcolonies.api.research.ILocalResearch;
 import no.monopixel.slimcolonies.api.util.MathUtils;
 import no.monopixel.slimcolonies.api.util.MessageUtils;
 import no.monopixel.slimcolonies.api.util.StatsUtil;
+import no.monopixel.slimcolonies.api.util.NBTUtils;
 import no.monopixel.slimcolonies.core.colony.buildings.AbstractBuilding;
 import no.monopixel.slimcolonies.core.colony.buildings.modules.WorkerBuildingModule;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.NbtUtils;
@@ -19,7 +21,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
-import net.minecraftforge.common.Tags;
+import net.neoforged.neoforge.common.Tags;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
@@ -71,26 +73,24 @@ public class BuildingUniversity extends AbstractBuilding
     }
 
     @Override
-    public void deserializeNBT(final CompoundTag compound)
+    public void deserializeNBT(@NotNull final HolderLookup.Provider provider, final CompoundTag compound)
     {
-        super.deserializeNBT(compound);
-        final ListTag furnaceTagList = compound.getList(TAG_BOOKCASES, Tag.TAG_COMPOUND);
+        super.deserializeNBT(provider, compound);
+        final ListTag furnaceTagList = compound.getList(TAG_BOOKCASES, Tag.TAG_INT_ARRAY);
         for (int i = 0; i < furnaceTagList.size(); ++i)
         {
-            bookCases.add(NbtUtils.readBlockPos(furnaceTagList.getCompound(i).getCompound(TAG_POS)));
+            bookCases.add(NBTUtils.readBlockPos(furnaceTagList.get(i)));
         }
     }
 
     @Override
-    public CompoundTag serializeNBT()
+    public CompoundTag serializeNBT(@NotNull final HolderLookup.Provider provider)
     {
-        final CompoundTag compound = super.serializeNBT();
+        final CompoundTag compound = super.serializeNBT(provider);
         @NotNull final ListTag bookcaseTagList = new ListTag();
         for (@NotNull final BlockPos entry : bookCases)
         {
-            @NotNull final CompoundTag bookCompound = new CompoundTag();
-            bookCompound.put(TAG_POS, NbtUtils.writeBlockPos(entry));
-            bookcaseTagList.add(bookCompound);
+            bookcaseTagList.add(NBTUtils.writeBlockPos(entry));
         }
         compound.put(TAG_BOOKCASES, bookcaseTagList);
 
@@ -168,8 +168,7 @@ public class BuildingUniversity extends AbstractBuilding
         }
 
         StatsUtil.trackStat(this, RESEARCH_COMPLETED, 1);
-
-        final MutableComponent message = Component.translatable(RESEARCH_CONCLUDED + ThreadLocalRandom.current().nextInt(3),
+        final MutableComponent message = Component.translatableEscape(RESEARCH_CONCLUDED + ThreadLocalRandom.current().nextInt(3),
           MutableComponent.create(IGlobalResearchTree.getInstance().getResearch(research.getBranch(), research.getId()).getName()));
 
         MessageUtils.format(message).sendTo(colony).forManagers();

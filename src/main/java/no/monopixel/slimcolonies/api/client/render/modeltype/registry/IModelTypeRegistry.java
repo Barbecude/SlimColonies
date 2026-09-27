@@ -1,8 +1,8 @@
 package no.monopixel.slimcolonies.api.client.render.modeltype.registry;
 
-import net.minecraft.resources.ResourceLocation;
-import no.monopixel.slimcolonies.api.ISlimColoniesAPI;
+import no.monopixel.slimcolonies.api.IMinecoloniesAPI;
 import no.monopixel.slimcolonies.api.client.render.modeltype.IModelType;
+import net.minecraft.resources.ResourceLocation;
 import org.jetbrains.annotations.Nullable;
 
 /**
@@ -17,7 +17,7 @@ public interface IModelTypeRegistry
      */
     static IModelTypeRegistry getInstance()
     {
-        return ISlimColoniesAPI.getInstance().getModelTypeRegistry();
+        return IMinecoloniesAPI.getInstance().getModelTypeRegistry();
     }
 
     /**

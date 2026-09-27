@@ -304,7 +304,7 @@ public abstract class AbstractCraftingRequestResolver extends AbstractRequestRes
 
     /**
      * Create the crafting request entries for the overall request
-     * Will produce multiple, if the ingredients don't all fit in the crafters inventory.
+     * Will produce multiple, if the ingredients don't all fit in the crafters inventory. 
      * @param manager       request manager
      * @param recipeRequest requested recipe instance
      * @param count         count of item requested
@@ -347,7 +347,7 @@ public abstract class AbstractCraftingRequestResolver extends AbstractRequestRes
             }
             if (stacksNeeded > maxSlots)
             {
-                //We can't fit everything into inventory. Reduce the batch size by the ratio of what we calculated and what we have available.
+                //We can't fit everything into inventory. Reduce the batch size by the ratio of what we calculated and what we have available. 
                 batchSize = (int) Math.floor((double) batchSize * ((double) maxSlots / stacksNeeded));
             }
             totalSlots = Math.min(totalSlots, stacksNeeded);
@@ -359,7 +359,7 @@ public abstract class AbstractCraftingRequestResolver extends AbstractRequestRes
         {
             requests.add(manager.createRequest(this, createNewRequestableForStack(requestStack.copy(), Math.min(batchSize, recipeExecutionsCount), Math.max(1, Math.min(batchSize, minRecipeExecutionsCount)),  recipeRequest.getToken())));
             recipeExecutionsCount -= batchSize;
-            minRecipeExecutionsCount  = minRecipeExecutionsCount > batchSize ? minRecipeExecutionsCount - batchSize : 0;
+            minRecipeExecutionsCount  = minRecipeExecutionsCount > batchSize ? minRecipeExecutionsCount - batchSize : 0; 
         }
 
         return ImmutableList.copyOf(requests);

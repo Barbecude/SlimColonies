@@ -7,7 +7,6 @@ import com.ldtteam.blockui.views.ScrollingList;
 import no.monopixel.slimcolonies.api.colony.ICitizen;
 import no.monopixel.slimcolonies.api.colony.ICitizenDataView;
 import no.monopixel.slimcolonies.api.entity.citizen.Skill;
-import no.monopixel.slimcolonies.core.Network;
 import no.monopixel.slimcolonies.core.colony.buildings.workerbuildings.BuildingTownHall;
 import no.monopixel.slimcolonies.core.entity.citizen.citizenhandlers.CitizenSkillHandler;
 import no.monopixel.slimcolonies.core.network.messages.server.colony.citizen.RecallSingleCitizenMessage;
@@ -19,8 +18,11 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.Pose;
 import org.jetbrains.annotations.NotNull;
 
+import java.math.RoundingMode;
+import java.text.DecimalFormat;
 import java.util.*;
 
+import static no.monopixel.slimcolonies.api.util.constant.TranslationConstants.PARTIAL_HAPPINESS_MODIFIER_NAME;
 import static no.monopixel.slimcolonies.api.util.constant.WindowConstants.*;
 
 /**
@@ -73,7 +75,7 @@ public class WindowCitizenPage extends AbstractWindowTownHall
         registerButton(NAME_LABEL, this::citizenSelected);
         registerButton(RECALL_ONE, this::recallOneClicked);
         fillCitizenInfo();
-        // Happiness system removed
+        fillHappinessList();
 
         window.findPaneOfTypeByID(SEARCH_INPUT, TextField.class).setHandler(input -> {
             final String newFilter = input.getText();
@@ -93,19 +95,18 @@ public class WindowCitizenPage extends AbstractWindowTownHall
         citizens.clear();
         if (filter.isEmpty())
         {
-            citizens.addAll(building.getColony().getCitizens().values());
+            citizens.addAll(buildingView.getColony().getCitizens().values());
         }
         else
         {
-            citizens.addAll(building.getColony().getCitizens().values().stream().filter(cit -> cit.getName().toLowerCase(Locale.US).contains(filter.toLowerCase(Locale.US))
-                || cit.getJobComponent().getString().toLowerCase(Locale.US).contains(filter.toLowerCase(Locale.US))).toList());
+            citizens.addAll(buildingView.getColony().getCitizens().values().stream().filter(cit -> cit.getName().toLowerCase(Locale.US).contains(filter.toLowerCase(Locale.US))
+                                                                                                 || cit.getJobComponent().getString().toLowerCase(Locale.US).contains(filter.toLowerCase(Locale.US))).toList());
         }
         citizens.sort(COMPARE_BY_NAME);
     }
 
     /**
      * On clicking a citizen name in the list.
-     *
      * @param button the clicked button.
      */
     private void citizenSelected(final Button button)
@@ -137,9 +138,9 @@ public class WindowCitizenPage extends AbstractWindowTownHall
 
         findPaneOfTypeByID(JOB_LABEL, Text.class).setText(selectedCitizen.getJobComponent().withStyle(ChatFormatting.BOLD));
 
-        findPaneOfTypeByID(HEALTH_SHORT_LABEL, Text.class).setText(Component.literal((int) selectedCitizen.getHealth() + "/" + (int) selectedCitizen.getMaxHealth()));
-        // Happiness system removed
-        findPaneOfTypeByID(SATURATION_SHORT_LABEL, Text.class).setText(Component.literal((int) selectedCitizen.getSaturation() + "/" + 20));
+        findPaneOfTypeByID(HEALTH_SHORT_LABEL, Text.class).setText(Component.literal((int)selectedCitizen.getHealth() + "/" + (int) selectedCitizen.getMaxHealth()));
+        findPaneOfTypeByID(HAPPINESS_SHORT_LABEL, Text.class).setText(Component.literal((int) selectedCitizen.getHappiness() + "/" + 10));
+        findPaneOfTypeByID(SATURATION_SHORT_LABEL, Text.class).setText(Component.literal((int)selectedCitizen.getSaturation() + "/" + 20));
 
         selectedEntity = Minecraft.getInstance().level.getEntity(selectedCitizen.getEntityId());
         if (selectedEntity != null && selectedEntity.getPose() == Pose.SLEEPING)
@@ -161,7 +162,7 @@ public class WindowCitizenPage extends AbstractWindowTownHall
         {
             return;
         }
-        Network.getNetwork().sendToServer(new RecallSingleCitizenMessage(building, selectedCitizen.getId()));
+        new RecallSingleCitizenMessage(buildingView, selectedCitizen.getId()).sendToServer();
     }
 
     /**
@@ -191,7 +192,7 @@ public class WindowCitizenPage extends AbstractWindowTownHall
                     final String skillName = entry.getKey().name().toLowerCase(Locale.US);
                     final int skillLevel = entry.getValue().getLevel();
 
-                    textBuilder.append(Component.translatable("no.monopixel.slimcolonies.coremod.gui.citizen.skills." + skillName));
+                    textBuilder.append(Component.translatableEscape("no.monopixel.slimcolonies.coremod.gui.citizen.skills." + skillName));
                     textBuilder.append(Component.literal(": " + skillLevel + " "));
                 }
                 PaneBuilders.tooltipBuilder().hoverPane(button).build().setText(textBuilder.build().getText());
@@ -208,7 +209,68 @@ public class WindowCitizenPage extends AbstractWindowTownHall
     }
 
 
-    // Happiness system removed
+    /**
+     * Fills the citizens list in the GUI.
+     */
+    private void fillHappinessList()
+    {
+        final Map<String, Double> happinessMap = new HashMap<>();
+
+        for (final ICitizenDataView data : buildingView.getColony().getCitizens().values())
+        {
+            for (final String modifier : data.getHappinessHandler().getModifiers())
+            {
+                happinessMap.put(modifier, happinessMap.getOrDefault(modifier, 0.0) + data.getHappinessHandler().getModifier(modifier).getFactor(null));
+            }
+        }
+
+        final DecimalFormat df = new DecimalFormat("#.#");
+        df.setRoundingMode(RoundingMode.CEILING);
+
+        final String roundedHappiness = df.format(buildingView.getColony().getOverallHappiness());
+        findPaneOfTypeByID("happinessTitle", Text.class).setText(Component.translatableEscape("no.monopixel.slimcolonies.coremod.gui.townhall.currenthappiness", roundedHappiness));
+
+        final List<Map.Entry<String, Double>> happinessList = new ArrayList<>(happinessMap.entrySet());
+
+        final ScrollingList happinessScrollingList = findPaneOfTypeByID(LIST_HAPPINESS, ScrollingList.class);
+        happinessScrollingList.setDataProvider(new ScrollingList.DataProvider()
+        {
+            @Override
+            public int getElementCount()
+            {
+                return happinessList.size();
+            }
+
+            @Override
+            public void updateElement(final int index, @NotNull final Pane rowPane)
+            {
+                final Map.Entry<String, Double> entry = happinessList.get(index);
+                final double value = entry.getValue() / buildingView.getColony().getCitizenCount();
+                final Image image = rowPane.findPaneOfTypeByID("icon", Image.class);
+
+                final Text label = rowPane.findPaneOfTypeByID("name", Text.class);
+                label.setText(Component.translatableEscape(PARTIAL_HAPPINESS_MODIFIER_NAME + entry.getKey()));
+
+                if (value > 1.0)
+                {
+                    image.setImage(ResourceLocation.parse(HAPPY_ICON), false);
+                }
+                else if (value == 1)
+                {
+                    image.setImage(ResourceLocation.parse(SATISFIED_ICON), false);
+                }
+                else if (value > 0.75)
+                {
+                    image.setImage(ResourceLocation.parse(UNSATISFIED_ICON), false);
+                }
+                else
+                {
+                    image.setImage(ResourceLocation.parse(UNHAPPY_ICON), false);
+                }
+                PaneBuilders.tooltipBuilder().hoverPane(label).append(Component.translatableEscape("no.monopixel.slimcolonies.coremod.gui.townhall.happiness.desc." + entry.getKey())).build();
+            }
+        });
+    }
 
     @Override
     public void onUpdate()

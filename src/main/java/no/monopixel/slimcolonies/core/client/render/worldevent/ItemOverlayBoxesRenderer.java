@@ -1,11 +1,13 @@
 package no.monopixel.slimcolonies.core.client.render.worldevent;
 
 import no.monopixel.slimcolonies.api.items.IBlockOverlayItem;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.phys.AABB;
 
 import java.util.List;
 
 /**
- * Renders boxes for {@link IBlockOverlayItem}
+ * Renders boxes for {@link no.monopixel.slimcolonies.api.items.IBlockOverlayItem}
  */
 public class ItemOverlayBoxesRenderer
 {
@@ -22,10 +24,33 @@ public class ItemOverlayBoxesRenderer
 
             for (final IBlockOverlayItem.OverlayBox box : boxes)
             {
-                ColonyWorldRenderMacros.renderLineBox(ctx.poseStack, ctx.bufferSource, box.bounds(), box.width(), box.color(), box.showThroughBlocks());
-            }
+                final BlockPos pos = box.pos();
+                AABB bounds = box.bounds();
+                if (pos == null)
+                {
+                    ctx.poseStack.pushPose();
+                    ctx.poseStack.translate(bounds.minX - ctx.cameraPosition.x(), bounds.minY - ctx.cameraPosition.y(), bounds.minZ - ctx.cameraPosition.z());
+                    bounds = bounds.move(-bounds.minX, -bounds.minY, -bounds.minZ);
+                }
+                else
+                {
+                    ctx.pushPoseCameraToPos(pos);
+                    if (bounds != null) bounds = bounds.move(pos.multiply(-1));
+                }
 
-            ColonyWorldRenderMacros.endRenderLineBox(ctx.bufferSource);
+                if (box.showThroughBlocks())
+                {
+                    if (pos != null) ctx.renderLineBoxWithShadow(BlockPos.ZERO, box.color(), box.width());
+                    if (bounds != null) ctx.renderLineAABBWithShadow(bounds, box.color(), box.width());
+                }
+                else
+                {
+                    if (pos != null) ctx.renderLineBox(WorldEventContext.LINES_WITH_WIDTH, BlockPos.ZERO, box.color(), box.width());
+                    if (bounds != null) ctx.renderLineAABB(WorldEventContext.LINES_WITH_WIDTH, bounds, box.color(), box.width());
+                }
+
+                ctx.popPose();
+            }
         }
     }
 }

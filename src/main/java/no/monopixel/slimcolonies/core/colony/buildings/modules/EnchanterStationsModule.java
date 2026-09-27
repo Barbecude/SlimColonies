@@ -6,9 +6,10 @@ import no.monopixel.slimcolonies.api.colony.buildings.modules.IBuildingModule;
 import no.monopixel.slimcolonies.api.colony.buildings.modules.IPersistentModule;
 import no.monopixel.slimcolonies.api.util.BlockPosUtil;
 import no.monopixel.slimcolonies.api.util.NBTUtils;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.Tag;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.util.Tuple;
 import net.minecraft.core.BlockPos;
 
@@ -36,7 +37,7 @@ public class EnchanterStationsModule extends AbstractBuildingModule implements I
     private Random random = new Random();
 
     @Override
-    public void deserializeNBT(final CompoundTag compound)
+    public void deserializeNBT(@NotNull final HolderLookup.Provider provider, final CompoundTag compound)
     {
         buildingToGatherFrom.clear();
         NBTUtils.streamCompound(compound.getList(TAG_GATHER_LIST, Tag.TAG_COMPOUND))
@@ -45,13 +46,13 @@ public class EnchanterStationsModule extends AbstractBuildingModule implements I
     }
 
     @Override
-    public void serializeNBT(final CompoundTag compound)
+    public void serializeNBT(@NotNull final HolderLookup.Provider provider, CompoundTag compound)
     {
         compound.put(TAG_GATHER_LIST, buildingToGatherFrom.entrySet().stream().map(this::serializeListElement).collect(NBTUtils.toListNBT()));
     }
 
     @Override
-    public void serializeToView(@NotNull final FriendlyByteBuf buf)
+    public void serializeToView(@NotNull final RegistryFriendlyByteBuf buf)
     {
         buf.writeInt(buildingToGatherFrom.size());
         for (final BlockPos pos : buildingToGatherFrom.keySet())

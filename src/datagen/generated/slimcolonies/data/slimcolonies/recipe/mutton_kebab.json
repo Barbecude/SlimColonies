@@ -1,0 +1,22 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "ingredients": [
+    {
+      "item": "slimcolonies:onion"
+    },
+    {
+      "item": "slimcolonies:nether_pepper"
+    },
+    {
+      "item": "minecraft:stick"
+    },
+    {
+      "item": "minecraft:mutton"
+    }
+  ],
+  "result": {
+    "count": 1,
+    "id": "slimcolonies:kebab"
+  }
+}

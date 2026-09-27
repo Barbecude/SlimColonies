@@ -1,9 +1,10 @@
 package no.monopixel.slimcolonies.api.colony.interactionhandling.registry;
 
-import net.minecraft.nbt.CompoundTag;
-import no.monopixel.slimcolonies.api.ISlimColoniesAPI;
+import no.monopixel.slimcolonies.api.IMinecoloniesAPI;
 import no.monopixel.slimcolonies.api.colony.ICitizen;
 import no.monopixel.slimcolonies.api.colony.interactionhandling.IInteractionResponseHandler;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.nbt.CompoundTag;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -15,7 +16,7 @@ public interface IInteractionResponseHandlerDataManager
 
     static IInteractionResponseHandlerDataManager getInstance()
     {
-        return ISlimColoniesAPI.getInstance().getInteractionResponseHandlerDataManager();
+        return IMinecoloniesAPI.getInstance().getInteractionResponseHandlerDataManager();
     }
 
     /**
@@ -26,5 +27,5 @@ public interface IInteractionResponseHandlerDataManager
      * @return New InteractionResponseHandler created from the data, or null.
      */
     @Nullable
-    IInteractionResponseHandler createFrom(@NotNull ICitizen citizen, @NotNull CompoundTag compound);
+    IInteractionResponseHandler createFrom(@NotNull final HolderLookup.Provider provider, @NotNull ICitizen citizen, @NotNull CompoundTag compound);
 }

@@ -1,0 +1,26 @@
+{
+  "branch": "slimcolonies:civilian",
+  "costs": [
+    {
+      "count": 27,
+      "item": "minecraft:cake"
+    }
+  ],
+  "effects": [
+    {
+      "id": "slimcolonies:effects/happinessmultiplier",
+      "level": 4
+    }
+  ],
+  "icon": "slimcolonies:textures/icons/research/happy4.png",
+  "parentResearch": "slimcolonies:civilian/spectacle",
+  "requirements": [
+    {
+      "type": "slimcolonies:building",
+      "building": "slimcolonies:cook",
+      "level": 5
+    }
+  ],
+  "researchLevel": 5,
+  "subtitle": "no.monopixel.slimcolonies.research.civilian.opera.subtitle"
+}

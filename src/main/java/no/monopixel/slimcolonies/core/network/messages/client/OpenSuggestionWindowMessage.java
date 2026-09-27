@@ -1,44 +1,40 @@
 package no.monopixel.slimcolonies.core.network.messages.client;
 
-import no.monopixel.slimcolonies.api.network.IMessage;
+import com.ldtteam.common.network.AbstractClientPlayMessage;
+import com.ldtteam.common.network.PlayMessageType;
+import no.monopixel.slimcolonies.api.util.Utils;
+import no.monopixel.slimcolonies.api.util.constant.Constants;
 import no.monopixel.slimcolonies.core.client.gui.WindowSuggestBuildTool;
+import net.minecraft.core.BlockPos;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.item.ItemStack;
-import net.minecraft.network.FriendlyByteBuf;
-import net.minecraft.core.BlockPos;
-import net.minecraftforge.fml.LogicalSide;
-import net.minecraftforge.network.NetworkEvent;
+import net.neoforged.neoforge.network.handling.IPayloadContext;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 /**
  * Open the suggestion window.
  */
-public class OpenSuggestionWindowMessage implements IMessage
+public class OpenSuggestionWindowMessage extends AbstractClientPlayMessage
 {
+    public static final PlayMessageType<?> TYPE = PlayMessageType.forClient(Constants.MOD_ID, "open_suggestion_window", OpenSuggestionWindowMessage::new);
+
     /**
      * The state to be placed..
      */
-    private BlockState state;
+    private final BlockState state;
 
     /**
      * The position to place it at.
      */
-    private BlockPos pos;
+    private final BlockPos pos;
 
     /**
      * The stack which is going to be placed.
      */
-    private ItemStack stack;
-
-    /**
-     * Empty constructor used when registering the
-     */
-    public OpenSuggestionWindowMessage()
-    {
-        super();
-    }
+    private final ItemStack stack;
 
     /**
      * Open the window.
@@ -49,37 +45,30 @@ public class OpenSuggestionWindowMessage implements IMessage
      */
     public OpenSuggestionWindowMessage(final BlockState state, final BlockPos pos, final ItemStack stack)
     {
-        super();
+        super(TYPE);
         this.state = state;
         this.pos = pos;
         this.stack = stack;
     }
 
-    @Override
-    public void fromBytes(@NotNull final FriendlyByteBuf buf)
+    protected OpenSuggestionWindowMessage(final RegistryFriendlyByteBuf buf, final PlayMessageType<?> type)
     {
+        super(buf, type);
         state = Block.stateById(buf.readInt());
         pos = buf.readBlockPos();
-        stack = buf.readItem();
+        stack = Utils.deserializeCodecMess(buf);
     }
 
     @Override
-    public void toBytes(@NotNull final FriendlyByteBuf buf)
+    protected void toBytes(@NotNull final RegistryFriendlyByteBuf buf)
     {
         buf.writeInt(Block.getId(state));
         buf.writeBlockPos(pos);
-        buf.writeItem(stack);
-    }
-
-    @Nullable
-    @Override
-    public LogicalSide getExecutionSide()
-    {
-        return LogicalSide.CLIENT;
+        Utils.serializeCodecMess(buf, stack);
     }
 
     @Override
-    public void onExecute(final NetworkEvent.Context ctxIn, final boolean isLogicalServer)
+    protected void onExecute(final IPayloadContext ctxIn, final Player player)
     {
         new WindowSuggestBuildTool(pos, state, stack).open();
     }

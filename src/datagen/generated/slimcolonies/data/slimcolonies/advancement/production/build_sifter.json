@@ -1,0 +1,30 @@
+{
+  "parent": "slimcolonies:production/build_sawmill",
+  "criteria": {
+    "sifter": {
+      "conditions": {
+        "hut_name": "sifter",
+        "level": 1
+      },
+      "trigger": "slimcolonies:complete_build_request"
+    }
+  },
+  "display": {
+    "description": {
+      "translate": "advancements.slimcolonies.build.sifter.description"
+    },
+    "icon": {
+      "count": 1,
+      "id": "slimcolonies:blockhutsifter"
+    },
+    "title": {
+      "translate": "advancements.slimcolonies.build.sifter.title"
+    }
+  },
+  "requirements": [
+    [
+      "sifter"
+    ]
+  ],
+  "sends_telemetry_event": true
+}

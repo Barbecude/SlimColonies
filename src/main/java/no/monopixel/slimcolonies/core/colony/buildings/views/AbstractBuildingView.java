@@ -3,6 +3,7 @@ package no.monopixel.slimcolonies.core.colony.buildings.views;
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
 import com.ldtteam.blockui.views.BOWindow;
+import com.ldtteam.structurize.api.RotationMirror;
 import no.monopixel.slimcolonies.api.colony.ICitizenDataView;
 import no.monopixel.slimcolonies.api.colony.IColonyView;
 import no.monopixel.slimcolonies.api.colony.buildings.modules.IBuildingModule;
@@ -17,7 +18,6 @@ import no.monopixel.slimcolonies.api.colony.requestsystem.request.IRequest;
 import no.monopixel.slimcolonies.api.colony.requestsystem.token.IToken;
 import no.monopixel.slimcolonies.api.util.Log;
 import no.monopixel.slimcolonies.api.util.constant.TypeConstants;
-import no.monopixel.slimcolonies.core.Network;
 import no.monopixel.slimcolonies.core.client.gui.WindowHutMinPlaceholder;
 import no.monopixel.slimcolonies.core.client.gui.huts.WindowHutWorkerModulePlaceholder;
 import no.monopixel.slimcolonies.core.colony.buildings.moduleviews.WorkerBuildingModuleView;
@@ -25,8 +25,9 @@ import no.monopixel.slimcolonies.core.network.messages.server.colony.OpenInvento
 import no.monopixel.slimcolonies.core.network.messages.server.colony.building.HutRenameMessage;
 import it.unimi.dsi.fastutil.ints.Int2ObjectLinkedOpenHashMap;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import org.jetbrains.annotations.NotNull;
@@ -38,6 +39,8 @@ import java.util.stream.Collectors;
 
 import static no.monopixel.slimcolonies.api.util.constant.BuildingConstants.NO_WORK_ORDER;
 import static no.monopixel.slimcolonies.api.util.constant.NbtTagConstants.TAG_RS_BUILDING_DATASTORE;
+import static no.monopixel.slimcolonies.api.util.constant.Suppression.GENERIC_WILDCARD;
+import static no.monopixel.slimcolonies.api.util.constant.Suppression.UNCHECKED;
 
 /**
  * The AbstractBuilding View is the client-side representation of a AbstractBuilding. Views contain the AbstractBuilding's data that is relevant to a Client, in a more
@@ -78,14 +81,9 @@ public abstract class AbstractBuildingView implements IBuildingView
     private int buildingDmPrio = 1;
 
     /**
-     * Rotation of the building.
+     * Rotation and mirror of the building.
      */
-    private int rotation;
-
-    /**
-     * Mirror of the building.
-     */
-    private boolean isBuildingMirrored;
+    private RotationMirror rotationMirror;
 
     /**
      * The workOrderLevel.
@@ -152,6 +150,11 @@ public abstract class AbstractBuildingView implements IBuildingView
      * Building type
      */
     private BuildingEntry buildingType;
+
+    /**
+     * Prestige value of this building.
+     */
+    private int prestige;
 
     /**
      * Creates a building view.
@@ -280,29 +283,18 @@ public abstract class AbstractBuildingView implements IBuildingView
      * @return the rotation.
      */
     @Override
-    public int getRotation()
+    public RotationMirror getRotationMirror()
     {
-        return rotation;
+        return rotationMirror;
     }
 
     /**
-     * Getter for the mirror.
+     * Get the current work order level.
      *
-     * @return true if mirrored.
+     * @return 0 if none, othewise the current level worked on
      */
     @Override
-    public boolean isMirrored()
-    {
-        return isBuildingMirrored;
-    }
-
-    /**
-     * Checks if this building is pending construction (building, upgrading, or repairing).
-     *
-     * @return true if the building is building, upgrading or repairing.
-     */
-    @Override
-    public boolean isPendingConstruction()
+    public boolean hasWorkOrder()
     {
         return workOrderLevel != NO_WORK_ORDER;
     }
@@ -340,7 +332,7 @@ public abstract class AbstractBuildingView implements IBuildingView
      * Returns the Container List
      */
     @Override
-    public List<BlockPos> getContainerList()
+    public List<BlockPos> getContainers()
     {
         return new ArrayList<>(containerlist);
     }
@@ -355,7 +347,7 @@ public abstract class AbstractBuildingView implements IBuildingView
     {
         if (shouldOpenInv)
         {
-            Network.getNetwork().sendToServer(new OpenInventoryMessage(this));
+            new OpenInventoryMessage(this).sendToServer();
         }
         else
         {
@@ -373,7 +365,7 @@ public abstract class AbstractBuildingView implements IBuildingView
      * @return blockui window.
      */
     @Override
-    @Nullable
+    @NotNull
     public BOWindow getWindow()
     {
         if (!getModuleViews(WorkerBuildingModuleView.class).isEmpty())
@@ -384,12 +376,12 @@ public abstract class AbstractBuildingView implements IBuildingView
     }
 
     /**
-     * Read this view from a {@link FriendlyByteBuf}.
+     * Read this view from a {@link RegistryFriendlyByteBuf}.
      *
      * @param buf The buffer to read this view from.
      */
     @Override
-    public void deserialize(@NotNull final FriendlyByteBuf buf)
+    public void deserialize(@NotNull final RegistryFriendlyByteBuf buf)
     {
         buildingLevel = buf.readInt();
         buildingMaxLevel = buf.readInt();
@@ -399,9 +391,9 @@ public abstract class AbstractBuildingView implements IBuildingView
         path = buf.readUtf(32767);
         parent = buf.readBlockPos();
         customName = buf.readUtf(32767);
+        prestige = buf.readInt();
 
-        rotation = buf.readInt();
-        isBuildingMirrored = buf.readBoolean();
+        rotationMirror = RotationMirror.values()[buf.readByte()];
         claimRadius = buf.readInt();
 
         final List<IToken<?>> list = new ArrayList<>();
@@ -411,7 +403,7 @@ public abstract class AbstractBuildingView implements IBuildingView
             final CompoundTag compound = buf.readNbt();
             if (compound != null)
             {
-                list.add(StandardFactoryController.getInstance().deserialize(compound));
+                list.add(StandardFactoryController.getInstance().deserializeTag(buf.registryAccess(), compound));
             }
         }
 
@@ -419,15 +411,16 @@ public abstract class AbstractBuildingView implements IBuildingView
         final CompoundTag compound = buf.readNbt();
         if (compound != null)
         {
-            requesterId = StandardFactoryController.getInstance().deserialize(compound);
+            requesterId = StandardFactoryController.getInstance().deserializeTag(buf.registryAccess(), compound);
         }
         containerlist.clear();
+        containerlist.add(getPosition());
         final int racks = buf.readInt();
         for (int i = 0; i < racks; i++)
         {
             containerlist.add(buf.readBlockPos());
         }
-        loadRequestSystemFromNBT(buf.readNbt());
+        loadRequestSystemFromNBT(buf.registryAccess(), buf.readNbt());
         isDeconstructed = buf.readBoolean();
         isAssignmentAllowed = buf.readBoolean();
 
@@ -446,9 +439,15 @@ public abstract class AbstractBuildingView implements IBuildingView
         }
     }
 
-    private void loadRequestSystemFromNBT(final CompoundTag compound)
+    @Override
+    public int getPrestige()
     {
-        this.rsDataStoreToken = StandardFactoryController.getInstance().deserialize(compound.getCompound(TAG_RS_BUILDING_DATASTORE));
+        return prestige;
+    }
+
+    private void loadRequestSystemFromNBT(@NotNull final HolderLookup.Provider provider, final CompoundTag compound)
+    {
+        this.rsDataStoreToken = StandardFactoryController.getInstance().deserializeTag(provider, compound.getCompound(TAG_RS_BUILDING_DATASTORE));
     }
 
     private IRequestSystemBuildingDataStore getDataStore()
@@ -468,7 +467,7 @@ public abstract class AbstractBuildingView implements IBuildingView
     }
 
     @Override
-    @SuppressWarnings({"unchecked"})
+    @SuppressWarnings({GENERIC_WILDCARD, UNCHECKED})
     public <R> ImmutableList<IRequest<? extends R>> getOpenRequestsOfType(@NotNull final ICitizenDataView citizenData, final Class<R> requestType)
     {
         return ImmutableList.copyOf(getOpenRequests(citizenData).stream()
@@ -524,7 +523,7 @@ public abstract class AbstractBuildingView implements IBuildingView
     }
 
     @Override
-    @SuppressWarnings({"unchecked"})
+    @SuppressWarnings({GENERIC_WILDCARD, UNCHECKED})
     public <R> ImmutableList<IRequest<? extends R>> getOpenRequestsOfTypeFiltered(
       @NotNull final ICitizenDataView citizenData,
       final Class<R> requestType,
@@ -567,7 +566,7 @@ public abstract class AbstractBuildingView implements IBuildingView
         try
         {
             final MutableComponent component = Component.literal("");
-            component.append(Component.translatable(this.getCustomName().isEmpty() ? this.getBuildingType().getTranslationKey() : this.getCustomName()));
+            component.append(Component.translatableEscape(this.getCustomName().isEmpty() ? this.getBuildingType().getTranslationKey() : this.getCustomName()));
             if (getColony() == null || !getCitizensByRequest().containsKey(request.getId()))
             {
                 return component;
@@ -618,7 +617,7 @@ public abstract class AbstractBuildingView implements IBuildingView
     public void setCustomName(final String name)
     {
         this.customName = name;
-        Network.getNetwork().sendToServer(new HutRenameMessage(this, name));
+        new HutRenameMessage(this, name).sendToServer();
     }
 
     @Override

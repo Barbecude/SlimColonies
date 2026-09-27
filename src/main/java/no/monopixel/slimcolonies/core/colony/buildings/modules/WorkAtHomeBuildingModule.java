@@ -1,6 +1,5 @@
 package no.monopixel.slimcolonies.core.colony.buildings.modules;
 
-import net.minecraft.network.chat.MutableComponent;
 import no.monopixel.slimcolonies.api.colony.ICitizenData;
 import no.monopixel.slimcolonies.api.colony.buildings.HiringMode;
 import no.monopixel.slimcolonies.api.colony.buildings.IBuilding;
@@ -9,7 +8,10 @@ import no.monopixel.slimcolonies.api.colony.buildings.modules.*;
 import no.monopixel.slimcolonies.api.colony.jobs.registry.JobEntry;
 import no.monopixel.slimcolonies.api.entity.citizen.Skill;
 import no.monopixel.slimcolonies.api.util.BlockPosUtil;
+import no.monopixel.slimcolonies.core.colony.buildings.workerbuildings.BuildingTownHall;
+import net.minecraft.network.chat.MutableComponent;
 import no.monopixel.slimcolonies.api.util.MessageUtils;
+import net.minecraft.resources.ResourceLocation;
 
 import java.util.function.Function;
 
@@ -18,19 +20,25 @@ import static no.monopixel.slimcolonies.core.colony.buildings.modules.BuildingMo
 /**
  * Assignment module for jobs that have to live at the work place mandatorily.
  */
-public class WorkAtHomeBuildingModule extends WorkerBuildingModule implements IAssignsCitizen,
-    IBuildingEventsModule,
-    ITickingModule,
-    IPersistentModule, IBuildingWorkerModule,
-    ICreatesResolversModule
+public class WorkAtHomeBuildingModule extends WorkerBuildingModule implements IAssignsCitizen, IBuildingEventsModule, ITickingModule, IPersistentModule, IBuildingWorkerModule, ICreatesResolversModule
 {
-    public WorkAtHomeBuildingModule(
-        final JobEntry entry,
+    public WorkAtHomeBuildingModule(final JobEntry entry,
+      final Skill primary,
+      final Skill secondary,
+      final boolean canWorkingDuringRain,
+      final Function<IBuilding, Integer> sizeLimit)
+    {
+        super(entry, primary, secondary, canWorkingDuringRain, sizeLimit);
+    }
+
+    public WorkAtHomeBuildingModule(final JobEntry entry,
         final Skill primary,
         final Skill secondary,
-        final Function<IBuilding, Integer> sizeLimit)
+        final boolean canWorkingDuringRain,
+        final Function<IBuilding, Integer> sizeLimit,
+        final ResourceLocation researchRequirement)
     {
-        super(entry, primary, secondary, sizeLimit);
+        super(entry, primary, secondary, canWorkingDuringRain, sizeLimit, researchRequirement);
     }
 
     @Override
@@ -45,17 +53,17 @@ public class WorkAtHomeBuildingModule extends WorkerBuildingModule implements IA
                 if (oldHome.hasModule(LIVING) && !oldHome.hasModule(WorkAtHomeBuildingModule.class))
                 {
                     final LivingBuildingModule livingBuildingModule = oldHome.getModule(LIVING);
-                    if (livingBuildingModule.getHiringMode() == HiringMode.MANUAL || (livingBuildingModule.getHiringMode() == HiringMode.DEFAULT && building.getColony()
-                        .isManualHiring()))
+                    if (livingBuildingModule.getHiringMode() == HiringMode.MANUAL || (livingBuildingModule.getHiringMode() == HiringMode.DEFAULT
+                        && !building.getColony().getSettings().getSetting(BuildingTownHall.AUTO_HIRING_MODE).getValue()))
                     {
                         final MutableComponent jobComponent = MessageUtils.format(citizen.getJob().getJobRegistryEntry().getTranslationKey()).create();
                         final MutableComponent buildingComponent = MessageUtils.format(oldHome.getBuildingDisplayName()).create();
                         MessageUtils.format("no.monopixel.slimcolonies.coremod.gui.workerhuts.assignedbed",
-                                citizen.getName(),
-                                jobComponent,
-                                buildingComponent,
-                                BlockPosUtil.getString(oldHome.getID()))
-                            .sendTo(oldHome.getColony()).forAllPlayers();
+                            citizen.getName(),
+                            jobComponent,
+                            buildingComponent,
+                            BlockPosUtil.getString(oldHome.getID()))
+                          .sendTo(oldHome.getColony()).forAllPlayers();
                     }
                 }
                 oldHome.getFirstModuleOccurance(LivingBuildingModule.class).removeCitizen(citizen);

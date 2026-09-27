@@ -1,6 +1,7 @@
 package no.monopixel.slimcolonies.core.colony.buildings.moduleviews;
 
 import com.ldtteam.blockui.views.BOWindow;
+import no.monopixel.slimcolonies.api.MinecoloniesAPIProxy;
 import no.monopixel.slimcolonies.api.colony.ICitizenDataView;
 import no.monopixel.slimcolonies.api.colony.buildings.HiringMode;
 import no.monopixel.slimcolonies.api.colony.buildings.modules.AbstractBuildingModuleView;
@@ -8,11 +9,10 @@ import no.monopixel.slimcolonies.api.colony.buildings.modules.IAssignmentModuleV
 import no.monopixel.slimcolonies.api.colony.jobs.registry.JobEntry;
 import no.monopixel.slimcolonies.api.entity.citizen.Skill;
 import no.monopixel.slimcolonies.api.util.constant.Constants;
-import no.monopixel.slimcolonies.core.Network;
 import no.monopixel.slimcolonies.core.client.gui.huts.WindowHutWorkerModulePlaceholder;
 import no.monopixel.slimcolonies.core.network.messages.server.colony.building.HireFireMessage;
 import no.monopixel.slimcolonies.core.network.messages.server.colony.building.worker.BuildingHiringModeMessage;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 
@@ -58,6 +58,11 @@ public class WorkerBuildingModuleView extends AbstractBuildingModuleView impleme
      */
     private JobEntry jobEntry;
 
+    /**
+     * Research requirement.
+     */
+    private ResourceLocation researchRequirement = null;
+
     @Override
     public List<Integer> getAssignedCitizens()
     {
@@ -68,7 +73,7 @@ public class WorkerBuildingModuleView extends AbstractBuildingModuleView impleme
     public void addCitizen(final @NotNull ICitizenDataView citizen)
     {
         workerIDs.add(citizen.getId());
-        Network.getNetwork().sendToServer(new HireFireMessage(buildingView, true, citizen.getId(), getProducer().getRuntimeID()));
+        new HireFireMessage(buildingView, true, citizen.getId(), getProducer().getRuntimeID()).sendToServer();
         citizen.setWorkBuilding(buildingView.getPosition());
         citizen.setJobView(getJobEntry().getJobViewProducer().get().apply(buildingView.getColony(), citizen));
         citizen.getJobView().setEntry(getJobEntry());
@@ -78,12 +83,12 @@ public class WorkerBuildingModuleView extends AbstractBuildingModuleView impleme
     public void removeCitizen(final @NotNull ICitizenDataView citizen)
     {
         workerIDs.remove(citizen.getId());
-        Network.getNetwork().sendToServer(new HireFireMessage(buildingView, false, citizen.getId(), getProducer().getRuntimeID()));
+        new HireFireMessage(buildingView, false, citizen.getId(), getProducer().getRuntimeID()).sendToServer();
         citizen.setWorkBuilding(null);
     }
 
     @Override
-    public void deserialize(@NotNull final FriendlyByteBuf buf)
+    public void deserialize(@NotNull final RegistryFriendlyByteBuf buf)
     {
         final int size = buf.readInt();
         workerIDs.clear();
@@ -94,21 +99,25 @@ public class WorkerBuildingModuleView extends AbstractBuildingModuleView impleme
         this.hiringMode = HiringMode.values()[buf.readInt()];
         this.maxInhabitants = buf.readInt();
 
-        this.jobEntry = buf.readRegistryIdSafe(JobEntry.class);
+        this.jobEntry = buf.readById(MinecoloniesAPIProxy.getInstance().getJobRegistry()::byIdOrThrow);
         this.primary = Skill.values()[buf.readInt()];
         this.secondary = Skill.values()[buf.readInt()];
+        if (buf.readBoolean())
+        {
+            this.researchRequirement = buf.readResourceLocation();
+        }
     }
 
     @Override
     public ResourceLocation getIconResourceLocation()
     {
-        return ResourceLocation.fromNamespaceAndPath(Constants.MOD_ID, "textures/gui/modules/custom.png");
+        return new ResourceLocation(Constants.MOD_ID, "textures/gui/modules/custom.png");
     }
 
     @Override
-    public String getDesc()
+    public Component getDesc()
     {
-        return "";
+        return Component.literal("");
     }
 
     @Override
@@ -139,7 +148,7 @@ public class WorkerBuildingModuleView extends AbstractBuildingModuleView impleme
     public void setHiringMode(final HiringMode hiringMode)
     {
         this.hiringMode = hiringMode;
-        Network.getNetwork().sendToServer(new BuildingHiringModeMessage(buildingView, hiringMode, getProducer().getRuntimeID()));
+        new BuildingHiringModeMessage(buildingView, hiringMode, getProducer().getRuntimeID()).sendToServer();
     }
 
     @Override
@@ -148,7 +157,7 @@ public class WorkerBuildingModuleView extends AbstractBuildingModuleView impleme
         return !citizen.isChild() &&
                  (citizen.getWorkBuilding() == null
                     || workerIDs.contains(citizen.getId())
-                    || buildingView.getColony().getBuilding(citizen.getWorkBuilding()) != null && buildingView.getColony().getBuilding(citizen.getWorkBuilding()).getModuleViewMatching(WorkerBuildingModuleView.class, m -> m.canBeHiredAs(getJobEntry()))
+                    || buildingView.getColony().getClientBuildingManager().getBuilding(citizen.getWorkBuilding()) != null && buildingView.getColony().getClientBuildingManager().getBuilding(citizen.getWorkBuilding()).getModuleViewMatching(WorkerBuildingModuleView.class, m -> m.canBeHiredAs(getJobEntry()))
                          != null);
     }
 
@@ -165,7 +174,7 @@ public class WorkerBuildingModuleView extends AbstractBuildingModuleView impleme
      */
     public String getJobDisplayName()
     {
-        return Component.translatable(jobEntry.getTranslationKey()).getString();
+        return Component.translatableEscape(jobEntry.getTranslationKey()).getString();
     }
 
     @NotNull
@@ -189,5 +198,11 @@ public class WorkerBuildingModuleView extends AbstractBuildingModuleView impleme
     public boolean isFull()
     {
         return !buildingView.allowsAssignment() || getAssignedCitizens().size() >= getMaxInhabitants();
+    }
+
+    @Override
+    public ResourceLocation getResearchRequirement()
+    {
+        return researchRequirement;
     }
 }

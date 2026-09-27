@@ -1,23 +1,22 @@
 package no.monopixel.slimcolonies.core.util;
 
 import com.ldtteam.structurize.blockentities.interfaces.IBlueprintDataProviderBE;
-import com.ldtteam.structurize.blueprints.v1.Blueprint;
-import com.ldtteam.structurize.storage.StructurePacks;
 import no.monopixel.slimcolonies.api.blocks.AbstractBlockHut;
+import no.monopixel.slimcolonies.api.colony.IColony;
+import no.monopixel.slimcolonies.api.colony.IColonyManager;
 import no.monopixel.slimcolonies.api.colony.buildings.HiringMode;
 import no.monopixel.slimcolonies.api.colony.buildings.IBuilding;
+import no.monopixel.slimcolonies.api.colony.buildings.ICommonBuilding;
 import no.monopixel.slimcolonies.api.colony.jobs.registry.JobEntry;
+import no.monopixel.slimcolonies.api.util.IItemHandlerCapProvider;
 import no.monopixel.slimcolonies.api.util.InventoryUtils;
-import no.monopixel.slimcolonies.api.util.Log;
-import no.monopixel.slimcolonies.api.util.WorldUtil;
+import no.monopixel.slimcolonies.core.colony.buildings.workerbuildings.BuildingTownHall;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.level.block.DirectionalBlock;
-import net.minecraft.world.level.block.state.BlockState;
-import net.minecraftforge.registries.ForgeRegistries;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -47,8 +46,8 @@ public final class BuildingUtils
      */
     public static ItemStack getItemStackForHutFromInventory(final Inventory inventory, final String hut)
     {
-        final int slot = InventoryUtils.findFirstSlotInProviderNotEmptyWith(inventory.player,
-          item -> item.getItem() instanceof BlockItem && ((BlockItem) item.getItem()).getBlock() instanceof AbstractBlockHut && ForgeRegistries.BLOCKS.getKey(((BlockItem) item.getItem()).getBlock())
+        final int slot = InventoryUtils.findFirstSlotInProviderNotEmptyWith(IItemHandlerCapProvider.wrap(inventory.player, false),
+          item -> item.getItem() instanceof BlockItem && ((BlockItem) item.getItem()).getBlock() instanceof AbstractBlockHut && BuiltInRegistries.BLOCK.getKey(((BlockItem) item.getItem()).getBlock())
                   .getPath()
                   .endsWith(hut));
 
@@ -105,83 +104,25 @@ public final class BuildingUtils
                                       @Nullable final JobEntry job)
     {
         return building.canAssignCitizens()
-                && (hiringMode == HiringMode.DEFAULT && !building.getColony().isManualHiring() || hiringMode == HiringMode.AUTO)
+                && (hiringMode == HiringMode.DEFAULT && building.getColony().getSettings().getSetting(BuildingTownHall.AUTO_HIRING_MODE).getValue() || hiringMode == HiringMode.AUTO)
                 && (job == null || getAllowedJobs(building.getColony().getWorld(), building.getPosition()).test(job));
     }
 
     /**
-     * Reports the clockwise rotations for a hut or decoration relative to its original blueprint.
-     * @param world the world.
-     * @param pos   the anchor pos.
-     * @return the number of rotations, or -1 if unable to calculate.
+     * Retrieves the ICommonBuilding at the given position in the given level.
+     * 
+     * @param level the level to search in.
+     * @param pos the position to search for.
+     * @return the ICommonBuilding at the given position, or null if none exists.
      */
-    public static int getRotationFromBlueprint(@NotNull final Level world, @NotNull final BlockPos pos)
+    public static ICommonBuilding commonBuildingFromPosition(@NotNull final Level level, @NotNull final BlockPos pos)
     {
-        if (!WorldUtil.isBlockLoaded(world, pos))
+        IColony colony = IColonyManager.getInstance().getIColony(level, pos);
+        if (colony != null)
         {
-            return -1;
+            return colony.getCommonBuildingManager().getBuilding(pos);
         }
 
-        try
-        {
-            if (world.getBlockEntity(pos) instanceof final IBlueprintDataProviderBE blueprintDataProvider)
-            {
-                final String pack = blueprintDataProvider.getPackName();
-                final String path = blueprintDataProvider.getBlueprintPath();
-
-                Blueprint blueprint = StructurePacks.getBlueprint(pack, path, true);
-                if (blueprint == null && path.endsWith("0.blueprint"))
-                {
-                    blueprint = StructurePacks.getBlueprint(pack, path.replace("0.blueprint", "1.blueprint"), true);
-                }
-                if (blueprint != null)
-                {
-                    final BlockState worldState = world.getBlockState(pos);
-                    final BlockState structureState = blueprint.getBlockInfoAsMap().get(blueprint.getPrimaryBlockOffset()).getState();
-                    if (structureState != null)
-                    {
-                        final int structureRotation = getRotationFromBlock(structureState);
-                        final int worldRotation = getRotationFromBlock(worldState);
-
-                        if (structureRotation == -1 || worldRotation == -1)
-                        {
-                            Log.getLogger().error(String.format("Schematic %s doesn't have a correct Primary Offset", path));
-                            return -1;
-                        }
-
-                        return (4 + worldRotation - structureRotation) % 4;
-                    }
-                }
-
-                Log.getLogger().error(String.format("Failed to get rotation of building at pos: %s with path: %s", pos.toShortString(), path));
-            }
-            else
-            {
-                Log.getLogger().error(String.format("Failed to get rotation of building at pos: %s", pos.toShortString()));
-            }
-        }
-        catch (Exception e)
-        {
-            Log.getLogger().error(String.format("Failed to get rotation of building at pos: %s", pos.toShortString()), e);
-        }
-        return -1;
-    }
-
-    /**
-     * Reports the clockwise rotations for a hut or decoration block.
-     * @param blockState the hut or decoration block.
-     * @return the number of rotations, or -1 if an unexpected block type.
-     */
-    public static int getRotationFromBlock(@NotNull final BlockState blockState)
-    {
-        if (blockState.getBlock() instanceof AbstractBlockHut<?>)
-        {
-            return blockState.getValue(AbstractBlockHut.FACING).get2DDataValue();
-        }
-        else if (blockState.getBlock() instanceof DirectionalBlock)
-        {
-            return blockState.getValue(DirectionalBlock.FACING).get2DDataValue();
-        }
-        return -1;
+        return null;
     }
 }

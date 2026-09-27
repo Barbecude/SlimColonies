@@ -1,5 +1,11 @@
 {
   "branch": "slimcolonies:civilian",
+  "costs": [
+    {
+      "count": 1,
+      "item": "minecraft:iron_boots"
+    }
+  ],
   "effects": [
     {
       "id": "slimcolonies:effects/undertakerrun",

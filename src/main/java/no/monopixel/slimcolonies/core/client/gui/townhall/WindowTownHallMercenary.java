@@ -1,0 +1,72 @@
+package no.monopixel.slimcolonies.core.client.gui.townhall;
+
+import com.ldtteam.blockui.controls.Button;
+import com.ldtteam.blockui.controls.ButtonHandler;
+import com.ldtteam.blockui.controls.Image;
+import com.ldtteam.blockui.views.BOWindow;
+import no.monopixel.slimcolonies.api.colony.IColonyView;
+import no.monopixel.slimcolonies.api.util.constant.ColonyConstants;
+import no.monopixel.slimcolonies.api.util.constant.Constants;
+import no.monopixel.slimcolonies.core.colony.CitizenData;
+import no.monopixel.slimcolonies.core.colony.ColonyView;
+import no.monopixel.slimcolonies.core.network.messages.server.colony.HireMercenaryMessage;
+import net.minecraft.client.Minecraft;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.sounds.SoundEvents;
+import org.jetbrains.annotations.NotNull;
+
+import static no.monopixel.slimcolonies.api.util.constant.WindowConstants.BUTTON_DONE;
+
+/**
+ * Gui for hiring mercenaries
+ */
+public class WindowTownHallMercenary extends BOWindow implements ButtonHandler
+{
+    /**
+     * The client side colony data
+     */
+    private final IColonyView colony;
+
+    /**
+     * Constructor for a town hall rename entry window.
+     *
+     * @param c {@link ColonyView}
+     */
+    public WindowTownHallMercenary(final IColonyView c)
+    {
+        super(new ResourceLocation(Constants.MOD_ID, "gui/townhall/windowtownhallmercenary.xml"));
+        this.colony = c;
+
+        int amountOfMercenaries = colony.getCitizenCount();
+        amountOfMercenaries = amountOfMercenaries / 10;
+        amountOfMercenaries += 3;
+
+        int startX = 160;
+        final int startY = 40;
+
+        for (int i = 0; i < Math.min(amountOfMercenaries, 9); i++)
+        {
+
+            final Image newImage = new Image();
+            newImage.setImage(new ResourceLocation(Constants.MOD_ID, "textures/entity_icon/citizen/default/citizenmale3" + CitizenData.SUFFIXES.get(ColonyConstants.rand.nextInt(CitizenData.SUFFIXES.size())) + ".png"), false);
+            newImage.setSize(10, 10);
+            newImage.setPosition(startX, startY);
+            this.addChild(newImage);
+
+            startX += 15;
+        }
+    }
+
+    @Override
+    public void onButtonClicked(@NotNull final Button button)
+    {
+        if (button.getID().equals(BUTTON_DONE))
+        {
+            colony.usedMercenaries();
+            new HireMercenaryMessage(colony).sendToServer();
+            Minecraft.getInstance().player.playSound(SoundEvents.LIGHTNING_BOLT_THUNDER, 1.0f, 1.0f);
+        }
+
+        this.close();
+    }
+}

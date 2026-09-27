@@ -1,6 +1,7 @@
 package no.monopixel.slimcolonies.api.colony.managers.interfaces;
 
 import no.monopixel.slimcolonies.api.colony.ICitizenData;
+import no.monopixel.slimcolonies.api.entity.citizen.happiness.IHappinessModifier;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.level.Level;
@@ -42,7 +43,7 @@ public interface ICitizenManager extends IEntityManager
      */
     default ICitizenData spawnOrCreateCitizen(final ICitizenData data, @NotNull final Level world, final BlockPos spawnPos)
     {
-        return this.spawnOrCreateCivilian(data, world, spawnPos, false);
+        return this.spawnOrCreateCivilian(data, world, List.of(spawnPos), false);
     }
 
     /**
@@ -94,6 +95,13 @@ public interface ICitizenManager extends IEntityManager
     int getPotentialMaxCitizens();
 
     /**
+     * Get the max citizens based on the research.
+     *
+     * @return the max.
+     */
+    double maxCitizensFromResearch();
+
+    /**
      * Get the current amount of citizens, might be bigger then {@link #getMaxCitizens()}
      *
      * @return The current amount of citizens in the colony.
@@ -114,11 +122,22 @@ public interface ICitizenManager extends IEntityManager
      */
     void setPotentialMaxCitizens(final int newMaxCitizens);
 
+    /**
+     * Check for the citizen happiness and update the colony happiness with it.
+     */
+    void checkCitizensForHappiness();
 
     /**
      * Tick the citizen data of all active citizens.
      */
     boolean tickCitizenData(int tickRate);
+
+    /**
+     * Call this to set all the citizens in the colony to mourn or not.
+     *
+     * @param mourn boolean to indicate if citizen should mourn or not
+     */
+    void updateCitizenMourn(final ICitizenData data, final boolean mourn);
 
     /**
      * Call this to set all citizens asleep
@@ -139,7 +158,7 @@ public interface ICitizenManager extends IEntityManager
      *
      * @param modifier the modifier.
      */
-    // Happiness system removed
+    void injectModifier(final IHappinessModifier modifier);
 
     /**
      * Call this when citizens sleep
@@ -158,4 +177,9 @@ public interface ICitizenManager extends IEntityManager
      * Post building load actions
      */
     void afterBuildingLoad();
+
+    /**
+     * Called when flag is changed
+     */
+    void onFlagChange();
 }

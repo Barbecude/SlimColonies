@@ -2,9 +2,9 @@ package no.monopixel.slimcolonies.core.commands.citizencommands;
 
 import no.monopixel.slimcolonies.api.colony.ICitizenData;
 import no.monopixel.slimcolonies.api.colony.IColony;
-import no.monopixel.slimcolonies.api.colony.IColonyManager;
 import no.monopixel.slimcolonies.api.entity.citizen.AbstractEntityCitizen;
 import no.monopixel.slimcolonies.api.util.constant.translation.CommandTranslationConstants;
+import no.monopixel.slimcolonies.core.commands.arguments.ColonyIdArgument;
 import no.monopixel.slimcolonies.core.commands.commandTypes.IMCColonyOfficerCommand;
 import no.monopixel.slimcolonies.core.commands.commandTypes.IMCCommand;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
@@ -13,10 +13,8 @@ import com.mojang.brigadier.context.CommandContext;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.arguments.coordinates.Coordinates;
 import net.minecraft.commands.arguments.coordinates.Vec3Argument;
-import net.minecraft.network.chat.Component;
-import net.minecraft.world.entity.Entity;
 import net.minecraft.core.BlockPos;
-import net.minecraft.world.level.Level;
+import net.minecraft.network.chat.Component;
 
 import java.util.Optional;
 
@@ -36,22 +34,12 @@ public class CommandCitizenTeleport implements IMCColonyOfficerCommand
     @Override
     public int onExecute(final CommandContext<CommandSourceStack> context)
     {
-
-        final Entity sender = context.getSource().getEntity();
-        // Colony
-        final int colonyID = IntegerArgumentType.getInteger(context, COLONYID_ARG);
-        final IColony colony = IColonyManager.getInstance().getColonyByDimension(colonyID, sender == null ? Level.OVERWORLD : context.getSource().getLevel().dimension());
-        if (colony == null)
-        {
-            context.getSource().sendSuccess(() -> Component.translatable(CommandTranslationConstants.COMMAND_COLONY_ID_NOT_FOUND, colonyID), true);
-            return 0;
-        }
-
+        final IColony colony = ColonyIdArgument.getColony(context, COLONYID_ARG);
         final ICitizenData citizenData = colony.getCitizenManager().getCivilian(IntegerArgumentType.getInteger(context, CITIZENID_ARG));
 
         if (citizenData == null)
         {
-            context.getSource().sendSuccess(() -> Component.translatable(CommandTranslationConstants.COMMAND_CITIZEN_NOT_FOUND), true);
+            context.getSource().sendSuccess(() -> Component.translatableEscape(CommandTranslationConstants.COMMAND_CITIZEN_NOT_FOUND), true);
             return 0;
         }
 
@@ -59,7 +47,7 @@ public class CommandCitizenTeleport implements IMCColonyOfficerCommand
 
         if (!optionalEntityCitizen.isPresent())
         {
-            context.getSource().sendSuccess(() -> Component.translatable(CommandTranslationConstants.COMMAND_CITIZEN_NOT_LOADED), true);
+            context.getSource().sendSuccess(() -> Component.translatableEscape(CommandTranslationConstants.COMMAND_CITIZEN_NOT_LOADED), true);
             return 0;
         }
 
@@ -67,7 +55,7 @@ public class CommandCitizenTeleport implements IMCColonyOfficerCommand
         final Coordinates targetLocation = Vec3Argument.getCoordinates(context, POS_ARG);
         final BlockPos targetPos = targetLocation.getBlockPos(context.getSource());
 
-        if (context.getSource().getLevel() == entityCitizen.level)
+        if (context.getSource().getLevel() == entityCitizen.level())
         {
             entityCitizen.moveTo(targetPos.getX(), targetPos.getY(), targetPos.getZ(), entityCitizen.getViewYRot(1F), entityCitizen.getViewXRot(1F));
             entityCitizen.getNavigation().stop();
@@ -89,7 +77,7 @@ public class CommandCitizenTeleport implements IMCColonyOfficerCommand
     public LiteralArgumentBuilder<CommandSourceStack> build()
     {
         return IMCCommand.newLiteral(getName())
-                 .then(IMCCommand.newArgument(COLONYID_ARG, IntegerArgumentType.integer(1))
+                 .then(IMCCommand.newArgument(COLONYID_ARG, ColonyIdArgument.id())
                          .then(IMCCommand.newArgument(CITIZENID_ARG, IntegerArgumentType.integer(1))
                                  .then(IMCCommand.newArgument(POS_ARG, Vec3Argument.vec3())
                                          .executes(this::checkPreConditionAndExecute))));

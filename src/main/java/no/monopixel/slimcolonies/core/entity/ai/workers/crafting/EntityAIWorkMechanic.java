@@ -2,6 +2,7 @@ package no.monopixel.slimcolonies.core.entity.ai.workers.crafting;
 
 import no.monopixel.slimcolonies.core.colony.buildings.workerbuildings.BuildingMechanic;
 import no.monopixel.slimcolonies.core.colony.jobs.JobMechanic;
+import no.monopixel.slimcolonies.core.entity.ai.workers.crafting.AbstractEntityAICrafting;
 import org.jetbrains.annotations.NotNull;
 
 /**

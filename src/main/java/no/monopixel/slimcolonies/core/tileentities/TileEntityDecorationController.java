@@ -1,34 +1,30 @@
 package no.monopixel.slimcolonies.core.tileentities;
 
-import com.ldtteam.structurize.api.util.IRotatableBlockEntity;
+import com.ldtteam.structurize.api.IRotatableBlockEntity;
+import com.ldtteam.structurize.api.RotationMirror;
 import com.ldtteam.structurize.blockentities.interfaces.IBlueprintDataProviderBE;
 import com.ldtteam.structurize.storage.StructurePacks;
-import net.minecraft.core.BlockPos;
-import net.minecraft.nbt.CompoundTag;
-import net.minecraft.network.Connection;
-import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
-import net.minecraft.util.Tuple;
+import no.monopixel.slimcolonies.api.tileentities.MinecoloniesTileEntities;
+import no.monopixel.slimcolonies.api.util.WorldUtil;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.world.level.block.Mirror;
 import net.minecraft.world.level.block.Rotation;
-import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
-import no.monopixel.slimcolonies.api.compatibility.newstruct.BlueprintMapping;
-import no.monopixel.slimcolonies.api.tileentities.SlimColoniesTileEntities;
-import no.monopixel.slimcolonies.api.util.BlockPosUtil;
-import no.monopixel.slimcolonies.api.util.Log;
-import no.monopixel.slimcolonies.api.util.Utils;
-import no.monopixel.slimcolonies.api.util.WorldUtil;
-import no.monopixel.slimcolonies.core.util.BuildingUtils;
-import org.apache.commons.lang3.StringUtils;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.Tag;
+import net.minecraft.network.Connection;
+import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
+import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.util.Tuple;
+import net.minecraft.core.BlockPos;
+import org.codehaus.plexus.util.StringUtils;
 import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nullable;
-import java.io.File;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static no.monopixel.slimcolonies.api.util.constant.Constants.DEFAULT_STYLE;
 import static no.monopixel.slimcolonies.api.util.constant.NbtTagConstants.*;
 
 public class TileEntityDecorationController extends BlockEntity implements IBlueprintDataProviderBE, IRotatableBlockEntity
@@ -55,10 +51,9 @@ public class TileEntityDecorationController extends BlockEntity implements IBlue
     private BlockPos corner2 = BlockPos.ZERO;
 
     /**
-     * The used rotation/mirror.
+     * The used rotation and mirror.
      */
-    private int     cachedRotation = -1;
-    private boolean isMirrored     = false;
+    private RotationMirror rotationMirror = RotationMirror.NONE;
 
     /**
      * Map of block positions relative to TE pos and string tags
@@ -67,7 +62,7 @@ public class TileEntityDecorationController extends BlockEntity implements IBlue
 
     public TileEntityDecorationController(final BlockPos pos, final BlockState state)
     {
-        super(SlimColoniesTileEntities.DECO_CONTROLLER.get(), pos, state);
+        super(MinecoloniesTileEntities.DECO_CONTROLLER.get(), pos, state);
     }
 
     @Override
@@ -155,27 +150,34 @@ public class TileEntityDecorationController extends BlockEntity implements IBlue
     }
 
     @Override
-    public void load(@NotNull final CompoundTag compound)
+    public void loadAdditional(final CompoundTag compound, @NotNull final HolderLookup.Provider provider)
     {
-        super.load(compound);
+        super.loadAdditional(compound, provider);
         IBlueprintDataProviderBE.super.readSchematicDataFromNBT(compound);
-        this.cachedRotation = -1;
-        this.isMirrored = compound.getBoolean(TAG_MIRROR);
+        if (compound.contains(TAG_ROTATION_MIRROR, Tag.TAG_BYTE))
+        {
+            this.rotationMirror = RotationMirror.values()[compound.getByte(TAG_ROTATION_MIRROR)];
+        }
+        else
+        {
+            // TODO: remove this later (data break introduced in 1.20.4) because of blueprint data
+            this.rotationMirror = RotationMirror.of(Rotation.values()[compound.getInt(TAG_ROTATION)], compound.getBoolean(TAG_MIRROR) ? Mirror.FRONT_BACK : Mirror.NONE);
+        }
 
         // inexplicably IBlueprintDataProviderBE does not load the pack/path even though it saved them
         this.packName = compound.getCompound(TAG_BLUEPRINTDATA).getString(TAG_PACK);
         this.schematicPath = compound.getCompound(TAG_BLUEPRINTDATA).getString(TAG_PATH);
 
         // the rest of this is backwards compat code that can be removed at some point (maybe even now)
-        if (compound.contains(TAG_PATH) && StringUtils.isEmpty(this.schematicPath))
+        if(compound.contains(TAG_PATH) && StringUtils.isEmpty(this.schematicName))
         {
             this.schematicPath = compound.getString(TAG_PATH);
         }
-        if (compound.contains(TAG_PACK) && StringUtils.isEmpty(this.packName))
+        if(compound.contains(TAG_PACK) && StringUtils.isEmpty(this.packName))
         {
             this.packName = compound.getString(TAG_PACK);
         }
-        if (compound.contains(TAG_NAME) && StringUtils.isEmpty(this.schematicName))
+        if(compound.contains(TAG_NAME) && StringUtils.isEmpty(this.schematicName))
         {
             this.schematicName = compound.getString(TAG_NAME);
             if (this.schematicPath == null || this.schematicPath.isEmpty())
@@ -194,11 +196,11 @@ public class TileEntityDecorationController extends BlockEntity implements IBlue
     }
 
     @Override
-    public void saveAdditional(@NotNull final CompoundTag compound)
+    public void saveAdditional(final CompoundTag compound, @NotNull final HolderLookup.Provider provider)
     {
-        super.saveAdditional(compound);
+        super.saveAdditional(compound, provider);
         writeSchematicDataToNBT(compound);
-        compound.putBoolean(TAG_MIRROR, this.isMirrored);
+        compound.putByte(TAG_ROTATION_MIRROR, (byte) this.rotationMirror.ordinal());
     }
 
     @Nullable
@@ -228,16 +230,16 @@ public class TileEntityDecorationController extends BlockEntity implements IBlue
 
     @NotNull
     @Override
-    public CompoundTag getUpdateTag()
+    public CompoundTag getUpdateTag(@NotNull final HolderLookup.Provider provider)
     {
-        return this.saveWithId();
+        return this.saveWithId(provider);
     }
 
     @Override
-    public void onDataPacket(final Connection net, final ClientboundBlockEntityDataPacket packet)
+    public void onDataPacket(final Connection net, final ClientboundBlockEntityDataPacket packet, @NotNull final HolderLookup.Provider provider)
     {
         final CompoundTag compound = packet.getTag();
-        this.load(compound);
+        this.loadAdditional(compound, provider);
     }
 
     @Override
@@ -247,38 +249,17 @@ public class TileEntityDecorationController extends BlockEntity implements IBlue
     }
 
     @Override
-    public void rotate(final Rotation rotationIn)
+    public void rotateAndMirror(final RotationMirror rotationMirror)
     {
-        this.cachedRotation = -1;
-    }
-
-    @Override
-    public void mirror(final Mirror mirror)
-    {
-        this.isMirrored = mirror != Mirror.NONE;
+        this.rotationMirror = rotationMirror;
     }
 
     /**
      * Get the rotation of the controller.
-     *
-     * @return the placed rotation.
+     * @return the placed rotation and mirror.
      */
-    public Rotation getRotation()
+    public RotationMirror getRotationMirror()
     {
-        if (this.cachedRotation == -1)
-        {
-            this.cachedRotation = BuildingUtils.getRotationFromBlueprint(getLevel(), getBlockPos());
-        }
-        return BlockPosUtil.getRotationFromRotations(this.cachedRotation);
-    }
-
-    /**
-     * Get the mirroring setting of the controller.
-     *
-     * @return true if mirrored.
-     */
-    public boolean getMirror()
-    {
-        return this.isMirrored;
+        return rotationMirror;
     }
 }

@@ -6,7 +6,6 @@ import no.monopixel.slimcolonies.api.colony.buildings.IBuilding;
 import no.monopixel.slimcolonies.api.entity.citizen.AbstractEntityCitizen;
 import no.monopixel.slimcolonies.api.entity.citizen.Skill;
 import no.monopixel.slimcolonies.api.entity.citizen.citizenhandlers.ICitizenSkillHandler;
-import no.monopixel.slimcolonies.core.Network;
 import no.monopixel.slimcolonies.core.network.messages.client.VanillaParticleMessage;
 import no.monopixel.slimcolonies.core.util.ExperienceUtils;
 import net.minecraft.core.particles.ParticleTypes;
@@ -32,11 +31,6 @@ import static no.monopixel.slimcolonies.api.util.constant.NbtTagConstants.*;
  */
 public class CitizenSkillHandler implements ICitizenSkillHandler
 {
-    /**
-     * The level cap for citizen skills.
-     */
-    private static final int LEVEL_CAP = 10;
-
     /**
      * Skill map.
      */
@@ -94,7 +88,8 @@ public class CitizenSkillHandler implements ICitizenSkillHandler
             roleModelB = secondParent;
         }
 
-        init(LEVEL_CAP);
+        final int levelCap = (int) colony.getOverallHappiness();
+        init(levelCap);
 
         final int bonusPoints = 25 + rand.nextInt(25);
 
@@ -159,7 +154,8 @@ public class CitizenSkillHandler implements ICitizenSkillHandler
             return false;
         }
 
-        if (skillMap.get(Skill.Intelligence).level < LEVEL_CAP * 9)
+        final int levelCap = (int) citizen.getCitizenHappinessHandler().getHappiness(citizen.getColony(), citizen);
+        if (skillMap.get(Skill.Intelligence).level < levelCap * 9)
         {
             addXpToSkill(Skill.Intelligence, 10, citizen);
         }
@@ -249,10 +245,8 @@ public class CitizenSkillHandler implements ICitizenSkillHandler
         if (data.getEntity().isPresent())
         {
             final AbstractEntityCitizen citizen = data.getEntity().get();
-            playSoundAtCitizenWith(citizen.level, citizen.blockPosition(), SUCCESS, data);
-            Network.getNetwork()
-              .sendToTrackingEntity(new VanillaParticleMessage(citizen.getX(), citizen.getY(), citizen.getZ(), ParticleTypes.HAPPY_VILLAGER),
-                data.getEntity().get());
+            playSoundAtCitizenWith(citizen.level(), citizen.blockPosition(), SUCCESS, data);
+            new VanillaParticleMessage(citizen.getX(), citizen.getY(), citizen.getZ(), ParticleTypes.HAPPY_VILLAGER).sendToTrackingEntity(data.getEntity().get());
         }
 
         if (data.getJob() != null)

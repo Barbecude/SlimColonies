@@ -1,15 +1,19 @@
 package no.monopixel.slimcolonies.core.colony.workorders;
 
+import com.ldtteam.structurize.api.RotationMirror;
+import no.monopixel.slimcolonies.api.colony.ICitizenData;
 import no.monopixel.slimcolonies.api.colony.IColony;
 import no.monopixel.slimcolonies.api.colony.buildings.IBuilding;
 import no.monopixel.slimcolonies.api.colony.workorders.WorkOrderType;
 import no.monopixel.slimcolonies.api.util.MessageUtils;
 import no.monopixel.slimcolonies.core.colony.buildings.workerbuildings.BuildingBuilder;
+import no.monopixel.slimcolonies.core.colony.jobs.JobBuilder;
 import no.monopixel.slimcolonies.core.entity.ai.workers.util.ConstructionTapeHelper;
 import net.minecraft.core.BlockPos;
 import org.jetbrains.annotations.NotNull;
 
 import static no.monopixel.slimcolonies.api.util.constant.TranslationConstants.MESSAGE_NEW_DECORATION_REQUEST;
+import static no.monopixel.slimcolonies.api.util.constant.Suppression.UNUSED_METHOD_PARAMETERS_SHOULD_BE_REMOVED;
 /**
  * A work order that the build can take to build plantation fields.
  */
@@ -24,10 +28,10 @@ public class WorkOrderPlantationField extends AbstractWorkOrder
     }
 
     private WorkOrderPlantationField(
-      String packName, String path, final String translationKey, WorkOrderType workOrderType, BlockPos location, int rotation, boolean isMirrored, int currentLevel,
+      String packName, String path, final String translationKey, WorkOrderType workOrderType, BlockPos location, RotationMirror rotationMirror, int currentLevel,
       int targetLevel)
     {
-        super(packName, path, translationKey, workOrderType, location, rotation, isMirrored, currentLevel, targetLevel);
+        super(packName, path, translationKey, workOrderType, location, rotationMirror, currentLevel, targetLevel);
     }
 
     public static WorkOrderPlantationField create(
@@ -36,8 +40,7 @@ public class WorkOrderPlantationField extends AbstractWorkOrder
       final String path,
       final String translationKey,
       final BlockPos location,
-      final int rotation,
-      final boolean mirror,
+      final RotationMirror rotationMirror,
       final int currentLevel)
     {
         int targetLevel = 1;
@@ -52,8 +55,7 @@ public class WorkOrderPlantationField extends AbstractWorkOrder
           translationKey,
           type,
           location,
-          rotation,
-          mirror,
+          rotationMirror,
           currentLevel,
           targetLevel);
     }
@@ -63,7 +65,7 @@ public class WorkOrderPlantationField extends AbstractWorkOrder
     {
         return building instanceof BuildingBuilder;
     }
-
+    
     /**
      * Check if a citizen may accept this workOrder while ignoring the distance to the build location.
      * <p>
@@ -72,7 +74,7 @@ public class WorkOrderPlantationField extends AbstractWorkOrder
      * @param level       the level of that work hut.
      * @return true if the citizen may accept this work order.
      */
-    
+    @SuppressWarnings(UNUSED_METHOD_PARAMETERS_SHOULD_BE_REMOVED)
     @Override
     public boolean canBuildIgnoringDistance(final @NotNull IBuilding building, final BlockPos position, final int level)
     {

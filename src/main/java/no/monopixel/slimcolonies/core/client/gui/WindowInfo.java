@@ -9,6 +9,7 @@ import no.monopixel.slimcolonies.api.colony.buildings.views.IBuildingView;
 import no.monopixel.slimcolonies.api.util.constant.Constants;
 import net.minecraft.client.resources.language.I18n;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
 
 import java.util.Arrays;
 import java.util.function.Supplier;
@@ -19,18 +20,13 @@ import static no.monopixel.slimcolonies.api.util.constant.WindowConstants.BUTTON
 public class WindowInfo extends AbstractWindowSkeleton
 {
     /**
-     * Link to the xml file of the window.
-     */
-    private static final String WINDOW_RESOURCE = ":gui/windowinfo.xml";
-
-    /**
      * Constructor for the skeleton class of the windows.
      *
      * @param building The building the info window is for.
      */
     public WindowInfo(final IBuildingView building)
     {
-        super(Constants.MOD_ID + WINDOW_RESOURCE);
+        super(new ResourceLocation(Constants.MOD_ID, "gui/windowinfo.xml"));
 
         registerButton(BUTTON_EXIT, () -> building.openGui(false));
 
@@ -43,7 +39,7 @@ public class WindowInfo extends AbstractWindowSkeleton
             return ret;
         };
 
-        for (int i = 0; ; i++)
+        for (int i = 0;; i++)
         {
             if (!I18n.exists(translationPrefix + i))
             {
@@ -53,7 +49,7 @@ public class WindowInfo extends AbstractWindowSkeleton
             final View view = pageBuilder.get();
             switchView.addChild(view);
 
-            final Text name = nameBuilder.get().append(Component.translatable(translationPrefix + i + ".name")).build();
+            final Text name = nameBuilder.get().append(Component.translatableEscape(translationPrefix + i + ".name")).build();
             name.setPosition(30, 0);
             name.setSize(90, 11);
             name.setTextAlignment(Alignment.MIDDLE);

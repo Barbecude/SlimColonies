@@ -20,13 +20,13 @@ public class CommandBackup implements IMCOPCommand
     public int onExecute(final CommandContext<CommandSourceStack> context)
     {
         BackUpHelper.lastBackupTime = 0;
-        if (BackUpHelper.backupColonyData())
+        if (BackUpHelper.backupColonyData(context.getSource().getLevel().registryAccess()))
         {
-            context.getSource().sendSuccess(() -> Component.translatable(COMMAND_BACKUP_SUCCESS), true);
+            context.getSource().sendSuccess(() -> Component.translatableEscape(COMMAND_BACKUP_SUCCESS), true);
         }
         else
         {
-            context.getSource().sendSuccess(() -> Component.translatable(COMMAND_BACKUP_FAILED), true);
+            context.getSource().sendSuccess(() -> Component.translatableEscape(COMMAND_BACKUP_FAILED), true);
         }
         return 1;
     }

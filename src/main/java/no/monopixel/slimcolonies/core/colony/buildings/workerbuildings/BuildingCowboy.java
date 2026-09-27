@@ -11,12 +11,16 @@ import no.monopixel.slimcolonies.api.colony.requestsystem.requestable.IDeliverab
 import no.monopixel.slimcolonies.api.crafting.GenericRecipe;
 import no.monopixel.slimcolonies.api.crafting.IGenericRecipe;
 import no.monopixel.slimcolonies.api.crafting.ItemStorage;
+import no.monopixel.slimcolonies.api.equipment.ModEquipmentTypes;
+import no.monopixel.slimcolonies.api.items.ModItems;
+import no.monopixel.slimcolonies.api.util.ItemStackUtils;
 import no.monopixel.slimcolonies.core.colony.buildings.AbstractBuilding;
 import no.monopixel.slimcolonies.core.colony.buildings.modules.AnimalHerdingModule;
 import no.monopixel.slimcolonies.core.colony.buildings.modules.settings.IntSetting;
 import no.monopixel.slimcolonies.core.colony.buildings.modules.settings.SettingKey;
 import no.monopixel.slimcolonies.core.colony.buildings.modules.settings.StringSetting;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Tuple;
@@ -33,6 +37,7 @@ import java.util.*;
 import java.util.function.Predicate;
 
 import static no.monopixel.slimcolonies.api.util.constant.Constants.MOD_ID;
+import static no.monopixel.slimcolonies.api.util.constant.EquipmentLevelConstants.TOOL_LEVEL_WOOD_OR_GOLD;
 
 /**
  * Creates a new building for the Cowboy.
@@ -57,22 +62,22 @@ public class BuildingCowboy extends AbstractBuilding
     /**
      * Milking amount setting.
      */
-    public static final ISettingKey<IntSetting> MILKING_AMOUNT  = new SettingKey<>(IntSetting.class, ResourceLocation.fromNamespaceAndPath(MOD_ID, "milking_amount"));
+    public static final ISettingKey<IntSetting> MILKING_AMOUNT  = new SettingKey<>(IntSetting.class, new ResourceLocation(MOD_ID, "milking_amount"));
 
     /**
      * Stewing amount setting.
      */
-    public static final ISettingKey<IntSetting> STEWING_AMOUNT = new SettingKey<>(IntSetting.class, ResourceLocation.fromNamespaceAndPath(MOD_ID, "stewing_amount"));
+    public static final ISettingKey<IntSetting> STEWING_AMOUNT = new SettingKey<>(IntSetting.class, new ResourceLocation(MOD_ID, "stewing_amount"));
 
     /**
      * Milking days setting.
      */
-    public static final ISettingKey<IntSetting> MILKING_DAYS  = new SettingKey<>(IntSetting.class, ResourceLocation.fromNamespaceAndPath(MOD_ID, "milking_days"));
+    public static final ISettingKey<IntSetting> MILKING_DAYS  = new SettingKey<>(IntSetting.class, new ResourceLocation(MOD_ID, "milking_days"));
 
     /**
      * Milking days setting.
      */
-    public static final ISettingKey<StringSetting> MILK_ITEM  = new SettingKey<>(StringSetting.class, ResourceLocation.fromNamespaceAndPath(MOD_ID, "milk_item"));
+    public static final ISettingKey<StringSetting> MILK_ITEM  = new SettingKey<>(StringSetting.class, new ResourceLocation(MOD_ID, "milk_item"));
 
 
     /**
@@ -115,7 +120,10 @@ public class BuildingCowboy extends AbstractBuilding
      */
     public ItemStack getMilkInputItem()
     {
-        // Simplified to only use vanilla buckets
+        if (getSetting(MILK_ITEM).getValue().equals(ModItems.large_milk_bottle.getDescriptionId()))
+        {
+            return ModItems.large_empty_bottle.getDefaultInstance();
+        }
         return Items.BUCKET.getDefaultInstance();
     }
 
@@ -125,14 +133,17 @@ public class BuildingCowboy extends AbstractBuilding
      */
     public ItemStack getMilkOutputItem()
     {
-        // Simplified to only use vanilla milk buckets
+        if (getSetting(MILK_ITEM).getValue().equals(ModItems.large_milk_bottle.getDescriptionId()))
+        {
+            return ModItems.large_milk_bottle.getDefaultInstance();
+        }
         return Items.MILK_BUCKET.getDefaultInstance();
     }
 
     /**
      * Cow (and Mooshroom) herding module
      */
-    public static class HerdingModule extends AnimalHerdingModule implements IBuildingEventsModule, IHasRequiredItemsModule, IPersistentModule
+    public static class HerdingModule extends AnimalHerdingModule implements IBuildingEventsModule, IPersistentModule
     {
         private int currentMilk;
         private int currentStew;
@@ -146,15 +157,15 @@ public class BuildingCowboy extends AbstractBuilding
         @Override
         public Map<Predicate<ItemStack>, Tuple<Integer, Boolean>> getRequiredItemsAndAmount()
         {
+            final Map<Predicate<ItemStack>, Tuple<Integer, Boolean>> requiredItems = super.getRequiredItemsAndAmount();
             final int days = Math.max(1, getBuilding().getSetting(MILKING_DAYS).getValue());
             final int bucketsToKeep = (int) Math.ceil(2D * getBuilding().getSetting(MILKING_AMOUNT).getValue() / days);
             final int bowlsToKeep = (int) Math.ceil(2D * getBuilding().getSetting(STEWING_AMOUNT).getValue() / days);
 
-            final Map<Predicate<ItemStack>, Tuple<Integer, Boolean>> requiredItems = new HashMap<>();
             if (bucketsToKeep > 0)
             {
                 requiredItems.put(s -> s.is(Items.BUCKET), new Tuple<>(bucketsToKeep, false));
-                // Removed large bottle requirement - only vanilla buckets now
+                requiredItems.put(s -> s.is(ModItems.large_empty_bottle), new Tuple<>(bucketsToKeep, true));
             }
 
             if (bowlsToKeep > 0)
@@ -163,12 +174,6 @@ public class BuildingCowboy extends AbstractBuilding
             }
 
             return requiredItems;
-        }
-
-        @Override
-        public Map<ItemStorage, Integer> reservedStacksExcluding(@Nullable IRequest<? extends IDeliverable> excluded)
-        {
-            return Collections.emptyMap();
         }
 
         @NotNull
@@ -193,7 +198,11 @@ public class BuildingCowboy extends AbstractBuilding
                         .withInputs(List.of(List.of(Items.BUCKET.getDefaultInstance())))
                         .withRequiredEntity(animal.getType())
                         .build());
-                // Removed large milk bottle recipe - only vanilla buckets supported
+                recipes.add(GenericRecipe.builder()
+                        .withOutput(ModItems.large_milk_bottle)
+                        .withInputs(List.of(List.of(ModItems.large_empty_bottle.getDefaultInstance())))
+                        .withRequiredEntity(animal.getType())
+                        .build());
             }
             else if (animal instanceof Goat)
             {
@@ -202,14 +211,18 @@ public class BuildingCowboy extends AbstractBuilding
                     .withInputs(List.of(List.of(Items.BUCKET.getDefaultInstance())))
                     .withRequiredEntity(animal.getType())
                     .build());
-                // Removed large milk bottle recipe for goats - only vanilla buckets supported
+                recipes.add(GenericRecipe.builder()
+                    .withOutput(ModItems.large_milk_bottle)
+                    .withInputs(List.of(List.of(ModItems.large_empty_bottle.getDefaultInstance())))
+                    .withRequiredEntity(animal.getType())
+                    .build());
             }
 
             return recipes;
         }
 
         @Override
-        public void serializeNBT(@NotNull CompoundTag compound)
+        public void serializeNBT(@NotNull final HolderLookup.Provider provider, @NotNull CompoundTag compound)
         {
             compound.putInt("milkValue", currentMilk);
             compound.putInt("stewValue", currentStew);
@@ -217,7 +230,7 @@ public class BuildingCowboy extends AbstractBuilding
         }
 
         @Override
-        public void deserializeNBT(CompoundTag compound)
+        public void deserializeNBT(@NotNull final HolderLookup.Provider provider, CompoundTag compound)
         {
             this.currentMilk = compound.getInt("milkValue");
             this.currentStew = compound.getInt("stewValue");

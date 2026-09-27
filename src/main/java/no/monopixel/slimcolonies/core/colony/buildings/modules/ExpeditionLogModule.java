@@ -1,11 +1,14 @@
 package no.monopixel.slimcolonies.core.colony.buildings.modules;
 
-import net.minecraft.nbt.CompoundTag;
-import net.minecraft.network.FriendlyByteBuf;
 import no.monopixel.slimcolonies.api.colony.buildings.modules.AbstractBuildingModule;
 import no.monopixel.slimcolonies.api.colony.buildings.modules.IPersistentModule;
 import no.monopixel.slimcolonies.core.colony.buildings.modules.expedition.ExpeditionLog;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.resources.ResourceLocation;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Building module that stores an expedition log
@@ -14,11 +17,12 @@ public class ExpeditionLogModule extends AbstractBuildingModule implements IPers
 {
     private static final String TAG_LOG = "expedition";
 
-    @NotNull
-    private final ExpeditionLog log = new ExpeditionLog();
+    @NotNull private final ExpeditionLog log = new ExpeditionLog();
+    @Nullable private final ResourceLocation research;
 
-    public ExpeditionLogModule()
+    public ExpeditionLogModule(@Nullable ResourceLocation research)
     {
+        this.research = research;
     }
 
     @NotNull
@@ -28,22 +32,28 @@ public class ExpeditionLogModule extends AbstractBuildingModule implements IPers
     }
 
     @Override
-    public void serializeNBT(@NotNull final CompoundTag compound)
+    public void serializeNBT(@NotNull final HolderLookup.Provider provider, @NotNull final CompoundTag compound)
     {
-        this.log.serializeNBT(compound);
+        this.log.serializeNBT(provider, compound);
     }
 
     @Override
-    public void deserializeNBT(@NotNull final CompoundTag compound)
+    public void deserializeNBT(@NotNull final HolderLookup.Provider provider, @NotNull final CompoundTag compound)
     {
         final CompoundTag log = compound.contains(TAG_LOG) ? compound.getCompound(TAG_LOG) : compound;
-        this.log.deserializeNBT(log);
+        this.log.deserializeNBT(provider, log);
     }
 
     @Override
-    public void serializeToView(@NotNull final FriendlyByteBuf buf)
+    public void serializeToView(@NotNull final RegistryFriendlyByteBuf buf)
     {
-        buf.writeBoolean(true);
-        this.log.serialize(buf);
+        final boolean unlocked = research == null || getBuilding().getColony().getResearchManager().getResearchEffects().getEffectStrength(research) > 0;
+
+        buf.writeBoolean(unlocked);
+        if (unlocked)
+        {
+            this.log.serialize(buf);
+        }
     }
+
 }

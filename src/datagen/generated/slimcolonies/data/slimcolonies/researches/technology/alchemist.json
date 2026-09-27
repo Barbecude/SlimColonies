@@ -1,5 +1,11 @@
 {
   "branch": "slimcolonies:technology",
+  "costs": [
+    {
+      "count": 16,
+      "item": "minecraft:nether_wart"
+    }
+  ],
   "effects": [
     {
       "id": "slimcolonies:effects/blockhutalchemist",
@@ -8,6 +14,6 @@
   ],
   "icon": "slimcolonies:blockhutalchemist",
   "parentResearch": "slimcolonies:technology/opennether",
-  "researchLevel": 2,
+  "researchLevel": 3,
   "subtitle": "no.monopixel.slimcolonies.research.technology.alchemist.subtitle"
 }

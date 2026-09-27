@@ -1,5 +1,6 @@
 package no.monopixel.slimcolonies.api.colony.buildings;
 
+import no.monopixel.slimcolonies.api.colony.requestsystem.location.ILocation;
 import no.monopixel.slimcolonies.api.entity.citizen.AbstractEntityCitizen;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.player.Player;
@@ -112,6 +113,19 @@ public interface IGuardBuilding extends IBuilding
      */
     void setPlayerToFollow(Player player);
 
+    /**
+     * Location to to rally to.
+     *
+     * @return the ILocation reference.
+     */
+    ILocation getRallyLocation();
+
+    /**
+     * Sets the location to rally.
+     *
+     * @param location The location to rally to.
+     */
+    void setRallyLocation(final ILocation location);
 
     /**
      * Gets the position to follow.
@@ -140,7 +154,7 @@ public interface IGuardBuilding extends IBuilding
     int getBonusVision();
 
     /**
-     * Populates the mobs list from the ForgeRegistries.
+     * Populates the mobs list from the BuiltInRegistries.
      */
     void calculateMobs();
 

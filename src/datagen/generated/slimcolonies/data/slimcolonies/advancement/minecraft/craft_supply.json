@@ -1,0 +1,28 @@
+{
+  "parent": "minecraft:story/root",
+  "criteria": {
+    "supply_ship": {
+      "trigger": "slimcolonies:supply_placed"
+    }
+  },
+  "display": {
+    "announce_to_chat": false,
+    "description": {
+      "translate": "advancements.slimcolonies.root.description"
+    },
+    "icon": {
+      "count": 1,
+      "id": "slimcolonies:supplychestdeployer"
+    },
+    "show_toast": false,
+    "title": {
+      "translate": "advancements.slimcolonies.root.title"
+    }
+  },
+  "requirements": [
+    [
+      "supply_ship"
+    ]
+  ],
+  "sends_telemetry_event": true
+}

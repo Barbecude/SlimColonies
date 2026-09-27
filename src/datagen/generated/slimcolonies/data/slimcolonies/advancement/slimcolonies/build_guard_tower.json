@@ -1,0 +1,30 @@
+{
+  "parent": "slimcolonies:slimcolonies/build_builder",
+  "criteria": {
+    "guard_tower": {
+      "conditions": {
+        "hut_name": "guardtower",
+        "level": 1
+      },
+      "trigger": "slimcolonies:complete_build_request"
+    }
+  },
+  "display": {
+    "description": {
+      "translate": "advancements.slimcolonies.build.guard_tower.description"
+    },
+    "icon": {
+      "count": 1,
+      "id": "slimcolonies:blockhutguardtower"
+    },
+    "title": {
+      "translate": "advancements.slimcolonies.build.guard_tower.title"
+    }
+  },
+  "requirements": [
+    [
+      "guard_tower"
+    ]
+  ],
+  "sends_telemetry_event": true
+}

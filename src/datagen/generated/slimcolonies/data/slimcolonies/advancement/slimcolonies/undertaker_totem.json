@@ -1,0 +1,26 @@
+{
+  "parent": "slimcolonies:slimcolonies/citizen_resurrect",
+  "criteria": {
+    "totem": {
+      "trigger": "slimcolonies:undertaker_totem"
+    }
+  },
+  "display": {
+    "description": {
+      "translate": "advancements.slimcolonies.undertaker.totem.description"
+    },
+    "icon": {
+      "count": 1,
+      "id": "minecraft:totem_of_undying"
+    },
+    "title": {
+      "translate": "advancements.slimcolonies.undertaker.totem.title"
+    }
+  },
+  "requirements": [
+    [
+      "totem"
+    ]
+  ],
+  "sends_telemetry_event": true
+}

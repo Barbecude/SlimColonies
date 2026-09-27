@@ -1,14 +1,17 @@
 package no.monopixel.slimcolonies.api.tileentities;
 
+import com.ldtteam.structurize.api.RotationMirror;
 import com.ldtteam.structurize.blockentities.interfaces.IBlueprintDataProviderBE;
 import com.ldtteam.structurize.storage.StructurePackMeta;
 import no.monopixel.slimcolonies.api.colony.IColony;
 import no.monopixel.slimcolonies.api.colony.buildings.IBuilding;
 import no.monopixel.slimcolonies.api.colony.buildings.IBuildingContainer;
 import no.monopixel.slimcolonies.api.colony.buildings.views.IBuildingView;
+import no.monopixel.slimcolonies.api.util.IItemHandlerCapProvider;
 import no.monopixel.slimcolonies.api.util.InventoryFunctions;
 import no.monopixel.slimcolonies.core.tileentities.TileEntityRack;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Tuple;
@@ -16,7 +19,6 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraftforge.common.capabilities.ICapabilityProvider;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -62,17 +64,9 @@ public abstract class AbstractTileEntityColonyBuilding extends TileEntityRack im
      */
     private Map<String, List<BlockPos>> worldTagMapCacheWithList;
 
-    /**
-     * Create a colony building with a specific inventory size.
-     *
-     * @param type  the specific block entity type.
-     * @param pos   the position.
-     * @param state its state.
-     * @param size  the inventory size.
-     */
-    public AbstractTileEntityColonyBuilding(final BlockEntityType<? extends AbstractTileEntityColonyBuilding> type, final BlockPos pos, final BlockState state, final int size)
+    public AbstractTileEntityColonyBuilding(final BlockEntityType<? extends AbstractTileEntityColonyBuilding> type, final BlockPos pos, final BlockState state)
     {
-        super(type, pos, state, size);
+        super(type, pos, state);
     }
 
     /**
@@ -83,7 +77,7 @@ public abstract class AbstractTileEntityColonyBuilding extends TileEntityRack im
      * @param itemStackSelectionPredicate the itemStack predicate.
      * @return true if found the stack.
      */
-    public static boolean isInTileEntity(final ICapabilityProvider entity, @NotNull final Predicate<ItemStack> itemStackSelectionPredicate)
+        public static boolean isInTileEntity(final IItemHandlerCapProvider entity, @NotNull final Predicate<ItemStack> itemStackSelectionPredicate)
     {
         return InventoryFunctions.matchFirstInProvider(entity, itemStackSelectionPredicate);
     }
@@ -155,18 +149,14 @@ public abstract class AbstractTileEntityColonyBuilding extends TileEntityRack im
     public abstract boolean hasAccessPermission(Player player);
 
     /**
-     * Set if the entity is mirrored.
-     *
-     * @param mirror true if so.
+     * @param rotationMirror rotation and mirror of the entity.
      */
-    public abstract void setMirror(boolean mirror);
+    public abstract void setRotationMirror(RotationMirror rotationMirror);
 
     /**
-     * Check if building is mirrored.
-     *
-     * @return true if so.
+     * @return rotation and mirror of the entity.
      */
-    public abstract boolean isMirrored();
+    public abstract RotationMirror getRotationMirror();
 
     /**
      * Getter for the style.
@@ -273,9 +263,9 @@ public abstract class AbstractTileEntityColonyBuilding extends TileEntityRack im
     }
 
     @Override
-    public void load(@NotNull final CompoundTag compound)
+    public void loadAdditional(@NotNull final CompoundTag compound, @NotNull final HolderLookup.Provider provider)
     {
-        super.load(compound);
+        super.loadAdditional(compound, provider);
         readSchematicDataFromNBT(compound);
         this.version = compound.getInt(TAG_VERSION);
     }
@@ -286,12 +276,12 @@ public abstract class AbstractTileEntityColonyBuilding extends TileEntityRack im
         final String old = getSchematicName();
         IBlueprintDataProviderBE.super.readSchematicDataFromNBT(originalCompound);
 
-        if (level == null || level.isClientSide || getColony() == null || getColony().getBuildingManager() == null)
+        if (level == null || level.isClientSide || getColony() == null || getColony().getServerBuildingManager() == null)
         {
             return;
         }
 
-        final IBuilding building = getColony().getBuildingManager().getBuilding(worldPosition);
+        final IBuilding building = getColony().getServerBuildingManager().getBuilding(worldPosition);
         if (building != null)
         {
             building.onUpgradeSchematicTo(old, getSchematicName(), this);
@@ -300,9 +290,9 @@ public abstract class AbstractTileEntityColonyBuilding extends TileEntityRack im
     }
 
     @Override
-    public void saveAdditional(@NotNull final CompoundTag compound)
+    public void saveAdditional(@NotNull final CompoundTag compound, @NotNull final HolderLookup.Provider provider)
     {
-        super.saveAdditional(compound);
+        super.saveAdditional(compound, provider);
         writeSchematicDataToNBT(compound);
         compound.putInt(TAG_VERSION, this.version);
     }

@@ -80,7 +80,7 @@ public class CocoaPlantModule extends TreeSidePlantModule
         Block block = blockState.getBlock();
         if (block instanceof CocoaBlock cocoa)
         {
-            return !cocoa.isRandomlyTicking(blockState);
+            return blockState.getValue(CocoaBlock.AGE) >= 2;
         }
         return false;
     }

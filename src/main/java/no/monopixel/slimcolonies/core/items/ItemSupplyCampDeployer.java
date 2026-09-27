@@ -6,39 +6,38 @@ import com.ldtteam.structurize.blueprints.v1.BlueprintTagUtils;
 import com.ldtteam.structurize.placement.handlers.placement.PlacementError;
 import com.ldtteam.structurize.storage.rendering.RenderingCache;
 import com.ldtteam.structurize.util.BlockUtils;
-import net.minecraft.core.BlockPos;
-import net.minecraft.core.Direction;
-import net.minecraft.world.InteractionHand;
-import net.minecraft.world.InteractionResult;
-import net.minecraft.world.InteractionResultHolder;
-import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.item.Item;
-import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.context.UseOnContext;
-import net.minecraft.world.level.Level;
 import no.monopixel.slimcolonies.api.colony.IColony;
 import no.monopixel.slimcolonies.api.colony.IColonyManager;
 import no.monopixel.slimcolonies.api.colony.permissions.Action;
 import no.monopixel.slimcolonies.api.items.ISupplyItem;
+import no.monopixel.slimcolonies.api.items.component.SupplyData;
 import no.monopixel.slimcolonies.api.util.MessageUtils;
 import no.monopixel.slimcolonies.api.util.WorldUtil;
-import no.monopixel.slimcolonies.core.SlimColonies;
+import no.monopixel.slimcolonies.core.MineColonies;
 import no.monopixel.slimcolonies.core.client.gui.WindowSupplies;
 import no.monopixel.slimcolonies.core.client.gui.WindowSupplyStory;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.context.UseOnContext;
+import net.minecraft.world.InteractionResultHolder;
+import net.minecraft.world.InteractionResult;
+import net.minecraft.core.Direction;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.level.Level;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
 
-import static no.monopixel.slimcolonies.api.util.constant.NbtTagConstants.TAG_RANDOM_KEY;
-import static no.monopixel.slimcolonies.api.util.constant.NbtTagConstants.TAG_SAW_STORY;
 import static no.monopixel.slimcolonies.api.util.constant.TranslationConstants.CANT_PLACE_COLONY_IN_OTHER_DIM;
 
 /**
  * Class to handle the placement of the supplychest and with it the supplycamp.
  */
-public class ItemSupplyCampDeployer extends AbstractItemSlimColonies implements ISupplyItem
+public class ItemSupplyCampDeployer extends AbstractItemMinecolonies implements ISupplyItem
 {
     /**
      * Creates a new supplycamp deployer. The item is not stackable.
@@ -54,21 +53,19 @@ public class ItemSupplyCampDeployer extends AbstractItemSlimColonies implements 
     @Override
     public InteractionResult useOn(final UseOnContext ctx)
     {
-        if (!ctx.getItemInHand().getOrCreateTag().contains(TAG_RANDOM_KEY))
+        final SupplyData currentComponent = SupplyData.readFromItemStack(ctx.getItemInHand());
+        if (!currentComponent.hasRandomKey())
         {
-            ctx.getItemInHand().getTag().putLong(TAG_RANDOM_KEY, ctx.getClickedPos().asLong());
+            currentComponent.withRandomKey(ctx.getClickedPos().asLong()).writeToItemStack(ctx.getItemInHand());
         }
         if (ctx.getLevel().isClientSide)
         {
-            if (!SlimColonies.getConfig().getServer().allowOtherDimColonies.get() && !WorldUtil.isOverworldType(ctx.getLevel()))
+            if (!MineColonies.getConfig().getServer().allowOtherDimColonies.get() && !WorldUtil.isOverworldType(ctx.getLevel()))
             {
                 MessageUtils.format(CANT_PLACE_COLONY_IN_OTHER_DIM).sendTo(ctx.getPlayer());
                 return InteractionResult.FAIL;
             }
-            placeSupplyCamp(ctx.getClickedPos().relative(ctx.getHorizontalDirection(), SUPPLY_OFFSET_DISTANCE).above(),
-                ctx.getPlayer().getDirection(),
-                ctx.getItemInHand(),
-                ctx.getHand());
+            placeSupplyCamp(ctx.getClickedPos().relative(ctx.getHorizontalDirection(), SUPPLY_OFFSET_DISTANCE).above(), ctx.getPlayer().getDirection(), ctx.getItemInHand(), ctx.getHand());
         }
 
         return InteractionResult.FAIL;
@@ -79,14 +76,15 @@ public class ItemSupplyCampDeployer extends AbstractItemSlimColonies implements 
     public InteractionResultHolder<ItemStack> use(final Level worldIn, final Player playerIn, final InteractionHand hand)
     {
         final ItemStack stack = playerIn.getItemInHand(hand);
-        if (!stack.getOrCreateTag().contains(TAG_RANDOM_KEY))
+        final SupplyData currentComponent = SupplyData.readFromItemStack(stack);
+        if (!currentComponent.hasRandomKey())
         {
-            stack.getTag().putLong(TAG_RANDOM_KEY, playerIn.blockPosition().asLong());
+            currentComponent.withRandomKey(playerIn.blockPosition().asLong()).writeToItemStack(stack);
         }
 
         if (worldIn.isClientSide)
         {
-            if (!SlimColonies.getConfig().getServer().allowOtherDimColonies.get() && !WorldUtil.isOverworldType(worldIn))
+            if (!MineColonies.getConfig().getServer().allowOtherDimColonies.get() && !WorldUtil.isOverworldType(worldIn))
             {
                 MessageUtils.format(CANT_PLACE_COLONY_IN_OTHER_DIM).sendTo(playerIn);
                 return new InteractionResultHolder<>(InteractionResult.FAIL, stack);
@@ -105,7 +103,8 @@ public class ItemSupplyCampDeployer extends AbstractItemSlimColonies implements 
      */
     private void placeSupplyCamp(@Nullable final BlockPos pos, @NotNull final Direction direction, final ItemStack itemInHand, final InteractionHand hand)
     {
-        if (!itemInHand.getOrCreateTag().contains(TAG_SAW_STORY))
+        final SupplyData currentComponent = SupplyData.readFromItemStack(itemInHand);
+        if (!currentComponent.sawStory())
         {
             new WindowSupplyStory(pos, "supplycamp", itemInHand, hand).open();
             return;
@@ -130,12 +129,12 @@ public class ItemSupplyCampDeployer extends AbstractItemSlimColonies implements 
      * @return true if so.
      */
     public static boolean canCampBePlaced(
-        @NotNull final Level world,
-        @NotNull final BlockPos pos,
-        @NotNull final List<PlacementError> placementErrorList,
-        final Player placer)
+      @NotNull final Level world,
+      @NotNull final BlockPos pos,
+      @NotNull final List<PlacementError> placementErrorList,
+      final Player placer)
     {
-        if (SlimColonies.getConfig().getServer().noSupplyPlacementRestrictions.get())
+        if (MineColonies.getConfig().getServer().noSupplyPlacementRestrictions.get())
         {
             return true;
         }
@@ -172,7 +171,7 @@ public class ItemSupplyCampDeployer extends AbstractItemSlimColonies implements 
             }
         }
 
-        if (needsAirAbove.size() > sizeX * sizeZ * SUPPLY_TOLERANCE_FRACTION || needsSolidBelow.size() > sizeX * sizeZ * SUPPLY_TOLERANCE_FRACTION)
+        if (needsAirAbove.size() > sizeX*sizeZ*SUPPLY_TOLERANCE_FRACTION || needsSolidBelow.size() > sizeX*sizeZ*SUPPLY_TOLERANCE_FRACTION)
         {
             placementErrorList.addAll(needsAirAbove);
             placementErrorList.addAll(needsSolidBelow);

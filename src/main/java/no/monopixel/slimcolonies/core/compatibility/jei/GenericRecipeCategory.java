@@ -18,17 +18,19 @@ import com.mojang.blaze3d.platform.Lighting;
 import mezz.jei.api.gui.ITickTimer;
 import mezz.jei.api.gui.builder.IRecipeLayoutBuilder;
 import mezz.jei.api.gui.builder.IRecipeSlotBuilder;
+import mezz.jei.api.gui.builder.ITooltipBuilder;
 import mezz.jei.api.gui.drawable.IDrawableStatic;
 import mezz.jei.api.gui.ingredient.IRecipeSlotsView;
 import mezz.jei.api.helpers.IGuiHelper;
 import mezz.jei.api.helpers.IModIdHelper;
 import mezz.jei.api.recipe.IFocusGroup;
-import mezz.jei.api.recipe.RecipeIngredientRole;
 import mezz.jei.api.recipe.RecipeType;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.renderer.Rect2i;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
@@ -37,9 +39,9 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.api.distmarker.OnlyIn;
-import net.minecraftforge.registries.ForgeRegistries;
+import net.minecraft.world.level.storage.loot.LootTable;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.api.distmarker.OnlyIn;
 import org.jetbrains.annotations.NotNull;
 
 import java.time.Duration;
@@ -136,19 +138,19 @@ public class GenericRecipeCategory extends JobBasedRecipeCategory<IGenericRecipe
 
         int x = outputSlotX;
         int y = outputSlotY;
-        IRecipeSlotBuilder slot = builder.addSlot(RecipeIngredientRole.OUTPUT, x, y)
-                .setBackground(this.slot, -1, -1)
+        IRecipeSlotBuilder slot = builder.addOutputSlot(x, y)
+                .setStandardSlotBackground()
                 .addItemStacks(recipe.getAllMultiOutputs());
         if (id != null)
         {
-            slot.addTooltipCallback(new RecipeIdTooltipCallback(id, this.modIdHelper));
+            slot.addRichTooltipCallback(new RecipeIdTooltipCallback(id, this.modIdHelper));
         }
         x += this.slot.getWidth();
 
         for (final ItemStack extra : recipe.getAdditionalOutputs())
         {
-            builder.addSlot(RecipeIngredientRole.OUTPUT, x, y)
-                    .setBackground(this.slot, -1, -1)
+            builder.addOutputSlot(x, y)
+                    .setStandardSlotBackground()
                     .addItemStack(extra);
             x += this.slot.getWidth();
         }
@@ -158,10 +160,10 @@ public class GenericRecipeCategory extends JobBasedRecipeCategory<IGenericRecipe
             final List<LootTableAnalyzer.LootDrop> drops = getLootDrops(recipe.getLootTable());
             for (final LootTableAnalyzer.LootDrop drop : drops)
             {
-                builder.addSlot(RecipeIngredientRole.OUTPUT, x, y)
+                builder.addOutputSlot(x, y)
                         .setBackground(this.chanceSlot, -1, -1)
                         .addItemStacks(drop.getItemStacks())
-                        .addTooltipCallback(new LootTableTooltipCallback(drop, recipe.getLootTable()));
+                        .addRichTooltipCallback(new LootTableTooltipCallback(drop, recipe.getLootTable()));
                 x += this.chanceSlot.getWidth();
             }
         }
@@ -178,7 +180,7 @@ public class GenericRecipeCategory extends JobBasedRecipeCategory<IGenericRecipe
             int c = 0;
             for (final List<ItemStack> input : inputs)
             {
-                builder.addSlot(RecipeIngredientRole.INPUT, x, y)
+                builder.addInputSlot(x, y)
                         .addItemStacks(input);
                 if (++c >= inputColumns)
                 {
@@ -216,7 +218,7 @@ public class GenericRecipeCategory extends JobBasedRecipeCategory<IGenericRecipe
         {
             for (final List<ItemStack> input : inputs)
             {
-                builder.addSlot(RecipeIngredientRole.INPUT, x, y)
+                builder.addInputSlot(x, y)
                         .addItemStacks(input);
                 x += this.slot.getWidth() + 2;
             }
@@ -231,12 +233,12 @@ public class GenericRecipeCategory extends JobBasedRecipeCategory<IGenericRecipe
             showLootTooltip = false;
             drops.addAll(recipe.getAdditionalOutputs().stream()
                     .map(stack -> new LootTableAnalyzer.LootDrop(Collections.singletonList(stack), 0, 0, false))
-                    .collect(Collectors.toList()));
+                    .toList());
         }
         if (!drops.isEmpty())
         {
             final int initialColumns = LOOT_SLOTS_W / this.slot.getWidth();
-            final int rows = (drops.size() + initialColumns - 1) / initialColumns;
+            final int rows = Math.max(1, (drops.size() + initialColumns - 1) / initialColumns);
             final int columns = (drops.size() + rows - 1) / rows;
             final int startX = LOOT_SLOTS_X + (LOOT_SLOTS_W - (columns * this.slot.getWidth())) / 2;
             x = startX;
@@ -245,16 +247,16 @@ public class GenericRecipeCategory extends JobBasedRecipeCategory<IGenericRecipe
 
             for (final LootTableAnalyzer.LootDrop drop : drops)
             {
-                final IRecipeSlotBuilder slot = builder.addSlot(RecipeIngredientRole.OUTPUT, x, y)
+                final IRecipeSlotBuilder slot = builder.addOutputSlot(x, y)
                         .setBackground(this.chanceSlot, -1, -1)
                         .addItemStacks(drop.getItemStacks());
                 if (showLootTooltip)
                 {
-                    slot.addTooltipCallback(new LootTableTooltipCallback(drop, recipe.getLootTable()));
+                    slot.addRichTooltipCallback(new LootTableTooltipCallback(drop, recipe.getLootTable()));
                 }
                 if (id != null)
                 {
-                    slot.addTooltipCallback(new RecipeIdTooltipCallback(id, this.modIdHelper));
+                    slot.addRichTooltipCallback(new RecipeIdTooltipCallback(id, this.modIdHelper));
                 }
                 if (++c >= columns)
                 {
@@ -286,7 +288,7 @@ public class GenericRecipeCategory extends JobBasedRecipeCategory<IGenericRecipe
         if (recipe.getIntermediate() != Blocks.AIR)
         {
             final BlockState block = recipe.getIntermediate().defaultBlockState();
-            RenderHelper.renderBlock(stack.pose(), block, outputSlotX + 8, CITIZEN_Y + 6, 100, -30F, 30F, 16F);
+            RenderHelper.renderBlock(stack, block, outputSlotX + 8, CITIZEN_Y + 6, 100, -30F, 30F, 16F);
         }
 
         final EntityType<?> entityType = recipe.getRequiredEntity();
@@ -316,21 +318,20 @@ public class GenericRecipeCategory extends JobBasedRecipeCategory<IGenericRecipe
     }
 
     @Override
-    public @NotNull List<Component> getTooltipStrings(@NotNull final IGenericRecipe recipe,
-                                                      @NotNull final IRecipeSlotsView recipeSlotsView,
-                                                      final double mouseX, final double mouseY)
+    public void getTooltip(@NotNull final ITooltipBuilder tooltip,
+                           @NotNull final IGenericRecipe recipe,
+                           @NotNull final IRecipeSlotsView recipeSlotsView,
+                           final double mouseX, final double mouseY)
     {
-        final List<Component> tooltips = super.getTooltipStrings(recipe, recipeSlotsView, mouseX, mouseY);
+        super.getTooltip(tooltip, recipe, recipeSlotsView, mouseX, mouseY);
 
         if (recipe.getIntermediate() != Blocks.AIR)
         {
             if (new Rect2i(CITIZEN_X + CITIZEN_W + 4, CITIZEN_Y - 2, 24, 24).contains((int) mouseX, (int) mouseY))
             {
-                tooltips.add(Component.translatable(TranslationConstants.PARTIAL_JEI_INFO + "intermediate.tip", recipe.getIntermediate().getName()));
+                tooltip.add(Component.translatableEscape(TranslationConstants.PARTIAL_JEI_INFO + "intermediate.tip", recipe.getIntermediate().getName()));
             }
         }
-
-        return tooltips;
     }
 
     private static boolean isLootBasedRecipe(@NotNull final IGenericRecipe recipe)
@@ -338,7 +339,7 @@ public class GenericRecipeCategory extends JobBasedRecipeCategory<IGenericRecipe
         return recipe.getLootTable() != null && recipe.getPrimaryOutput().isEmpty();
     }
 
-    private static List<LootTableAnalyzer.LootDrop> getLootDrops(@NotNull final ResourceLocation lootTableId)
+    private static List<LootTableAnalyzer.LootDrop> getLootDrops(@NotNull final ResourceKey<LootTable> lootTableId)
     {
         final List<LootTableAnalyzer.LootDrop> drops = CustomRecipeManager.getInstance().getLootDrops(lootTableId);
         return drops.size() > 18 ? LootTableAnalyzer.consolidate(drops) : drops;
@@ -361,7 +362,7 @@ public class GenericRecipeCategory extends JobBasedRecipeCategory<IGenericRecipe
 
         return recipes.stream()
                 .sorted(Comparator.comparing(IGenericRecipe::getLevelSort)
-                    .thenComparing(r -> ForgeRegistries.ITEMS.getKey(r.getPrimaryOutput().getItem())))
+                    .thenComparing(r -> BuiltInRegistries.ITEM.getKey(r.getPrimaryOutput().getItem())))
                 .collect(Collectors.toList());
     }
 }

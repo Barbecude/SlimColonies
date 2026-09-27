@@ -1,0 +1,28 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "ingredients": [
+    {
+      "item": "slimcolonies:bell_pepper"
+    },
+    {
+      "item": "slimcolonies:bell_pepper"
+    },
+    {
+      "item": "slimcolonies:garlic"
+    },
+    {
+      "item": "slimcolonies:onion"
+    },
+    {
+      "item": "slimcolonies:chickpea"
+    },
+    {
+      "item": "slimcolonies:chickpea"
+    }
+  ],
+  "result": {
+    "count": 2,
+    "id": "slimcolonies:pepper_hummus"
+  }
+}

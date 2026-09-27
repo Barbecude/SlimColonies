@@ -1,22 +1,15 @@
 package no.monopixel.slimcolonies.api.colony.buildings;
 
+import com.ldtteam.structurize.api.RotationMirror;
 import com.ldtteam.structurize.blockentities.interfaces.IBlueprintDataProviderBE;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.util.Tuple;
-import net.minecraftforge.common.util.INBTSerializable;
-
+import net.neoforged.neoforge.common.util.INBTSerializable;
 import java.util.Set;
 
 public interface ISchematicProvider extends INBTSerializable<CompoundTag>
 {
-    /**
-     * Returns the {@code BlockPos} of the current object, also used as ID.
-     *
-     * @return {@code BlockPos} of the current object.
-     */
-    BlockPos getPosition();
-
     /**
      * Sets the corners of the building based on the schematic.
      *
@@ -67,13 +60,6 @@ public interface ISchematicProvider extends INBTSerializable<CompoundTag>
     Set<BlockPos> getChildren();
 
     /**
-     * Returns the rotation of the current building.
-     *
-     * @return integer value of the rotation.
-     */
-    int getRotation();
-
-    /**
      * Returns the style of the current building.
      *
      * @return String representation of the current building-style
@@ -102,23 +88,6 @@ public interface ISchematicProvider extends INBTSerializable<CompoundTag>
     void setBlueprintPath(String path);
 
     /**
-     * Returns the level of the current object.
-     *
-     * @return Level of the current object.
-     */
-    int getBuildingLevel();
-
-    /**
-     * Get the equivalent building level for equipment, etc.
-     * Normally it's just the building level, but for buildings with fewer levels it can be 1,3,5 for example.
-     * @return the adjusted level.
-     */
-    default int getBuildingLevelEquivalent()
-    {
-        return getBuildingLevel();
-    }
-
-    /**
      * Sets the current level of the building.
      *
      * @param level Level of the building.
@@ -141,18 +110,6 @@ public interface ISchematicProvider extends INBTSerializable<CompoundTag>
      * Marks the instance and the building dirty.
      */
     void markDirty();
-
-    /**
-     * Sets the mirror of the current building.
-     */
-    void setIsMirrored(final boolean isMirrored);
-
-    /**
-     * Returns the mirror of the current building.
-     *
-     * @return boolean value of the mirror.
-     */
-    boolean isMirrored();
 
     /**
      * Children must return the name of their structure.
@@ -187,4 +144,14 @@ public interface ISchematicProvider extends INBTSerializable<CompoundTag>
      * @param newSchematic
      */
     void onUpgradeSchematicTo(final String oldSchematic, final String newSchematic, final IBlueprintDataProviderBE blueprintDataProvider);
+
+    /**
+     * @param rotMir rotation and mirror of schematic
+     */
+    void setRotationMirror(RotationMirror rotMir);
+
+    /**
+     * @return rotation and mirror of schematic
+     */
+    RotationMirror getRotationMirror();
 }

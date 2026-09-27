@@ -1,37 +1,32 @@
 package no.monopixel.slimcolonies.core.network.messages.server;
 
+import com.ldtteam.common.network.PlayMessageType;
 import no.monopixel.slimcolonies.api.colony.IColony;
 import no.monopixel.slimcolonies.api.colony.buildings.IBuilding;
 import no.monopixel.slimcolonies.api.colony.buildings.views.IBuildingView;
 import no.monopixel.slimcolonies.api.util.Log;
-import net.minecraft.network.FriendlyByteBuf;
-import net.minecraft.resources.ResourceKey;
 import net.minecraft.core.BlockPos;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.level.Level;
-import net.minecraftforge.network.NetworkEvent;
+import net.neoforged.neoforge.network.handling.IPayloadContext;
 
 public abstract class AbstractBuildingServerMessage<T extends IBuilding> extends AbstractColonyServerMessage
 {
     /**
      * The buildingID this message originates from
      */
-    private BlockPos buildingId;
-
-    /**
-     * Empty standard constructor.
-     */
-    public AbstractBuildingServerMessage()
-    {
-    }
+    private final BlockPos buildingId;
 
     /**
      * Network message for executing things on buildings on the server
      *
      * @param building the building we're executing on.
      */
-    public AbstractBuildingServerMessage(IBuildingView building)
+    public AbstractBuildingServerMessage(final PlayMessageType<?> type, final IBuildingView building)
     {
-        this(building.getColony().getDimension(), building.getColony().getID(), building.getID());
+        this(type, building.getColony().getDimension(), building.getColony().getID(), building.getID());
     }
 
     /**
@@ -41,36 +36,32 @@ public abstract class AbstractBuildingServerMessage<T extends IBuilding> extends
      * @param colonyId    the ID of the colony we're executing on.
      * @param dimensionId the ID of the dimension we're executing on.
      */
-    public AbstractBuildingServerMessage(final ResourceKey<Level> dimensionId, final int colonyId, final BlockPos buildingId)
+    public AbstractBuildingServerMessage(final PlayMessageType<?> type, final ResourceKey<Level> dimensionId, final int colonyId, final BlockPos buildingId)
     {
-        super(dimensionId, colonyId);
+        super(type, dimensionId, colonyId);
         this.buildingId = buildingId;
     }
 
-    public boolean errorIfCastFails()
-    {
-        return true;
-    }
-
-    protected abstract void onExecute(final NetworkEvent.Context ctxIn, final boolean isLogicalServer, final IColony colony, final T building);
+    protected abstract void onExecute(final IPayloadContext ctxIn, final ServerPlayer player, final IColony colony, final T building);
 
     @Override
-    protected final void toBytesAbstractOverride(final FriendlyByteBuf buf)
+    protected void toBytes(final RegistryFriendlyByteBuf buf)
     {
+        super.toBytes(buf);
         buf.writeBlockPos(buildingId);
     }
 
-    @Override
-    protected final void fromBytesAbstractOverride(final FriendlyByteBuf buf)
+    protected AbstractBuildingServerMessage(final RegistryFriendlyByteBuf buf, final PlayMessageType<?> type)
     {
+        super(buf, type);
         this.buildingId = buf.readBlockPos();
     }
 
     @Override
     @SuppressWarnings("unchecked")
-    public final void onExecute(final NetworkEvent.Context ctxIn, final boolean isLogicalServer, final IColony colony)
+    protected final void onExecute(final IPayloadContext ctxIn, final ServerPlayer player, final IColony colony)
     {
-        final IBuilding building = colony.getBuildingManager().getBuilding(buildingId);
+        final IBuilding building = colony.getServerBuildingManager().getBuilding(buildingId);
         if (building == null)
         {
             return;
@@ -78,14 +69,11 @@ public abstract class AbstractBuildingServerMessage<T extends IBuilding> extends
 
         try
         {
-            onExecute(ctxIn, isLogicalServer, colony, (T) building);
+            onExecute(ctxIn, player, colony, (T) building);
         }
         catch (ClassCastException e)
         {
-            if (errorIfCastFails())
-            {
-                Log.getLogger().warn("onExecute called with wrong type: ", e);
-            }
+            Log.getLogger().warn("onExecute called with wrong type: ", e);
         }
     }
 }

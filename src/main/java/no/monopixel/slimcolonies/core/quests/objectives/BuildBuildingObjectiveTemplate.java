@@ -1,11 +1,7 @@
 package no.monopixel.slimcolonies.core.quests.objectives;
 
 import com.google.gson.JsonObject;
-import net.minecraft.nbt.CompoundTag;
-import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.Style;
-import net.minecraft.resources.ResourceLocation;
-import no.monopixel.slimcolonies.api.ISlimColoniesAPI;
+import no.monopixel.slimcolonies.api.IMinecoloniesAPI;
 import no.monopixel.slimcolonies.api.colony.buildings.IBuilding;
 import no.monopixel.slimcolonies.api.colony.buildings.registry.BuildingEntry;
 import no.monopixel.slimcolonies.api.quests.IObjectiveInstance;
@@ -14,6 +10,11 @@ import no.monopixel.slimcolonies.api.quests.IQuestInstance;
 import no.monopixel.slimcolonies.api.quests.IQuestObjectiveTemplate;
 import no.monopixel.slimcolonies.core.colony.Colony;
 import no.monopixel.slimcolonies.core.event.QuestObjectiveEventHandler;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.Style;
+import net.minecraft.resources.ResourceLocation;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
@@ -60,13 +61,13 @@ public class BuildBuildingObjectiveTemplate extends DialogueObjectiveTemplateTem
      * @param rewards       the rewards this unlocks.
      */
     public BuildBuildingObjectiveTemplate(
-        final int target,
-        final BuildingEntry buildingEntry,
-        final int lvl,
-        final int qty,
-        final boolean countExisting,
-        final int nextObjective,
-        final List<Integer> rewards)
+      final int target,
+      final BuildingEntry buildingEntry,
+      final int lvl,
+      final int qty,
+      final boolean countExisting,
+      final int nextObjective,
+      final List<Integer> rewards)
     {
         super(target, buildDialogueTree(buildingEntry, qty, lvl, countExisting), rewards);
         this.lvl = lvl;
@@ -85,37 +86,31 @@ public class BuildBuildingObjectiveTemplate extends DialogueObjectiveTemplateTem
             if (qty > 0)
             {
                 text =
-                    Component.translatable("no.monopixel.slimcolonies.coremod.questobjectives.buildbuilding.existing",
-                        lvl,
-                        qty,
-                        Component.translatable(buildingEntry.getTranslationKey()));
+                  Component.translatableEscape("no.monopixel.slimcolonies.coremod.questobjectives.buildbuilding.existing", lvl, qty, Component.translatableEscape(buildingEntry.getTranslationKey()));
             }
             else
             {
-                text = Component.translatable("no.monopixel.slimcolonies.coremod.questobjectives.buildbuilding.cumulative.existing",
-                    lvl,
-                    Component.translatable(buildingEntry.getTranslationKey()));
+                text = Component.translatableEscape("no.monopixel.slimcolonies.coremod.questobjectives.buildbuilding.cumulative.existing",
+                  lvl,
+                  Component.translatableEscape(buildingEntry.getTranslationKey()));
             }
         }
         else
         {
             if (qty > 0)
             {
-                text =
-                    Component.translatable("no.monopixel.slimcolonies.coremod.questobjectives.buildbuilding", qty, lvl, Component.translatable(buildingEntry.getTranslationKey()));
+                text = Component.translatableEscape("no.monopixel.slimcolonies.coremod.questobjectives.buildbuilding", qty, lvl, Component.translatableEscape(buildingEntry.getTranslationKey()));
             }
             else
             {
-                text = Component.translatable("no.monopixel.slimcolonies.coremod.questobjectives.buildbuilding.cumulative",
-                    lvl,
-                    Component.translatable(buildingEntry.getTranslationKey()));
+                text = Component.translatableEscape("no.monopixel.slimcolonies.coremod.questobjectives.buildbuilding.cumulative", lvl, Component.translatableEscape(buildingEntry.getTranslationKey()));
             }
         }
 
-        final AnswerElement answer1 = new AnswerElement(Component.translatable("no.monopixel.slimcolonies.coremod.questobjectives.answer.later"),
-            new IQuestDialogueAnswer.CloseUIDialogueAnswer());
-        final AnswerElement answer2 = new AnswerElement(Component.translatable("no.monopixel.slimcolonies.coremod.questobjectives.answer.cancel"),
-            new IQuestDialogueAnswer.QuestCancellationDialogueAnswer());
+        final AnswerElement answer1 = new AnswerElement(Component.translatableEscape("no.monopixel.slimcolonies.coremod.questobjectives.answer.later"),
+          new IQuestDialogueAnswer.CloseUIDialogueAnswer());
+        final AnswerElement answer2 = new AnswerElement(Component.translatableEscape("no.monopixel.slimcolonies.coremod.questobjectives.answer.cancel"),
+          new IQuestDialogueAnswer.QuestCancellationDialogueAnswer());
         return new DialogueElement(text, List.of(answer1, answer2));
     }
 
@@ -125,12 +120,12 @@ public class BuildBuildingObjectiveTemplate extends DialogueObjectiveTemplateTem
      * @param jsonObject the json to parse it from.
      * @return a new objective object.
      */
-    public static IQuestObjectiveTemplate createObjective(final JsonObject jsonObject)
+    public static IQuestObjectiveTemplate createObjective(@NotNull final HolderLookup.Provider provider, final JsonObject jsonObject)
     {
         JsonObject details = jsonObject.getAsJsonObject(DETAILS_KEY);
 
         final int target = details.get(TARGET_KEY).getAsInt();
-        final BuildingEntry buildingEntry = ISlimColoniesAPI.getInstance().getBuildingRegistry().getValue(new ResourceLocation(details.get(BUILDING_KEY).getAsString()));
+        final BuildingEntry buildingEntry = IMinecoloniesAPI.getInstance().getBuildingRegistry().get(ResourceLocation.parse(details.get(BUILDING_KEY).getAsString()));
 
         final int level = details.get(LEVEL_KEY).getAsInt();
         final int quantity = details.get(QUANTITY_KEY).getAsInt();
@@ -166,7 +161,7 @@ public class BuildBuildingObjectiveTemplate extends DialogueObjectiveTemplateTem
     /**
      * Upon start, we want to check if the necessary buildings already exist.
      *
-     * @param colonyQuest   the quest instance.
+     * @param colonyQuest the quest instance.
      * @param localInstance the local instance to adjust if necessary.
      */
     private void checkInitialObjectiveProgress(final IQuestInstance colonyQuest, final IObjectiveInstance localInstance)
@@ -175,7 +170,7 @@ public class BuildBuildingObjectiveTemplate extends DialogueObjectiveTemplateTem
         {
             if (qty > 0)
             {
-                for (final IBuilding building : colonyQuest.getColony().getBuildingManager().getBuildings().values())
+                for (final IBuilding building : colonyQuest.getColony().getServerBuildingManager().getBuildings().values())
                 {
                     if (building.getBuildingType() == buildingEntry && building.getBuildingLevel() >= lvl)
                     {
@@ -185,7 +180,7 @@ public class BuildBuildingObjectiveTemplate extends DialogueObjectiveTemplateTem
             }
             else
             {
-                for (final IBuilding building : colonyQuest.getColony().getBuildingManager().getBuildings().values())
+                for (final IBuilding building : colonyQuest.getColony().getServerBuildingManager().getBuildings().values())
                 {
                     if (building.getBuildingType() == buildingEntry)
                     {
@@ -235,17 +230,17 @@ public class BuildBuildingObjectiveTemplate extends DialogueObjectiveTemplateTem
         {
             if (qty > 0)
             {
-                return Component.translatable("no.monopixel.slimcolonies.coremod.questobjectives.buildbuilding.progress",
-                    Math.min(progress.currentProgress, qty),
-                    qty,
-                    Component.translatable(buildingEntry.getTranslationKey()).setStyle(style));
+                return Component.translatableEscape("no.monopixel.slimcolonies.coremod.questobjectives.buildbuilding.progress",
+                  Math.min(progress.currentProgress, qty),
+                  qty,
+                  Component.translatableEscape(buildingEntry.getTranslationKey()).setStyle(style));
             }
             else
             {
-                return Component.translatable("no.monopixel.slimcolonies.coremod.questobjectives.buildbuilding.progress.cumulative",
-                    Math.min(progress.currentProgress, lvl),
-                    lvl,
-                    Component.translatable(buildingEntry.getTranslationKey()).setStyle(style));
+                return Component.translatableEscape("no.monopixel.slimcolonies.coremod.questobjectives.buildbuilding.progress.cumulative",
+                  Math.min(progress.currentProgress, lvl),
+                  lvl,
+                  Component.translatableEscape(buildingEntry.getTranslationKey()).setStyle(style));
             }
         }
         return Component.empty();
@@ -335,7 +330,7 @@ public class BuildBuildingObjectiveTemplate extends DialogueObjectiveTemplateTem
         }
 
         @Override
-        public CompoundTag serializeNBT()
+        public CompoundTag serializeNBT(@NotNull final HolderLookup.Provider provider)
         {
             final CompoundTag compoundTag = new CompoundTag();
             compoundTag.putInt(TAG_QUANTITY, currentProgress);
@@ -343,7 +338,7 @@ public class BuildBuildingObjectiveTemplate extends DialogueObjectiveTemplateTem
         }
 
         @Override
-        public void deserializeNBT(final CompoundTag nbt)
+        public void deserializeNBT(@NotNull final HolderLookup.Provider provider, final CompoundTag nbt)
         {
             this.currentProgress = nbt.getInt(TAG_QUANTITY);
         }

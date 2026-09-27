@@ -2,6 +2,7 @@ package no.monopixel.slimcolonies.api.colony.requestsystem.requestable.crafting;
 
 import no.monopixel.slimcolonies.api.colony.requestsystem.requestable.IRequestable;
 import no.monopixel.slimcolonies.api.colony.requestsystem.token.IToken;
+import no.monopixel.slimcolonies.api.util.ItemStackUtils;
 import no.monopixel.slimcolonies.api.util.Log;
 import net.minecraft.world.item.ItemStack;
 import org.jetbrains.annotations.NotNull;
@@ -52,16 +53,19 @@ public abstract class AbstractCrafting implements IRequestable
      */
     public AbstractCrafting(@NotNull final ItemStack stack, final int count, final int minCount, final IToken<?> recipeToken)
     {
-        if (stack.isEmpty())
-        {
-            throw new IllegalArgumentException("Cannot create crafting request with empty ItemStack (likely from removed mod)");
-        }
-
         this.theStack = stack.copy();
         this.count = count;
         this.minCount = minCount;
         this.recipeToken = recipeToken;
-        this.theStack.setCount(Math.min(this.theStack.getCount(), this.theStack.getMaxStackSize()));
+
+        if (stack.isEmpty())
+        {
+            Log.getLogger().error("Created Empty Stack", new Exception());
+        }
+        else
+        {
+            this.theStack.setCount(Math.min(this.theStack.getCount(), this.theStack.getMaxStackSize()));
+        }
     }
 
     @NotNull

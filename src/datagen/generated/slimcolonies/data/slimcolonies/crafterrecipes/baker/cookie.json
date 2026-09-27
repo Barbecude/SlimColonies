@@ -1,18 +1,14 @@
 {
   "type": "recipe",
-  "count": 8,
-  "crafter": "baker_crafting",
+  "crafter": "baker_smelting",
   "inputs": [
     {
-      "count": 2,
-      "item": "minecraft:wheat"
-    },
-    {
-      "count": 2,
-      "item": "minecraft:cocoa_beans"
+      "id": "slimcolonies:cookie_dough"
     }
   ],
-  "intermediate": "minecraft:air",
+  "intermediate": "minecraft:furnace",
   "min-building-level": 2,
-  "result": "minecraft:cookie"
+  "result": {
+    "id": "minecraft:cookie"
+  }
 }

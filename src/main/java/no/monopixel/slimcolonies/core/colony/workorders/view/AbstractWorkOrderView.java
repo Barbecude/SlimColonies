@@ -1,18 +1,16 @@
 package no.monopixel.slimcolonies.core.colony.workorders.view;
 
+import com.ldtteam.structurize.api.RotationMirror;
 import com.ldtteam.structurize.blueprints.v1.Blueprint;
-import com.ldtteam.structurize.util.RotationMirror;
 import no.monopixel.slimcolonies.api.colony.IColony;
 import no.monopixel.slimcolonies.api.colony.workorders.IWorkOrderView;
 import no.monopixel.slimcolonies.api.colony.workorders.WorkOrderType;
-import no.monopixel.slimcolonies.api.util.BlockPosUtil;
 import no.monopixel.slimcolonies.api.util.ColonyUtils;
 import no.monopixel.slimcolonies.api.util.constant.Constants;
 import no.monopixel.slimcolonies.core.entity.ai.workers.util.BuildingProgressStage;
 import net.minecraft.core.BlockPos;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.level.block.Mirror;
 import net.minecraft.world.phys.AABB;
 import org.jetbrains.annotations.NotNull;
 
@@ -63,12 +61,7 @@ public abstract class AbstractWorkOrderView implements IWorkOrderView
     /**
      * Position where its being built at.
      */
-    private int rotation;
-
-    /**
-     * Position where its being built at.
-     */
-    private boolean isMirrored;
+    private RotationMirror rotationMirror;
 
     /**
      * The level it's at before the upgrade.
@@ -154,7 +147,7 @@ public abstract class AbstractWorkOrderView implements IWorkOrderView
         if (blueprint != null)
         {
             this.blueprint = blueprint;
-            blueprint.setRotationMirror(RotationMirror.of(BlockPosUtil.getRotationFromRotations(rotation), isMirrored ? Mirror.FRONT_BACK : Mirror.NONE), world);
+            blueprint.setRotationMirror(getRotationMirror(), world);
         }
     }
 
@@ -252,15 +245,9 @@ public abstract class AbstractWorkOrderView implements IWorkOrderView
     }
 
     @Override
-    public int getRotation()
+    public RotationMirror getRotationMirror()
     {
-        return rotation;
-    }
-
-    @Override
-    public boolean isMirrored()
-    {
-        return isMirrored;
+        return rotationMirror;
     }
 
     @Override
@@ -282,7 +269,7 @@ public abstract class AbstractWorkOrderView implements IWorkOrderView
     }
 
     @Override
-    public void deserialize(@NotNull final FriendlyByteBuf buf)
+    public void deserialize(@NotNull final RegistryFriendlyByteBuf buf)
     {
         id = buf.readInt();
         priority = buf.readInt();
@@ -292,8 +279,7 @@ public abstract class AbstractWorkOrderView implements IWorkOrderView
         translationKey = buf.readUtf(32767);
         workOrderType = WorkOrderType.values()[buf.readInt()];
         location = buf.readBlockPos();
-        rotation = buf.readInt();
-        isMirrored = buf.readBoolean();
+        rotationMirror = RotationMirror.values()[buf.readByte()];
         currentLevel = buf.readInt();
         targetLevel = buf.readInt();
         stage = BuildingProgressStage.values()[buf.readInt()];

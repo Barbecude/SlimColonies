@@ -1,7 +1,19 @@
 package no.monopixel.slimcolonies.core.colony.buildings.workerbuildings;
 
 import com.google.common.collect.ImmutableList;
+import no.monopixel.slimcolonies.api.blocks.ModBlocks;
+import no.monopixel.slimcolonies.api.colony.IColony;
+import no.monopixel.slimcolonies.api.colony.IColonyManager;
+import no.monopixel.slimcolonies.api.crafting.ItemStorage;
+import no.monopixel.slimcolonies.api.equipment.ModEquipmentTypes;
+import no.monopixel.slimcolonies.api.items.ModItems;
+import no.monopixel.slimcolonies.api.util.ItemStackUtils;
+import no.monopixel.slimcolonies.api.util.MathUtils;
+import no.monopixel.slimcolonies.api.util.NBTUtils;
+import no.monopixel.slimcolonies.core.colony.buildings.AbstractBuilding;
+import no.monopixel.slimcolonies.core.colony.buildings.modules.ItemListModule;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.NbtUtils;
@@ -12,16 +24,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
-import no.monopixel.slimcolonies.api.blocks.ModBlocks;
-import no.monopixel.slimcolonies.api.colony.IColony;
-import no.monopixel.slimcolonies.api.colony.IColonyManager;
-import no.monopixel.slimcolonies.api.crafting.ItemStorage;
-import no.monopixel.slimcolonies.api.equipment.ModEquipmentTypes;
-import no.monopixel.slimcolonies.api.items.ModItems;
-import no.monopixel.slimcolonies.api.util.ItemStackUtils;
-import no.monopixel.slimcolonies.api.util.MathUtils;
-import no.monopixel.slimcolonies.core.colony.buildings.AbstractBuilding;
-import no.monopixel.slimcolonies.core.colony.buildings.modules.ItemListModule;
+
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -32,6 +35,7 @@ import java.util.stream.Collectors;
 
 import static no.monopixel.slimcolonies.api.util.constant.BuildingConstants.BUILDING_FLOWER_LIST;
 import static no.monopixel.slimcolonies.api.util.constant.Constants.STACKSIZE;
+import static no.monopixel.slimcolonies.api.util.constant.EquipmentLevelConstants.TOOL_LEVEL_WOOD_OR_GOLD;
 import static no.monopixel.slimcolonies.api.util.constant.NbtTagConstants.TAG_PLANTGROUND;
 import static no.monopixel.slimcolonies.api.util.constant.NbtTagConstants.TAG_POS;
 
@@ -65,7 +69,7 @@ public class BuildingFlorist extends AbstractBuilding
     {
         super(c, l);
         keepX.put((stack) -> stack.getItem() == ModItems.compost, new Tuple<>(STACKSIZE, true));
-        keepX.put(itemStack -> ItemStackUtils.isEquipmentType(itemStack, ModEquipmentTypes.shears.get()), new Tuple<>(1, true));
+        keepX.put(itemStack -> ItemStackUtils.hasEquipmentLevel(itemStack, ModEquipmentTypes.shears.get(), TOOL_LEVEL_WOOD_OR_GOLD, getMaxEquipmentLevel()), new Tuple<>(1, true));
     }
 
     /**
@@ -102,26 +106,24 @@ public class BuildingFlorist extends AbstractBuilding
     }
 
     @Override
-    public void deserializeNBT(final CompoundTag compound)
+    public void deserializeNBT(@NotNull final HolderLookup.Provider provider, final CompoundTag compound)
     {
-        super.deserializeNBT(compound);
-        final ListTag compostBinTagList = compound.getList(TAG_PLANTGROUND, Tag.TAG_COMPOUND);
+        super.deserializeNBT(provider, compound);
+        final ListTag compostBinTagList = compound.getList(TAG_PLANTGROUND, Tag.TAG_INT_ARRAY);
         for (int i = 0; i < compostBinTagList.size(); ++i)
         {
-            plantGround.add(NbtUtils.readBlockPos(compostBinTagList.getCompound(i).getCompound(TAG_POS)));
+            plantGround.add(NBTUtils.readBlockPos(compostBinTagList.get(i)));
         }
     }
 
     @Override
-    public CompoundTag serializeNBT()
+    public CompoundTag serializeNBT(@NotNull final HolderLookup.Provider provider)
     {
-        final CompoundTag compound = super.serializeNBT();
+        final CompoundTag compound = super.serializeNBT(provider);
         @NotNull final ListTag compostBinTagList = new ListTag();
         for (@NotNull final BlockPos entry : plantGround)
         {
-            @NotNull final CompoundTag compostBinCompound = new CompoundTag();
-            compostBinCompound.put(TAG_POS, NbtUtils.writeBlockPos(entry));
-            compostBinTagList.add(compostBinCompound);
+            compostBinTagList.add(NBTUtils.writeBlockPos(entry));
         }
         compound.put(TAG_PLANTGROUND, compostBinTagList);
 
@@ -147,7 +149,7 @@ public class BuildingFlorist extends AbstractBuilding
     public ItemStack getFlowerToGrow()
     {
         final List<ItemStorage> stacks = getPlantablesForBuildingLevel(getBuildingLevel()).stream()
-            .filter(stack -> !getModuleMatching(ItemListModule.class, m -> m.getId().equals(BUILDING_FLOWER_LIST)).isItemInList(stack)).toList();
+          .filter(stack -> !getModuleMatching(ItemListModule.class, m -> m.getId().equals(BUILDING_FLOWER_LIST)).isItemInList(stack)).toList();
 
         if (stacks.isEmpty())
         {
@@ -170,12 +172,12 @@ public class BuildingFlorist extends AbstractBuilding
             case 0:
             case 1:
                 return IColonyManager.getInstance().getCompatibilityManager().getCopyOfPlantables().stream()
-                    .filter(storage -> storage.getItem() == Items.POPPY || storage.getItem() == Items.DANDELION)
-                    .collect(Collectors.toSet());
+                         .filter(storage -> storage.getItem() == Items.POPPY || storage.getItem() == Items.DANDELION)
+                         .collect(Collectors.toSet());
             case 2:
                 return IColonyManager.getInstance().getCompatibilityManager().getCopyOfPlantables().stream()
-                    .filter(itemStorage -> itemStorage.getItemStack().is(ItemTags.SMALL_FLOWERS))
-                    .collect(Collectors.toSet());
+                         .filter(itemStorage -> itemStorage.getItemStack().is(ItemTags.SMALL_FLOWERS))
+                         .collect(Collectors.toSet());
             case 3:
             case 4:
             case 5:

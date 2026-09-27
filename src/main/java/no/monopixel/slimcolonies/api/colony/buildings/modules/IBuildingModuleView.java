@@ -6,12 +6,14 @@ import no.monopixel.slimcolonies.api.colony.buildings.registry.BuildingEntry;
 import no.monopixel.slimcolonies.api.colony.buildings.views.IBuildingView;
 import no.monopixel.slimcolonies.api.util.constant.Constants;
 
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.api.distmarker.OnlyIn;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.api.distmarker.OnlyIn;
 
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Default interface for all client side building modules.
@@ -22,7 +24,7 @@ public interface IBuildingModuleView
      * Deserialize the data on the client side.
      * @param buf the buffer to read it from.
      */
-    void deserialize(@NotNull final FriendlyByteBuf buf);
+    void deserialize(@NotNull final RegistryFriendlyByteBuf buf);
 
     /**
      * Set the building view of this module view.
@@ -63,12 +65,15 @@ public interface IBuildingModuleView
     {
         return new ResourceLocation(Constants.MOD_ID, "textures/gui/modules/" + getIcon() + ".png");
     }
-
+    
     /**
      * Get the lang string for the title.
      * @return the lang string.
      */
-    String getDesc();
+    @Nullable
+    Component getDesc();
+
+    IBuildingModuleView setColonyView(IColonyView colonyView);
 
     /**
      * Get the colony view the module belongs to.

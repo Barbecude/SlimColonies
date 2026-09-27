@@ -18,6 +18,7 @@ import no.monopixel.slimcolonies.core.tileentities.TileEntityDecorationControlle
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
 
@@ -31,11 +32,6 @@ import static no.monopixel.slimcolonies.api.util.constant.WindowConstants.*;
  */
 public class WindowDecorationController extends AbstractWindowSkeleton
 {
-    /**
-     * Resource suffix of GUI xml file.
-     */
-    private static final String HUT_NAME_RESOURCE_SUFFIX = ":gui/windowdecorationcontroller.xml";
-
     /**
      * The building associated to the GUI.
      */
@@ -53,7 +49,7 @@ public class WindowDecorationController extends AbstractWindowSkeleton
      */
     public WindowDecorationController(final BlockPos b)
     {
-        super(Constants.MOD_ID + HUT_NAME_RESOURCE_SUFFIX);
+        super(new ResourceLocation(Constants.MOD_ID, "gui/windowdecorationcontroller.xml"));
         this.controller = (TileEntityDecorationController) world.getBlockEntity(b);
         registerButton(BUTTON_BUILD, this::buildClicked);
         registerButton(BUTTON_REPAIR, this::repairClicked);
@@ -77,21 +73,21 @@ public class WindowDecorationController extends AbstractWindowSkeleton
             {
                 findPaneByID(BUTTON_BUILD).show();
 
-                buttonBuild.setText(Component.translatable(ACTION_CANCEL_BUILD));
+                buttonBuild.setText(Component.translatableEscape(ACTION_CANCEL_BUILD));
                 if (wo.get().getWorkOrderType() == WorkOrderType.REPAIR)
                 {
-                    buttonBuild.setText(Component.translatable(ACTION_CANCEL_REPAIR));
+                    buttonBuild.setText(Component.translatableEscape(ACTION_CANCEL_REPAIR));
                 }
             }
             else
             {
-                buttonBuild.setText(Component.translatable(ACTION_UPGRADE));
+                buttonBuild.setText(Component.translatableEscape(ACTION_UPGRADE));
 
                 try
                 {
                     final String cleanedPackName = this.controller.getPackName().replace(Minecraft.getInstance().player.getUUID().toString(), "");
                     ClientFutureProcessor.queueBlueprint(new ClientFutureProcessor.BlueprintProcessingData(StructurePacks.getBlueprintFuture(cleanedPackName,
-                      StructurePacks.getStructurePack(cleanedPackName).getPath().resolve(this.controller.getBlueprintPath())), (blueprint -> {
+                      StructurePacks.getStructurePack(cleanedPackName).getPath().resolve(this.controller.getBlueprintPath()), mc.level.registryAccess()), (blueprint -> {
                         if (blueprint != null)
                         {
                             final BlockState blockState = blueprint.getBlockState(blueprint.getPrimaryBlockOffset());
@@ -106,7 +102,7 @@ public class WindowDecorationController extends AbstractWindowSkeleton
                     {
                         final String path = this.controller.getBlueprintPath().replace(level + ".blueprint", (level + 1) + ".blueprint");
                         ClientFutureProcessor.queueBlueprint(new ClientFutureProcessor.BlueprintProcessingData(StructurePacks.getBlueprintFuture(cleanedPackName,
-                          StructurePacks.getStructurePack(cleanedPackName).getPath().resolve(path)),
+                          StructurePacks.getStructurePack(cleanedPackName).getPath().resolve(path), mc.level.registryAccess()),
                           (blueprint -> {
                               if (blueprint != null)
                               {
@@ -148,15 +144,13 @@ public class WindowDecorationController extends AbstractWindowSkeleton
         new WindowBuildDecoration(controller.getBlockPos(),
           controller.getPackName(),
           path,
-          controller.getRotation(),
-          controller.getMirror(),
+          controller.getRotationMirror(),
           builder -> new DecorationBuildRequestMessage(WorkOrderType.BUILD,
             controller.getBlockPos(),
             controller.getPackName(),
             path,
             Minecraft.getInstance().level.dimension(),
-            controller.getRotation(),
-            controller.getMirror(),
+            controller.getRotationMirror(),
             builder)).open();
     }
 
@@ -169,15 +163,13 @@ public class WindowDecorationController extends AbstractWindowSkeleton
         new WindowBuildDecoration(controller.getBlockPos(),
           controller.getPackName(),
           controller.getBlueprintPath(),
-          controller.getRotation(),
-          controller.getMirror(),
+          controller.getRotationMirror(),
           builder -> new DecorationBuildRequestMessage(WorkOrderType.REPAIR,
             controller.getBlockPos(),
             controller.getPackName(),
             controller.getBlueprintPath(),
             Minecraft.getInstance().level.dimension(),
-            controller.getRotation(),
-            controller.getMirror(),
+            controller.getRotationMirror(),
             builder)).open();
     }
 }

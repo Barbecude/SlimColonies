@@ -1,7 +1,6 @@
 package no.monopixel.slimcolonies.api.eventbus.events.colony.citizens;
 
 import no.monopixel.slimcolonies.api.colony.ICitizenData;
-import no.monopixel.slimcolonies.api.configuration.ServerConfiguration;
 
 /**
  * Event for when a citizen was added to the colony.
@@ -41,7 +40,7 @@ public final class CitizenAddedModEvent extends AbstractCitizenModEvent
     public enum CitizenAddedSource
     {
         /**
-         * The citizen spawned as part of the {@link ServerConfiguration#initialCitizenAmount}.
+         * The citizen spawned as part of the {@link no.monopixel.slimcolonies.api.configuration.ServerConfiguration#initialCitizenAmount}.
          */
         INITIAL,
         /**

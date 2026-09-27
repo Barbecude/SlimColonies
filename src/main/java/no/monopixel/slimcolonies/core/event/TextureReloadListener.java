@@ -1,14 +1,16 @@
 package no.monopixel.slimcolonies.core.event;
 
+import com.ldtteam.blockui.AtlasManager;
 import no.monopixel.slimcolonies.api.util.constant.Constants;
 import net.minecraft.server.packs.resources.SimplePreparableReloadListener;
 import net.minecraft.util.profiling.ProfilerFiller;
 import net.minecraft.server.packs.resources.ResourceManager;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.client.event.RegisterClientReloadListenersEvent;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.fml.common.Mod;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.fml.common.EventBusSubscriber;
+import net.neoforged.fml.common.Mod;
+import net.neoforged.neoforge.client.event.RegisterClientReloadListenersEvent;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
@@ -16,12 +18,12 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import static net.minecraftforge.fml.common.Mod.EventBusSubscriber.Bus.MOD;
+import static net.neoforged.fml.common.EventBusSubscriber.Bus.MOD;
 
 /**
  * Specific texture reload listener.
  */
-@Mod.EventBusSubscriber(value= Dist.CLIENT, modid= Constants.MOD_ID, bus=MOD)
+@EventBusSubscriber(value= Dist.CLIENT, modid= Constants.MOD_ID, bus=MOD)
 public class TextureReloadListener extends SimplePreparableReloadListener<TextureReloadListener.TexturePacks>
 {
     /**
@@ -71,5 +73,9 @@ public class TextureReloadListener extends SimplePreparableReloadListener<Textur
     public static void modInitClient(final RegisterClientReloadListenersEvent event)
     {
         event.registerReloadListener(new TextureReloadListener());
+
+        // registry slimcolonies gui atlas
+        AtlasManager.INSTANCE.addAtlas(event::registerReloadListener, Constants.MOD_ID);
     }
 }
+

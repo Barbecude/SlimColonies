@@ -178,3 +178,4 @@ public enum Skill
     @Nullable
     public abstract Skill getAdverse();
 }
+

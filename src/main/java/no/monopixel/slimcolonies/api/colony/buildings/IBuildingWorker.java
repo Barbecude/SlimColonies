@@ -4,7 +4,7 @@ import no.monopixel.slimcolonies.api.colony.ICitizenData;
 import no.monopixel.slimcolonies.api.colony.jobs.IJob;
 import no.monopixel.slimcolonies.api.entity.citizen.Skill;
 import net.minecraft.world.item.ItemStack;
-import net.minecraftforge.items.IItemHandler;
+import net.neoforged.neoforge.items.IItemHandler;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -12,6 +12,10 @@ import java.util.List;
 
 public interface IBuildingWorker extends IBuilding
 {
+    /**
+     * Minimal level to ask for wood tools. (WOOD_HUT_LEVEL + 1 == stone)
+     */
+    int WOOD_HUT_LEVEL = 0;
 
     /**
      * The abstract method which creates a job for the building.
@@ -61,7 +65,19 @@ public interface IBuildingWorker extends IBuilding
     @NotNull
     String getJobName();
 
+    /**
+     * Get the max tool level useable by the worker.
+     *
+     * @return the integer.
+     */
+    int getMaxEquipmentLevel();
 
+    /**
+     * Method which defines if a worker should be allowed to work during the rain.
+     *
+     * @return true if so.
+     */
+    boolean canWorkDuringTheRain();
 
     /**
      * Primary skill getter.

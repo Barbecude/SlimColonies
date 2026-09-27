@@ -1,0 +1,75 @@
+{
+  "type": "minecraft:entity",
+  "pools": [
+    {
+      "bonus_rolls": 0.0,
+      "entries": [
+        {
+          "type": "minecraft:empty",
+          "weight": 50
+        },
+        {
+          "type": "minecraft:item",
+          "name": "slimcolonies:pirate_hat",
+          "quality": 1,
+          "weight": 5
+        },
+        {
+          "type": "minecraft:item",
+          "name": "slimcolonies:pirate_leggins",
+          "quality": 1,
+          "weight": 5
+        },
+        {
+          "type": "minecraft:item",
+          "name": "slimcolonies:pirate_boots",
+          "quality": 1,
+          "weight": 5
+        },
+        {
+          "type": "minecraft:item",
+          "name": "slimcolonies:pirate_top",
+          "quality": 1,
+          "weight": 5
+        },
+        {
+          "type": "minecraft:item",
+          "name": "slimcolonies:pirate_cap",
+          "quality": 1,
+          "weight": 5
+        },
+        {
+          "type": "minecraft:item",
+          "name": "slimcolonies:pirate_legs",
+          "quality": 1,
+          "weight": 5
+        },
+        {
+          "type": "minecraft:item",
+          "name": "slimcolonies:pirate_shoes",
+          "quality": 1,
+          "weight": 5
+        },
+        {
+          "type": "minecraft:item",
+          "name": "slimcolonies:pirate_chest",
+          "quality": 1,
+          "weight": 5
+        },
+        {
+          "type": "minecraft:item",
+          "name": "slimcolonies:iron_scimitar",
+          "quality": 1,
+          "weight": 25
+        },
+        {
+          "type": "minecraft:item",
+          "name": "slimcolonies:ancienttome",
+          "weight": 30
+        }
+      ],
+      "rolls": 1.0
+    }
+  ],
+  "random_sequence": "slimcolonies:entities/drownedchiefpirate"
+}

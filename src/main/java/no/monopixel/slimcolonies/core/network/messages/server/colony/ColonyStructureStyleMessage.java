@@ -1,27 +1,24 @@
 package no.monopixel.slimcolonies.core.network.messages.server.colony;
 
+import com.ldtteam.common.network.PlayMessageType;
 import no.monopixel.slimcolonies.api.colony.IColony;
+import no.monopixel.slimcolonies.api.util.constant.Constants;
 import no.monopixel.slimcolonies.core.network.messages.server.AbstractColonyServerMessage;
-import net.minecraft.network.FriendlyByteBuf;
-import net.minecraftforge.network.NetworkEvent;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.server.level.ServerPlayer;
+import net.neoforged.neoforge.network.handling.IPayloadContext;
 
 /**
  * Message to set the colony default structure style.
  */
 public class ColonyStructureStyleMessage extends AbstractColonyServerMessage
 {
+    public static final PlayMessageType<?> TYPE = PlayMessageType.forServer(Constants.MOD_ID, "colony_structure_style", ColonyStructureStyleMessage::new);
+
     /**
      * The chosen pack.
      */
-    private String pack;
-
-    /**
-     * Default constructor
-     **/
-    public ColonyStructureStyleMessage()
-    {
-        super();
-    }
+    private final String pack;
 
     /**
      * Change the colony default pack from the client to the serverside.
@@ -31,25 +28,27 @@ public class ColonyStructureStyleMessage extends AbstractColonyServerMessage
      */
     public ColonyStructureStyleMessage(final IColony colony, final String pack)
     {
-        super(colony);
+        super(TYPE, colony);
         this.pack = pack;
     }
 
     @Override
-    protected void onExecute(NetworkEvent.Context ctxIn, boolean isLogicalServer, IColony colony)
+    protected void onExecute(final IPayloadContext ctxIn, final ServerPlayer player, final IColony colony)
     {
         colony.setStructurePack(pack);
     }
 
     @Override
-    protected void toBytesOverride(FriendlyByteBuf buf)
+    protected void toBytes(final RegistryFriendlyByteBuf buf)
     {
+        super.toBytes(buf);
         buf.writeUtf(pack);
     }
 
-    @Override
-    protected void fromBytesOverride(FriendlyByteBuf buf)
+    protected ColonyStructureStyleMessage(final RegistryFriendlyByteBuf buf, final PlayMessageType<?> type)
     {
+        super(buf, type);
         this.pack = buf.readUtf(32767);
     }
 }
+

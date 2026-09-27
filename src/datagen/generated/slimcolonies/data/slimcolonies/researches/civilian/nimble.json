@@ -1,5 +1,11 @@
 {
   "branch": "slimcolonies:civilian",
+  "costs": [
+    {
+      "count": 4,
+      "item": "minecraft:rabbit_foot"
+    }
+  ],
   "effects": [
     {
       "id": "slimcolonies:effects/walkingmultiplier",

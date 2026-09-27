@@ -1,21 +1,21 @@
 package no.monopixel.slimcolonies.core.blocks;
 
-import net.minecraft.core.BlockPos;
-import net.minecraft.core.Direction;
-import net.minecraft.resources.ResourceLocation;
-import net.minecraft.world.level.BlockGetter;
-import net.minecraft.world.level.block.SoundType;
-import net.minecraft.world.level.block.entity.BlockEntity;
-import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.level.material.MapColor;
-import net.minecraft.world.phys.shapes.CollisionContext;
-import net.minecraft.world.phys.shapes.Shapes;
-import net.minecraft.world.phys.shapes.VoxelShape;
-import net.minecraftforge.common.IPlantable;
-import no.monopixel.slimcolonies.api.blocks.AbstractBlockSlimColonies;
-import no.monopixel.slimcolonies.api.blocks.interfaces.ITickableBlockSlimColonies;
+import no.monopixel.slimcolonies.api.blocks.AbstractBlockMinecolonies;
+import no.monopixel.slimcolonies.api.blocks.interfaces.ITickableBlockMinecolonies;
 import no.monopixel.slimcolonies.api.util.constant.Constants;
 import no.monopixel.slimcolonies.core.tileentities.TileEntityCompostedDirt;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.SoundType;
+import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.core.Direction;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.level.material.MapColor;
+import net.minecraft.world.phys.shapes.CollisionContext;
+import net.minecraft.world.phys.shapes.VoxelShape;
+import net.minecraft.world.phys.shapes.Shapes;
+import net.minecraft.world.level.BlockGetter;
+import net.neoforged.neoforge.common.util.TriState;
 import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nullable;
@@ -23,7 +23,7 @@ import javax.annotation.Nullable;
 /**
  * Block that if activated with BoneMeal or Compost by an AI will produce flowers by intervals until it deactivates
  */
-public class BlockCompostedDirt extends AbstractBlockSlimColonies<BlockCompostedDirt> implements ITickableBlockSlimColonies
+public class BlockCompostedDirt extends AbstractBlockMinecolonies<BlockCompostedDirt> implements ITickableBlockMinecolonies
 {
     private static final String     BLOCK_NAME     = "composted_dirt";
     private static final float      BLOCK_HARDNESS = 5f;
@@ -41,7 +41,7 @@ public class BlockCompostedDirt extends AbstractBlockSlimColonies<BlockComposted
     @Override
     public ResourceLocation getRegistryName()
     {
-        return ResourceLocation.fromNamespaceAndPath(Constants.MOD_ID, BLOCK_NAME);
+        return new ResourceLocation(Constants.MOD_ID, BLOCK_NAME);
     }
 
     @Nullable
@@ -59,13 +59,8 @@ public class BlockCompostedDirt extends AbstractBlockSlimColonies<BlockComposted
     }
 
     @Override
-    public boolean canSustainPlant(
-        @NotNull final BlockState state,
-        @NotNull final BlockGetter world,
-        final BlockPos pos,
-        @NotNull final Direction facing,
-        final IPlantable plantable)
+    public TriState canSustainPlant(final BlockState state, final BlockGetter level, final BlockPos soilPosition, final Direction facing, final BlockState plant)
     {
-        return true;
+        return TriState.TRUE;
     }
 }

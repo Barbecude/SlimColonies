@@ -1,5 +1,11 @@
 {
   "branch": "slimcolonies:technology",
+  "costs": [
+    {
+      "count": 256,
+      "item": "minecraft:redstone"
+    }
+  ],
   "effects": [
     {
       "id": "slimcolonies:effects/blockbreakspeedmultiplier",

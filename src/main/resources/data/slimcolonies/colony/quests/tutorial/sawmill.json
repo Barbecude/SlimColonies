@@ -2,7 +2,7 @@
   "name": "I saw that!",
   "max-occurrences": 1,
   "parents": [
-    "slimcolonies:tutorial/university"
+    "slimcolonies:tutorial/hospital"
   ],
   "triggers": [
     {
@@ -10,7 +10,7 @@
       "state": {
         "notmatch": {
           "finavquests": [
-            "slimcolonies:tutorial/university"
+            "slimcolonies:tutorial/hospital"
           ]
         }
       }
@@ -151,8 +151,10 @@
     {
       "type": "slimcolonies:item",
       "details": {
-        "item": "minecraft:diamond",
-        "qty": 3
+        "item": {
+          "id": "minecraft:diamond",
+          "count": 3
+        }
       }
     }
   ]

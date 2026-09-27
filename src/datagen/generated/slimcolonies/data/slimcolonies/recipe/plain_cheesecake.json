@@ -1,0 +1,31 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "ingredients": [
+    {
+      "item": "slimcolonies:creamcheese"
+    },
+    {
+      "item": "slimcolonies:creamcheese"
+    },
+    {
+      "item": "slimcolonies:durum"
+    },
+    {
+      "item": "slimcolonies:butter"
+    },
+    {
+      "item": "minecraft:sugar"
+    },
+    {
+      "item": "minecraft:egg"
+    },
+    {
+      "item": "minecraft:egg"
+    }
+  ],
+  "result": {
+    "count": 1,
+    "id": "slimcolonies:plain_cheesecake"
+  }
+}

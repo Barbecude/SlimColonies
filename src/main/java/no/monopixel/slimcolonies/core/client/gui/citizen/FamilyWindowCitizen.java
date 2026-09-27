@@ -6,20 +6,14 @@ import com.ldtteam.blockui.views.ScrollingList;
 import no.monopixel.slimcolonies.api.colony.ICitizenDataView;
 import no.monopixel.slimcolonies.api.util.constant.Constants;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
 import org.jetbrains.annotations.NotNull;
-
-import static no.monopixel.slimcolonies.api.util.constant.WindowConstants.CITIZEN_FAM_RESOURCE_SUFFIX;
 
 /**
  * BOWindow for the citizen.
  */
 public class FamilyWindowCitizen extends AbstractWindowCitizen
 {
-    /**
-     * Assigned citizen.
-     */
-    private final ICitizenDataView citizen;
-
     /**
      * Holder of a list element
      */
@@ -33,8 +27,7 @@ public class FamilyWindowCitizen extends AbstractWindowCitizen
      */
     public FamilyWindowCitizen(final ICitizenDataView citizen)
     {
-        super(citizen, Constants.MOD_ID + CITIZEN_FAM_RESOURCE_SUFFIX);
-        this.citizen = citizen;
+        super(citizen, new ResourceLocation(Constants.MOD_ID, "gui/citizen/family.xml"));
         siblingList = findPaneOfTypeByID("siblings", ScrollingList.class);
         childrenList = findPaneOfTypeByID("children", ScrollingList.class);
     }
@@ -47,12 +40,8 @@ public class FamilyWindowCitizen extends AbstractWindowCitizen
         final String firstParent = citizen.getParents().getA();
         final String secondParent = citizen.getParents().getB();
 
-        findPaneOfTypeByID("parentA", Text.class).setText(firstParent.isEmpty()
-            ? Component.translatable("no.monopixel.slimcolonies.coremod.gui.citizen.family.unknown")
-            : Component.literal(firstParent));
-        findPaneOfTypeByID("parentB", Text.class).setText(secondParent.isEmpty()
-            ? Component.translatable("no.monopixel.slimcolonies.coremod.gui.citizen.family.unknown")
-            : Component.literal(secondParent));
+        findPaneOfTypeByID("parentA", Text.class).setText(firstParent.isEmpty() ? Component.translatableEscape("no.monopixel.slimcolonies.coremod.gui.citizen.family.unknown") : Component.literal(firstParent));
+        findPaneOfTypeByID("parentB", Text.class).setText(secondParent.isEmpty() ? Component.translatableEscape("no.monopixel.slimcolonies.coremod.gui.citizen.family.unknown") : Component.literal(secondParent));
 
         final int partner = citizen.getPartner();
         final ICitizenDataView partnerView = colony.getCitizen(partner);

@@ -1,0 +1,31 @@
+{
+  "branch": "slimcolonies:technology",
+  "costs": [
+    {
+      "count": 16,
+      "item": "minecraft:ender_eye"
+    },
+    {
+      "count": 1,
+      "item": "slimcolonies:ancienttome"
+    }
+  ],
+  "effects": [
+    {
+      "id": "slimcolonies:effects/netherexpeditionlog",
+      "level": 1
+    }
+  ],
+  "icon": "minecraft:ender_eye",
+  "parentResearch": "slimcolonies:technology/opennether",
+  "requirements": [
+    {
+      "type": "slimcolonies:building",
+      "building": "slimcolonies:netherworker",
+      "level": 1
+    }
+  ],
+  "researchLevel": 3,
+  "sortOrder": 4,
+  "subtitle": "no.monopixel.slimcolonies.research.technology.netherlog.subtitle"
+}

@@ -1,16 +1,21 @@
 package no.monopixel.slimcolonies.core.network.messages.client;
 
-import no.monopixel.slimcolonies.api.network.IMessage;
+import com.ldtteam.common.network.AbstractClientPlayMessage;
+import com.ldtteam.common.network.PlayMessageType;
+import no.monopixel.slimcolonies.api.util.constant.Constants;
 import no.monopixel.slimcolonies.core.client.gui.townhall.WindowTownHallDeleteAbandonColony;
 import net.minecraft.core.BlockPos;
-import net.minecraft.network.FriendlyByteBuf;
-import net.minecraftforge.network.NetworkEvent;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.world.entity.player.Player;
+import net.neoforged.neoforge.network.handling.IPayloadContext;
 
 /**
  * Message to open the colony founding covenant.
  */
-public class OpenDeleteAbandonColonyMessage implements IMessage
+public class OpenDeleteAbandonColonyMessage  extends AbstractClientPlayMessage
 {
+    public static final PlayMessageType<?> TYPE = PlayMessageType.forClient(Constants.MOD_ID, "open_delete_abandon_colony", OpenDeleteAbandonColonyMessage::new);
+
     /**
      * Colony pos at which we are trying to place.
      */
@@ -34,14 +39,18 @@ public class OpenDeleteAbandonColonyMessage implements IMessage
     /**
      * Default constructor
      **/
-    public OpenDeleteAbandonColonyMessage()
+    public OpenDeleteAbandonColonyMessage(RegistryFriendlyByteBuf buf, final PlayMessageType<?> type)
     {
-        super();
+        super(type);
+        this.currentTownHallPos = buf.readBlockPos();
+        this.oldColonyName = buf.readUtf(32767);
+        this.oldColonyPos = buf.readBlockPos();
+        this.oldColonyId = buf.readInt();
     }
 
     public OpenDeleteAbandonColonyMessage(final BlockPos currentTownHallPos, final String oldColonyName, final BlockPos oldColonyPos, final int oldColonyId)
     {
-        super();
+        super(TYPE);
         this.currentTownHallPos = currentTownHallPos;
         this.oldColonyName = oldColonyName;
         this.oldColonyPos = oldColonyPos;
@@ -49,26 +58,17 @@ public class OpenDeleteAbandonColonyMessage implements IMessage
     }
 
     @Override
-    public void onExecute(NetworkEvent.Context ctxIn, boolean isLogicalServer)
+    protected void onExecute(final IPayloadContext ctxIn, final Player player)
     {
-        new WindowTownHallDeleteAbandonColony(currentTownHallPos, oldColonyName, oldColonyPos, oldColonyId).open();
+        new WindowTownHallDeleteAbandonColony(currentTownHallPos, oldColonyName, oldColonyPos).open();
     }
 
     @Override
-    public void toBytes(FriendlyByteBuf buf)
+    public void toBytes(RegistryFriendlyByteBuf buf)
     {
         buf.writeBlockPos(currentTownHallPos);
         buf.writeUtf(oldColonyName);
         buf.writeBlockPos(oldColonyPos);
         buf.writeInt(oldColonyId);
-    }
-
-    @Override
-    public void fromBytes(FriendlyByteBuf buf)
-    {
-        this.currentTownHallPos = buf.readBlockPos();
-        this.oldColonyName = buf.readUtf(32767);
-        this.oldColonyPos = buf.readBlockPos();
-        this.oldColonyId = buf.readInt();
     }
 }

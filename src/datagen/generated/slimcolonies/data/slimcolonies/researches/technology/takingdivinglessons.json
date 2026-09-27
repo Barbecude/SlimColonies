@@ -1,5 +1,19 @@
 {
   "branch": "slimcolonies:technology",
+  "costs": [
+    {
+      "count": 16,
+      "item": "minecraft:kelp"
+    },
+    {
+      "count": 16,
+      "item": "minecraft:seagrass"
+    },
+    {
+      "count": 16,
+      "item": "minecraft:sea_pickle"
+    }
+  ],
   "effects": [
     {
       "id": "slimcolonies:effects/plantationsea",

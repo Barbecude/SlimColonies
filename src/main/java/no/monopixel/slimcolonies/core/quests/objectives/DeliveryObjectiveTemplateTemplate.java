@@ -7,17 +7,14 @@ import no.monopixel.slimcolonies.api.quests.IQuestInstance;
 import no.monopixel.slimcolonies.api.quests.IQuestObjectiveTemplate;
 import no.monopixel.slimcolonies.api.util.InventoryUtils;
 import no.monopixel.slimcolonies.api.util.ItemStackUtils;
-import no.monopixel.slimcolonies.api.util.Log;
-import com.mojang.brigadier.exceptions.CommandSyntaxException;
-import net.minecraft.nbt.TagParser;
+import no.monopixel.slimcolonies.api.util.Utils;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.Style;
-import net.minecraft.resources.ResourceLocation;
-import net.minecraft.util.GsonHelper;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
-import net.minecraftforge.items.wrapper.InvWrapper;
-import net.minecraftforge.registries.ForgeRegistries;
+import net.neoforged.neoforge.items.wrapper.InvWrapper;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
 
@@ -60,7 +57,7 @@ public class DeliveryObjectiveTemplateTemplate extends DialogueObjectiveTemplate
      * @param target   the target to receive the delivery.
      * @param item     the item to be delivered.
      * @param quantity the quantity to be delivered.
-     * @param rewards  the rewards this unlocks.
+     * @param rewards the rewards this unlocks.
      */
     public DeliveryObjectiveTemplateTemplate(final int target, final ItemStack item, final int quantity, final int nextObjective, final List<Integer> rewards, final String nbtMode)
     {
@@ -74,55 +71,40 @@ public class DeliveryObjectiveTemplateTemplate extends DialogueObjectiveTemplate
 
     private void buildDialogueTrees()
     {
-        final Component ready = Component.translatable("no.monopixel.slimcolonies.coremod.questobjectives.delivery.ready", item.getDisplayName());
-        final AnswerElement ready1 = new AnswerElement(Component.translatable("no.monopixel.slimcolonies.coremod.questobjectives.delivery.ready.give"),
-            new IQuestDialogueAnswer.NextObjectiveDialogueAnswer(this.nextObjective));
-        final AnswerElement ready2 = new AnswerElement(Component.translatable("no.monopixel.slimcolonies.coremod.questobjectives.delivery.ready.later"),
-            new IQuestDialogueAnswer.CloseUIDialogueAnswer());
+        final Component ready = Component.translatableEscape("no.monopixel.slimcolonies.coremod.questobjectives.delivery.ready", item.getDisplayName());
+        final AnswerElement ready1 = new AnswerElement(Component.translatableEscape("no.monopixel.slimcolonies.coremod.questobjectives.delivery.ready.give"),
+                new IQuestDialogueAnswer.NextObjectiveDialogueAnswer(this.nextObjective));
+        final AnswerElement ready2 = new AnswerElement(Component.translatableEscape("no.monopixel.slimcolonies.coremod.questobjectives.delivery.ready.later"),
+                new IQuestDialogueAnswer.CloseUIDialogueAnswer());
         this.readyDialogueElement = new DialogueElement(ready, List.of(ready1, ready2));
 
-        final Component waiting = Component.translatable("no.monopixel.slimcolonies.coremod.questobjectives.delivery.waiting", item.getDisplayName());
-        final AnswerElement waiting1 = new AnswerElement(Component.translatable("no.monopixel.slimcolonies.coremod.questobjectives.answer.later"),
-            new IQuestDialogueAnswer.CloseUIDialogueAnswer());
-        final AnswerElement waiting2 = new AnswerElement(Component.translatable("no.monopixel.slimcolonies.coremod.questobjectives.delivery.waiting.cancel"),
-            new IQuestDialogueAnswer.QuestCancellationDialogueAnswer());
+        final Component waiting = Component.translatableEscape("no.monopixel.slimcolonies.coremod.questobjectives.delivery.waiting", item.getDisplayName());
+        final AnswerElement waiting1 = new AnswerElement(Component.translatableEscape("no.monopixel.slimcolonies.coremod.questobjectives.answer.later"),
+                new IQuestDialogueAnswer.CloseUIDialogueAnswer());
+        final AnswerElement waiting2 = new AnswerElement(Component.translatableEscape("no.monopixel.slimcolonies.coremod.questobjectives.delivery.waiting.cancel"),
+                new IQuestDialogueAnswer.QuestCancellationDialogueAnswer());
         this.waitingDialogueElement = new DialogueElement(waiting, List.of(waiting1, waiting2));
     }
 
     /**
      * Parse the dialogue objective from json.
-     *
      * @param jsonObject the json to parse it from.
      * @return a new objective object.
      */
-    public static IQuestObjectiveTemplate createObjective(final JsonObject jsonObject)
+    public static IQuestObjectiveTemplate createObjective(@NotNull final HolderLookup.Provider provider, final JsonObject jsonObject)
     {
         JsonObject details = jsonObject.getAsJsonObject(DETAILS_KEY);
         final int target = details.get(TARGET_KEY).getAsInt();
-        final int quantity = details.get(QUANTITY_KEY).getAsInt();
-        final ItemStack item = new ItemStack(ForgeRegistries.ITEMS.getHolder(new ResourceLocation(details.get(ITEM_KEY).getAsString())).get().get());
-        if (details.has(NBT_KEY))
-        {
-            try
-            {
-                item.setTag(TagParser.parseTag(GsonHelper.getAsString(details, NBT_KEY)));
-            }
-            catch (CommandSyntaxException e)
-            {
-                Log.getLogger().error("Unable to load itemstack nbt from json!");
-                throw new RuntimeException(e);
-            }
-        }
+        final ItemStack item = Utils.deserializeCodecMessFromJson(ItemStack.CODEC, provider, details.get(ITEM_KEY));
         final int nextObj = details.has(NEXT_OBJ_KEY) ? details.get(NEXT_OBJ_KEY).getAsInt() : -1;
         final String nbtMode = details.has(NBT_MODE_KEY) ? details.get(NBT_MODE_KEY).getAsString() : "";
-        return new DeliveryObjectiveTemplateTemplate(target, item, quantity, nextObj, parseRewards(jsonObject), nbtMode);
+        return new DeliveryObjectiveTemplateTemplate(target, item, item.getCount(), nextObj, parseRewards(jsonObject), nbtMode);
     }
 
     @Override
     public boolean hasItem(final Player player, final IQuestInstance colonyQuest)
     {
-        return InventoryUtils.getItemCountInItemHandler(new InvWrapper(player.getInventory()),
-            itemStack -> ItemStackUtils.compareItemStacksIgnoreStackSize(itemStack, item, !nbtMode.equals("any"), !nbtMode.equals("any"))) >= quantity;
+        return InventoryUtils.getItemCountInItemHandler(new InvWrapper(player.getInventory()), itemStack -> ItemStackUtils.compareItemStacksIgnoreStackSize(itemStack, item, !nbtMode.equals("any"), !nbtMode.equals("any"))) >= quantity;
     }
 
     @Override
@@ -146,9 +128,9 @@ public class DeliveryObjectiveTemplateTemplate extends DialogueObjectiveTemplate
     @Override
     public Component getProgressText(final IQuestInstance quest, final Style style)
     {
-        return Component.translatable("no.monopixel.slimcolonies.coremod.questobjectives.delivery.progress",
-            0,
-            quantity,
-            item.getDisplayName().plainCopy().setStyle(style));
+        return Component.translatableEscape("no.monopixel.slimcolonies.coremod.questobjectives.delivery.progress",
+          0,
+          quantity,
+          item.getDisplayName().plainCopy().setStyle(style));
     }
 }

@@ -1,19 +1,5 @@
 package no.monopixel.slimcolonies.core.colony.buildings.workerbuildings;
 
-import net.minecraft.core.BlockPos;
-import net.minecraft.nbt.CompoundTag;
-import net.minecraft.nbt.ListTag;
-import net.minecraft.nbt.NbtUtils;
-import net.minecraft.nbt.Tag;
-import net.minecraft.network.FriendlyByteBuf;
-import net.minecraft.resources.ResourceLocation;
-import net.minecraft.server.level.ServerLevel;
-import net.minecraft.util.Tuple;
-import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.level.Level;
-import net.minecraft.world.level.block.Block;
-import net.minecraft.world.level.block.BonemealableBlock;
-import net.minecraft.world.level.block.state.BlockState;
 import no.monopixel.slimcolonies.api.colony.ICitizenData;
 import no.monopixel.slimcolonies.api.colony.IColony;
 import no.monopixel.slimcolonies.api.colony.IColonyManager;
@@ -27,21 +13,38 @@ import no.monopixel.slimcolonies.api.equipment.ModEquipmentTypes;
 import no.monopixel.slimcolonies.api.items.ModTags;
 import no.monopixel.slimcolonies.api.util.BlockPosUtil;
 import no.monopixel.slimcolonies.api.util.ItemStackUtils;
+import no.monopixel.slimcolonies.api.util.NBTUtils;
 import no.monopixel.slimcolonies.api.util.WorldUtil;
-import no.monopixel.slimcolonies.api.util.constant.Constants;
 import no.monopixel.slimcolonies.core.colony.buildings.AbstractBuilding;
 import no.monopixel.slimcolonies.core.colony.buildings.modules.AbstractCraftingBuildingModule;
 import no.monopixel.slimcolonies.core.colony.buildings.modules.ItemListModule;
 import no.monopixel.slimcolonies.core.colony.buildings.modules.WorkerBuildingModule;
 import no.monopixel.slimcolonies.core.colony.buildings.modules.settings.BoolSetting;
+import no.monopixel.slimcolonies.core.colony.buildings.modules.settings.DynamicTreesSetting;
 import no.monopixel.slimcolonies.core.colony.buildings.modules.settings.SettingKey;
 import no.monopixel.slimcolonies.core.colony.buildings.views.AbstractBuildingView;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.ListTag;
+import net.minecraft.nbt.NbtUtils;
+import net.minecraft.nbt.Tag;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.util.Tuple;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.BonemealableBlock;
+import net.minecraft.world.level.block.state.BlockState;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
 import java.util.function.Predicate;
 
 import static no.monopixel.slimcolonies.api.util.constant.NbtTagConstants.TAG_NETHER_TREE_LIST;
+import static no.monopixel.slimcolonies.api.util.constant.EquipmentLevelConstants.TOOL_LEVEL_WOOD_OR_GOLD;
 import static no.monopixel.slimcolonies.core.entity.ai.workers.production.EntityAIWorkLumberjack.SAPLINGS_LIST;
 
 /**
@@ -52,9 +55,10 @@ public class BuildingLumberjack extends AbstractBuilding
     /**
      * Replant setting.
      */
-    public static final ISettingKey<BoolSetting> REPLANT   = new SettingKey<>(BoolSetting.class, ResourceLocation.fromNamespaceAndPath(Constants.MOD_ID, "replant"));
-    public static final ISettingKey<BoolSetting> RESTRICT  = new SettingKey<>(BoolSetting.class, ResourceLocation.fromNamespaceAndPath(Constants.MOD_ID, "restrict"));
-    public static final ISettingKey<BoolSetting> DEFOLIATE = new SettingKey<>(BoolSetting.class, ResourceLocation.fromNamespaceAndPath(Constants.MOD_ID, "defoliate"));
+    public static final ISettingKey<BoolSetting> REPLANT = new SettingKey<>(BoolSetting.class, new ResourceLocation(no.monopixel.slimcolonies.api.util.constant.Constants.MOD_ID, "replant"));
+    public static final ISettingKey<BoolSetting> RESTRICT = new SettingKey<>(BoolSetting.class, new ResourceLocation(no.monopixel.slimcolonies.api.util.constant.Constants.MOD_ID, "restrict"));
+    public static final ISettingKey<BoolSetting> DEFOLIATE = new SettingKey<>(BoolSetting.class, new ResourceLocation(no.monopixel.slimcolonies.api.util.constant.Constants.MOD_ID, "defoliate"));
+    public static final ISettingKey<DynamicTreesSetting> DYNAMIC_TREES_SIZE = new SettingKey<>(DynamicTreesSetting.class, new ResourceLocation(no.monopixel.slimcolonies.api.util.constant.Constants.MOD_ID, "dynamictreeharvestsize"));
 
     /**
      * NBT tag for lj restriction start
@@ -79,12 +83,12 @@ public class BuildingLumberjack extends AbstractBuilding
     /**
      * The maximum upgrade of the building.
      */
-    private static final int MAX_BUILDING_LEVEL = 5;
+    private static final int    MAX_BUILDING_LEVEL = 5;
 
     /**
      * The job description.
      */
-    private static final String LUMBERJACK = "lumberjack";
+    private static final String LUMBERJACK         = "lumberjack";
 
     /**
      * A list of all planted nether trees
@@ -106,8 +110,19 @@ public class BuildingLumberjack extends AbstractBuilding
     {
         super(c, l);
 
-        keepX.put(itemStack -> ItemStackUtils.isEquipmentType(itemStack, ModEquipmentTypes.axe.get()), new Tuple<>(1, true));
-        keepX.put(itemStack -> ItemStackUtils.isEquipmentType(itemStack, ModEquipmentTypes.shears.get()), new Tuple<>(1, true));
+        keepX.put(itemStack -> ItemStackUtils.hasEquipmentLevel(itemStack, ModEquipmentTypes.axe.get(), TOOL_LEVEL_WOOD_OR_GOLD, getMaxEquipmentLevel()), new Tuple<>(1, true));
+        keepX.put(itemStack -> ItemStackUtils.hasEquipmentLevel(itemStack, ModEquipmentTypes.shears.get(), TOOL_LEVEL_WOOD_OR_GOLD, getMaxEquipmentLevel()), new Tuple<>(1, true));
+    }
+
+    @Override
+    public boolean canBeGathered()
+    {
+        // Normal crafters are only gatherable when they have a task, i.e. while producing stuff.
+        // BUT, the lumberjack both gathers and crafts things now, so it should always be gatherable.
+        // This unfortunately means that the dman will sometimes "steal" ingredients from the LJ.
+        // Fortunately, the dman is smart enough to not instantly gather the ingredients it brought to the LJ.
+        // Might be improved in the future. For now, it's a bit annoying, but not too bad imho.
+        return true;
     }
 
     @Override
@@ -119,7 +134,7 @@ public class BuildingLumberjack extends AbstractBuilding
         {
             if (!saplingList.isItemInList(sapling))
             {
-                toKeep.put(stack -> ItemStackUtils.compareItemStacksIgnoreStackSize(sapling.getItemStack(), stack), new Tuple<>(Constants.STACKSIZE, true));
+                toKeep.put(stack -> ItemStackUtils.compareItemStacksIgnoreStackSize(sapling.getItemStack(), stack), new Tuple<>(no.monopixel.slimcolonies.api.util.constant.Constants.STACKSIZE, true));
             }
         }
         return toKeep;
@@ -139,13 +154,13 @@ public class BuildingLumberjack extends AbstractBuilding
     }
 
     @Override
-    public void deserializeNBT(final CompoundTag compound)
+    public void deserializeNBT(@NotNull final HolderLookup.Provider provider, final CompoundTag compound)
     {
-        super.deserializeNBT(compound);
+        super.deserializeNBT(provider, compound);
 
         if (compound.contains(TAG_RESTRICT_START))
         {
-            startRestriction = NbtUtils.readBlockPos(compound.getCompound(TAG_RESTRICT_START));
+            startRestriction = NBTUtils.readBlockPos(compound, TAG_RESTRICT_START);
         }
         else
         {
@@ -154,7 +169,7 @@ public class BuildingLumberjack extends AbstractBuilding
 
         if (compound.contains(TAG_RESTRICT_END))
         {
-            endRestriction = NbtUtils.readBlockPos(compound.getCompound(TAG_RESTRICT_END));
+            endRestriction = NBTUtils.readBlockPos(compound, TAG_RESTRICT_END);
         }
         else
         {
@@ -169,18 +184,18 @@ public class BuildingLumberjack extends AbstractBuilding
     }
 
     @Override
-    public CompoundTag serializeNBT()
+    public CompoundTag serializeNBT(@NotNull final HolderLookup.Provider provider)
     {
-        final CompoundTag compound = super.serializeNBT();
+        final CompoundTag compound = super.serializeNBT(provider);
 
         if (startRestriction != null)
         {
-            compound.put(TAG_RESTRICT_START, NbtUtils.writeBlockPos(startRestriction));
+            compound.put(TAG_RESTRICT_START, NBTUtils.writeBlockPos(startRestriction));
         }
 
         if (endRestriction != null)
         {
-            compound.put(TAG_RESTRICT_END, NbtUtils.writeBlockPos(endRestriction));
+            compound.put(TAG_RESTRICT_END, NBTUtils.writeBlockPos(endRestriction));
         }
 
         @NotNull final ListTag netherTreeBinCompoundList = new ListTag();
@@ -281,7 +296,7 @@ public class BuildingLumberjack extends AbstractBuilding
                     if (rand < threshold)
                     {
                         final BonemealableBlock growable = (BonemealableBlock) block;
-                        if (growable.isValidBonemealTarget(world, pos, blockState, world.isClientSide))
+                        if (growable.isValidBonemealTarget(world, pos, blockState))
                         {
                             if (!world.isClientSide)
                             {
@@ -340,7 +355,7 @@ public class BuildingLumberjack extends AbstractBuilding
     }
 
     @Override
-    public void serializeToView(@NotNull final FriendlyByteBuf buf, final boolean fullSync)
+    public void serializeToView(@NotNull final RegistryFriendlyByteBuf buf, final boolean fullSync)
     {
         super.serializeToView(buf, fullSync);
 
@@ -362,7 +377,7 @@ public class BuildingLumberjack extends AbstractBuilding
      */
     public static class View extends AbstractBuildingView
     {
-        private boolean  restrict;
+        private boolean restrict;
         private BlockPos startRestriction;
         private BlockPos endRestriction;
 
@@ -378,7 +393,7 @@ public class BuildingLumberjack extends AbstractBuilding
         }
 
         @Override
-        public void deserialize(@NotNull FriendlyByteBuf buf)
+        public void deserialize(@NotNull RegistryFriendlyByteBuf buf)
         {
             super.deserialize(buf);
 

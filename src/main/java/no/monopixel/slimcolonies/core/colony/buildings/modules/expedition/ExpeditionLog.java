@@ -6,14 +6,16 @@ import no.monopixel.slimcolonies.api.colony.requestsystem.StandardFactoryControl
 import no.monopixel.slimcolonies.api.crafting.ItemStorage;
 import no.monopixel.slimcolonies.api.entity.citizen.AbstractEntityCitizen;
 import no.monopixel.slimcolonies.api.util.Tuple;
+import no.monopixel.slimcolonies.api.util.Utils;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.item.ItemStack;
-import net.minecraftforge.registries.ForgeRegistries;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -43,8 +45,9 @@ public class ExpeditionLog
         NONE,
         STARTING,
         IN_PROGRESS,
+        RETURNING_HOME,
         COMPLETED,
-        RETREATED
+        KILLED
     }
 
     // it would be nice to have a more generic way to store these, but they're all split between Data and Attributes
@@ -149,12 +152,12 @@ public class ExpeditionLog
     }
 
     /**
-     * Indicates that the citizen retreated while on the expedition (which ends it).
+     * Indicates that the citizen was killed while on the expedition (which ends it).
      */
-    public void setRetreated()
+    public void setKilled()
     {
         this.id = 0;
-        this.status = Status.RETREATED;
+        this.status = Status.KILLED;
     }
 
     /**
@@ -233,7 +236,7 @@ public class ExpeditionLog
      * Save to NBT
      * @param compound target
      */
-    public void serializeNBT(@NotNull final CompoundTag compound)
+    public void serializeNBT(@NotNull final HolderLookup.Provider provider, @NotNull final CompoundTag compound)
     {
         compound.putString(TAG_STATUS, this.status.name());
         compound.putInt(TAG_ID, this.id);
@@ -249,7 +252,7 @@ public class ExpeditionLog
         final ListTag equipment = new ListTag();
         for (final ItemStack stack : this.equipment)
         {
-            equipment.add(stack.serializeNBT());
+            equipment.add(stack.saveOptional(provider));
         }
         compound.put(TAG_EQUIPMENT, equipment);
 
@@ -257,7 +260,7 @@ public class ExpeditionLog
         for (final Map.Entry<EntityType<?>, Integer> entry : this.mobs.entrySet())
         {
             final CompoundTag mob = new CompoundTag();
-            mob.putString(TAG_TYPE, ForgeRegistries.ENTITY_TYPES.getKey(entry.getKey()).toString());
+            mob.putString(TAG_TYPE, BuiltInRegistries.ENTITY_TYPE.getKey(entry.getKey()).toString());
             mob.putInt(TAG_COUNT, entry.getValue());
             mobs.add(mob);
         }
@@ -266,7 +269,7 @@ public class ExpeditionLog
         final ListTag loot = new ListTag();
         for (final ItemStorage storage : this.loot.values())
         {
-            loot.add(StandardFactoryController.getInstance().serialize(storage));
+            loot.add(StandardFactoryController.getInstance().serializeTag(provider, storage));
         }
         compound.put(TAG_LOOT, loot);
     }
@@ -275,7 +278,7 @@ public class ExpeditionLog
      * Reload from NBT
      * @param compound source
      */
-    public void deserializeNBT(@NotNull final CompoundTag compound)
+    public void deserializeNBT(@NotNull final HolderLookup.Provider provider, @NotNull final CompoundTag compound)
     {
         this.status = Enums.getIfPresent(Status.class, compound.getString(TAG_STATUS)).or(Status.NONE);
         this.id = compound.getInt(TAG_ID);
@@ -297,7 +300,7 @@ public class ExpeditionLog
         final ListTag equipment = compound.getList(TAG_EQUIPMENT, Tag.TAG_COMPOUND);
         for (int i = 0; i < equipment.size(); i++)
         {
-            this.equipment.add(ItemStack.of(equipment.getCompound(i)));
+            this.equipment.add(ItemStack.parseOptional(provider, equipment.getCompound(i)));
         }
 
         this.mobs.clear();
@@ -305,8 +308,8 @@ public class ExpeditionLog
         for (int i = 0; i < mobs.size(); ++i)
         {
             final CompoundTag mob = mobs.getCompound(i);
-            final ResourceLocation type = new ResourceLocation(mob.getString(TAG_TYPE));
-            final EntityType<?> entityType = ForgeRegistries.ENTITY_TYPES.getValue(type);
+            final ResourceLocation type = ResourceLocation.parse(mob.getString(TAG_TYPE));
+            final EntityType<?> entityType = BuiltInRegistries.ENTITY_TYPE.get(type);
             if (entityType != null)
             {
                 this.mobs.put(entityType, mob.getInt(TAG_COUNT));
@@ -317,7 +320,7 @@ public class ExpeditionLog
         final ListTag loot = compound.getList(TAG_LOOT, Tag.TAG_COMPOUND);
         for (int i = 0; i < loot.size(); i++)
         {
-            final ItemStorage storage = StandardFactoryController.getInstance().deserialize(loot.getCompound(i));
+            final ItemStorage storage = StandardFactoryController.getInstance().deserializeTag(provider, loot.getCompound(i));
             this.loot.put(storage, storage);
         }
     }
@@ -326,7 +329,7 @@ public class ExpeditionLog
      * Save to network
      * @param buf target
      */
-    public void serialize(@NotNull final FriendlyByteBuf buf)
+    public void serialize(@NotNull final RegistryFriendlyByteBuf buf)
     {
         buf.writeVarInt(this.status.ordinal());
         buf.writeVarInt(this.id);
@@ -340,13 +343,13 @@ public class ExpeditionLog
         buf.writeVarInt(this.equipment.size());
         for (final ItemStack stack : this.equipment)
         {
-            buf.writeItem(stack);
+            Utils.serializeCodecMess(buf, stack);
         }
 
         buf.writeVarInt(this.mobs.size());
         for (final Map.Entry<EntityType<?>, Integer> entry : this.mobs.entrySet())
         {
-            buf.writeRegistryIdUnsafe(ForgeRegistries.ENTITY_TYPES, entry.getKey());
+            buf.writeById(BuiltInRegistries.ENTITY_TYPE::getIdOrThrow, entry.getKey());
             buf.writeVarInt(entry.getValue());
         }
 
@@ -361,7 +364,7 @@ public class ExpeditionLog
      * Reload from network
      * @param buf source
      */
-    public void deserialize(@NotNull final FriendlyByteBuf buf)
+    public void deserialize(@NotNull final RegistryFriendlyByteBuf buf)
     {
         this.status = Status.values()[buf.readVarInt()];
         this.id = buf.readVarInt();
@@ -377,13 +380,13 @@ public class ExpeditionLog
         this.equipment.clear();
         for (int size = buf.readVarInt(); size > 0; --size)
         {
-            this.equipment.add(buf.readItem());
+            this.equipment.add(Utils.deserializeCodecMess(buf));
         }
 
         this.mobs.clear();
         for (int size = buf.readVarInt(); size > 0; --size)
         {
-            final EntityType<?> entityType = buf.readRegistryIdUnsafe(ForgeRegistries.ENTITY_TYPES);
+            final EntityType<?> entityType = buf.readById(BuiltInRegistries.ENTITY_TYPE::byIdOrThrow);
             final int count = buf.readVarInt();
             if (entityType != null)
             {

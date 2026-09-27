@@ -1,11 +1,14 @@
 package no.monopixel.slimcolonies.core.network.messages.server.colony.building;
 
+import com.ldtteam.common.network.PlayMessageType;
 import no.monopixel.slimcolonies.api.colony.IColony;
 import no.monopixel.slimcolonies.api.colony.buildings.IBuilding;
 import no.monopixel.slimcolonies.api.colony.buildings.views.IBuildingView;
+import no.monopixel.slimcolonies.api.util.constant.Constants;
 import no.monopixel.slimcolonies.core.network.messages.server.AbstractBuildingServerMessage;
-import net.minecraft.network.FriendlyByteBuf;
-import net.minecraftforge.network.NetworkEvent;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.server.level.ServerPlayer;
+import net.neoforged.neoforge.network.handling.IPayloadContext;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -13,18 +16,12 @@ import org.jetbrains.annotations.NotNull;
  */
 public class HutRenameMessage extends AbstractBuildingServerMessage<IBuilding>
 {
+    public static final PlayMessageType<?> TYPE = PlayMessageType.forServer(Constants.MOD_ID, "hut_rename", HutRenameMessage::new);
+
     /**
      * The custom name to set.
      */
-    private String name;
-
-    /**
-     * Empty public constructor.
-     */
-    public HutRenameMessage()
-    {
-        super();
-    }
+    private final String name;
 
     /**
      * Object creation for the town hall rename
@@ -34,26 +31,27 @@ public class HutRenameMessage extends AbstractBuildingServerMessage<IBuilding>
      */
     public HutRenameMessage(@NotNull final IBuildingView building, final String name)
     {
-        super(building);
+        super(TYPE, building);
         this.name = name;
     }
 
-    @Override
-    public void fromBytesOverride(@NotNull final FriendlyByteBuf buf)
+    protected HutRenameMessage(final RegistryFriendlyByteBuf buf, final PlayMessageType<?> type)
     {
+        super(buf, type);
 
         name = buf.readUtf(32767);
     }
 
     @Override
-    public void toBytesOverride(@NotNull final FriendlyByteBuf buf)
+    protected void toBytes(@NotNull final RegistryFriendlyByteBuf buf)
     {
+        super.toBytes(buf);
 
         buf.writeUtf(name);
     }
 
     @Override
-    protected void onExecute(final NetworkEvent.Context ctxIn, final boolean isLogicalServer, final IColony colony, final IBuilding building)
+    protected void onExecute(final IPayloadContext ctxIn, final ServerPlayer player, final IColony colony, final IBuilding building)
     {
         building.setCustomBuildingName(name);
     }

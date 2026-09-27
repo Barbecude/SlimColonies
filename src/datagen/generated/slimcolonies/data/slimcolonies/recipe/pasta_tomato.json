@@ -1,0 +1,25 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "ingredients": [
+    {
+      "item": "slimcolonies:raw_noodle"
+    },
+    {
+      "item": "slimcolonies:tomato"
+    },
+    {
+      "item": "slimcolonies:onion"
+    },
+    {
+      "item": "minecraft:bowl"
+    },
+    {
+      "item": "slimcolonies:garlic"
+    }
+  ],
+  "result": {
+    "count": 1,
+    "id": "slimcolonies:pasta_tomato"
+  }
+}

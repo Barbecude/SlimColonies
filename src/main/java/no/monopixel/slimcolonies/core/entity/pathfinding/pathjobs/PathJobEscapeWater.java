@@ -1,22 +1,16 @@
 package no.monopixel.slimcolonies.core.entity.pathfinding.pathjobs;
 
-import net.minecraft.core.BlockPos;
-import net.minecraft.world.entity.Mob;
-import net.minecraft.world.level.Level;
-import net.minecraft.world.level.pathfinder.Path;
 import no.monopixel.slimcolonies.api.colony.IColony;
 import no.monopixel.slimcolonies.api.entity.citizen.AbstractEntityCitizen;
 import no.monopixel.slimcolonies.api.util.BlockPosUtil;
-import no.monopixel.slimcolonies.api.util.Log;
-import no.monopixel.slimcolonies.core.SlimColonies;
 import no.monopixel.slimcolonies.core.entity.pathfinding.MNode;
 import no.monopixel.slimcolonies.core.entity.pathfinding.PathingOptions;
 import no.monopixel.slimcolonies.core.entity.pathfinding.SurfaceType;
 import no.monopixel.slimcolonies.core.entity.pathfinding.pathresults.PathResult;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.entity.Mob;
+import net.minecraft.world.level.Level;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
-
-import static no.monopixel.slimcolonies.api.util.constant.PathingConstants.DEBUG_VERBOSITY_NONE;
 
 /**
  * Job that handles moving away from something.
@@ -43,10 +37,10 @@ public class PathJobEscapeWater extends AbstractPathJob implements IDestinationP
      * @param entity the entity.
      */
     public PathJobEscapeWater(
-        final Level world,
-        @NotNull final BlockPos start,
-        final int range,
-        final Mob entity)
+      final Level world,
+      @NotNull final BlockPos start,
+      final int range,
+      final Mob entity)
     {
         super(world, start, 500, new PathResult<PathJobEscapeWater>(), entity);
 
@@ -63,24 +57,6 @@ public class PathJobEscapeWater extends AbstractPathJob implements IDestinationP
     }
 
     /**
-     * Perform the search.
-     *
-     * @return Path of a path to the given location, a best-effort, or null.
-     */
-    @Nullable
-    @Override
-    protected Path search()
-    {
-        if (SlimColonies.getConfig().getServer().pathfindingDebugVerbosity.get() > DEBUG_VERBOSITY_NONE)
-        {
-            Log.getLogger().info(String.format("Pathfinding from [%d,%d,%d] away from [%d,%d,%d]",
-                start.getX(), start.getY(), start.getZ(), avoid.getX(), avoid.getY(), avoid.getZ()));
-        }
-
-        return super.search();
-    }
-
-    /**
      * For MoveAwayFromLocation we want our heuristic to weight.
      *
      * @return heuristic as a double - Manhatten Distance with tie-breaker.
@@ -88,7 +64,7 @@ public class PathJobEscapeWater extends AbstractPathJob implements IDestinationP
     @Override
     protected double computeHeuristic(final int x, final int y, final int z)
     {
-        return BlockPosUtil.dist(preferredDirection, x, y, z) * 2;
+        return BlockPosUtil.dist(preferredDirection, x, y, z) * 2 / (y / 10.0);
     }
 
     /**
@@ -101,8 +77,8 @@ public class PathJobEscapeWater extends AbstractPathJob implements IDestinationP
     protected boolean isAtDestination(@NotNull final MNode n)
     {
         return cachedBlockLookup.getBlockState(n.x, n.y, n.z).isAir() && cachedBlockLookup.getBlockState(n.x, n.y + 1, n.z).isAir()
-            && SurfaceType.getSurfaceType(world, cachedBlockLookup.getBlockState(n.x, n.y - 1, n.z), tempWorldPos.set(n.x, n.y - 1, n.z), getPathingOptions())
-            == SurfaceType.WALKABLE;
+                 && SurfaceType.getSurfaceType(world, cachedBlockLookup.getBlockState(n.x, n.y - 1, n.z), tempWorldPos.set(n.x, n.y - 1, n.z), getPathingOptions())
+                      == SurfaceType.WALKABLE;
     }
 
     @Override

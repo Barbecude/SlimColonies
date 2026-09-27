@@ -10,11 +10,12 @@ import no.monopixel.slimcolonies.api.entity.ai.statemachine.tickratestatemachine
 import no.monopixel.slimcolonies.api.entity.citizen.AbstractEntityCitizen;
 import no.monopixel.slimcolonies.api.util.CompatibilityUtils;
 import no.monopixel.slimcolonies.api.util.ItemStackUtils;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.EquipmentSlot;
-import net.minecraft.world.level.Level;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Arrays;
+import java.util.List;
 
 import static no.monopixel.slimcolonies.api.entity.citizen.AbstractEntityCitizen.ENTITY_AI_TICKRATE;
 
@@ -29,7 +30,7 @@ public abstract class AbstractAISkeleton<J extends IJob<?>> implements ITickingS
     protected final J                     job;
     @NotNull
     protected final AbstractEntityCitizen worker;
-    protected final Level                 world;
+    protected final ServerLevel           world;
 
     /**
      * The statemachine this AI uses
@@ -53,7 +54,7 @@ public abstract class AbstractAISkeleton<J extends IJob<?>> implements ITickingS
 
         this.job = job;
         this.worker = this.job.getCitizen().getEntity().get();
-        this.world = CompatibilityUtils.getWorldFromCitizen(this.worker);
+        this.world = (ServerLevel) CompatibilityUtils.getWorldFromCitizen(this.worker);
         stateMachine = new TickRateStateMachine<>(AIWorkerState.INIT, this::onException, ENTITY_AI_TICKRATE);
     }
 
@@ -71,6 +72,16 @@ public abstract class AbstractAISkeleton<J extends IJob<?>> implements ITickingS
     public void registerTarget(final TickingTransition<IAIState> target)
     {
         stateMachine.addTransition(target);
+    }
+
+    /**
+     * Register a target for a group of states
+     *
+     * @param target the target to register.
+     */
+    public void registerGroupTarget(final List<IAIState> states, final TickingTransition<IAIState> target)
+    {
+        stateMachine.addTransitionGroup(states, target);
     }
 
     /**

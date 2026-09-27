@@ -1,13 +1,16 @@
 package no.monopixel.slimcolonies.core.network.messages.server.colony.building;
 
+import com.ldtteam.common.network.PlayMessageType;
 import no.monopixel.slimcolonies.api.colony.IColony;
 import no.monopixel.slimcolonies.api.colony.buildings.HiringMode;
 import no.monopixel.slimcolonies.api.colony.buildings.IBuilding;
 import no.monopixel.slimcolonies.api.colony.buildings.views.IBuildingView;
+import no.monopixel.slimcolonies.api.util.constant.Constants;
 import no.monopixel.slimcolonies.core.colony.buildings.modules.CourierAssignmentModule;
 import no.monopixel.slimcolonies.core.network.messages.server.AbstractBuildingServerMessage;
-import net.minecraft.network.FriendlyByteBuf;
-import net.minecraftforge.network.NetworkEvent;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.server.level.ServerPlayer;
+import net.neoforged.neoforge.network.handling.IPayloadContext;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -15,23 +18,17 @@ import org.jetbrains.annotations.NotNull;
  */
 public class CourierHiringModeMessage extends AbstractBuildingServerMessage<IBuilding>
 {
+    public static final PlayMessageType<?> TYPE = PlayMessageType.forServer(Constants.MOD_ID, "courier_hiring_mode", CourierHiringModeMessage::new);
+
     /**
      * The module id
      */
-    private int  id;
+    private final int  id;
 
     /**
      * The Hiring mode to set.
      */
-    private HiringMode mode;
-
-    /**
-     * Empty constructor used when registering the
-     */
-    public CourierHiringModeMessage()
-    {
-        super();
-    }
+    private final HiringMode mode;
 
     /**
      * Creates object for the hiring mode
@@ -41,29 +38,30 @@ public class CourierHiringModeMessage extends AbstractBuildingServerMessage<IBui
      */
     public CourierHiringModeMessage(@NotNull final IBuildingView building, final HiringMode mode, final int id)
     {
-        super(building);
+        super(TYPE, building);
         this.mode = mode;
         this.id = id;
     }
 
-    @Override
-    public void fromBytesOverride(@NotNull final FriendlyByteBuf buf)
+    protected CourierHiringModeMessage(final RegistryFriendlyByteBuf buf, final PlayMessageType<?> type)
     {
+        super(buf, type);
         mode = HiringMode.values()[buf.readInt()];
         id = buf.readInt();
     }
 
     @Override
-    public void toBytesOverride(@NotNull final FriendlyByteBuf buf)
+    protected void toBytes(@NotNull final RegistryFriendlyByteBuf buf)
     {
+        super.toBytes(buf);
         buf.writeInt(mode.ordinal());
         buf.writeInt(id);
     }
 
     @Override
-    public void onExecute(final NetworkEvent.Context ctxIn, final boolean isLogicalServer, final IColony colony, final IBuilding building)
+    protected void onExecute(final IPayloadContext ctxIn, final ServerPlayer player, final IColony colony, final IBuilding building)
     {
-        if (building.getModule(id) instanceof CourierAssignmentModule module)
+        if (building.getModule(id) instanceof final CourierAssignmentModule module)
         {
             module.setHiringMode(mode);
         }

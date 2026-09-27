@@ -1,27 +1,24 @@
 package no.monopixel.slimcolonies.core.network.messages.server.colony;
 
+import com.ldtteam.common.network.PlayMessageType;
 import no.monopixel.slimcolonies.api.colony.IColony;
+import no.monopixel.slimcolonies.api.util.constant.Constants;
 import no.monopixel.slimcolonies.core.network.messages.server.AbstractColonyServerMessage;
-import net.minecraft.network.FriendlyByteBuf;
-import net.minecraftforge.network.NetworkEvent;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.server.level.ServerPlayer;
+import net.neoforged.neoforge.network.handling.IPayloadContext;
 
 /**
  * Message to set the colony texture style.
  */
 public class ColonyTextureStyleMessage extends AbstractColonyServerMessage
 {
+    public static final PlayMessageType<?> TYPE = PlayMessageType.forServer(Constants.MOD_ID, "colony_texture_style", ColonyTextureStyleMessage::new);
+
     /**
      * The chosen style.
      */
-    private String style;
-
-    /**
-     * Default constructor
-     **/
-    public ColonyTextureStyleMessage()
-    {
-        super();
-    }
+    private final String style;
 
     /**
      * Change the colony style from the client to the serverside.
@@ -31,25 +28,26 @@ public class ColonyTextureStyleMessage extends AbstractColonyServerMessage
      */
     public ColonyTextureStyleMessage(final IColony colony, final String style)
     {
-        super(colony);
+        super(TYPE, colony);
         this.style = style;
     }
 
     @Override
-    protected void onExecute(NetworkEvent.Context ctxIn, boolean isLogicalServer, IColony colony)
+    protected void onExecute(final IPayloadContext ctxIn, final ServerPlayer player, final IColony colony)
     {
         colony.setTextureStyle(style);
     }
 
     @Override
-    protected void toBytesOverride(FriendlyByteBuf buf)
+    protected void toBytes(final RegistryFriendlyByteBuf buf)
     {
+        super.toBytes(buf);
         buf.writeUtf(style);
     }
 
-    @Override
-    protected void fromBytesOverride(FriendlyByteBuf buf)
+    protected ColonyTextureStyleMessage(final RegistryFriendlyByteBuf buf, final PlayMessageType<?> type)
     {
+        super(buf, type);
         this.style = buf.readUtf(32767);
     }
 }

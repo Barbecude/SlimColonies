@@ -1,13 +1,7 @@
 package no.monopixel.slimcolonies.core.colony.buildings.workerbuildings;
 
 import com.google.common.collect.ImmutableList;
-import net.minecraft.core.BlockPos;
-import net.minecraft.nbt.CompoundTag;
-import net.minecraft.resources.ResourceLocation;
-import net.minecraft.util.Tuple;
-import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.level.Level;
-import net.minecraft.world.level.block.Blocks;
+import com.ldtteam.structurize.api.RotationMirror;
 import no.monopixel.slimcolonies.api.colony.IColony;
 import no.monopixel.slimcolonies.api.colony.buildings.modules.settings.ISettingKey;
 import no.monopixel.slimcolonies.api.colony.jobs.ModJobs;
@@ -23,6 +17,14 @@ import no.monopixel.slimcolonies.core.colony.buildings.modules.settings.SettingK
 import no.monopixel.slimcolonies.core.colony.jobs.JobMiner;
 import no.monopixel.slimcolonies.core.colony.workorders.WorkOrderMiner;
 import no.monopixel.slimcolonies.core.entity.ai.workers.util.MineNode;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.util.Tuple;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Blocks;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.HashSet;
@@ -33,6 +35,9 @@ import java.util.Set;
 import static no.monopixel.slimcolonies.api.util.constant.BuildingConstants.TAG_CLOCATION;
 import static no.monopixel.slimcolonies.api.util.constant.BuildingConstants.TAG_LLOCATION;
 import static no.monopixel.slimcolonies.api.util.constant.Constants.STACKSIZE;
+import static no.monopixel.slimcolonies.api.util.constant.EquipmentLevelConstants.TOOL_LEVEL_WOOD_OR_GOLD;
+import static no.monopixel.slimcolonies.api.util.constant.SchematicTagConstants.TAG_COBBLE;
+import static no.monopixel.slimcolonies.api.util.constant.SchematicTagConstants.TAG_LADDER;
 
 /**
  * The miners building.
@@ -42,12 +47,12 @@ public class BuildingMiner extends AbstractBuildingStructureBuilder
     /**
      * Setting for solid filling block.
      */
-    public static final ISettingKey<BlockSetting> FILL_BLOCK = new SettingKey<>(BlockSetting.class, ResourceLocation.fromNamespaceAndPath(Constants.MOD_ID, "fillblock"));
+    public static final ISettingKey<BlockSetting> FILL_BLOCK = new SettingKey<>(BlockSetting.class, new ResourceLocation(Constants.MOD_ID, "fillblock"));
 
     /**
      * Max depth the miner is going for.
      */
-    public static final ISettingKey<IntSetting> MAX_DEPTH = new SettingKey<>(IntSetting.class, ResourceLocation.fromNamespaceAndPath(Constants.MOD_ID, "maxdepth"));
+    public static final ISettingKey<IntSetting> MAX_DEPTH = new SettingKey<>(IntSetting.class, new ResourceLocation(Constants.MOD_ID, "maxdepth"));
 
     /**
      * Mine height levels:
@@ -91,10 +96,10 @@ public class BuildingMiner extends AbstractBuildingStructureBuilder
         keepX.put(stack -> ItemStack.isSameItem(stackTorch, stack), new Tuple<>(STACKSIZE, true));
         keepX.put(stack -> ItemStack.isSameItem(stackCobble, stack), new Tuple<>(STACKSIZE, true));
 
-        keepX.put(itemStack -> ItemStackUtils.isEquipmentType(itemStack, ModEquipmentTypes.pickaxe.get()), new Tuple<>(1, true));
-        keepX.put(itemStack -> ItemStackUtils.isEquipmentType(itemStack, ModEquipmentTypes.shovel.get()), new Tuple<>(1, true));
-        keepX.put(itemStack -> ItemStackUtils.isEquipmentType(itemStack, ModEquipmentTypes.axe.get()), new Tuple<>(1, true));
-        keepX.put(itemStack -> ItemStackUtils.isEquipmentType(itemStack, ModEquipmentTypes.shears.get()), new Tuple<>(1, true));
+        keepX.put(itemStack -> ItemStackUtils.hasEquipmentLevel(itemStack, ModEquipmentTypes.pickaxe.get(), TOOL_LEVEL_WOOD_OR_GOLD, getMaxEquipmentLevel()), new Tuple<>(1, true));
+        keepX.put(itemStack -> ItemStackUtils.hasEquipmentLevel(itemStack, ModEquipmentTypes.shovel.get(), TOOL_LEVEL_WOOD_OR_GOLD, getMaxEquipmentLevel()), new Tuple<>(1, true));
+        keepX.put(itemStack -> ItemStackUtils.hasEquipmentLevel(itemStack, ModEquipmentTypes.axe.get(), TOOL_LEVEL_WOOD_OR_GOLD, getMaxEquipmentLevel()), new Tuple<>(1, true));
+        keepX.put(itemStack -> ItemStackUtils.hasEquipmentLevel(itemStack, ModEquipmentTypes.shears.get(), TOOL_LEVEL_WOOD_OR_GOLD, getMaxEquipmentLevel()), new Tuple<>(1, true));
 
         keepX.put(itemStack -> ItemStackUtils.compareItemStacksIgnoreStackSize(itemStack, new ItemStack(getSetting(FILL_BLOCK).getValue())), new Tuple<>(STACKSIZE, true));
     }
@@ -126,7 +131,7 @@ public class BuildingMiner extends AbstractBuildingStructureBuilder
      * The Miner wants to get multiple nodes/levels worth of stuff when requesting.
      */
     @Override
-    public int getResourceBatchMultiplier()
+    public int getResourceBatchMultiplier() 
     {
         if (getModuleMatching(WorkerBuildingModule.class, m -> m.getJobEntry() == ModJobs.quarrier.get()).getAssignedCitizen().isEmpty())
         {
@@ -137,18 +142,18 @@ public class BuildingMiner extends AbstractBuildingStructureBuilder
     }
 
     @Override
-    public void deserializeNBT(final CompoundTag compound)
+    public void deserializeNBT(@NotNull final HolderLookup.Provider provider, final CompoundTag compound)
     {
-        super.deserializeNBT(compound);
+        super.deserializeNBT(provider, compound);
 
         ladderLocation = BlockPosUtil.readOrNull(compound, TAG_LLOCATION);
         cobbleLocation = BlockPosUtil.readOrNull(compound, TAG_CLOCATION);
     }
 
     @Override
-    public CompoundTag serializeNBT()
+    public CompoundTag serializeNBT(@NotNull final HolderLookup.Provider provider)
     {
-        final CompoundTag compound = super.serializeNBT();
+        final CompoundTag compound = super.serializeNBT(provider);
 
         BlockPosUtil.writeOptional(compound, TAG_CLOCATION, cobbleLocation);
         BlockPosUtil.writeOptional(compound, TAG_LLOCATION, ladderLocation);
@@ -192,8 +197,7 @@ public class BuildingMiner extends AbstractBuildingStructureBuilder
     /**
      * Normalize the maximum depth.
      * Make sure that the returned depth respects the world limits and follows the building setting..
-     *
-     * @param max   the max depth of the given building level.
+     * @param max the max depth of the given building level.
      * @param level the world.
      * @return the max.
      */
@@ -240,9 +244,9 @@ public class BuildingMiner extends AbstractBuildingStructureBuilder
 
     private void loadLadderPos()
     {
-        final Map<String, Set<BlockPos>> map = tileEntity.getWorldTagNamePosMap();
-        final Set<BlockPos> cobblePos = map.getOrDefault("cobble", new HashSet<>());
-        final Set<BlockPos> ladderPos = map.getOrDefault("ladder", new HashSet<>());
+        final Map<String, Set<BlockPos>> map = getTileEntity().getWorldTagNamePosMap();
+        final Set<BlockPos> cobblePos = map.getOrDefault(TAG_COBBLE, new HashSet<>());
+        final Set<BlockPos> ladderPos = map.getOrDefault(TAG_LADDER, new HashSet<>());
         if (cobblePos.isEmpty() || ladderPos.isEmpty())
         {
             return;
@@ -258,32 +262,26 @@ public class BuildingMiner extends AbstractBuildingStructureBuilder
      * @param rotateTimes  The amount of time to rotate the structure.
      * @param structurePos The position of the structure.
      */
-    public static void initStructure(
-        final MineNode mineNode,
-        final int rotateTimes,
-        final BlockPos structurePos,
-        final BuildingMiner buildingMiner,
-        final Level world,
-        final JobMiner job)
+    public static void initStructure(final MineNode mineNode, final BlockPos structurePos, final BuildingMiner buildingMiner, final Level world, final JobMiner job)
     {
         final String structurePack = buildingMiner.getStructurePack();
-        int rotateCount;
+        RotationMirror rotMir;
         final String style;
 
         if (mineNode == null)
         {
-            rotateCount = getRotationFromVector(buildingMiner);
+            rotMir = getRotationFromVector(buildingMiner);
             style = MineNode.NodeType.SHAFT.getSchematicName();
         }
         else
         {
-            rotateCount = rotateTimes;
+            rotMir = mineNode.getRotationMirror().orElse(RotationMirror.NONE);
             style = mineNode.getStyle().getSchematicName();
         }
 
         if (job == null || buildingMiner.getWorkOrder() == null)
         {
-            final WorkOrderMiner wo = new WorkOrderMiner(structurePack, style + ".blueprint", style, rotateCount, structurePos, false, buildingMiner.getPosition());
+            final WorkOrderMiner wo = new WorkOrderMiner(structurePack, style + ".blueprint", style, rotMir, structurePos, false, buildingMiner.getPosition());
             wo.setClaimedBy(buildingMiner.getPosition());
             buildingMiner.getColony().getWorkManager().addWorkOrder(wo, false);
             if (job != null)
@@ -303,26 +301,26 @@ public class BuildingMiner extends AbstractBuildingStructureBuilder
      *
      * @return the rotation.
      */
-    private static int getRotationFromVector(final BuildingMiner buildingMiner)
+    private static RotationMirror getRotationFromVector(final BuildingMiner buildingMiner)
     {
         final BlockPos vector = buildingMiner.getLadderLocation().subtract(buildingMiner.getCobbleLocation());
 
         if (vector.getX() == 1)
         {
-            return 1;
+            return RotationMirror.R90;
         }
         else if (vector.getZ() == 1)
         {
-            return 2;
+            return RotationMirror.R180;
         }
         else if (vector.getX() == -1)
         {
-            return 3;
+            return RotationMirror.R270;
         }
         else if (vector.getZ() == -1)
         {
-            return 4;
+            return RotationMirror.NONE;
         }
-        return 0;
+        return RotationMirror.NONE;
     }
 }

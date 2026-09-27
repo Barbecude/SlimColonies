@@ -4,12 +4,16 @@ import com.google.common.reflect.TypeToken;
 import no.monopixel.slimcolonies.api.colony.IColonyManager;
 import no.monopixel.slimcolonies.api.colony.requestsystem.factory.IFactoryController;
 import no.monopixel.slimcolonies.api.colony.requestsystem.requestable.IDeliverable;
+import no.monopixel.slimcolonies.api.colony.requestsystem.requestable.INonExhaustiveDeliverable;
 import no.monopixel.slimcolonies.api.util.ItemStackUtils;
 import no.monopixel.slimcolonies.api.util.ReflectionUtils;
+import no.monopixel.slimcolonies.api.util.Utils;
 import no.monopixel.slimcolonies.api.util.constant.TypeConstants;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Set;
@@ -18,7 +22,7 @@ import java.util.stream.Collectors;
 /**
  * Smeltable requestable. Delivers a stack of a smeltable ore.
  */
-public class SmeltableOre implements IDeliverable
+public class SmeltableOre implements INonExhaustiveDeliverable
 {
     /**
      * Set of type tokens belonging to this class.
@@ -32,37 +36,45 @@ public class SmeltableOre implements IDeliverable
     ////// --------------------------- NBTConstants --------------------------- \\\\\\
 
     private final int count;
-
+    private final int leftOver;
     private ItemStack result;
 
     public SmeltableOre(final int count)
     {
         this.count = count;
+        this.leftOver = 0;
+    }
+
+    public SmeltableOre(final int count, final int leftOver)
+    {
+        this.count = count;
+        this.leftOver = leftOver;
     }
 
     public SmeltableOre(final int count, final ItemStack result)
     {
         this.count = count;
         this.result = result;
+        this.leftOver = 0;
     }
 
-    public static CompoundTag serialize(final IFactoryController controller, final SmeltableOre ore)
+    public static CompoundTag serialize(@NotNull final HolderLookup.Provider provider, final IFactoryController controller, final SmeltableOre ore)
     {
         final CompoundTag compound = new CompoundTag();
         compound.putInt(NBT_COUNT, ore.count);
 
         if (!ItemStackUtils.isEmpty(ore.result))
         {
-            compound.put(NBT_RESULT, ore.result.serializeNBT());
+            compound.put(NBT_RESULT, ore.result.saveOptional(provider));
         }
 
         return compound;
     }
 
-    public static SmeltableOre deserialize(final IFactoryController controller, final CompoundTag compound)
+    public static SmeltableOre deserialize(@NotNull final HolderLookup.Provider provider, final IFactoryController controller, final CompoundTag compound)
     {
         final int count = compound.getInt(NBT_COUNT);
-        final ItemStack result = compound.contains(NBT_RESULT) ? ItemStackUtils.deserializeFromNBT(compound.getCompound(NBT_RESULT)) : ItemStackUtils.EMPTY;
+        final ItemStack result = compound.contains(NBT_RESULT) ? ItemStackUtils.deserializeFromNBT(compound.getCompound(NBT_RESULT), provider) : ItemStackUtils.EMPTY;
 
         return new SmeltableOre(count, result);
     }
@@ -74,14 +86,14 @@ public class SmeltableOre implements IDeliverable
      * @param buffer     the the buffer to write to.
      * @param input      the input to serialize.
      */
-    public static void serialize(final IFactoryController controller, final FriendlyByteBuf buffer, final SmeltableOre input)
+    public static void serialize(final IFactoryController controller, final RegistryFriendlyByteBuf buffer, final SmeltableOre input)
     {
         buffer.writeInt(input.getCount());
 
         buffer.writeBoolean(!ItemStackUtils.isEmpty(input.result));
         if (!ItemStackUtils.isEmpty(input.result))
         {
-            buffer.writeItem(input.result);
+            Utils.serializeCodecMess(buffer, input.result);
         }
     }
 
@@ -92,10 +104,10 @@ public class SmeltableOre implements IDeliverable
      * @param buffer     the buffer to read.
      * @return the deliverable.
      */
-    public static SmeltableOre deserialize(final IFactoryController controller, final FriendlyByteBuf buffer)
+    public static SmeltableOre deserialize(final IFactoryController controller, final RegistryFriendlyByteBuf buffer)
     {
         final int count = buffer.readInt();
-        final ItemStack result = buffer.readBoolean() ? buffer.readItem() : ItemStack.EMPTY;
+        final ItemStack result = buffer.readBoolean() ? Utils.deserializeCodecMess(buffer) : ItemStack.EMPTY;
 
         return new SmeltableOre(count, result);
     }
@@ -141,5 +153,15 @@ public class SmeltableOre implements IDeliverable
     public Set<TypeToken<?>> getSuperClasses()
     {
         return TYPE_TOKENS;
+    }
+
+    /**
+     * Get the amount of items left over after delivery.
+     * @return the amount of items left over.
+     */
+    @Override
+    public int getLeftOver()
+    {
+        return leftOver;
     }
 }

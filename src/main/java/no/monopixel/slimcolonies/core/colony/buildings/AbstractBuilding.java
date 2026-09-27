@@ -4,30 +4,10 @@ import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.reflect.TypeToken;
+import com.ldtteam.structurize.api.RotationMirror;
 import com.ldtteam.structurize.blueprints.v1.Blueprint;
 import com.ldtteam.structurize.storage.StructurePacks;
-import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
-import net.minecraft.core.BlockPos;
-import net.minecraft.nbt.CompoundTag;
-import net.minecraft.nbt.ListTag;
-import net.minecraft.network.FriendlyByteBuf;
-import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.MutableComponent;
-import net.minecraft.resources.ResourceLocation;
-import net.minecraft.util.Tuple;
-import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.level.Level;
-import net.minecraft.world.level.block.AirBlock;
-import net.minecraft.world.level.block.Block;
-import net.minecraft.world.level.block.entity.BlockEntity;
-import net.minecraft.world.level.block.entity.ChestBlockEntity;
-import net.minecraft.world.level.block.state.BlockState;
-import net.minecraftforge.common.capabilities.ForgeCapabilities;
-import net.minecraftforge.common.capabilities.ICapabilityProvider;
-import net.minecraftforge.common.util.LazyOptional;
-import net.minecraftforge.items.IItemHandler;
-import no.monopixel.slimcolonies.api.SlimColoniesAPIProxy;
+import no.monopixel.slimcolonies.api.MinecoloniesAPIProxy;
 import no.monopixel.slimcolonies.api.blocks.AbstractColonyBlock;
 import no.monopixel.slimcolonies.api.colony.ICitizenData;
 import no.monopixel.slimcolonies.api.colony.IColony;
@@ -38,7 +18,6 @@ import no.monopixel.slimcolonies.api.colony.buildings.modules.settings.ISettingK
 import no.monopixel.slimcolonies.api.colony.buildings.registry.BuildingEntry;
 import no.monopixel.slimcolonies.api.colony.interactionhandling.ChatPriority;
 import no.monopixel.slimcolonies.api.colony.jobs.registry.JobEntry;
-import no.monopixel.slimcolonies.api.colony.modules.ModuleContainerUtils;
 import no.monopixel.slimcolonies.api.colony.requestsystem.StandardFactoryController;
 import no.monopixel.slimcolonies.api.colony.requestsystem.data.IRequestSystemBuildingDataStore;
 import no.monopixel.slimcolonies.api.colony.requestsystem.location.ILocation;
@@ -56,8 +35,9 @@ import no.monopixel.slimcolonies.api.colony.requestsystem.token.IToken;
 import no.monopixel.slimcolonies.api.colony.workorders.IWorkOrder;
 import no.monopixel.slimcolonies.api.colony.workorders.WorkOrderType;
 import no.monopixel.slimcolonies.api.crafting.ItemStorage;
+import no.monopixel.slimcolonies.api.items.component.HutBlockData;
 import no.monopixel.slimcolonies.api.tileentities.AbstractTileEntityColonyBuilding;
-import no.monopixel.slimcolonies.api.tileentities.SlimColoniesTileEntities;
+import no.monopixel.slimcolonies.api.tileentities.MinecoloniesTileEntities;
 import no.monopixel.slimcolonies.api.util.*;
 import no.monopixel.slimcolonies.api.util.constant.Constants;
 import no.monopixel.slimcolonies.api.util.constant.TypeConstants;
@@ -71,12 +51,31 @@ import no.monopixel.slimcolonies.core.colony.jobs.AbstractJobCrafter;
 import no.monopixel.slimcolonies.core.colony.requestsystem.management.IStandardRequestManager;
 import no.monopixel.slimcolonies.core.colony.requestsystem.requesters.BuildingBasedRequester;
 import no.monopixel.slimcolonies.core.colony.requestsystem.requests.StandardRequests;
-import no.monopixel.slimcolonies.core.colony.requestsystem.resolvers.BuildingRequestResolver;
 import no.monopixel.slimcolonies.core.colony.workorders.WorkOrderBuilding;
 import no.monopixel.slimcolonies.core.entity.ai.workers.service.EntityAIWorkDeliveryman;
 import no.monopixel.slimcolonies.core.entity.ai.workers.util.ConstructionTapeHelper;
 import no.monopixel.slimcolonies.core.tileentities.TileEntityColonyBuilding;
 import no.monopixel.slimcolonies.core.util.ChunkDataHelper;
+import no.monopixel.slimcolonies.core.util.SchemAnalyzerUtil;
+import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.ListTag;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.util.Tuple;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.AirBlock;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.entity.ChestBlockEntity;
+import net.minecraft.world.level.block.state.BlockState;
+import net.neoforged.neoforge.items.IItemHandler;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -84,10 +83,14 @@ import java.util.*;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
+import static no.monopixel.slimcolonies.api.colony.requestsystem.requestable.deliveryman.AbstractDeliverymanRequestable.MAX_BUILDING_PRIORITY;
+import static no.monopixel.slimcolonies.api.colony.requestsystem.requestable.deliveryman.AbstractDeliverymanRequestable.getMaxBuildingPriority;
 import static no.monopixel.slimcolonies.api.util.constant.BuildingConstants.CONST_DEFAULT_MAX_BUILDING_LEVEL;
 import static no.monopixel.slimcolonies.api.util.constant.BuildingConstants.NO_WORK_ORDER;
 import static no.monopixel.slimcolonies.api.util.constant.Constants.MOD_ID;
 import static no.monopixel.slimcolonies.api.util.constant.NbtTagConstants.*;
+import static no.monopixel.slimcolonies.api.util.constant.Suppression.GENERIC_WILDCARD;
+import static no.monopixel.slimcolonies.api.util.constant.Suppression.UNCHECKED;
 import static no.monopixel.slimcolonies.api.util.constant.TranslationConstants.*;
 
 /**
@@ -96,15 +99,15 @@ import static no.monopixel.slimcolonies.api.util.constant.TranslationConstants.*
  * We suppress the warning which warns you about referencing child classes in the parent because that's how we register the instances of the childClasses to their views and
  * blocks.
  */
-@SuppressWarnings("PMD.ExcessiveClassLength")
+@SuppressWarnings({"squid:S2390", "PMD.ExcessiveClassLength"})
 public abstract class AbstractBuilding extends AbstractBuildingContainer
 {
     /**
      * Breeding setting.
      */
-    public static final ISettingKey<BoolSetting> BREEDING = new SettingKey<>(BoolSetting.class, ResourceLocation.fromNamespaceAndPath(MOD_ID, "breeding"));
+    public static final ISettingKey<BoolSetting> BREEDING = new SettingKey<>(BoolSetting.class, new ResourceLocation(MOD_ID, "breeding"));
 
-    public static final ISettingKey<BoolSetting> USE_SHEARS = new SettingKey<>(BoolSetting.class, ResourceLocation.fromNamespaceAndPath(Constants.MOD_ID, "useshears"));
+    public static final ISettingKey<BoolSetting> USE_SHEARS = new SettingKey<>(BoolSetting.class, new ResourceLocation(Constants.MOD_ID, "useshears"));
 
     /**
      * Best possible standing pos score.
@@ -132,6 +135,16 @@ public abstract class AbstractBuilding extends AbstractBuildingContainer
     private String customName = "";
 
     /**
+     * Whether a guard building is near
+     */
+    private boolean guardBuildingNear = false;
+
+    /**
+     * Whether we need to recheck if a guard building is near
+     */
+    private boolean recheckGuardBuildingNear = true;
+
+    /**
      * Made to check if the building has to update the server/client.
      */
     private boolean dirty = false;
@@ -143,14 +156,9 @@ public abstract class AbstractBuilding extends AbstractBuildingContainer
     protected Int2ObjectOpenHashMap<IBuildingModule> modulesMap = new Int2ObjectOpenHashMap<>();
 
     /**
-     * Day the next pickup should happen.
+     * Prestige value of this building (dominated by schematic complexity).
      */
-    public int pickUpDay = -1;
-
-    /**
-     * Cached position for citizen standing position next to hut block.
-     */
-    private BlockPos cachedStandingPosition;
+    private int prestige;
 
     /**
      * Constructor for a AbstractBuilding.
@@ -167,9 +175,17 @@ public abstract class AbstractBuilding extends AbstractBuildingContainer
     }
 
     @Override
-    public boolean hasModule(final Class<? extends IBuildingModule> clazz)
+    @NotNull
+    public List<IBuildingModule> getModules()
     {
-        return ModuleContainerUtils.hasModule(modules, clazz);
+        return modules;
+    }
+
+    @Override
+    @NotNull
+    public Class<IBuildingModule> getClassType()
+    {
+        return IBuildingModule.class;
     }
 
     @Override
@@ -178,27 +194,8 @@ public abstract class AbstractBuilding extends AbstractBuildingContainer
         return modulesMap.containsKey(producer.getRuntimeID());
     }
 
-    @NotNull
     @Override
-    public <T extends IBuildingModule> T getFirstModuleOccurance(final Class<T> clazz)
-    {
-        return ModuleContainerUtils.getFirstModuleOccurance(modules,
-            clazz,
-            "The module of class: " + clazz.toString() + "should never be null! Building: " + getBuildingType().getTranslationKey() + " pos:" + getID().toShortString());
-    }
-
-    @NotNull
-    @Override
-    public <T extends IBuildingModule> T getModuleMatching(final Class<T> clazz, final Predicate<? super T> modulePredicate)
-    {
-        return ModuleContainerUtils.getModuleMatching(modules,
-            clazz,
-            modulePredicate,
-            "no matching module for Building: " + getBuildingType().getTranslationKey() + " pos:" + getID().toShortString());
-    }
-
-    @Override
-    public <M extends IBuildingModule, V extends IBuildingModuleView> M getModule(final BuildingEntry.ModuleProducer<M, V> producer)
+    public <M extends IBuildingModule, V extends IBuildingModuleView> M getModule(final BuildingEntry.ModuleProducer<M,V> producer)
     {
         return (M) modulesMap.get(producer.getRuntimeID());
     }
@@ -209,22 +206,15 @@ public abstract class AbstractBuilding extends AbstractBuildingContainer
         return modulesMap.get(id);
     }
 
-    @NotNull
-    @Override
-    public <T extends IBuildingModule> List<T> getModulesByType(final Class<T> clazz)
-    {
-        return ModuleContainerUtils.getModules(modules, clazz);
-    }
-
     @Override
     public void registerModule(@NotNull final IBuildingModule module)
     {
         if (modulesMap.containsKey(module.getProducer().getRuntimeID()))
         {
-            Log.getLogger().error("Trying to register same module twice!" + module.getProducer().key, new RuntimeException());
+            Log.getLogger().error("Trying to register same module twice!"+module.getProducer().key, new RuntimeException());
             return;
         }
-        modulesMap.put(module.getProducer().getRuntimeID(), module);
+        modulesMap.put(module.getProducer().getRuntimeID(),module);
         this.modules.add(module);
     }
 
@@ -318,7 +308,7 @@ public abstract class AbstractBuilding extends AbstractBuildingContainer
     {
         if (getBuildingLevel() == 0 && !hasParent())
         {
-            ChunkDataHelper.claimBuildingChunks(colony, true, getPosition(), getClaimRadius(getBuildingLevel()), getCorners());
+            ChunkDataHelper.claimBuildingChunks((Colony) colony, true, getPosition(), getClaimRadius(getBuildingLevel()), getCorners());
         }
     }
 
@@ -335,10 +325,10 @@ public abstract class AbstractBuilding extends AbstractBuildingContainer
     }
 
     @Override
-    public void deserializeNBT(final CompoundTag compound)
+    public void deserializeNBT(final HolderLookup.Provider provider, final CompoundTag compound)
     {
-        super.deserializeNBT(compound);
-        loadRequestSystemFromNBT(compound);
+        super.deserializeNBT(provider, compound);
+        loadRequestSystemFromNBT(provider, compound);
         if (compound.contains(TAG_IS_BUILT))
         {
             isBuilt = compound.getBoolean(TAG_IS_BUILT);
@@ -351,6 +341,10 @@ public abstract class AbstractBuilding extends AbstractBuildingContainer
         {
             this.customName = compound.getString(TAG_CUSTOM_NAME);
         }
+        if (compound.contains(TAG_PRESTIGE))
+        {
+            this.prestige = compound.getInt(TAG_PRESTIGE);
+        }
 
         if (compound.contains(TAG_BUILDING_MODULES))
         {
@@ -358,40 +352,41 @@ public abstract class AbstractBuilding extends AbstractBuildingContainer
             {
                 if (compound.getCompound(TAG_BUILDING_MODULES).contains(module.getProducer().key))
                 {
-                    module.deserializeNBT(compound.getCompound(TAG_BUILDING_MODULES).getCompound(module.getProducer().key));
+                    module.deserializeNBT(provider, compound.getCompound(TAG_BUILDING_MODULES).getCompound(module.getProducer().key));
                 }
                 else
                 {
-                    module.deserializeNBT(compound);
+                    module.deserializeNBT(provider, compound);
                 }
             }
         }
         else
         {
-            getModulesByType(IPersistentModule.class).forEach(module -> module.deserializeNBT(compound));
+            getModulesByType(IPersistentModule.class).forEach(module -> module.deserializeNBT(provider, compound));
         }
     }
 
     @Override
-    public CompoundTag serializeNBT()
+    public CompoundTag serializeNBT(final HolderLookup.Provider provider)
     {
-        final CompoundTag compound = super.serializeNBT();
+        final CompoundTag compound = super.serializeNBT(provider);
         final ListTag list = new ListTag();
         for (final IRequestResolver<?> requestResolver : getResolvers())
         {
-            list.add(StandardFactoryController.getInstance().serialize(requestResolver.getId()));
+            list.add(StandardFactoryController.getInstance().serializeTag(provider, requestResolver.getId()));
         }
         compound.put(TAG_RESOLVER, list);
         compound.putString(TAG_BUILDING_TYPE, this.getBuildingType().getRegistryName().toString());
-        writeRequestSystemToNBT(compound);
+        writeRequestSystemToNBT(provider, compound);
         compound.putBoolean(TAG_IS_BUILT, isBuilt);
         compound.putString(TAG_CUSTOM_NAME, customName);
+        compound.putInt(TAG_PRESTIGE, prestige);
 
         CompoundTag modules = new CompoundTag();
         for (IPersistentModule module : getModulesByType(IPersistentModule.class))
         {
             final CompoundTag tag = new CompoundTag();
-            module.serializeNBT(tag);
+            module.serializeNBT(provider, tag);
             modules.put(module.getProducer().key, tag);
         }
 
@@ -406,12 +401,12 @@ public abstract class AbstractBuilding extends AbstractBuildingContainer
     public void destroy()
     {
         onDestroyed();
-        colony.getBuildingManager().removeBuilding(this, colony.getPackageManager().getCloseSubscribers());
+        colony.getServerBuildingManager().removeBuilding(this, colony.getPackageManager().getCloseSubscribers());
         colony.getRequestManager().getDataStoreManager().remove(this.rsDataStoreToken);
 
         for (final BlockPos childpos : getChildren())
         {
-            final IBuilding building = colony.getBuildingManager().getBuilding(childpos);
+            final IBuilding building = colony.getServerBuildingManager().getBuilding(childpos);
             if (building != null)
             {
                 building.destroy();
@@ -428,15 +423,10 @@ public abstract class AbstractBuilding extends AbstractBuildingContainer
 
         if (tileEntityNew != null)
         {
-            InventoryUtils.dropItemHandler(tileEntityNew.getInventory(),
-                world,
-                tileEntityNew.getPosition().getX(),
-                tileEntityNew.getPosition().getY(),
-                tileEntityNew.getPosition().getZ());
             world.updateNeighbourForOutputSignal(this.getPosition(), block);
         }
 
-        ChunkDataHelper.claimBuildingChunks(colony, false, this.getID(), getClaimRadius(getBuildingLevel()), getCorners());
+        ChunkDataHelper.claimBuildingChunks((Colony) colony, false, this.getID(), getClaimRadius(getBuildingLevel()), getCorners());
         ConstructionTapeHelper.removeConstructionTape(getCorners(), world);
 
         getModulesByType(IBuildingEventsModule.class).forEach(IBuildingEventsModule::onDestroyed);
@@ -467,37 +457,38 @@ public abstract class AbstractBuilding extends AbstractBuildingContainer
 
 
         if (type != WorkOrderType.REMOVE &&
-            !canBeBuiltByBuilder(workOrder.getTargetLevel()) &&
-            !workOrder.canBeResolved(colony, workOrder.getTargetLevel()))
+              !canBeBuiltByBuilder(workOrder.getTargetLevel()) &&
+              !workOrder.canBeResolved(colony, workOrder.getTargetLevel()))
         {
             MessageUtils.format(BUILDER_NECESSARY, Integer.toString(workOrder.getTargetLevel())).sendTo(colony).forAllPlayers();
             return;
         }
 
         if (workOrder.tooFarFromAnyBuilder(colony, workOrder.getTargetLevel()) &&
-            builder.equals(BlockPos.ZERO))
+              builder.equals(BlockPos.ZERO))
         {
             MessageUtils.format(BUILDER_TOO_FAR_AWAY).sendTo(colony).forAllPlayers();
             return;
         }
 
+        final int min = colony.getWorld().getMinBuildHeight();
         final int max = colony.getWorld().getMaxBuildHeight();
         if (getCorners().getA().getY() >= max || getCorners().getB().getY() >= max)
         {
-            MessageUtils.format(BUILDER_BUILDING_TOO_HIGH).sendTo(colony).forAllPlayers();
+            MessageUtils.format(BUILDER_BUILDING_TOO_HIGH, max).sendTo(colony).forAllPlayers();
             return;
         }
-        else if (getPosition().getY() <= colony.getWorld().getMinBuildHeight())
+        else if (getPosition().getY() <= min)
         {
-            MessageUtils.format(BUILDER_BUILDING_TOO_LOW).sendTo(colony).forAllPlayers();
+            MessageUtils.format(BUILDER_BUILDING_TOO_LOW, min).sendTo(colony).forAllPlayers();
             return;
         }
 
         if (!builder.equals(BlockPos.ZERO))
         {
-            final IBuilding building = colony.getBuildingManager().getBuilding(builder);
+            final IBuilding building = colony.getServerBuildingManager().getBuilding(builder);
             if (building instanceof AbstractBuildingStructureBuilder &&
-                (building.getBuildingLevel() >= workOrder.getTargetLevel() || canBeBuiltByBuilder(workOrder.getTargetLevel())))
+                  (building.getBuildingLevel() >= workOrder.getTargetLevel() || canBeBuiltByBuilder(workOrder.getTargetLevel())))
             {
                 workOrder.setClaimedBy(builder);
             }
@@ -514,12 +505,12 @@ public abstract class AbstractBuilding extends AbstractBuildingContainer
         if (workOrder.getID() != 0)
         {
             MessageUtils.format(WORK_ORDER_CREATED,
-                    workOrder.getDisplayName(),
-                    colony.getName(),
-                    workOrder.getLocation().getX(),
-                    workOrder.getLocation().getY(),
-                    workOrder.getLocation().getZ())
-                .sendTo(colony).forAllPlayers();
+                workOrder.getDisplayName(),
+                colony.getName(),
+                workOrder.getLocation().getX(),
+                workOrder.getLocation().getY(),
+                workOrder.getLocation().getZ())
+              .sendTo(colony).forAllPlayers();
         }
         markDirty();
     }
@@ -551,7 +542,7 @@ public abstract class AbstractBuilding extends AbstractBuildingContainer
         dirty = true;
         if (colony != null)
         {
-            colony.getBuildingManager().markBuildingsDirty();
+            colony.getServerBuildingManager().markBuildingsDirty();
         }
     }
 
@@ -585,7 +576,7 @@ public abstract class AbstractBuilding extends AbstractBuildingContainer
     }
 
     /**
-     * Checks if this building is pending construction (building, upgrading, or repairing).
+     * Checks if this building have a work order.
      *
      * @return true if the building is building, upgrading or repairing.
      */
@@ -603,11 +594,11 @@ public abstract class AbstractBuilding extends AbstractBuildingContainer
     private int getCurrentWorkOrderLevel()
     {
         return colony.getWorkManager().getWorkOrdersOfType(WorkOrderBuilding.class)
-            .stream()
-            .filter(f -> f.getLocation().equals(getID()))
-            .map(IWorkOrder::getTargetLevel)
-            .findFirst()
-            .orElse(NO_WORK_ORDER);
+          .stream()
+          .filter(f -> f.getLocation().equals(getID()))
+          .map(IWorkOrder::getTargetLevel)
+          .findFirst()
+          .orElse(NO_WORK_ORDER);
     }
 
     /**
@@ -626,7 +617,7 @@ public abstract class AbstractBuilding extends AbstractBuildingContainer
                 markDirty();
 
                 final BlockPos buildingPos = o.getClaimedBy();
-                final IBuilding building = colony.getBuildingManager().getBuilding(buildingPos);
+                final IBuilding building = colony.getServerBuildingManager().getBuilding(buildingPos);
                 if (building != null)
                 {
                     for (final AbstractAssignedCitizenModule module : building.getModulesByType(AbstractAssignedCitizenModule.class))
@@ -662,18 +653,27 @@ public abstract class AbstractBuilding extends AbstractBuildingContainer
     @Override
     public int getClaimRadius(final int newLevel)
     {
-        if (newLevel >= 5) return 3;
-        if (newLevel >= 1) return 2;
-        return 0;
+        switch (newLevel)
+        {
+            case 1:
+            case 2:
+            case 3:
+                return 1;
+            case 4:
+            case 5:
+                return 2;
+            default:
+                return 0;
+        }
     }
 
     /**
      * Serializes to view.
      *
-     * @param buf FriendlyByteBuf to write to.
+     * @param buf RegistryFriendlyByteBuf to write to.
      */
     @Override
-    public void serializeToView(@NotNull final FriendlyByteBuf buf, final boolean fullSync)
+    public void serializeToView(@NotNull final RegistryFriendlyByteBuf buf, final boolean fullSync)
     {
         buf.writeUtf(this.getBuildingType().getRegistryName().toString());
         buf.writeInt(getBuildingLevel());
@@ -684,21 +684,29 @@ public abstract class AbstractBuilding extends AbstractBuildingContainer
         buf.writeUtf(getBlueprintPath());
         buf.writeBlockPos(getParent());
         buf.writeUtf(this.customName);
+        buf.writeInt(this.prestige);
 
-        buf.writeInt(getRotation());
-        buf.writeBoolean(isMirrored());
+        if (getRotationMirror() == null)
+        {
+            Log.getLogger().error(String.format("Building %s is supposed to have rotation mirror!", this.getBuildingType().getRegistryName().toString()));
+            buf.writeByte(RotationMirror.NONE.ordinal());
+        }
+        else
+        {
+            buf.writeByte(getRotationMirror().ordinal());
+        }
         buf.writeInt(getClaimRadius(getBuildingLevel()));
 
         final CompoundTag requestSystemCompound = new CompoundTag();
-        writeRequestSystemToNBT(requestSystemCompound);
+        writeRequestSystemToNBT(buf.registryAccess(), requestSystemCompound);
 
         final ImmutableCollection<IRequestResolver<?>> resolvers = getResolvers();
         buf.writeInt(resolvers.size());
         for (final IRequestResolver<?> resolver : resolvers)
         {
-            buf.writeNbt(StandardFactoryController.getInstance().serialize(resolver.getId()));
+            buf.writeNbt(StandardFactoryController.getInstance().serializeTag(buf.registryAccess(), resolver.getId()));
         }
-        buf.writeNbt(StandardFactoryController.getInstance().serialize(getId()));
+        buf.writeNbt(StandardFactoryController.getInstance().serializeTag(buf.registryAccess(), getId()));
         buf.writeInt(containerList.size());
         for (BlockPos blockPos : containerList)
         {
@@ -710,7 +718,7 @@ public abstract class AbstractBuilding extends AbstractBuildingContainer
         buf.writeBoolean(canAssignCitizens());
 
         final List<IBuildingModule> syncedModules = new ArrayList<>();
-        for (final IBuildingModule module : modules)
+        for(final IBuildingModule module:modules)
         {
             if (module.getProducer().hasView())
             {
@@ -719,7 +727,7 @@ public abstract class AbstractBuilding extends AbstractBuildingContainer
         }
 
         buf.writeInt(syncedModules.size());
-        for (final IBuildingModule module : syncedModules)
+        for (final IBuildingModule module: syncedModules)
         {
             buf.writeInt(module.getProducer().getRuntimeID());
             module.serializeToView(buf, fullSync);
@@ -734,6 +742,7 @@ public abstract class AbstractBuilding extends AbstractBuildingContainer
     public void onColonyTick(final IColony colony)
     {
         getModulesByType(ITickingModule.class).forEach(module -> module.onColonyTick(colony));
+        super.onColonyTick(colony);
     }
 
     /**
@@ -748,17 +757,28 @@ public abstract class AbstractBuilding extends AbstractBuildingContainer
         this.markDirty();
 
         this.colony.getWorkManager().getWorkOrders().values().stream()
-            .filter(f -> f instanceof WorkOrderBuilding)
-            .map(m -> (WorkOrderBuilding) m)
-            .filter(f -> f.getLocation().equals(this.getID()) || this.getChildren().contains(f.getLocation()))
-            .forEach(f -> {
-                IBuilding building = this.colony.getBuildingManager().getBuilding(f.getLocation());
-                if (building != null)
-                {
-                    f.setCustomName(building);
-                    this.colony.getWorkManager().setDirty(true);
-                }
-            });
+          .filter(f -> f instanceof WorkOrderBuilding)
+          .map(m -> (WorkOrderBuilding) m)
+          .filter(f -> f.getLocation().equals(this.getID()) || this.getChildren().contains(f.getLocation()))
+          .forEach(f -> {
+              IBuilding building = this.colony.getServerBuildingManager().getBuilding(f.getLocation());
+              if (building != null)
+              {
+                  f.setCustomName(building);
+                  this.colony.getWorkManager().setDirty(true);
+              }
+          });
+    }
+
+    /**
+     * Check if the building should be gathered by the dman.
+     *
+     * @return true if so.
+     */
+    @Override
+    public boolean canBeGathered()
+    {
+        return true;
     }
 
     /**
@@ -772,27 +792,26 @@ public abstract class AbstractBuilding extends AbstractBuildingContainer
     {
         final ResourceLocation hutResearch = colony.getResearchManager().getResearchEffectIdFrom(this.getBuildingType().getBuildingBlock());
 
-        if (SlimColoniesAPIProxy.getInstance().getGlobalResearchTree().hasResearchEffect(hutResearch) &&
-            colony.getResearchManager().getResearchEffects().getEffectStrength(hutResearch) < 1)
+        if (MinecoloniesAPIProxy.getInstance().getGlobalResearchTree().hasResearchEffect(hutResearch) &&
+              colony.getResearchManager().getResearchEffects().getEffectStrength(hutResearch) < 1)
         {
             MessageUtils.format(WARNING_BUILDING_REQUIRES_RESEARCH_UNLOCK).sendTo(player);
             return;
         }
-        if (SlimColoniesAPIProxy.getInstance().getGlobalResearchTree().hasResearchEffect(hutResearch) &&
-            (colony.getResearchManager().getResearchEffects().getEffectStrength(hutResearch) <= getBuildingLevel()))
+        if (MinecoloniesAPIProxy.getInstance().getGlobalResearchTree().hasResearchEffect(hutResearch) &&
+              (colony.getResearchManager().getResearchEffects().getEffectStrength(hutResearch) <= getBuildingLevel()))
         {
             MessageUtils.format(WARNING_BUILDING_REQUIRES_RESEARCH_UPGRADE).sendTo(player);
             return;
         }
 
-        final IBuilding parentBuilding = colony.getBuildingManager().getBuilding(getParent());
+        final IBuilding parentBuilding = colony.getServerBuildingManager().getBuilding(getParent());
 
         if (getBuildingLevel() == 0 && (parentBuilding == null || parentBuilding.getBuildingLevel() > 0))
         {
             requestWorkOrder(WorkOrderType.BUILD, builder);
         }
-        else if (getBuildingLevel() < getMaxBuildingLevel() && (parentBuilding == null || getBuildingLevel() < parentBuilding.getBuildingLevel()
-            || parentBuilding.getBuildingLevel() >= parentBuilding.getMaxBuildingLevel()))
+        else if (getBuildingLevel() < getMaxBuildingLevel() && (parentBuilding == null || getBuildingLevel() < parentBuilding.getBuildingLevel() || parentBuilding.getBuildingLevel() >= parentBuilding.getMaxBuildingLevel()))
         {
             requestWorkOrder(WorkOrderType.UPGRADE, builder);
         }
@@ -825,11 +844,9 @@ public abstract class AbstractBuilding extends AbstractBuildingContainer
         }
 
         final ItemStack stack = new ItemStack(colony.getWorld().getBlockState(getPosition()).getBlock(), 1);
-        final CompoundTag compoundNBT = new CompoundTag();
-        compoundNBT.putInt(TAG_COLONY_ID, this.getColony().getID());
-        compoundNBT.putInt(TAG_OTHER_LEVEL, this.getBuildingLevel());
-        stack.setTag(compoundNBT);
-        if (InventoryUtils.addItemStackToProvider(player, stack))
+        colony.writeToItemStack(stack);
+        new HutBlockData(this.getBuildingLevel(), false).writeToItemStack(stack);
+        if (InventoryUtils.addItemStackToProvider(IItemHandlerCapProvider.wrap(player, false), stack))
         {
             this.destroy();
             colony.getWorld().destroyBlock(this.getPosition(), false);
@@ -893,12 +910,12 @@ public abstract class AbstractBuilding extends AbstractBuildingContainer
         }
 
         if ((tileEntity == null)
-            && colony != null
-            && colony.getWorld() != null
-            && getPosition() != null
-            && WorldUtil.isBlockLoaded(colony.getWorld(), getPosition())
-            && !(colony.getWorld().getBlockState(getPosition()).getBlock() instanceof AirBlock)
-            && colony.getWorld().getBlockState(this.getPosition()).getBlock() instanceof AbstractColonyBlock<?>)
+              && colony != null
+              && colony.getWorld() != null
+              && getPosition() != null
+              && WorldUtil.isBlockLoaded(colony.getWorld(), getPosition())
+              && !(colony.getWorld().getBlockState(getPosition()).getBlock() instanceof AirBlock)
+              && colony.getWorld().getBlockState(this.getPosition()).getBlock() instanceof AbstractColonyBlock<?>)
         {
             final BlockEntity te = colony.getWorld().getBlockEntity(getPosition());
             if (te instanceof TileEntityColonyBuilding)
@@ -915,8 +932,7 @@ public abstract class AbstractBuilding extends AbstractBuildingContainer
                 Log.getLogger().error("Somehow the wrong TileEntity is at the location where the building should be!", new Exception());
                 Log.getLogger().error("Trying to restore order!");
 
-                final AbstractTileEntityColonyBuilding tileEntityColonyBuilding =
-                    new TileEntityColonyBuilding(SlimColoniesTileEntities.BUILDING.get(), getPosition(), colony.getWorld().getBlockState(this.getPosition()));
+                final AbstractTileEntityColonyBuilding tileEntityColonyBuilding = new TileEntityColonyBuilding(MinecoloniesTileEntities.BUILDING.get(), getPosition(), colony.getWorld().getBlockState(this.getPosition()));
                 colony.getWorld().setBlockEntity(tileEntityColonyBuilding);
                 this.tileEntity = tileEntityColonyBuilding;
             }
@@ -926,13 +942,13 @@ public abstract class AbstractBuilding extends AbstractBuildingContainer
     }
 
     @Override
-    public void onUpgradeComplete(final int newLevel)
+    public void onUpgradeComplete(@Nullable final Blueprint blueprint, final int newLevel)
     {
-        cachedRotation = -1;
         if (!hasParent())
         {
-            ChunkDataHelper.claimBuildingChunks(colony, true, this.getID(), this.getClaimRadius(newLevel), getCorners());
+            ChunkDataHelper.claimBuildingChunks((Colony) colony, true, this.getID(), this.getClaimRadius(newLevel), getCorners());
         }
+        recheckGuardBuildingNear = true;
 
         ConstructionTapeHelper.removeConstructionTape(getCorners(), colony.getWorld());
         calculateCorners();
@@ -955,8 +971,27 @@ public abstract class AbstractBuilding extends AbstractBuildingContainer
 
         getModulesByType(IBuildingEventsModule.class).forEach(module -> module.onUpgradeComplete(newLevel));
         colony.getResearchManager().checkAutoStartResearch();
-        colony.getBuildingManager().onBuildingUpgradeComplete(this, newLevel);
-        cachedStandingPosition = null;
+        colony.getServerBuildingManager().onBuildingUpgradeComplete(this, newLevel);
+
+        if (blueprint != null)
+        {
+           calculatePrestige(blueprint);
+        }
+    }
+
+    @Override
+    public void calculatePrestige(final Blueprint blueprint)
+    {
+        if (getBuildingLevel() > 0)
+        {
+            final int new_prestige = SchemAnalyzerUtil.analyzeSchematic(blueprint, colony.getWorld().registryAccess()).costScore;
+            if (new_prestige != prestige)
+            {
+                prestige = new_prestige;
+                markDirty();
+            }
+        }
+        colony.getServerBuildingManager().clearPendingPrestigeCalc(this);
     }
 
     @Override
@@ -971,18 +1006,17 @@ public abstract class AbstractBuilding extends AbstractBuildingContainer
 
         try
         {
-            final Blueprint blueprint = StructurePacks.getBlueprint(getStructurePack(), getBlueprintPath());
+            final Blueprint blueprint = StructurePacks.getBlueprint(getStructurePack(), getBlueprintPath(), te.getLevel().registryAccess());
             if (blueprint == null)
             {
                 setCorners(getPosition(), getPosition());
                 return;
             }
             final Tuple<BlockPos, BlockPos> corners
-                = ColonyUtils.calculateCorners(this.getPosition(),
-                colony.getWorld(),
-                blueprint,
-                getRotation(),
-                isMirrored());
+              = ColonyUtils.calculateCorners(this.getPosition(),
+              colony.getWorld(),
+              blueprint,
+              getRotationMirror());
             this.setCorners(corners.getA(), corners.getB());
 
             if (te != null)
@@ -996,6 +1030,22 @@ public abstract class AbstractBuilding extends AbstractBuildingContainer
         }
     }
 
+    @Override
+    public boolean isGuardBuildingNear()
+    {
+        if (recheckGuardBuildingNear)
+        {
+            guardBuildingNear = colony.getServerBuildingManager().hasGuardBuildingNear(this);
+            recheckGuardBuildingNear = false;
+        }
+        return guardBuildingNear;
+    }
+
+    @Override
+    public void resetGuardBuildingNear()
+    {
+        this.recheckGuardBuildingNear = true;
+    }
 
     //------------------------- Starting Required Tools/Item handling -------------------------//
 
@@ -1062,11 +1112,11 @@ public abstract class AbstractBuilding extends AbstractBuildingContainer
         {
             final IStandardRequestManager requestManager = (IStandardRequestManager) colony.getRequestManager();
             final List<IRequest<? extends IDeliverable>> deliverableRequests =
-                requestManager.getRequestHandler().getRequestsMadeByRequester(resolver)
-                    .stream()
-                    .filter(iRequest -> iRequest.getRequest() instanceof IDeliverable)
-                    .map(iRequest -> (IRequest<? extends IDeliverable>) iRequest)
-                    .collect(Collectors.toList());
+              requestManager.getRequestHandler().getRequestsMadeByRequester(resolver)
+                .stream()
+                .filter(iRequest -> iRequest.getRequest() instanceof IDeliverable)
+                .map(iRequest -> (IRequest<? extends IDeliverable>) iRequest)
+                .collect(Collectors.toList());
             for (IRequest<? extends IDeliverable> request : deliverableRequests)
             {
                 for (ItemStack item : request.getDeliveries())
@@ -1082,8 +1132,12 @@ public abstract class AbstractBuilding extends AbstractBuildingContainer
             }
         }
         toKeep.putAll(requiredItems.entrySet().stream()
-            .collect(Collectors.toMap(key -> (stack -> ItemStackUtils.compareItemStacksIgnoreStackSize(stack, key.getKey().getItemStack())), Map.Entry::getValue)));
+          .collect(Collectors.toMap(key -> (stack -> ItemStackUtils.compareItemStacksIgnoreStackSize(stack, key.getKey().getItemStack())), Map.Entry::getValue)));
 
+        if (keepFood())
+        {
+            toKeep.put(stack -> FoodUtils.canEat(stack, null, this), new Tuple<>(getBuildingLevel() * 2, true));
+        }
         for (final IHasRequiredItemsModule module : getModulesByType(IHasRequiredItemsModule.class))
         {
             toKeep.putAll(module.getRequiredItemsAndAmount());
@@ -1091,6 +1145,12 @@ public abstract class AbstractBuilding extends AbstractBuildingContainer
 
         getModulesByType(IAltersRequiredItems.class).forEach(module -> module.alterItemsToBeKept((stack, qty, inv) -> toKeep.put(stack, new Tuple<>(qty, inv))));
         return toKeep;
+    }
+
+    @Override
+    public int getPrestige()
+    {
+        return prestige;
     }
 
     @Override
@@ -1116,8 +1176,11 @@ public abstract class AbstractBuilding extends AbstractBuildingContainer
         final BlockEntity entity = colony.getWorld().getBlockEntity(getID());
         if (entity != null)
         {
-            final LazyOptional<IItemHandler> handler = entity.getCapability(ForgeCapabilities.ITEM_HANDLER, null);
-            handler.ifPresent(handlers::add);
+            final IItemHandler handler = getItemHandlerCap();
+            if (handler != null)
+            {
+                handlers.add(handler);
+            }
         }
 
         return ImmutableList.copyOf(handlers);
@@ -1134,6 +1197,7 @@ public abstract class AbstractBuilding extends AbstractBuildingContainer
     {
         return getFirstModuleOccurance(ISettingsModule.class).getSettingValueOrDefault(key, def);
     }
+
 
     /**
      * Get the right module for the recipe.
@@ -1154,6 +1218,16 @@ public abstract class AbstractBuilding extends AbstractBuildingContainer
     }
 
     /**
+     * If the worker should keep some food in the inventory/building.
+     *
+     * @return true if so.
+     */
+    protected boolean keepFood()
+    {
+        return true;
+    }
+
+    /**
      * Try to transfer a stack to one of the inventories of the building and force the transfer.
      *
      * @param stack the stack to transfer.
@@ -1169,9 +1243,10 @@ public abstract class AbstractBuilding extends AbstractBuildingContainer
             for (final BlockPos pos : containerList)
             {
                 final BlockEntity tempTileEntity = world.getBlockEntity(pos);
-                if (tempTileEntity instanceof ChestBlockEntity && !InventoryUtils.isProviderFull(tempTileEntity))
+                final IItemHandlerCapProvider wrapped = IItemHandlerCapProvider.wrap(tempTileEntity);
+                if (tempTileEntity instanceof ChestBlockEntity && !InventoryUtils.isProviderFull(wrapped))
                 {
-                    return forceItemStackToProvider(tempTileEntity, stack);
+                    return forceItemStackToProvider(wrapped, stack);
                 }
             }
         }
@@ -1183,17 +1258,17 @@ public abstract class AbstractBuilding extends AbstractBuildingContainer
     }
 
     @Nullable
-    private ItemStack forceItemStackToProvider(@NotNull final ICapabilityProvider provider, @NotNull final ItemStack itemStack)
+    private ItemStack forceItemStackToProvider(@NotNull final IItemHandlerCapProvider provider, @NotNull final ItemStack itemStack)
     {
         final List<ItemStorage> localAlreadyKept = new ArrayList<>();
         return InventoryUtils.forceItemStackToProvider(provider,
-            itemStack,
-            (ItemStack stack) -> EntityAIWorkDeliveryman.workerRequiresItem(this, stack, localAlreadyKept) != stack.getCount());
+          itemStack,
+          (ItemStack stack) -> EntityAIWorkDeliveryman.workerRequiresItem(this, stack, localAlreadyKept) != stack.getCount());
     }
 
     //------------------------- Ending Required Tools/Item handling -------------------------//
 
-    //------------------------- !START! RequestSystem handling for minecolonies buildings -------------------------//
+    //------------------------- !START! RequestSystem handling for slimcolonies buildings -------------------------//
 
     @Override
     public boolean isItemStackInRequest(@Nullable final ItemStack stack)
@@ -1222,28 +1297,28 @@ public abstract class AbstractBuilding extends AbstractBuildingContainer
         return false;
     }
 
-    protected void writeRequestSystemToNBT(final CompoundTag compound)
+    protected void writeRequestSystemToNBT(@NotNull final HolderLookup.Provider provider, final CompoundTag compound)
     {
-        compound.put(TAG_REQUESTOR_ID, StandardFactoryController.getInstance().serialize(requester));
-        compound.put(TAG_RS_BUILDING_DATASTORE, StandardFactoryController.getInstance().serialize(rsDataStoreToken));
+        compound.put(TAG_REQUESTOR_ID, StandardFactoryController.getInstance().serializeTag(provider, requester));
+        compound.put(TAG_RS_BUILDING_DATASTORE, StandardFactoryController.getInstance().serializeTag(provider, rsDataStoreToken));
     }
 
     protected void setupRsDataStore()
     {
         this.rsDataStoreToken = colony.getRequestManager()
-            .getDataStoreManager()
-            .get(
-                StandardFactoryController.getInstance().getNewInstance(TypeConstants.ITOKEN),
-                TypeConstants.REQUEST_SYSTEM_BUILDING_DATA_STORE
-            )
-            .getId();
+          .getDataStoreManager()
+          .get(
+            StandardFactoryController.getInstance().getNewInstance(TypeConstants.ITOKEN),
+            TypeConstants.REQUEST_SYSTEM_BUILDING_DATA_STORE
+          )
+          .getId();
     }
 
-    private void loadRequestSystemFromNBT(final CompoundTag compound)
+    private void loadRequestSystemFromNBT(@NotNull final HolderLookup.Provider provider, final CompoundTag compound)
     {
         if (compound.contains(TAG_REQUESTOR_ID))
         {
-            this.requester = StandardFactoryController.getInstance().deserialize(compound.getCompound(TAG_REQUESTOR_ID));
+            this.requester = StandardFactoryController.getInstance().deserializeTag(provider, compound.getCompound(TAG_REQUESTOR_ID));
         }
         else
         {
@@ -1252,7 +1327,7 @@ public abstract class AbstractBuilding extends AbstractBuildingContainer
 
         if (compound.contains(TAG_RS_BUILDING_DATASTORE))
         {
-            this.rsDataStoreToken = StandardFactoryController.getInstance().deserialize(compound.getCompound(TAG_RS_BUILDING_DATASTORE));
+            this.rsDataStoreToken = StandardFactoryController.getInstance().deserializeTag(provider, compound.getCompound(TAG_RS_BUILDING_DATASTORE));
         }
         else
         {
@@ -1308,13 +1383,13 @@ public abstract class AbstractBuilding extends AbstractBuildingContainer
         if (async)
         {
             citizenData.getJob().getAsyncRequests().add(requestToken);
-            citizenData.triggerInteraction(new RequestBasedInteraction(Component.translatable(RequestSystemTranslationConstants.REQUEST_RESOLVER_ASYNC,
-                request.getLongDisplayString()), ChatPriority.PENDING, Component.translatable(RequestSystemTranslationConstants.REQUEST_RESOLVER_ASYNC), request.getId()));
+            citizenData.triggerInteraction(new RequestBasedInteraction(Component.translatableEscape(RequestSystemTranslationConstants.REQUEST_RESOLVER_ASYNC,
+                request.getLongDisplayString()), ChatPriority.PENDING, Component.translatableEscape(RequestSystemTranslationConstants.REQUEST_RESOLVER_ASYNC), request.getId()));
         }
         else
         {
-            citizenData.triggerInteraction(new RequestBasedInteraction(Component.translatable(RequestSystemTranslationConstants.REQUEST_RESOLVER_NORMAL,
-                request.getLongDisplayString()), ChatPriority.BLOCKING, Component.translatable(RequestSystemTranslationConstants.REQUEST_RESOLVER_NORMAL), request.getId()));
+            citizenData.triggerInteraction(new RequestBasedInteraction(Component.translatableEscape(RequestSystemTranslationConstants.REQUEST_RESOLVER_NORMAL,
+                request.getLongDisplayString()), ChatPriority.BLOCKING, Component.translatableEscape(RequestSystemTranslationConstants.REQUEST_RESOLVER_NORMAL), request.getId()));
         }
 
         markDirty();
@@ -1442,52 +1517,48 @@ public abstract class AbstractBuilding extends AbstractBuildingContainer
     }
 
     @Override
-    @SuppressWarnings({"unchecked"})
+    @SuppressWarnings({GENERIC_WILDCARD, UNCHECKED})
     public <R> ImmutableList<IRequest<? extends R>> getOpenRequestsOfType(
-        final int citizenId,
-        final TypeToken<R> requestType)
+      final int citizenId,
+      final TypeToken<R> requestType)
     {
         return ImmutableList.copyOf(getOpenRequests(citizenId).stream()
-            .filter(request -> request.getType().isSubtypeOf(requestType))
-            .map(request -> (IRequest<? extends R>) request)
-            .iterator());
+          .filter(request -> request.getType().isSubtypeOf(requestType))
+          .map(request -> (IRequest<? extends R>) request)
+          .iterator());
     }
 
     @Override
-    public boolean createPickupRequest(final int pickUpPrio)
+    public boolean createPickupRequest(final int qty, final boolean force)
     {
-        int daysToPickup = 10 - pickUpPrio;
-        if (pickUpDay == -1 || pickUpDay > colony.getDay() + daysToPickup)
-        {
-            pickUpDay = colony.getDay() + daysToPickup;
-        }
-
-        if (colony.getDay() < pickUpDay)
-        {
-            return false;
-        }
-
-        pickUpDay = -1;
-
+        final int priority = force ? getMaxBuildingPriority(true) : this.getPickUpPriority();
         final List<IToken<?>> reqs = new ArrayList<>(getOpenRequestsByRequestableType().getOrDefault(TypeConstants.PICKUP, Collections.emptyList()));
         if (!reqs.isEmpty())
         {
             for (final IToken<?> req : reqs)
             {
                 final IRequest<?> request = colony.getRequestManager().getRequestForToken(req);
-                if (request != null && request.getState() == RequestState.IN_PROGRESS)
+                if (request != null && request.getState() == RequestState.IN_PROGRESS && req instanceof Pickup pickup)
                 {
                     final IRequestResolver<?> resolver = colony.getRequestManager().getResolverForRequest(req);
                     if (resolver instanceof IPlayerRequestResolver || resolver instanceof IRetryingRequestResolver)
                     {
                         colony.getRequestManager().reassignRequest(req, Collections.emptyList());
                     }
+                    pickup.setQuantity(pickup.getQuantity() + qty);
+                    final int pickUpDay = colony.getDay() + Math.max(0, (10 - priority) - (pickup.getQuantity() / 16));
+                    if (pickup.getDay() > colony.getDay())
+                    {
+                        pickup.setDay(pickUpDay < pickup.getDay() ? pickUpDay : pickup.getDay() - 1);
+                    }
+                    break;
                 }
             }
             return false;
         }
 
-        createRequest(new Pickup(pickUpPrio), true);
+        final int pickUpDay = colony.getDay() + Math.max(0, (10 - getPickUpPriority()) - (qty / 16));
+        createRequest(new Pickup(priority, pickUpDay, qty), true);
         return true;
     }
 
@@ -1528,7 +1599,7 @@ public abstract class AbstractBuilding extends AbstractBuildingContainer
 
         final List<IRequest<?>> requests = new ArrayList<>(tokens.size());
 
-        for (final IToken<?> token : tokens)
+        for (final IToken<?> token : new ArrayList<>(tokens))
         {
             final IRequest<?> request = colony.getRequestManager().getRequestForToken(token);
             if (request != null)
@@ -1549,27 +1620,27 @@ public abstract class AbstractBuilding extends AbstractBuildingContainer
     }
 
     @Override
-    @SuppressWarnings({"unchecked"})
+    @SuppressWarnings({GENERIC_WILDCARD, UNCHECKED})
     public <R> ImmutableList<IRequest<? extends R>> getCompletedRequestsOfType(@NotNull final ICitizenData citizenData, final TypeToken<R> requestType)
     {
         return ImmutableList.copyOf(getCompletedRequestsOfCitizenOrBuilding(citizenData).stream()
-            .filter(request -> request.getType().isSubtypeOf(requestType))
-            .map(request -> (IRequest<? extends R>) request)
-            .iterator());
+          .filter(request -> request.getType().isSubtypeOf(requestType))
+          .map(request -> (IRequest<? extends R>) request)
+          .iterator());
     }
 
     @Override
-    @SuppressWarnings({"unchecked"})
+    @SuppressWarnings({GENERIC_WILDCARD, UNCHECKED})
     public <R> ImmutableList<IRequest<? extends R>> getCompletedRequestsOfTypeFiltered(
-        @NotNull final ICitizenData citizenData,
-        final TypeToken<R> requestType,
-        final Predicate<IRequest<? extends R>> filter)
+      @NotNull final ICitizenData citizenData,
+      final TypeToken<R> requestType,
+      final Predicate<IRequest<? extends R>> filter)
     {
         return ImmutableList.copyOf(getCompletedRequestsOfCitizenOrBuilding(citizenData).stream()
-            .filter(request -> request.getType().isSubtypeOf(requestType))
-            .map(request -> (IRequest<? extends R>) request)
-            .filter(filter)
-            .iterator());
+          .filter(request -> request.getType().isSubtypeOf(requestType))
+          .map(request -> (IRequest<? extends R>) request)
+          .filter(filter)
+          .iterator());
     }
 
     @Override
@@ -1634,7 +1705,7 @@ public abstract class AbstractBuilding extends AbstractBuildingContainer
      * @param stack the stack.
      */
     @Override
-
+    @SuppressWarnings("squid:S135")
     public void overruleNextOpenRequestWithStack(@NotNull final ItemStack stack)
     {
         if (ItemStackUtils.isEmpty(stack))
@@ -1652,11 +1723,11 @@ public abstract class AbstractBuilding extends AbstractBuildingContainer
             final IStandardRequestManager requestManager = (IStandardRequestManager) colony.getRequestManager();
 
             final List<IRequest<? extends IDeliverable>> deliverableRequests =
-                requestManager.getRequestHandler().getRequestsMadeByRequester(resolver)
-                    .stream()
-                    .filter(iRequest -> iRequest.getRequest() instanceof IDeliverable)
-                    .map(iRequest -> (IRequest<? extends IDeliverable>) iRequest)
-                    .collect(Collectors.toList());
+              requestManager.getRequestHandler().getRequestsMadeByRequester(resolver)
+                .stream()
+                .filter(iRequest -> iRequest.getRequest() instanceof IDeliverable)
+                .map(iRequest -> (IRequest<? extends IDeliverable>) iRequest)
+                .collect(Collectors.toList());
 
             final IRequest<? extends IDeliverable> target = getFirstOverullingRequestFromInputList(deliverableRequests, stack);
 
@@ -1699,14 +1770,15 @@ public abstract class AbstractBuilding extends AbstractBuildingContainer
     private boolean isRequestStuck(final IRequest<?> target, final List<IToken<?>> playerResolverRequests, final List<IToken<?>> retryingRequests)
     {
         if (playerResolverRequests.contains(target.getId())
-            || retryingRequests.contains(target.getId()))
+              || retryingRequests.contains(target.getId()))
         {
             return true;
         }
 
         for (final IToken<?> child : target.getChildren())
         {
-            if (isRequestStuck(colony.getRequestManager().getRequestForToken(child), playerResolverRequests, retryingRequests))
+            final IRequest<?> request = colony.getRequestManager().getRequestForToken(child);
+            if (request != null && isRequestStuck(request, playerResolverRequests, retryingRequests))
             {
                 return true;
             }
@@ -1716,17 +1788,17 @@ public abstract class AbstractBuilding extends AbstractBuildingContainer
     }
 
     @Override
-    @SuppressWarnings({"unchecked"})
+    @SuppressWarnings({GENERIC_WILDCARD, UNCHECKED})
     public <R> ImmutableList<IRequest<? extends R>> getOpenRequestsOfTypeFiltered(
-        @NotNull final ICitizenData citizenData,
-        final TypeToken<R> requestType,
-        final Predicate<IRequest<? extends R>> filter)
+      @NotNull final ICitizenData citizenData,
+      final TypeToken<R> requestType,
+      final Predicate<IRequest<? extends R>> filter)
     {
         return ImmutableList.copyOf(getOpenRequests(citizenData.getId()).stream()
-            .filter(request -> request.getType().isSubtypeOf(requestType))
-            .map(request -> (IRequest<? extends R>) request)
-            .filter(filter)
-            .iterator());
+          .filter(request -> request.getType().isSubtypeOf(requestType))
+          .map(request -> (IRequest<? extends R>) request)
+          .filter(filter)
+          .iterator());
     }
 
     @Override
@@ -1749,17 +1821,17 @@ public abstract class AbstractBuilding extends AbstractBuildingContainer
                 {
                     final List<IToken<?>> assignedTasks = crafterJob.getAssignedTasks();
                     final IRequest<? extends IDeliverable> deliverableChildRequest = assignedTasks
-                        .stream()
-                        .map(colony.getRequestManager()::getRequestForToken)
-                        .map(IRequest::getChildren)
-                        .flatMap(Collection::stream)
-                        .map(colony.getRequestManager()::getRequestForToken)
-                        .filter(iRequest -> iRequest.getRequest() instanceof IDeliverable)
-                        .filter(iRequest -> ((IRequest<? extends IDeliverable>) iRequest).getRequest()
-                            .matches(stack))
-                        .findFirst()
-                        .map(iRequest -> (IRequest<? extends IDeliverable>) iRequest)
-                        .orElse(null);
+                      .stream()
+                      .map(colony.getRequestManager()::getRequestForToken)
+                      .map(IRequest::getChildren)
+                      .flatMap(Collection::stream)
+                      .map(colony.getRequestManager()::getRequestForToken)
+                      .filter(iRequest -> iRequest.getRequest() instanceof IDeliverable)
+                      .filter(iRequest -> ((IRequest<? extends IDeliverable>) iRequest).getRequest()
+                        .matches(stack))
+                      .findFirst()
+                      .map(iRequest -> (IRequest<? extends IDeliverable>) iRequest)
+                      .orElse(null);
 
                     if (deliverableChildRequest != null)
                     {
@@ -1789,8 +1861,8 @@ public abstract class AbstractBuilding extends AbstractBuildingContainer
     }
 
     private IRequest<? extends IDeliverable> getFirstOverullingRequestFromInputList(
-        @NotNull final Collection<IRequest<? extends IDeliverable>> queue,
-        @NotNull final ItemStack stack)
+      @NotNull final Collection<IRequest<? extends IDeliverable>> queue,
+      @NotNull final ItemStack stack)
     {
         if (queue.isEmpty())
         {
@@ -1802,11 +1874,11 @@ public abstract class AbstractBuilding extends AbstractBuildingContainer
         this.getResolvers().forEach(iRequestResolver -> validRequesterTokens.add(iRequestResolver.getId()));
 
         return queue
-            .stream()
-            .filter(request -> request.getState() == RequestState.IN_PROGRESS && validRequesterTokens.contains(request.getRequester().getId()) && request.getRequest()
-                .matches(stack))
-            .findFirst()
-            .orElse(null);
+          .stream()
+          .filter(request -> request.getState() == RequestState.IN_PROGRESS && validRequesterTokens.contains(request.getRequester().getId()) && request.getRequest()
+            .matches(stack))
+          .findFirst()
+          .orElse(null);
     }
 
     /*
@@ -1863,12 +1935,10 @@ public abstract class AbstractBuilding extends AbstractBuildingContainer
     public ImmutableCollection<IRequestResolver<?>> createResolvers()
     {
         final ImmutableList.Builder<IRequestResolver<?>> builder = ImmutableList.builder();
-
         for (final ICreatesResolversModule module : getModulesByType(ICreatesResolversModule.class))
         {
             builder.addAll(module.createResolvers());
         }
-        builder.add(new BuildingRequestResolver(getRequester().getLocation(), colony.getRequestManager().getFactoryController().getNewInstance(TypeConstants.ITOKEN)));
         return builder.build();
     }
 
@@ -1920,6 +1990,11 @@ public abstract class AbstractBuilding extends AbstractBuildingContainer
             colony.getRequestManager().updateRequestState(request.getId(), RequestState.RECEIVED);
         }
 
+        //Check if the citizen did not die.
+        if (colony.getCitizenManager().getCivilian(citizenThatRequested) != null)
+        {
+            colony.getCitizenManager().getCivilian(citizenThatRequested).onRequestCompleted(request.getId());
+        }
         markDirty();
     }
 
@@ -1967,7 +2042,7 @@ public abstract class AbstractBuilding extends AbstractBuildingContainer
         final int citizenId = getCitizensByRequest().get(request.getId());
         if (citizenId == -1)
         {
-            return Component.translatable(getBuildingDisplayName());
+            return Component.translatableEscape(getBuildingDisplayName());
         }
 
         final ICitizenData citizenData = colony.getCitizenManager().getCivilian(citizenId);
@@ -1976,7 +2051,7 @@ public abstract class AbstractBuilding extends AbstractBuildingContainer
             return Component.literal(citizenData.getName());
         }
 
-        final MutableComponent jobName = Component.translatable(citizenData.getJob().getJobRegistryEntry().getTranslationKey().toLowerCase());
+        final MutableComponent jobName = Component.translatableEscape(citizenData.getJob().getJobRegistryEntry().getTranslationKey().toLowerCase());
         return jobName.append(Component.literal(" " + citizenData.getName()));
     }
 
@@ -2014,8 +2089,7 @@ public abstract class AbstractBuilding extends AbstractBuildingContainer
 
     /**
      * Get a list of open requests from the building that are filtered by a predicate for citizen id or building (-1).
-     *
-     * @param citizenId          the citizen id to include.
+     * @param citizenId the citizen id to include.
      * @param selectionPredicate the selection predicate.
      * @return the list.
      */
@@ -2043,8 +2117,7 @@ public abstract class AbstractBuilding extends AbstractBuildingContainer
 
     /**
      * Get a list of closed requests from the building that are filtered by a predicate for citizen or building (null citizen).
-     *
-     * @param citizenData        the citizen to include.
+     * @param citizenData the citizen to include.
      * @param selectionPredicate the selection predicate.
      * @return the list.
      */
@@ -2072,14 +2145,13 @@ public abstract class AbstractBuilding extends AbstractBuildingContainer
 
     /**
      * Move request from building (-1) to citizen and mark synchronous.
-     *
      * @param citizenData the citizen to move it to.
-     * @param request     the request to move.
+     * @param request the request to move.
      */
     public void moveToSyncCitizen(final ICitizenData citizenData, final IRequest<?> request)
     {
         getDataStore().moveToSyncCitizen(citizenData, request);
     }
 
-    //------------------------- !END! RequestSystem handling for minecolonies buildings -------------------------//
+    //------------------------- !END! RequestSystem handling for slimcolonies buildings -------------------------//
 }

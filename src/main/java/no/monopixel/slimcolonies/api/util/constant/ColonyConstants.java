@@ -1,5 +1,6 @@
 package no.monopixel.slimcolonies.api.util.constant;
 
+import no.monopixel.slimcolonies.api.colony.IColony;
 import net.minecraft.server.level.TicketType;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.scores.Scoreboard;
@@ -29,7 +30,7 @@ public final class ColonyConstants
     private static final String TICKET_ID = Constants.MOD_ID + ":" + "initial_chunkload";
 
     /**
-     * Specific ticket type for minecolonies tickets.
+     * Specific ticket type for slimcolonies tickets.
      */
     public static final TicketType<ChunkPos> KEEP_LOADED_TYPE = TicketType.create(TICKET_ID, Comparator.comparingLong(ChunkPos::toLong));
 
@@ -67,6 +68,22 @@ public final class ColonyConstants
      */
     public static final int MAX_COLONY_EVENTS = 100;
 
+    /**
+     * Barbarian Constants.
+     */
+    public static final double ARCHER_BARBARIANS_MULTIPLIER = 0.30;
+    public static final double CHIEF_BARBARIANS_MULTIPLIER  = 0.1;
+
+    /**
+     * Different horde ids and their sizes.
+     */
+    public static final int SMALL_HORDE_MESSAGE_ID  = 1;
+    public static final int MEDIUM_HORDE_MESSAGE_ID = 2;
+    public static final int BIG_HORDE_MESSAGE_ID    = 3;
+    public static final int HUGE_HORDE_MESSAGE_ID   = 4;
+    public static final int SMALL_HORDE_SIZE        = 5;
+    public static final int MEDIUM_HORDE_SIZE       = 10;
+    public static final int BIG_HORDE_SIZE          = 20;
 
     /**
      * Pirate Constants.
@@ -81,7 +98,7 @@ public final class ColonyConstants
     /**
      * Empty scoreboard
      */
-    public static final Scoreboard EMPTY_SCOREBOARD = new Scoreboard();
+    public static final Scoreboard EMPTY_SCOREBOARD    = new Scoreboard();
 
     /**
      * Private constructor to hide the implicit one.

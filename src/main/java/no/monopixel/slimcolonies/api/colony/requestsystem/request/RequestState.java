@@ -1,7 +1,7 @@
 package no.monopixel.slimcolonies.api.colony.requestsystem.request;
 
 import net.minecraft.nbt.IntTag;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -123,7 +123,7 @@ public enum RequestState
      * @param buffer The buffer to deserialize from.
      * @return The RequestState that is stored in the given NBT.
      */
-    public static RequestState deserialize(final FriendlyByteBuf buffer)
+    public static RequestState deserialize(final RegistryFriendlyByteBuf buffer)
     {
         return indexList.get(buffer.readInt());
     }
@@ -133,7 +133,7 @@ public enum RequestState
      *
      * @param buffer The buffer to write to.
      */
-    public void serialize(FriendlyByteBuf buffer)
+    public void serialize(RegistryFriendlyByteBuf buffer)
     {
         buffer.writeInt(indexList.indexOf(this));
     }

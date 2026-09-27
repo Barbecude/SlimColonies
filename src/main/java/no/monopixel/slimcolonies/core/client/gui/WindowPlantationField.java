@@ -13,6 +13,7 @@ import no.monopixel.slimcolonies.api.tileentities.AbstractTileEntityPlantationFi
 import no.monopixel.slimcolonies.api.util.constant.Constants;
 import no.monopixel.slimcolonies.core.network.messages.server.PlantationFieldBuildRequestMessage;
 import net.minecraft.client.Minecraft;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -24,11 +25,6 @@ import java.util.List;
  */
 public class WindowPlantationField extends AbstractWindowSkeleton
 {
-    /**
-     * Link to the xml file of the window.
-     */
-    private static final String WINDOW_RESOURCE = ":gui/windowplantationfield.xml";
-
     /**
      * The ID for the "not in colony" text.
      */
@@ -74,9 +70,9 @@ public class WindowPlantationField extends AbstractWindowSkeleton
      *
      * @param tileEntityPlantationField the tile entity which is at this location.
      */
-    public WindowPlantationField(AbstractTileEntityPlantationField tileEntityPlantationField)
+    public WindowPlantationField(final AbstractTileEntityPlantationField tileEntityPlantationField)
     {
-        super(Constants.MOD_ID + WINDOW_RESOURCE);
+        super(new ResourceLocation(Constants.MOD_ID, "gui/windowplantationfield.xml"));
         this.tileEntityPlantationField = tileEntityPlantationField;
         this.plants = tileEntityPlantationField.getPlantationFieldTypes().stream()
                         .flatMap(f -> f.getExtensionModuleProducers().stream().map(m -> m.apply(null)).filter(IPlantationModule.class::isInstance).map(m -> (IPlantationModule) m))
@@ -94,15 +90,13 @@ public class WindowPlantationField extends AbstractWindowSkeleton
         new WindowBuildDecoration(tileEntityPlantationField.getBlockPos(),
           tileEntityPlantationField.getPackName(),
           tileEntityPlantationField.getBlueprintPath(),
-          tileEntityPlantationField.getRotation(),
-          tileEntityPlantationField.getMirror(),
+          tileEntityPlantationField.getRotationMirror(),
           builder -> new PlantationFieldBuildRequestMessage(WorkOrderType.REPAIR,
             tileEntityPlantationField.getBlockPos(),
             tileEntityPlantationField.getPackName(),
             tileEntityPlantationField.getBlueprintPath(),
             Minecraft.getInstance().level.dimension(),
-            tileEntityPlantationField.getRotation(),
-            tileEntityPlantationField.getMirror(),
+            tileEntityPlantationField.getRotationMirror(),
             builder)).open();
     }
 

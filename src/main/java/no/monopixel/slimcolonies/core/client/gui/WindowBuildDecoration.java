@@ -7,33 +7,31 @@ import com.ldtteam.blockui.controls.ItemIcon;
 import com.ldtteam.blockui.controls.Text;
 import com.ldtteam.blockui.views.DropDownList;
 import com.ldtteam.blockui.views.ScrollingList;
+import com.ldtteam.common.network.AbstractServerPlayMessage;
+import com.ldtteam.structurize.api.RotationMirror;
 import com.ldtteam.structurize.blueprints.v1.Blueprint;
 import com.ldtteam.structurize.placement.BlockPlacementResult;
 import com.ldtteam.structurize.placement.StructurePhasePlacementResult;
 import com.ldtteam.structurize.placement.StructurePlacer;
 import com.ldtteam.structurize.storage.StructurePacks;
-import com.ldtteam.structurize.util.PlacementSettings;
-import com.ldtteam.structurize.util.RotationMirror;
 import no.monopixel.slimcolonies.api.colony.IColonyManager;
 import no.monopixel.slimcolonies.api.colony.IColonyView;
 import no.monopixel.slimcolonies.api.colony.buildings.ModBuildings;
 import no.monopixel.slimcolonies.api.colony.jobs.ModJobs;
 import no.monopixel.slimcolonies.api.crafting.ItemStorage;
-import no.monopixel.slimcolonies.api.network.IMessage;
 import no.monopixel.slimcolonies.api.util.ItemStackUtils;
 import no.monopixel.slimcolonies.api.util.LoadOnlyStructureHandler;
 import no.monopixel.slimcolonies.api.util.MessageUtils;
 import no.monopixel.slimcolonies.api.util.constant.Constants;
-import no.monopixel.slimcolonies.core.Network;
 import no.monopixel.slimcolonies.core.colony.buildings.views.AbstractBuildingBuilderView;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Tuple;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.level.block.Mirror;
-import net.minecraft.world.level.block.Rotation;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -48,14 +46,8 @@ import static no.monopixel.slimcolonies.api.util.constant.TranslationConstants.A
 import static no.monopixel.slimcolonies.api.util.constant.TranslationConstants.OUT_OF_COLONY;
 import static no.monopixel.slimcolonies.api.util.constant.WindowConstants.*;
 
-@SuppressWarnings("removal")
 public class WindowBuildDecoration extends AbstractWindowSkeleton
 {
-    /**
-     * Link to the xml file of the window.
-     */
-    private static final String BUILDING_NAME_RESOURCE_SUFFIX = ":gui/windowbuildbuilding.xml";
-
     /**
      * White color.
      */
@@ -68,29 +60,19 @@ public class WindowBuildDecoration extends AbstractWindowSkeleton
     private final List<Tuple<String, BlockPos>> builders = new ArrayList<>();
 
     /**
-     * Pack meta of the deco.
-     */
-    private final String packMeta;
-
-    /**
      * Path of the blueprint in the pack.
      */
     private final String path;
 
     /**
-     * Rotation.
+     * Rotation and Mirror.
      */
-    private final Rotation rotation;
-
-    /**
-     * Mirror.
-     */
-    private final boolean mirror;
+    private final RotationMirror rotationMirror;
 
     /**
      * A function that will supply the message, given the position of the requested builder, if any.
      */
-    private final Function<BlockPos, IMessage> buildRequestMessage;
+    private final Function<BlockPos, AbstractServerPlayMessage> buildRequestMessage;
 
     /**
      * Drop down list for builders.
@@ -116,22 +98,20 @@ public class WindowBuildDecoration extends AbstractWindowSkeleton
      * Constructs the decoration build confirmation dialog
      */
     public WindowBuildDecoration(
-        final BlockPos pos,
-        final String packMeta,
-        final String path,
-        final Rotation rotation,
-        final boolean mirror,
-        Function<BlockPos, IMessage> buildRequestMessage)
+      final BlockPos pos,
+      final String packMeta,
+      final String path,
+      final RotationMirror rotationMirror,
+      final Function<BlockPos, AbstractServerPlayMessage> buildRequestMessage)
     {
-        super(Constants.MOD_ID + BUILDING_NAME_RESOURCE_SUFFIX);
-        this.packMeta = packMeta;
+        super(new ResourceLocation(Constants.MOD_ID, "gui/windowbuildbuilding.xml"));
         this.path = path;
         this.structurePos = pos;
 
         registerButton(BUTTON_BUILD, this::confirmedBuild);
         registerButton(BUTTON_CANCEL, this::close);
 
-        findPaneOfTypeByID(BUTTON_BUILD, Button.class).setText(Component.translatable(ACTION_BUILD));
+        findPaneOfTypeByID(BUTTON_BUILD, Button.class).setText(Component.translatableEscape(ACTION_BUILD));
         findPaneOfTypeByID(BUTTON_BUILD, Button.class).hide();
         findPaneOfTypeByID(BUTTON_DECONSTRUCT_BUILDING, Button.class).hide();
         findPaneOfTypeByID(BUTTON_REPAIR, Button.class).hide();
@@ -141,9 +121,8 @@ public class WindowBuildDecoration extends AbstractWindowSkeleton
         findPaneOfTypeByID(DROPDOWN_STYLE_ID, DropDownList.class).hide();
 
         final String cleanedPackName = packMeta.replace(Minecraft.getInstance().player.getUUID().toString(), "");
-        blueprintFuture = StructurePacks.getBlueprintFuture(cleanedPackName, path);
-        this.rotation = rotation;
-        this.mirror = mirror;
+        blueprintFuture = StructurePacks.getBlueprintFuture(cleanedPackName, path, mc.level.registryAccess());
+        this.rotationMirror = rotationMirror;
         this.buildRequestMessage = buildRequestMessage;
     }
 
@@ -168,7 +147,7 @@ public class WindowBuildDecoration extends AbstractWindowSkeleton
     private void updateBuilders()
     {
         IColonyView colony = (IColonyView) IColonyManager.getInstance()
-            .getIColony(Minecraft.getInstance().level, structurePos);
+                                             .getIColony(Minecraft.getInstance().level, structurePos);
 
         if (colony == null)
         {
@@ -178,14 +157,14 @@ public class WindowBuildDecoration extends AbstractWindowSkeleton
         }
 
         builders.clear();
-        builders.add(new Tuple<>(Component.translatable(ModJobs.builder.get().getTranslationKey()).getString() + ":", BlockPos.ZERO));
-        builders.addAll(colony.getBuildings().stream()
-            .filter(build -> build instanceof AbstractBuildingBuilderView && !((AbstractBuildingBuilderView) build).getWorkerName().isEmpty()
-                && build.getBuildingType() != ModBuildings.miner.get()
-                && build.getBuildingLevel() > 0)
-            .map(build -> new Tuple<>(((AbstractBuildingBuilderView) build).getWorkerName(), build.getPosition()))
-            .sorted(Comparator.comparing(item -> item.getB().distSqr(structurePos)))
-            .collect(Collectors.toList()));
+        builders.add(new Tuple<>(Component.translatableEscape(ModJobs.builder.get().getTranslationKey()).getString() + ":", BlockPos.ZERO));
+        builders.addAll(colony.getClientBuildingManager().getBuildings().values().stream()
+                          .filter(build -> build instanceof AbstractBuildingBuilderView && !((AbstractBuildingBuilderView) build).getWorkerName().isEmpty()
+                                             && build.getBuildingType() != ModBuildings.miner.get()
+                                             && build.getBuildingLevel() > 0)
+                          .map(build -> new Tuple<>(((AbstractBuildingBuilderView) build).getWorkerName(), build.getPosition()))
+                          .sorted(Comparator.comparing(item -> item.getB().distSqr(structurePos)))
+                          .collect(Collectors.toList()));
 
         initBuilderNavigation();
     }
@@ -205,13 +184,13 @@ public class WindowBuildDecoration extends AbstractWindowSkeleton
             }
 
             @Override
-            public String getLabel(final int index)
+            public MutableComponent getLabel(final int index)
             {
                 if (index >= 0 && index < builders.size())
                 {
-                    return builders.get(index).getA();
+                    return Component.literal(builders.get(index).getA());
                 }
-                return "";
+                return Component.empty();
             }
         });
         buildersDropDownList.setSelectedIndex(0);
@@ -238,12 +217,11 @@ public class WindowBuildDecoration extends AbstractWindowSkeleton
                 return;
             }
             final LoadOnlyStructureHandler structure = new LoadOnlyStructureHandler(
-                world,
-                structurePos,
-                blueprintFuture.get(),
-                new PlacementSettings(),
-                true);
-            structure.getBluePrint().setRotationMirror(RotationMirror.of(rotation, mirror ? Mirror.FRONT_BACK : Mirror.NONE), Minecraft.getInstance().level);
+              world,
+              structurePos,
+              blueprintFuture.get(),
+              RotationMirror.NONE);
+            structure.getBluePrint().setRotationMirror(rotationMirror, Minecraft.getInstance().level);
 
             StructurePlacer placer = new StructurePlacer(structure);
             StructurePhasePlacementResult result;
@@ -252,7 +230,7 @@ public class WindowBuildDecoration extends AbstractWindowSkeleton
             do
             {
                 result = placer.executeStructureStep(world, null, progressPos, StructurePlacer.Operation.GET_RES_REQUIREMENTS,
-                    () -> placer.getIterator().increment(), true);
+                  () -> placer.getIterator().increment(), true);
 
                 progressPos = result.getIteratorPos();
                 for (final ItemStack stack : result.getBlockResult().getRequiredItems())
@@ -285,7 +263,7 @@ public class WindowBuildDecoration extends AbstractWindowSkeleton
         {
             return;
         }
-        final int hashCode = res.hasTag() ? res.getTag().hashCode() : 0;
+        final int hashCode = res.getComponentsPatch().hashCode();
         final String key = res.getDescriptionId() + "-" + hashCode;
         ItemStorage resource = resources.get(key);
         if (resource == null)
@@ -335,8 +313,8 @@ public class WindowBuildDecoration extends AbstractWindowSkeleton
                 quantityLabel.setText(Component.literal(Integer.toString(resource.getAmount())));
                 resourceLabel.setColors(WHITE);
                 quantityLabel.setColors(WHITE);
-                final ItemStack itemIcon = new ItemStack(resource.getItem(), 1);
-                itemIcon.setTag(resource.getItemStack().getTag());
+                final ItemStack itemIcon = resource.getItemStack().copy();
+                itemIcon.setCount(1);
                 rowPane.findPaneOfTypeByID(RESOURCE_ICON, ItemIcon.class).setItem(itemIcon);
             }
         });
@@ -345,10 +323,10 @@ public class WindowBuildDecoration extends AbstractWindowSkeleton
     private void confirmedBuild()
     {
         final BlockPos builder = buildersDropDownList.getSelectedIndex() == 0
-            ? BlockPos.ZERO
-            : builders.get(buildersDropDownList.getSelectedIndex()).getB();
+                                   ? BlockPos.ZERO
+                                   : builders.get(buildersDropDownList.getSelectedIndex()).getB();
 
-        Network.getNetwork().sendToServer(buildRequestMessage.apply(builder));
+        buildRequestMessage.apply(builder).sendToServer();
         close();
     }
 }

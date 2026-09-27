@@ -1,5 +1,11 @@
 {
   "branch": "slimcolonies:civilian",
+  "costs": [
+    {
+      "count": 1,
+      "item": "minecraft:ghast_tear"
+    }
+  ],
   "effects": [
     {
       "id": "slimcolonies:effects/resurrectchanceaddition",

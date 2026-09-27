@@ -1,9 +1,10 @@
 package no.monopixel.slimcolonies.core.colony.eventhooks.buildingEvents;
 
 import no.monopixel.slimcolonies.api.util.constant.Constants;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.core.BlockPos;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
 import org.jetbrains.annotations.NotNull;
 
@@ -16,7 +17,7 @@ public class BuildingRepairedEvent extends AbstractBuildingEvent
     /**
      * This events id, registry entries use res locations as ids.
      */
-    public static final ResourceLocation BUILDING_REPAIRED_EVENT_ID = ResourceLocation.fromNamespaceAndPath(Constants.MOD_ID, "building_repaired");
+    public static final ResourceLocation BUILDING_REPAIRED_EVENT_ID = new ResourceLocation(Constants.MOD_ID, "building_repaired");
 
     /**
      * Creates a new building repaired event.
@@ -33,9 +34,9 @@ public class BuildingRepairedEvent extends AbstractBuildingEvent
      * @param buildingName  the name of the building.
      * @param level         the level of the repaired building
      */
-    public BuildingRepairedEvent(final BlockPos eventPos, final String buildingName, final int level)
+    public BuildingRepairedEvent(BlockPos eventPos, String buildingName, int level)
     {
-        super(false, eventPos, buildingName, level);
+        super(eventPos, buildingName, level);
     }
 
     @Override
@@ -56,10 +57,10 @@ public class BuildingRepairedEvent extends AbstractBuildingEvent
      * @param compound the NBT compound
      * @return the colony to load.
      */
-    public static BuildingRepairedEvent loadFromNBT(@NotNull final CompoundTag compound)
+    public static BuildingRepairedEvent loadFromNBT(@NotNull final HolderLookup.Provider provider, @NotNull final CompoundTag compound)
     {
         final BuildingRepairedEvent buildEvent = new BuildingRepairedEvent();
-        buildEvent.deserializeNBT(compound);
+        buildEvent.deserializeNBT(provider, compound);
         return buildEvent;
     }
 
@@ -69,7 +70,7 @@ public class BuildingRepairedEvent extends AbstractBuildingEvent
      * @param buf the packet buffer.
      * @return the colony to load.
      */
-    public static BuildingRepairedEvent loadFromFriendlyByteBuf(@NotNull final FriendlyByteBuf buf)
+    public static BuildingRepairedEvent loadFromFriendlyByteBuf(@NotNull final RegistryFriendlyByteBuf buf)
     {
         final BuildingRepairedEvent buildEvent = new BuildingRepairedEvent();
         buildEvent.deserialize(buf);

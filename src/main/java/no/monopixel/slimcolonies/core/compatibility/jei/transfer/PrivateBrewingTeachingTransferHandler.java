@@ -1,7 +1,6 @@
 package no.monopixel.slimcolonies.core.compatibility.jei.transfer;
 
 import no.monopixel.slimcolonies.api.inventory.container.ContainerCraftingBrewingstand;
-import no.monopixel.slimcolonies.core.Network;
 import no.monopixel.slimcolonies.core.network.messages.server.TransferRecipeCraftingTeachingMessage;
 import mezz.jei.api.constants.RecipeTypes;
 import mezz.jei.api.constants.VanillaTypes;
@@ -79,7 +78,7 @@ public class PrivateBrewingTeachingTransferHandler implements IRecipeTransferHan
             craftingGUIBuilding.setContainer(guiIngredients.get(1));
 
             final TransferRecipeCraftingTeachingMessage message = new TransferRecipeCraftingTeachingMessage(guiIngredients, false);
-            Network.getNetwork().sendToServer(message);
+            message.sendToServer();
         }
 
         return null;

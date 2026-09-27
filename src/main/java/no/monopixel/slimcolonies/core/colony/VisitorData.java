@@ -3,14 +3,20 @@ package no.monopixel.slimcolonies.core.colony;
 import no.monopixel.slimcolonies.api.colony.IColony;
 import no.monopixel.slimcolonies.api.colony.IVisitorData;
 import no.monopixel.slimcolonies.api.util.BlockPosUtil;
+import no.monopixel.slimcolonies.api.util.Utils;
 import no.monopixel.slimcolonies.api.util.WorldUtil;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.core.BlockPos;
 import org.jetbrains.annotations.NotNull;
 
-import static no.monopixel.slimcolonies.api.util.constant.NbtTagConstants.*;
+import java.util.ArrayList;
+import java.util.List;
+
+import static no.monopixel.slimcolonies.api.util.constant.NbtTagConstants.TAG_ID;
 import static no.monopixel.slimcolonies.api.util.constant.SchematicTagConstants.TAG_SITTING;
 
 /**
@@ -19,9 +25,20 @@ import static no.monopixel.slimcolonies.api.util.constant.SchematicTagConstants.
 public class VisitorData extends CitizenData implements IVisitorData
 {
     /**
+     * Recruit nbt tag
+     */
+    private static final String TAG_RECRUIT_COST = "rcost";
+    private static final String TAG_RECRUIT_COST_QTY = "rcostqty";
+
+    /**
      * The position the citizen is sitting at
      */
     private BlockPos sittingPosition = BlockPos.ZERO;
+
+    /**
+     * The recruitment level, used for stats/equipment and costs
+     */
+    private ItemStack recruitCost = ItemStack.EMPTY;
 
     /**
      * Create a CitizenData given an ID. Used as a super-constructor or during loading.
@@ -35,39 +52,60 @@ public class VisitorData extends CitizenData implements IVisitorData
     }
 
     @Override
-    public CompoundTag serializeNBT()
+    public CompoundTag serializeNBT(@NotNull final HolderLookup.Provider provider)
     {
-        CompoundTag compoundNBT = super.serializeNBT();
+        CompoundTag compoundNBT = super.serializeNBT(provider);
+        final ItemStack recruitCopy = recruitCost.copy();
+        recruitCopy.setCount(1);
+
+        compoundNBT.put(TAG_RECRUIT_COST, recruitCopy.saveOptional(provider));
+        compoundNBT.putInt(TAG_RECRUIT_COST_QTY, recruitCost.getCount());
         BlockPosUtil.write(compoundNBT, TAG_SITTING, sittingPosition);
         return compoundNBT;
     }
 
     @Override
-    public void deserializeNBT(final CompoundTag nbtTagCompound)
+    public void deserializeNBT(@NotNull final HolderLookup.Provider provider, final CompoundTag nbtTagCompound)
     {
-        super.deserializeNBT(nbtTagCompound);
+        super.deserializeNBT(provider, nbtTagCompound);
         sittingPosition = BlockPosUtil.read(nbtTagCompound, TAG_SITTING);
+        recruitCost = ItemStack.parseOptional(provider, nbtTagCompound.getCompound(TAG_RECRUIT_COST));
+        recruitCost.setCount(nbtTagCompound.getInt(TAG_RECRUIT_COST_QTY));
     }
 
+    @Override
+    public void setRecruitCosts(final ItemStack item)
+    {
+        this.recruitCost = item;
+    }
+
+    @Override
+    public ItemStack getRecruitCost()
+    {
+        return recruitCost;
+    }
 
     /**
      * Loads this citizen data from nbt
      *
-     * @param colony colony to load for
-     * @param nbt    nbt compound to read from
+     * @param colony   colony to load for
+     * @param nbt      nbt compound to read from
+     * @param provider
      * @return new CitizenData
      */
-    public static IVisitorData loadVisitorFromNBT(final IColony colony, final CompoundTag nbt)
+    public static IVisitorData loadVisitorFromNBT(final IColony colony, final CompoundTag nbt, final HolderLookup.@NotNull Provider provider)
     {
         final IVisitorData data = new VisitorData(nbt.getInt(TAG_ID), colony);
-        data.deserializeNBT(nbt);
+        data.deserializeNBT(provider, nbt);
         return data;
     }
 
     @Override
-    public void serializeViewNetworkData(@NotNull final FriendlyByteBuf buf)
+    public void serializeViewNetworkData(@NotNull final RegistryFriendlyByteBuf buf)
     {
         super.serializeViewNetworkData(buf);
+        Utils.serializeCodecMess(buf, recruitCost);
+        buf.writeInt(recruitCost.getCount());
     }
 
     @Override
@@ -88,28 +126,27 @@ public class VisitorData extends CitizenData implements IVisitorData
         if (getEntity().isPresent())
         {
             final Entity entity = getEntity().get();
-            if (entity.isAlive() && WorldUtil.isEntityBlockLoaded(entity.level, entity.blockPosition()))
+            if (entity.isAlive() && WorldUtil.isEntityBlockLoaded(entity.level(), entity.blockPosition()))
             {
                 return;
             }
+
+            setEntity(null);
         }
 
-        if (getLastPosition() != BlockPos.ZERO && (getLastPosition().getX() != 0 && getLastPosition().getZ() != 0) && WorldUtil.isEntityBlockLoaded(getColony().getWorld(),
-          getLastPosition()))
+        List<BlockPos> spawnPositions = new ArrayList<>();
+        if (getLastPosition() != BlockPos.ZERO && (getLastPosition().getX() != 0 && getLastPosition().getZ() != 0))
         {
-            getColony().getVisitorManager().spawnOrCreateCivilian(this, getColony().getWorld(), getLastPosition(), true);
+            spawnPositions.add(getLastPosition());
+
         }
-        else if (getHomeBuilding() != null)
+
+        if (getHomeBuilding() != null)
         {
-            if (WorldUtil.isEntityBlockLoaded(getColony().getWorld(), getHomeBuilding().getID()))
-            {
-                final BlockPos spawnPos = BlockPosUtil.findSpawnPosAround(getColony().getWorld(), getHomeBuilding().getID());
-                if (spawnPos != null)
-                {
-                    getColony().getVisitorManager().spawnOrCreateCivilian(this, getColony().getWorld(), spawnPos, true);
-                }
-            }
+            spawnPositions.add(getHomeBuilding().getPosition());
         }
+
+        getColony().getVisitorManager().spawnOrCreateCivilian(this, getColony().getWorld(), spawnPositions, true);
     }
 
     @Override

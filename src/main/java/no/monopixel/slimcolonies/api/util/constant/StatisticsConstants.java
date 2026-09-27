@@ -50,14 +50,21 @@ public final class StatisticsConstants
 
    /**
     * Husbandry building stats.
-    */
+    */    
     public static final String BREEDING_ATTEMPTS = "breeding_attempts";
     public static final String ANIMALS_BUTCHERED = "animals_butchered";
+
+    /**
+     * Guard building stats.
+     */
+    public static final String PATROLS_STARTED = "patrols_started";
 
     // Cook
     public static final String FOOD_SERVED_DETAIL = "food_served_detail";
 
-    // Hospital (now tracks citizens healed from injuries)
+    // Hospital
+    public static final String DISEASES_TREATED = "diseases_treated";
+    public static final String NUM_DISEASES_TREATED = "num_diseases_treated";
 
     // Florist
     public static final String FLOWERS_PICKED = "flowers_picked";
@@ -82,7 +89,6 @@ public final class StatisticsConstants
 
     // Builder
     public static final String BLOCKS_PLACED_DETAIL   = "blocks_placed_detail";
-    public static final String ITEMS_SCAVENGED        = "items_scavenged";
 
     // Cowboy
     public static final String MILKING_ATTEMPTS = "milking_attempts";
@@ -105,7 +111,7 @@ public final class StatisticsConstants
     // Nether Miner
     public static final String ITEMS_DISCOVERED = "items_discovered";
     public static final String TRIPS_COMPLETED = "trips_completed";
-    public static final String TRIPS_RETREATED = "trips_retreated";
+    public static final String MINER_DEATHS = "miner_deaths";
 
     // Chef
     public static final String FOOD_COOKED_DETAIL = "food_cooked_detail";
@@ -120,4 +126,13 @@ public final class StatisticsConstants
 
     // University
     public static final String RESEARCH_COMPLETED = "research_completed";
+
+    // Stable
+    public static final String HORSES_TRAINED = "horses_trained";
+    public static final String MOUNTS_READIED = "mounts_readied";
+    public static final String ROUNDUPS_COMPLETED = "roundups_completed";
+
 }
+
+
+

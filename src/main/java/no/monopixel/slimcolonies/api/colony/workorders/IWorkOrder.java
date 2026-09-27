@@ -1,5 +1,6 @@
 package no.monopixel.slimcolonies.api.colony.workorders;
 
+import com.ldtteam.structurize.api.RotationMirror;
 import com.ldtteam.structurize.blueprints.v1.Blueprint;
 import no.monopixel.slimcolonies.api.colony.IColony;
 import no.monopixel.slimcolonies.core.entity.ai.workers.util.BuildingProgressStage;
@@ -58,8 +59,7 @@ public interface IWorkOrder
 
     /**
      * Loads the blueprint if necessary
-     *
-     * @param world     world to use
+     * @param world world to use
      * @param afterLoad consumes the loaded blueprint or null
      */
     void loadBlueprint(final Level world, final Consumer<Blueprint> afterLoad);
@@ -100,18 +100,11 @@ public interface IWorkOrder
     BlockPos getLocation();
 
     /**
-     * Get the current rotation of the building
+     * Get the current rotation and mirror of the building
      *
      * @return the location
      */
-    int getRotation();
-
-    /**
-     * Whether the current building is mirrored
-     *
-     * @return the location
-     */
-    boolean isMirrored();
+    RotationMirror getRotationMirror();
 
     /**
      * Is the Work Order claimed?
@@ -145,7 +138,6 @@ public interface IWorkOrder
     /**
      * Get the file name of the structure.
      * Calculates the file name from the path.
-     *
      * @return the name without the appendix.
      */
     default String getFileName()
@@ -157,12 +149,14 @@ public interface IWorkOrder
     /**
      * Store a blueprint reference
      *
+     * @param blueprint
      */
     void setBlueprint(Blueprint blueprint, final Level world);
 
     /**
      * Get the stored blueprint
      *
+     * @return
      */
     @Nullable
     public Blueprint getBlueprint();
@@ -181,18 +175,21 @@ public interface IWorkOrder
     /**
      * Get the related colony or view
      *
+     * @return
      */
     public IColony getColony();
 
     /**
      * Set the related colony or view
      *
+     * @return
      */
     public void setColony(IColony colony);
 
     /**
      * The buildings stage
      *
+     * @return stage index
      */
     BuildingProgressStage getStage();
 }

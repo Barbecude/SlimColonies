@@ -1,7 +1,7 @@
 package no.monopixel.slimcolonies.api.colony.managers.interfaces;
 
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import org.jetbrains.annotations.NotNull;
 
 import it.unimi.dsi.fastutil.ints.Int2IntLinkedOpenHashMap;
@@ -33,18 +33,34 @@ public interface IStatisticsManager
     void incrementBy(@NotNull String id, final int qty, final int day);
 
     /**
+     * Get the total for a given stat,
+     * @param id the id of the stat.
+     * @return the total since colony creation.
+     */
+    int getStatTotal(@NotNull String id);
+
+    /**
+     * Get the number of occurrences in a given period.
+     * @param id the id of the stat.
+     * @param dayStart the start day.
+     * @param dayEnd the end day.
+     * @return the count.
+     */
+    int getStatsInPeriod(@NotNull String id, final int dayStart, final int dayEnd);
+
+    /**
      * Serialize to bytebuf.
      *
      * @param buf               the buffer to write to.
      * @param hasNewSubscribers
      */
-    void serialize(@NotNull final FriendlyByteBuf buf, final boolean hasNewSubscribers);
+    void serialize(@NotNull final RegistryFriendlyByteBuf buf, final boolean hasNewSubscribers);
 
     /**
      * Deserialize from bytebuf.
      * @param buf the buffer to read from.
      */
-    void deserialize(@NotNull final FriendlyByteBuf buf);
+    void deserialize(@NotNull final RegistryFriendlyByteBuf buf);
 
     /**
      * Reads the eventManager nbt and creates events from it
@@ -60,11 +76,12 @@ public interface IStatisticsManager
      */
     void writeToNBT(@NotNull final CompoundTag compound);
 
+    /**
+     * Getter for the whole stat list.
+     * @return the map of stats.
+     */
     @NotNull
-    Map<String, Integer> getStats();
-
-    @NotNull
-    Map<String, Integer> getStats(final int startDay, final int endDay);
+    Set<String> getStatTypes();
 
     /**
      * Getter for all stat entries.

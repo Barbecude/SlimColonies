@@ -7,13 +7,14 @@ import no.monopixel.slimcolonies.api.quests.IQuestInstance;
 import no.monopixel.slimcolonies.api.quests.IQuestObjectiveTemplate;
 import no.monopixel.slimcolonies.core.colony.Colony;
 import no.monopixel.slimcolonies.core.event.QuestObjectiveEventHandler;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.Style;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.player.Player;
-import net.minecraftforge.registries.ForgeRegistries;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -44,10 +45,9 @@ public class KillEntityObjectiveTemplateTemplate extends DialogueObjectiveTempla
 
     /**
      * Create a new objective of this type.
-     *
-     * @param target         the target citizen.
+     * @param target the target citizen.
      * @param entitiesToKill the number of entities to kill.
-     * @param entityToKill   the entity to kill.
+     * @param entityToKill the entity to kill.
      */
     public KillEntityObjectiveTemplateTemplate(final int target, final int entitiesToKill, final EntityType<?> entityToKill, final int nextObjective, final List<Integer> rewards)
     {
@@ -60,26 +60,25 @@ public class KillEntityObjectiveTemplateTemplate extends DialogueObjectiveTempla
     @NotNull
     private static DialogueElement buildDialogueTree(final EntityType<?> entityToKill)
     {
-        final Component text = Component.translatable("no.monopixel.slimcolonies.coremod.questobjectives.kill", entityToKill.getDescription());
-        final AnswerElement answer1 = new AnswerElement(Component.translatable("no.monopixel.slimcolonies.coremod.questobjectives.answer.later"),
-            new IQuestDialogueAnswer.CloseUIDialogueAnswer());
-        final AnswerElement answer2 = new AnswerElement(Component.translatable("no.monopixel.slimcolonies.coremod.questobjectives.answer.cancel"),
-            new IQuestDialogueAnswer.QuestCancellationDialogueAnswer());
+        final Component text = Component.translatableEscape("no.monopixel.slimcolonies.coremod.questobjectives.kill", entityToKill.getDescription());
+        final AnswerElement answer1 = new AnswerElement(Component.translatableEscape("no.monopixel.slimcolonies.coremod.questobjectives.answer.later"),
+                new IQuestDialogueAnswer.CloseUIDialogueAnswer());
+        final AnswerElement answer2 = new AnswerElement(Component.translatableEscape("no.monopixel.slimcolonies.coremod.questobjectives.answer.cancel"),
+                new IQuestDialogueAnswer.QuestCancellationDialogueAnswer());
         return new DialogueElement(text, List.of(answer1, answer2));
     }
 
     /**
      * Parse the mine block objective from json.
-     *
      * @param jsonObject the json to parse it from.
      * @return a new objective object.
      */
-    public static IQuestObjectiveTemplate createObjective(final JsonObject jsonObject)
+    public static IQuestObjectiveTemplate createObjective(@NotNull final HolderLookup.Provider provider, final JsonObject jsonObject)
     {
         JsonObject details = jsonObject.getAsJsonObject(DETAILS_KEY);
         final int target = details.get(TARGET_KEY).getAsInt();
         final int quantity = details.get(QUANTITY_KEY).getAsInt();
-        final EntityType<?> entityType = ForgeRegistries.ENTITY_TYPES.getHolder(new ResourceLocation(details.get(ENTITY_TYPE_KEY).getAsString())).get().get();
+        final EntityType<?> entityType = BuiltInRegistries.ENTITY_TYPE.get(ResourceLocation.parse(details.get(ENTITY_TYPE_KEY).getAsString()));
         final int nextObj = details.has(NEXT_OBJ_KEY) ? details.get(NEXT_OBJ_KEY).getAsInt() : -1;
 
         return new KillEntityObjectiveTemplateTemplate(target, quantity, entityType, nextObj, parseRewards(jsonObject));
@@ -102,10 +101,10 @@ public class KillEntityObjectiveTemplateTemplate extends DialogueObjectiveTempla
     {
         if (quest.getCurrentObjectiveInstance() instanceof EntityKillProgressInstance progress)
         {
-            return Component.translatable("no.monopixel.slimcolonies.coremod.questobjectives.kill.progress",
-                progress.currentProgress,
-                entitiesToKill,
-                entityToKill.getDescription().plainCopy().setStyle(style));
+            return Component.translatableEscape("no.monopixel.slimcolonies.coremod.questobjectives.kill.progress",
+              progress.currentProgress,
+              entitiesToKill,
+              entityToKill.getDescription().plainCopy().setStyle(style));
         }
         return Component.empty();
     }
@@ -124,7 +123,6 @@ public class KillEntityObjectiveTemplateTemplate extends DialogueObjectiveTempla
 
     /**
      * Cleanup the listener of this event.
-     *
      * @param colonyQuest the quest instance it belongs to.
      */
     private void cleanupListener(final IQuestInstance colonyQuest)
@@ -187,7 +185,7 @@ public class KillEntityObjectiveTemplateTemplate extends DialogueObjectiveTempla
         }
 
         @Override
-        public CompoundTag serializeNBT()
+        public CompoundTag serializeNBT(@NotNull final HolderLookup.Provider provider)
         {
             final CompoundTag compoundTag = new CompoundTag();
             compoundTag.putInt(TAG_QUANTITY, currentProgress);
@@ -201,7 +199,7 @@ public class KillEntityObjectiveTemplateTemplate extends DialogueObjectiveTempla
         }
 
         @Override
-        public void deserializeNBT(final CompoundTag nbt)
+        public void deserializeNBT(@NotNull final HolderLookup.Provider provider, final CompoundTag nbt)
         {
             this.currentProgress = nbt.getInt(TAG_QUANTITY);
         }

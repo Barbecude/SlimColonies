@@ -1,28 +1,28 @@
 package no.monopixel.slimcolonies.core.network.messages;
 
+import com.ldtteam.common.network.AbstractClientPlayMessage;
+import com.ldtteam.common.network.PlayMessageType;
 import no.monopixel.slimcolonies.api.colony.IColony;
 import no.monopixel.slimcolonies.api.colony.IColonyManager;
 import no.monopixel.slimcolonies.api.colony.IColonyView;
 import no.monopixel.slimcolonies.api.colony.permissions.Action;
 import no.monopixel.slimcolonies.api.colony.permissions.ColonyPlayer;
+import no.monopixel.slimcolonies.api.colony.permissions.IPermissions;
 import no.monopixel.slimcolonies.api.colony.permissions.Rank;
-import no.monopixel.slimcolonies.api.network.IMessage;
-import no.monopixel.slimcolonies.api.network.PacketUtils;
-import no.monopixel.slimcolonies.api.util.Log;
 import no.monopixel.slimcolonies.api.util.SoundUtils;
+import no.monopixel.slimcolonies.api.util.constant.Constants;
 import no.monopixel.slimcolonies.core.colony.Colony;
+import no.monopixel.slimcolonies.core.network.messages.server.AbstractColonyServerMessage;
 import io.netty.buffer.Unpooled;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.api.distmarker.OnlyIn;
-import net.minecraftforge.fml.LogicalSide;
-import net.minecraftforge.network.NetworkEvent;
+import net.neoforged.neoforge.network.handling.IPayloadContext;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -34,28 +34,20 @@ import java.util.UUID;
  */
 public class PermissionsMessage
 {
-    private static final String COLONY_DOES_NOT_EXIST = "Colony #%d does not exist.";
-
     /**
      * Client side presentation of the
      */
-    public static class View implements IMessage
+    public static class View extends AbstractClientPlayMessage
     {
-        private int          colonyID;
-        private FriendlyByteBuf data;
+        public static final PlayMessageType<?> TYPE = PlayMessageType.forClient(Constants.MOD_ID, "permission_view", View::new, true, false);
+
+        private final int          colonyID;
+        private final RegistryFriendlyByteBuf data;
 
         /**
          * The dimension of the
          */
-        private ResourceKey<Level> dimension;
-
-        /**
-         * Empty constructor used when registering the
-         */
-        public View()
-        {
-            super();
-        }
+        private final ResourceKey<Level> dimension;
 
         /**
          * Instantiate
@@ -65,68 +57,48 @@ public class PermissionsMessage
          */
         public View(@NotNull final Colony colony, @NotNull final Rank viewerRank)
         {
+            super(TYPE);
             this.colonyID = colony.getID();
-            this.data = new FriendlyByteBuf(Unpooled.buffer());
+            this.data = new RegistryFriendlyByteBuf(new FriendlyByteBuf(Unpooled.buffer()), colony.getWorld().registryAccess());
             colony.getPermissions().serializeViewNetworkData(this.data, viewerRank);
             this.dimension = colony.getDimension();
         }
 
-        @Override
-        public void fromBytes(@NotNull final FriendlyByteBuf buf)
+        protected View(final RegistryFriendlyByteBuf buf, final PlayMessageType<?> type)
         {
-            final FriendlyByteBuf newBuf = new FriendlyByteBuf(buf.retain());
-            colonyID = newBuf.readInt();
-            dimension = ResourceKey.create(Registries.DIMENSION, new ResourceLocation(newBuf.readUtf(32767)));
-            data = newBuf;
+            super(buf, type);
+            colonyID = buf.readInt();
+            dimension = ResourceKey.create(Registries.DIMENSION, ResourceLocation.parse(buf.readUtf(32767)));
+            data = new RegistryFriendlyByteBuf(new FriendlyByteBuf(Unpooled.wrappedBuffer(buf.readByteArray())), buf.registryAccess());
         }
 
-        @Nullable
+        
         @Override
-        public LogicalSide getExecutionSide()
-        {
-            return LogicalSide.CLIENT;
-        }
-
-        @OnlyIn(Dist.CLIENT)
-        @Override
-        public void onExecute(final net.minecraftforge.network.NetworkEvent.Context ctxIn, final boolean isLogicalServer)
+        protected void onExecute(final IPayloadContext ctxIn, @Nullable final Player player)
         {
             IColonyManager.getInstance().handlePermissionsViewMessage(colonyID, data, dimension);
-            data.release();
         }
 
         @Override
-        public void toBytes(@NotNull final FriendlyByteBuf buf)
+        protected void toBytes(@NotNull final RegistryFriendlyByteBuf buf)
         {
             data.resetReaderIndex();
             buf.writeInt(colonyID);
             buf.writeUtf(dimension.location().toString());
-            buf.writeBytes(data);
+            buf.writeByteArray(data.array());
         }
     }
 
     /**
      * Permission message class.
      */
-    public static class Permission implements IMessage
+    public static class Permission extends AbstractColonyServerMessage
     {
-        private int     colonyID;
-        private boolean enable;
-        private Rank    rank;
-        private Action  action;
+        public static final PlayMessageType<?> TYPE = PlayMessageType.forServer(Constants.MOD_ID, "permission_permission", Permission::new);
 
-        /**
-         * The dimension of the
-         */
-        private ResourceKey<Level> dimension;
-
-        /**
-         * Empty public constructor.
-         */
-        public Permission()
-        {
-            super();
-        }
+        private final boolean enable;
+        private final int     rankId;
+        private final Action  action;
 
         /**
          * {@link Permission}.
@@ -138,80 +110,44 @@ public class PermissionsMessage
          */
         public Permission(@NotNull final IColonyView colony, final boolean enable, final Rank rank, final Action action)
         {
-            super();
-            this.colonyID = colony.getID();
+            super(TYPE, colony);
             this.enable = enable;
-            this.rank = rank;
+            this.rankId = rank.getId();
             this.action = action;
-            this.dimension = colony.getDimension();
-        }
-
-        @Nullable
-        @Override
-        public LogicalSide getExecutionSide()
-        {
-            return LogicalSide.SERVER;
         }
 
         @Override
-        public void onExecute(final net.minecraftforge.network.NetworkEvent.Context ctxIn, final boolean isLogicalServer)
+        protected void onExecute(final IPayloadContext ctxIn, final ServerPlayer player, final IColony colony)
         {
-            final IColony colony = IColonyManager.getInstance().getColonyByDimension(colonyID, dimension);
-            if (colony == null)
-            {
-                Log.getLogger().error(String.format(COLONY_DOES_NOT_EXIST, colonyID), new Exception());
-                return;
-            }
-
-            colony.getPermissions().alterPermission(colony.getPermissions().getRank(ctxIn.getSender()), rank, action, enable);
+            colony.getPermissions().alterPermission(colony.getPermissions().getRank(player), colony.getPermissions().getRanks().get(rankId), action, enable);
         }
 
         @Override
-        public void toBytes(@NotNull final FriendlyByteBuf buf)
+        protected void toBytes(@NotNull final RegistryFriendlyByteBuf buf)
         {
-            buf.writeInt(colonyID);
+            super.toBytes(buf);
             buf.writeBoolean(enable);
-            buf.writeInt(rank.getId());
+            buf.writeInt(rankId);
             buf.writeUtf(action.name());
-            buf.writeUtf(dimension.location().toString());
         }
 
-        @Override
-        public void fromBytes(@NotNull final FriendlyByteBuf buf)
+        protected Permission(final RegistryFriendlyByteBuf buf, final PlayMessageType<?> type)
         {
-            colonyID = buf.readInt();
+            super(buf, type);
             enable = buf.readBoolean();
-            final int rankId = buf.readInt();
+            rankId = buf.readInt();
             action = Action.valueOf(buf.readUtf(32767));
-            dimension = ResourceKey.create(Registries.DIMENSION, new ResourceLocation(buf.readUtf(32767)));
-            final IColony colony = IColonyManager.getInstance().getColonyByDimension(colonyID, dimension);
-            if (colony != null)
-            {
-                rank = colony.getPermissions().getRanks().get(rankId);
-            }
         }
     }
 
     /**
      * Message class for adding a player to a permission set.
      */
-    public static class AddPlayer implements IMessage
+    public static class AddPlayer extends AbstractColonyServerMessage
     {
-        private int    colonyID;
-        private String playerName;
+        public static final PlayMessageType<?> TYPE = PlayMessageType.forServer(Constants.MOD_ID, "permission_add_player", AddPlayer::new);
 
-        /**
-         * The dimension of the
-         */
-        private ResourceKey<Level> dimension;
-
-        /**
-         * Empty public constructor.
-         */
-        public AddPlayer()
-        {
-            super();
-        }
+        private final String playerName;
 
         /**
          * Constructor for adding player to permission
@@ -221,138 +157,96 @@ public class PermissionsMessage
          */
         public AddPlayer(@NotNull final IColonyView colony, final String player)
         {
-            super();
-            this.colonyID = colony.getID();
+            super(TYPE, colony);
             this.playerName = player;
-            this.dimension = colony.getDimension();
         }
 
         @Override
-        public void toBytes(@NotNull final FriendlyByteBuf buf)
+        protected void toBytes(@NotNull final RegistryFriendlyByteBuf buf)
         {
-            buf.writeInt(colonyID);
+            super.toBytes(buf);
             buf.writeUtf(playerName);
-            buf.writeUtf(dimension.location().toString());
         }
 
-        @Override
-        public void fromBytes(@NotNull final FriendlyByteBuf buf)
+        protected AddPlayer(final RegistryFriendlyByteBuf buf, final PlayMessageType<?> type)
         {
-            colonyID = buf.readInt();
+            super(buf, type);
             playerName = buf.readUtf(32767);
-            dimension = ResourceKey.create(Registries.DIMENSION, new ResourceLocation(buf.readUtf(32767)));
         }
 
+        @Override
+        protected void onExecute(final IPayloadContext ctxIn, final ServerPlayer player, final IColony colony)
+        {
+            colony.getPermissions().addPlayer(playerName, colony.getPermissions().getRank(IPermissions.NEUTRAL_RANK_ID), colony.getWorld());
+        }
+
+        @Override
         @Nullable
-        @Override
-        public LogicalSide getExecutionSide()
+        protected Action permissionNeeded()
         {
-            return LogicalSide.SERVER;
-        }
-
-        @Override
-        public void onExecute(final net.minecraftforge.network.NetworkEvent.Context ctxIn, final boolean isLogicalServer)
-        {
-            final IColony colony = IColonyManager.getInstance().getColonyByDimension(colonyID, dimension);
-
-            if (colony != null && colony.getPermissions().hasPermission(ctxIn.getSender(), Action.EDIT_PERMISSIONS) && colony.getWorld() != null)
-            {
-                colony.getPermissions().addPlayer(playerName, colony.getPermissions().getRank(colony.getPermissions().NEUTRAL_RANK_ID), colony.getWorld());
-            }
-            else
-            {
-                Log.getLogger().error(String.format(COLONY_DOES_NOT_EXIST, colonyID), new Exception());
-            }
+            return Action.EDIT_PERMISSIONS;
         }
     }
 
     /**
      * Message class for adding a rank to the colony
      */
-    public static class AddRank implements IMessage
+    public static class AddRank extends AbstractColonyServerMessage
     {
-        /**
-         * the ID of the colony
-         */
-        private int colonyID;
+        public static final PlayMessageType<?> TYPE = PlayMessageType.forServer(Constants.MOD_ID, "permission_add_rank", AddRank::new);
+
         /**
          * the name of the new rank
          */
-        private String rankName;
-        /**
-         * the dimension of the colony
-         */
-        private ResourceKey<Level> dimension;
-
-        /**
-         * Empty public constructor
-         */
-        public AddRank()
-        {
-            super();
-        }
+        private final String rankName;
 
         /**
          * Constructor for adding a rank to the colony
          * @param colony the colony to add the rank to
          * @param name the name of the rank
          */
-        public AddRank(@NotNull IColonyView colony, @NotNull String name)
+        public AddRank(@NotNull final IColonyView colony, @NotNull final String name)
         {
-            super();
-            this.colonyID = colony.getID();
+            super(TYPE, colony);
             this.rankName = name;
-            this.dimension = colony.getDimension();
         }
 
         @Override
-        public void toBytes(FriendlyByteBuf buf)
+        protected void toBytes(final RegistryFriendlyByteBuf buf)
         {
-            buf.writeInt(colonyID);
+            super.toBytes(buf);
             buf.writeUtf(rankName);
-            buf.writeUtf(dimension.location().toString());
         }
 
-        @Override
-        public void fromBytes(FriendlyByteBuf buf)
+        protected AddRank(final RegistryFriendlyByteBuf buf, final PlayMessageType<?> type)
         {
-            this.colonyID = buf.readInt();
+            super(buf, type);
             this.rankName = buf.readUtf(32767);
-            this.dimension = ResourceKey.create(Registries.DIMENSION, new ResourceLocation(buf.readUtf(32767)));
         }
 
         @Override
-        public void onExecute(final NetworkEvent.Context ctxIn, final boolean isLogicalServer)
+        protected void onExecute(final IPayloadContext ctxIn, final ServerPlayer player, final IColony colony)
         {
-            final IColony colony = IColonyManager.getInstance().getColonyByDimension(colonyID, dimension);
-            if (colony != null && colony.getPermissions().hasPermission(ctxIn.getSender(), Action.EDIT_PERMISSIONS))
-            {
-                colony.getPermissions().addRank(rankName);
-            }
+            colony.getPermissions().addRank(rankName);
+        }
+
+        @Override
+        @Nullable
+        protected Action permissionNeeded()
+        {
+            return Action.EDIT_PERMISSIONS;
         }
     }
 
     /**
      * Message class for adding a player or fakePlayer to a permission set.
      */
-    public static class AddPlayerOrFakePlayer implements IMessage
+    public static class AddPlayerOrFakePlayer extends AbstractColonyServerMessage
     {
-        private int    colonyID;
-        private String playerName;
-        private UUID   id;
+        public static final PlayMessageType<?> TYPE = PlayMessageType.forServer(Constants.MOD_ID, "permission_add_player_or_fake_player", AddPlayerOrFakePlayer::new);
 
-        /**
-         * The dimension of the
-         */
-        private ResourceKey<Level> dimension;
-
-        /**
-         * Empty public constructor.
-         */
-        public AddPlayerOrFakePlayer()
-        {
-            super();
-        }
+        private final String playerName;
+        private final UUID   id;
 
         /**
          * Constructor for adding player to permission
@@ -363,77 +257,51 @@ public class PermissionsMessage
          */
         public AddPlayerOrFakePlayer(@NotNull final IColonyView colony, final String playerName, final UUID id)
         {
-            super();
-            this.colonyID = colony.getID();
+            super(TYPE, colony);
             this.playerName = playerName;
             this.id = id;
-            this.dimension = colony.getDimension();
         }
 
         @Override
-        public void toBytes(@NotNull final FriendlyByteBuf buf)
+        protected void toBytes(@NotNull final RegistryFriendlyByteBuf buf)
         {
-            buf.writeInt(colonyID);
+            super.toBytes(buf);
             buf.writeUtf(playerName);
-            PacketUtils.writeUUID(buf, id);
-            buf.writeUtf(dimension.location().toString());
+            buf.writeUUID(id);
         }
 
-        @Override
-        public void fromBytes(@NotNull final FriendlyByteBuf buf)
+        protected AddPlayerOrFakePlayer(final RegistryFriendlyByteBuf buf, final PlayMessageType<?> type)
         {
-            colonyID = buf.readInt();
+            super(buf, type);
             playerName = buf.readUtf(32767);
-            id = PacketUtils.readUUID(buf);
-            dimension = ResourceKey.create(Registries.DIMENSION, new ResourceLocation(buf.readUtf(32767)));
+            id = buf.readUUID();
         }
 
+        @Override
+        protected void onExecute(final IPayloadContext ctxIn, final ServerPlayer player, final IColony colony)
+        {
+            colony.getPermissions().addPlayer(id, playerName, colony.getPermissions().getRank(IPermissions.NEUTRAL_RANK_ID));
+            Optional.ofNullable(colony.getServerBuildingManager().getTownHall()).ifPresent(th -> th.removePermissionEvents(id));
+            SoundUtils.playSuccessSound(player, player.blockPosition());
+        }
+
+        @Override
         @Nullable
-        @Override
-        public LogicalSide getExecutionSide()
+        protected Action permissionNeeded()
         {
-            return LogicalSide.SERVER;
-        }
-
-        @Override
-        public void onExecute(final net.minecraftforge.network.NetworkEvent.Context ctxIn, final boolean isLogicalServer)
-        {
-            final IColony colony = IColonyManager.getInstance().getColonyByDimension(colonyID, dimension);
-
-            if (colony != null && colony.getPermissions().hasPermission(ctxIn.getSender(), Action.EDIT_PERMISSIONS) && colony.getWorld() != null)
-            {
-                colony.getPermissions().addPlayer(id, playerName, colony.getPermissions().getRank(colony.getPermissions().NEUTRAL_RANK_ID));
-                Optional.ofNullable(colony.getBuildingManager().getTownHall()).ifPresent(th -> th.removePermissionEvents(id));
-                SoundUtils.playSuccessSound(ctxIn.getSender(), ctxIn.getSender().blockPosition());
-            }
-            else
-            {
-                Log.getLogger().error(String.format(COLONY_DOES_NOT_EXIST, colonyID), new Exception());
-            }
+            return Action.EDIT_PERMISSIONS;
         }
     }
 
     /**
      * Message class for setting a player rank in the permissions.
      */
-    public static class ChangePlayerRank implements IMessage
+    public static class ChangePlayerRank extends AbstractColonyServerMessage
     {
-        private int  colonyID;
-        private UUID playerID;
-        private Rank rank;
+        public static final PlayMessageType<?> TYPE = PlayMessageType.forServer(Constants.MOD_ID, "permission_change_player_rank", ChangePlayerRank::new);
 
-        /**
-         * The dimension of the
-         */
-        private ResourceKey<Level> dimension;
-
-        /**
-         * Empty public constructor.
-         */
-        public ChangePlayerRank()
-        {
-            super();
-        }
+        private final UUID playerID;
+        private final int rankId;
 
         /**
          * Constructor for setting a player rank.
@@ -444,71 +312,52 @@ public class PermissionsMessage
          */
         public ChangePlayerRank(@NotNull final IColonyView colony, final UUID player, final Rank rank)
         {
-            super();
-            this.colonyID = colony.getID();
+            super(TYPE, colony);
             this.playerID = player;
-            this.dimension = colony.getDimension();
-            this.rank = rank;
+            this.rankId = rank.getId();
         }
 
         @Override
-        public void toBytes(@NotNull final FriendlyByteBuf buf)
+        protected void toBytes(@NotNull final RegistryFriendlyByteBuf buf)
         {
-            buf.writeInt(colonyID);
-            PacketUtils.writeUUID(buf, playerID);
-            buf.writeUtf(dimension.location().toString());
-            buf.writeInt(rank.getId());
+            super.toBytes(buf);
+            buf.writeUUID(playerID);
+            buf.writeInt(rankId);
+        }
+
+        protected ChangePlayerRank(final RegistryFriendlyByteBuf buf, final PlayMessageType<?> type)
+        {
+            super(buf, type);
+            playerID = buf.readUUID();
+            rankId = buf.readInt();
         }
 
         @Override
-        public void fromBytes(@NotNull final FriendlyByteBuf buf)
+        protected void onExecute(final IPayloadContext ctxIn, final ServerPlayer player, final IColony colony)
         {
-            colonyID = buf.readInt();
-            playerID = PacketUtils.readUUID(buf);
-            dimension = ResourceKey.create(Registries.DIMENSION, new ResourceLocation(buf.readUtf(32767)));
-            IColony colony = IColonyManager.getInstance().getColonyByDimension(colonyID, dimension);
-            rank = colony.getPermissions().getRank(buf.readInt());
-
-        }
-
-        @Override
-        public void onExecute(final net.minecraftforge.network.NetworkEvent.Context ctxIn, final boolean isLogicalServer)
-        {
-            final IColony colony = IColonyManager.getInstance().getColonyByDimension(colonyID, dimension);
-
-            if (colony == null || colony.getWorld() == null)
-            {
-                Log.getLogger().error(String.format(COLONY_DOES_NOT_EXIST, colonyID), new Exception());
-                return;
-            }
-            final Player player = ctxIn.getSender();
+            final Rank rank = colony.getPermissions().getRanks().get(rankId);
             if (colony.getPermissions().hasPermission(player, Action.EDIT_PERMISSIONS) && rank != colony.getPermissions().getRankOwner())
             {
                 colony.getPermissions().setPlayerRank(playerID, rank, colony.getWorld());
             }
+        }
+
+        @Override
+        @Nullable
+        protected Action permissionNeeded()
+        {
+            return Action.EDIT_PERMISSIONS;
         }
     }
 
     /**
      * Message class for removing a player from a permission set.
      */
-    public static class RemovePlayer implements IMessage
+    public static class RemovePlayer extends AbstractColonyServerMessage
     {
-        private int  colonyID;
-        private UUID playerID;
+        public static final PlayMessageType<?> TYPE = PlayMessageType.forServer(Constants.MOD_ID, "permission_remove_player", RemovePlayer::new);
 
-        /**
-         * The dimension of the
-         */
-        private ResourceKey<Level> dimension;
-
-        /**
-         * Empty public constructor.
-         */
-        public RemovePlayer()
-        {
-            super();
-        }
+        private final UUID playerID;
 
         /**
          * Constructor for removing player from permission set.
@@ -518,46 +367,26 @@ public class PermissionsMessage
          */
         public RemovePlayer(@NotNull final IColonyView colony, final UUID player)
         {
-            super();
-            this.colonyID = colony.getID();
+            super(TYPE, colony);
             this.playerID = player;
-            this.dimension = colony.getDimension();
         }
 
         @Override
-        public void toBytes(@NotNull final FriendlyByteBuf buf)
+        protected void toBytes(@NotNull final RegistryFriendlyByteBuf buf)
         {
-            buf.writeInt(colonyID);
-            PacketUtils.writeUUID(buf, playerID);
-            buf.writeUtf(dimension.location().toString());
+            super.toBytes(buf);
+            buf.writeUUID(playerID);
+        }
+
+        protected RemovePlayer(final RegistryFriendlyByteBuf buf, final PlayMessageType<?> type)
+        {
+            super(buf, type);
+            playerID = buf.readUUID();
         }
 
         @Override
-        public void fromBytes(@NotNull final FriendlyByteBuf buf)
+        protected void onExecute(final IPayloadContext ctxIn, final ServerPlayer player, final IColony colony)
         {
-            colonyID = buf.readInt();
-            playerID = PacketUtils.readUUID(buf);
-            dimension = ResourceKey.create(Registries.DIMENSION, new ResourceLocation(buf.readUtf(32767)));
-        }
-
-        @Nullable
-        @Override
-        public LogicalSide getExecutionSide()
-        {
-            return LogicalSide.SERVER;
-        }
-
-        @Override
-        public void onExecute(final net.minecraftforge.network.NetworkEvent.Context ctxIn, final boolean isLogicalServer)
-        {
-            final IColony colony = IColonyManager.getInstance().getColonyByDimension(colonyID, dimension);
-
-            if (colony == null)
-            {
-                Log.getLogger().error(String.format(COLONY_DOES_NOT_EXIST, colonyID), new Exception());
-                return;
-            }
-            final ServerPlayer player = ctxIn.getSender();
             final ColonyPlayer permissionsPlayer = colony.getPermissions().getPlayers().get(playerID);
             if ((permissionsPlayer.getRank().isHostile() && colony.getPermissions().hasPermission(player, Action.EDIT_PERMISSIONS))
                   || (!permissionsPlayer.getRank().isHostile()
@@ -568,33 +397,26 @@ public class PermissionsMessage
                 colony.getPermissions().removePlayer(playerID);
             }
         }
+
+        @Override
+        @Nullable
+        protected Action permissionNeeded()
+        {
+            return Action.EDIT_PERMISSIONS;
+        }
     }
 
     /**
      * Message class for removing a rank from a colony
      */
-    public static class RemoveRank implements IMessage
+    public static class RemoveRank extends AbstractColonyServerMessage
     {
-        /**
-         * the colony ID
-         */
-        private int colonyId;
+        public static final PlayMessageType<?> TYPE = PlayMessageType.forServer(Constants.MOD_ID, "permission_remove_rank", RemoveRank::new);
+
         /**
          * the rank ID
          */
-        private int rankId;
-        /**
-         * the dimension of the colony
-         */
-        private ResourceKey<Level> dimension;
-
-        /**
-         * Empty public constructor
-         */
-        public RemoveRank()
-        {
-            super();
-        }
+        private final int rankId;
 
         /**
          * Constructor for removing a rank from a colony
@@ -603,65 +425,52 @@ public class PermissionsMessage
          */
         public RemoveRank(@NotNull final IColonyView colony, @NotNull final Rank rank)
         {
-            super();
-            colonyId = colony.getID();
+            super(TYPE, colony);
             rankId = rank.getId();
-            dimension = colony.getDimension();
         }
 
         @Override
-        public void toBytes(@NotNull final FriendlyByteBuf buf)
+        protected void toBytes(@NotNull final RegistryFriendlyByteBuf buf)
         {
-            buf.writeInt(colonyId);
+            super.toBytes(buf);
             buf.writeInt(rankId);
-            buf.writeUtf(dimension.location().toString());
         }
 
-        @Override
-        public void fromBytes(@NotNull final FriendlyByteBuf buf)
+        protected RemoveRank(final RegistryFriendlyByteBuf buf, final PlayMessageType<?> type)
         {
-            colonyId = buf.readInt();
+            super(buf, type);
             rankId = buf.readInt();
-            dimension = ResourceKey.create(Registries.DIMENSION, new ResourceLocation(buf.readUtf(32767)));
         }
 
         @Override
-        public void onExecute(final net.minecraftforge.network.NetworkEvent.Context ctxIn, final boolean isLogicalServer)
+        protected void onExecute(final IPayloadContext ctxIn, final ServerPlayer player, final IColony colony)
         {
-            final IColony colony = IColonyManager.getInstance().getColonyByDimension(colonyId, dimension);
-            if (colony != null && colony.getPermissions().hasPermission(ctxIn.getSender(), Action.EDIT_PERMISSIONS))
-            {
-                colony.getPermissions().removeRank(colony.getPermissions().getRanks().get(rankId));
-            }
+            colony.getPermissions().removeRank(colony.getPermissions().getRanks().get(rankId));
+        }
+
+        @Override
+        @Nullable
+        protected Action permissionNeeded()
+        {
+            return Action.EDIT_PERMISSIONS;
         }
     }
 
     /**
      * Message for changing the rank type of a given rank on a colony
      */
-    public static class EditRankType implements IMessage
+    public static class EditRankType extends AbstractColonyServerMessage
     {
-        /**
-         * the colony id
-         */
-        private int colonyId;
+        public static final PlayMessageType<?> TYPE = PlayMessageType.forServer(Constants.MOD_ID, "permission_edit_rank_type", EditRankType::new);
+
         /**
          * the rank id
          */
-        private int rankId;
-        /**
-         * the dimension
-         */
-        private ResourceKey<Level> dimension;
+        private final int rankId;
         /**
          * the new rank type
          */
-        private int rankType;
-
-        /**
-         * empty public constructor
-         */
-        public EditRankType() { super(); }
+        private final int rankType;
 
         /**
          * Constructor for changing the rank type
@@ -671,125 +480,53 @@ public class PermissionsMessage
          */
         public EditRankType(@NotNull final IColonyView colony, @NotNull final Rank rank, final int rankType)
         {
-            this.colonyId = colony.getID();
+            super(TYPE, colony);
             this.rankId = rank.getId();
-            this.dimension = colony.getDimension();
             this.rankType = rankType;
         }
 
         @Override
-        public void toBytes(final FriendlyByteBuf buf)
+        protected void toBytes(final RegistryFriendlyByteBuf buf)
         {
-            buf.writeInt(colonyId);
+            super.toBytes(buf);
             buf.writeInt(rankId);
-            buf.writeUtf(dimension.location().toString());
             buf.writeInt(rankType);
         }
 
-        @Override
-        public void fromBytes(final FriendlyByteBuf buf)
+        protected EditRankType(final RegistryFriendlyByteBuf buf, final PlayMessageType<?> type)
         {
-            this.colonyId = buf.readInt();
+            super(buf, type);
             this.rankId = buf.readInt();
-            this.dimension = ResourceKey.create(Registries.DIMENSION, new ResourceLocation(buf.readUtf(32767)));
             this.rankType = buf.readInt();
         }
 
         @Override
-        public void onExecute(final net.minecraftforge.network.NetworkEvent.Context ctxIn, final boolean isLogicalServer)
+        protected void onExecute(final IPayloadContext ctxIn, final ServerPlayer player, final IColony colony)
         {
-            final IColony colony = IColonyManager.getInstance().getColonyByDimension(colonyId, dimension);
-            if (colony != null && colony.getPermissions().hasPermission(ctxIn.getSender(), Action.EDIT_PERMISSIONS))
+            final Rank rank = colony.getPermissions().getRank(rankId);
+            switch (rankType)
             {
-                final Rank rank = colony.getPermissions().getRank(rankId);
-                switch (rankType)
-                {
-                    case 0:
-                        rank.setColonyManager(true);
-                        rank.setHostile(false);
-                        break;
-                    case 1:
-                        rank.setHostile(true);
-                        rank.setColonyManager(false);
-                        break;
-                    default:
-                        rank.setHostile(false);
-                        rank.setColonyManager(false);
-                        break;
-                }
-                colony.markDirty();
+                case 0:
+                    rank.setColonyManager(true);
+                    rank.setHostile(false);
+                    break;
+                case 1:
+                    rank.setHostile(true);
+                    rank.setColonyManager(false);
+                    break;
+                default:
+                    rank.setHostile(false);
+                    rank.setColonyManager(false);
+                    break;
             }
-        }
-    }
-
-    /**
-     * Message to change whether a rank is a subscriber to certain colony events
-     */
-    public static class SetSubscriber implements IMessage
-    {
-        /**
-         * the colony ID
-         */
-        private int colonyId;
-        /**
-         * the rank ID
-         */
-        private int rankId;
-        /**
-         * the dimension
-         */
-        private ResourceKey<Level> dimension;
-        /**
-         * the new isSubscriber state
-         */
-        private boolean isSubscriber;
-
-        /**
-         * Empty public constructor
-         */
-        public SetSubscriber() { super(); }
-
-        /**
-         * Constructor to change whether the given rank is a subscriber
-         * @param colony the colony of the rank
-         * @param rank the rank
-         * @param isSubscriber whether the rank should be a subscriber
-         */
-        public SetSubscriber(@NotNull final IColonyView colony, @NotNull final Rank rank, final boolean isSubscriber)
-        {
-            this.colonyId = colony.getID();
-            this.dimension = colony.getDimension();
-            this.rankId = rank.getId();
-            this.isSubscriber = isSubscriber;
+            colony.markDirty();
         }
 
         @Override
-        public void toBytes(final FriendlyByteBuf buf)
+        @Nullable
+        protected Action permissionNeeded()
         {
-            buf.writeInt(colonyId);
-            buf.writeUtf(dimension.location().toString());
-            buf.writeInt(rankId);
-            buf.writeBoolean(isSubscriber);
-        }
-
-        @Override
-        public void fromBytes(final FriendlyByteBuf buf)
-        {
-            this.colonyId = buf.readInt();
-            this.dimension = ResourceKey.create(Registries.DIMENSION, new ResourceLocation(buf.readUtf(32767)));
-            this.rankId = buf.readInt();
-            this.isSubscriber = buf.readBoolean();
-        }
-
-        @Override
-        public void onExecute(final net.minecraftforge.network.NetworkEvent.Context ctxIn, final boolean isLogicalServer)
-        {
-            final IColony colony = IColonyManager.getInstance().getColonyByDimension(colonyId, dimension);
-            if (colony != null && colony.getPermissions().hasPermission(ctxIn.getSender(), Action.EDIT_PERMISSIONS))
-            {
-                colony.getPermissions().getRank(rankId).setSubscriber(isSubscriber);
-                colony.markDirty();
-            }
+            return Action.EDIT_PERMISSIONS;
         }
     }
 }

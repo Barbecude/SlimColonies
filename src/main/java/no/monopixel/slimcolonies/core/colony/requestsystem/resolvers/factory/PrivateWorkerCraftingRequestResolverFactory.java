@@ -1,10 +1,7 @@
 package no.monopixel.slimcolonies.core.colony.requestsystem.resolvers.factory;
 
 import com.google.common.reflect.TypeToken;
-import net.minecraft.nbt.CompoundTag;
-import net.minecraft.network.FriendlyByteBuf;
-import net.minecraft.resources.ResourceLocation;
-import no.monopixel.slimcolonies.api.ISlimColoniesAPI;
+import no.monopixel.slimcolonies.api.IMinecoloniesAPI;
 import no.monopixel.slimcolonies.api.colony.jobs.registry.IJobRegistry;
 import no.monopixel.slimcolonies.api.colony.jobs.registry.JobEntry;
 import no.monopixel.slimcolonies.api.colony.requestsystem.factory.IFactoryController;
@@ -14,16 +11,19 @@ import no.monopixel.slimcolonies.api.colony.requestsystem.token.IToken;
 import no.monopixel.slimcolonies.api.util.constant.SerializationIdentifierConstants;
 import no.monopixel.slimcolonies.api.util.constant.TypeConstants;
 import no.monopixel.slimcolonies.core.colony.requestsystem.resolvers.PrivateWorkerCraftingRequestResolver;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.resources.ResourceLocation;
 import org.jetbrains.annotations.NotNull;
 
 public class PrivateWorkerCraftingRequestResolverFactory implements IRequestResolverFactory<PrivateWorkerCraftingRequestResolver>
 {
-    /// /// --------------------------- NBTConstants --------------------------- \\\\\\
+    ////// --------------------------- NBTConstants --------------------------- \\\\\\
     private static final String NBT_TOKEN    = "Token";
     private static final String NBT_LOCATION = "Location";
-    private static final String NBT_JOB      = "Job";
-
-    /// /// --------------------------- NBTConstants --------------------------- \\\\\\
+    private static final String NBT_JOB = "Job";
+    ////// --------------------------- NBTConstants --------------------------- \\\\\\
 
     @NotNull
     @Override
@@ -42,50 +42,50 @@ public class PrivateWorkerCraftingRequestResolverFactory implements IRequestReso
     @NotNull
     @Override
     public PrivateWorkerCraftingRequestResolver getNewInstance(
-        @NotNull final IFactoryController factoryController,
-        @NotNull final ILocation iLocation,
-        @NotNull final Object... context)
+      @NotNull final IFactoryController factoryController,
+      @NotNull final ILocation iLocation,
+      @NotNull final Object... context)
     {
         return new PrivateWorkerCraftingRequestResolver(iLocation, factoryController.getNewInstance(TypeConstants.ITOKEN), (JobEntry) context[0]);
     }
 
     @NotNull
     @Override
-    public CompoundTag serialize(
-        @NotNull final IFactoryController controller, @NotNull final PrivateWorkerCraftingRequestResolver privateWorkerCraftingRequestResolverFactory)
+    public CompoundTag serialize(@NotNull final HolderLookup.Provider provider,
+      @NotNull final IFactoryController controller, @NotNull final PrivateWorkerCraftingRequestResolver privateWorkerCraftingRequestResolverFactory)
     {
         final CompoundTag compound = new CompoundTag();
-        compound.put(NBT_TOKEN, controller.serialize(privateWorkerCraftingRequestResolverFactory.getId()));
-        compound.put(NBT_LOCATION, controller.serialize(privateWorkerCraftingRequestResolverFactory.getLocation()));
+        compound.put(NBT_TOKEN, controller.serializeTag(provider, privateWorkerCraftingRequestResolverFactory.getId()));
+        compound.put(NBT_LOCATION, controller.serializeTag(provider, privateWorkerCraftingRequestResolverFactory.getLocation()));
         compound.putString(NBT_JOB, IJobRegistry.getInstance().getKey(privateWorkerCraftingRequestResolverFactory.getJobEntry()).toString());
         return compound;
     }
 
     @NotNull
     @Override
-    public PrivateWorkerCraftingRequestResolver deserialize(@NotNull final IFactoryController controller, @NotNull final CompoundTag nbt)
+    public PrivateWorkerCraftingRequestResolver deserialize(@NotNull final HolderLookup.Provider provider, @NotNull final IFactoryController controller, @NotNull final CompoundTag nbt)
     {
-        final IToken<?> token = controller.deserialize(nbt.getCompound(NBT_TOKEN));
-        final ILocation location = controller.deserialize(nbt.getCompound(NBT_LOCATION));
-        final JobEntry entry = IJobRegistry.getInstance().getValue(new ResourceLocation(nbt.getString(NBT_JOB)));
+        final IToken<?> token = controller.deserializeTag(provider, nbt.getCompound(NBT_TOKEN));
+        final ILocation location = controller.deserializeTag(provider, nbt.getCompound(NBT_LOCATION));
+        final JobEntry entry = IJobRegistry.getInstance().get(ResourceLocation.parse(nbt.getString(NBT_JOB)));
 
         return new PrivateWorkerCraftingRequestResolver(location, token, entry);
     }
 
     @Override
-    public void serialize(IFactoryController controller, PrivateWorkerCraftingRequestResolver input, FriendlyByteBuf packetBuffer)
+    public void serialize(IFactoryController controller, PrivateWorkerCraftingRequestResolver input, RegistryFriendlyByteBuf packetBuffer)
     {
         controller.serialize(packetBuffer, input.getId());
         controller.serialize(packetBuffer, input.getLocation());
-        packetBuffer.writeRegistryId(ISlimColoniesAPI.getInstance().getJobRegistry(), input.getJobEntry());
+        packetBuffer.writeById(IMinecoloniesAPI.getInstance().getJobRegistry()::getIdOrThrow, input.getJobEntry());
     }
 
     @Override
-    public PrivateWorkerCraftingRequestResolver deserialize(IFactoryController controller, FriendlyByteBuf buffer) throws Throwable
+    public PrivateWorkerCraftingRequestResolver deserialize(IFactoryController controller, RegistryFriendlyByteBuf buffer) throws Throwable
     {
         final IToken<?> token = controller.deserialize(buffer);
         final ILocation location = controller.deserialize(buffer);
-        final JobEntry entry = buffer.readRegistryId();
+        final JobEntry entry = buffer.readById(IMinecoloniesAPI.getInstance().getJobRegistry()::byIdOrThrow);
 
         return new PrivateWorkerCraftingRequestResolver(location, token, entry);
     }

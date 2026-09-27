@@ -1,18 +1,18 @@
 package no.monopixel.slimcolonies.core.placementhandlers;
 
-import com.ldtteam.structurize.api.util.ItemStackUtils;
+import com.ldtteam.structurize.api.ItemStackUtils;
+import com.ldtteam.structurize.api.constants.Constants;
 import com.ldtteam.structurize.blockentities.interfaces.IBlueprintDataProviderBE;
-import com.ldtteam.structurize.blueprints.v1.Blueprint;
 import com.ldtteam.structurize.placement.IPlacementContext;
 import com.ldtteam.structurize.placement.handlers.placement.IPlacementHandler;
 import com.ldtteam.structurize.storage.StructurePacks;
 import com.ldtteam.structurize.util.BlockUtils;
 import no.monopixel.slimcolonies.api.blocks.AbstractBlockHut;
 import no.monopixel.slimcolonies.api.blocks.ModBlocks;
+import no.monopixel.slimcolonies.core.tileentities.TileEntityColonyBuilding;
 import no.monopixel.slimcolonies.api.util.Log;
 import no.monopixel.slimcolonies.api.util.Utils;
 import no.monopixel.slimcolonies.api.util.WorldUtil;
-import no.monopixel.slimcolonies.core.tileentities.TileEntityColonyBuilding;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.util.Tuple;
@@ -29,7 +29,6 @@ import java.util.List;
 
 import static com.ldtteam.structurize.placement.handlers.placement.PlacementHandlers.handleTileEntityPlacement;
 
-@SuppressWarnings("removal")
 public class HutPlacementHandler implements IPlacementHandler
 {
     @Override
@@ -40,11 +39,11 @@ public class HutPlacementHandler implements IPlacementHandler
 
     @Override
     public ActionProcessingResult handle(
-        @NotNull final Level world,
-        @NotNull final BlockPos pos,
-        @NotNull final BlockState blockState,
-        @Nullable final CompoundTag tileEntityData,
-        @NotNull final IPlacementContext placementContext)
+      @NotNull final Level world,
+      @NotNull final BlockPos pos,
+      @NotNull final BlockState blockState,
+      @Nullable final CompoundTag tileEntityData,
+      @NotNull final IPlacementContext placementContext)
     {
         if (world.getBlockState(pos).equals(blockState))
         {
@@ -56,7 +55,7 @@ public class HutPlacementHandler implements IPlacementHandler
             return ActionProcessingResult.DENY;
         }
 
-        if (!WorldUtil.setBlockState(world, pos, blockState, com.ldtteam.structurize.api.util.constant.Constants.UPDATE_FLAG))
+        if (!WorldUtil.setBlockState(world, pos, blockState, Constants.UPDATE_FLAG))
         {
             return ActionProcessingResult.PASS;
         }
@@ -65,29 +64,26 @@ public class HutPlacementHandler implements IPlacementHandler
         {
             try
             {
-                final Blueprint blueprint = placementContext.getBluePrint();
                 handleTileEntityPlacement(tileEntityData, world, pos, placementContext.getRotationMirror());
                 final BlockEntity be = world.getBlockEntity(pos);
                 if (be != null)
                 {
                     if (pos.equals(placementContext.getCenterPos()))
                     {
-                        final String location = StructurePacks.getStructurePack(blueprint.getPackName()).getSubPath(blueprint.getFilePath().resolve(blueprint.getFileName()));
+                        final String location = StructurePacks.getStructurePack(placementContext.getBluePrint().getPackName()).getSubPath(placementContext.getBluePrint().getFilePath().resolve(placementContext.getBluePrint().getFileName()));
                         ((IBlueprintDataProviderBE) be).setBlueprintPath(location);
                     }
-                    else if (!((IBlueprintDataProviderBE) be).getPositionedTags().getOrDefault(BlockPos.ZERO, Collections.emptyList()).contains("invisible"))
+                    else if(!((IBlueprintDataProviderBE) be).getPositionedTags().getOrDefault(BlockPos.ZERO, Collections.emptyList()).contains("invisible"))
                     {
                         final String partialPath;
                         if (((IBlueprintDataProviderBE) be).getSchematicName().isEmpty())
                         {
                             final String[] elements = Utils.splitPath(((IBlueprintDataProviderBE) be).getBlueprintPath());
-                            partialPath = StructurePacks.getStructurePack(blueprint.getPackName())
-                                .getSubPath(blueprint.getFilePath().resolve(elements[elements.length - 1].replace(".blueprint", "")));
+                            partialPath = StructurePacks.getStructurePack(placementContext.getBluePrint().getPackName()).getSubPath(placementContext.getBluePrint().getFilePath().resolve(elements[elements.length - 1].replace(".blueprint", "")));
                         }
                         else
                         {
-                            partialPath = StructurePacks.getStructurePack(blueprint.getPackName())
-                                .getSubPath(Utils.resolvePath(blueprint.getFilePath(), ((IBlueprintDataProviderBE) be).getSchematicName()));
+                            partialPath = StructurePacks.getStructurePack(placementContext.getBluePrint().getPackName()).getSubPath(Utils.resolvePath(placementContext.getBluePrint().getFilePath(), ((IBlueprintDataProviderBE) be).getSchematicName()));
                         }
 
                         if (!(world.getBlockEntity(placementContext.getCenterPos()) instanceof TileEntityColonyBuilding) && be instanceof TileEntityColonyBuilding)
@@ -100,7 +96,7 @@ public class HutPlacementHandler implements IPlacementHandler
                             ((IBlueprintDataProviderBE) be).setBlueprintPath(partialPath + ".blueprint");
                         }
                     }
-                    ((IBlueprintDataProviderBE) be).setPackName(blueprint.getPackName());
+                    ((IBlueprintDataProviderBE) be).setPackName(placementContext.getBluePrint().getPackName());
 
                     if (placementContext.fancyPlacement())
                     {
@@ -119,11 +115,11 @@ public class HutPlacementHandler implements IPlacementHandler
 
     @Override
     public List<ItemStack> getRequiredItems(
-        @NotNull final Level world,
-        @NotNull final BlockPos pos,
-        @NotNull final BlockState blockState,
-        @Nullable final CompoundTag tileEntityData,
-        @NotNull final IPlacementContext placementContext)
+      @NotNull final Level world,
+      @NotNull final BlockPos pos,
+      @NotNull final BlockState blockState,
+      @Nullable final CompoundTag tileEntityData,
+      @NotNull final IPlacementContext context)
     {
         final List<ItemStack> itemList = new ArrayList<>();
         if (blockState.getBlock() != ModBlocks.blockHutBarracksTower)
@@ -133,14 +129,18 @@ public class HutPlacementHandler implements IPlacementHandler
 
         if (tileEntityData != null)
         {
-            itemList.addAll(ItemStackUtils.getItemStacksOfTileEntity(tileEntityData, blockState));
+            itemList.addAll(ItemStackUtils.getItemStacksOfTileEntity(tileEntityData, blockState, world));
         }
         itemList.removeIf(ItemStackUtils::isEmpty);
         return itemList;
     }
 
     @Override
-    public boolean doesWorldStateMatchBlueprintState(final BlockState worldState, final BlockState blueprintState, @Nullable final Tuple<BlockEntity, CompoundTag> blockEntityData, @NotNull final IPlacementContext placementContext)
+    public boolean doesWorldStateMatchBlueprintState(
+        final BlockState worldState,
+        final BlockState blueprintState,
+        final Tuple<BlockEntity, CompoundTag> blockEntityData,
+        @NotNull final IPlacementContext structureHandler)
     {
         return worldState.equals(blueprintState);
     }

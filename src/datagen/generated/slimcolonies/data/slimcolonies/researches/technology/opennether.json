@@ -1,5 +1,11 @@
 {
   "branch": "slimcolonies:technology",
+  "costs": [
+    {
+      "count": 3,
+      "item": "minecraft:gilded_blackstone"
+    }
+  ],
   "effects": [
     {
       "id": "slimcolonies:effects/blockhutnetherworker",
@@ -7,14 +13,8 @@
     }
   ],
   "icon": "slimcolonies:blockhutnetherworker",
-  "requirements": [
-    {
-      "type": "slimcolonies:building",
-      "building": "slimcolonies:miner",
-      "level": 3
-    }
-  ],
-  "researchLevel": 1,
-  "sortOrder": 3,
+  "parentResearch": "slimcolonies:technology/morescrolls",
+  "researchLevel": 2,
+  "sortOrder": 1,
   "subtitle": "no.monopixel.slimcolonies.research.technology.opennether.subtitle"
 }

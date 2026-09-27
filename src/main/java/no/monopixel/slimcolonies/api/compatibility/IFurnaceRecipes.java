@@ -2,7 +2,10 @@ package no.monopixel.slimcolonies.api.compatibility;
 
 import no.monopixel.slimcolonies.api.crafting.IRecipeStorage;
 import no.monopixel.slimcolonies.api.crafting.ItemStorage;
+import no.monopixel.slimcolonies.api.crafting.RecipeStorage;
 import net.minecraft.world.item.ItemStack;
+
+import java.util.function.Predicate;
 
 /**
  * Interface for the new furnace recipes.

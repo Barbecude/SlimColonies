@@ -1,5 +1,11 @@
 {
   "branch": "slimcolonies:technology",
+  "costs": [
+    {
+      "count": 64,
+      "item": "minecraft:glass"
+    }
+  ],
   "effects": [
     {
       "id": "slimcolonies:effects/blockhutglassblower",
@@ -8,6 +14,13 @@
   ],
   "icon": "slimcolonies:blockhutglassblower",
   "parentResearch": "slimcolonies:technology/hot",
+  "requirements": [
+    {
+      "type": "slimcolonies:building",
+      "building": "slimcolonies:smeltery",
+      "level": 3
+    }
+  ],
   "researchLevel": 2,
   "subtitle": "no.monopixel.slimcolonies.research.technology.thoselungs.subtitle"
 }

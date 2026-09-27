@@ -1,21 +1,20 @@
 package no.monopixel.slimcolonies.core.colony.interactionhandling;
 
 import com.ldtteam.blockui.views.BOWindow;
-import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
-import net.minecraft.world.entity.player.Player;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.api.distmarker.OnlyIn;
 import no.monopixel.slimcolonies.api.colony.ICitizen;
 import no.monopixel.slimcolonies.api.colony.ICitizenData;
 import no.monopixel.slimcolonies.api.colony.ICitizenDataView;
 import no.monopixel.slimcolonies.api.colony.interactionhandling.IChatPriority;
 import no.monopixel.slimcolonies.api.quests.*;
 import no.monopixel.slimcolonies.api.util.constant.Constants;
-import no.monopixel.slimcolonies.core.Network;
 import no.monopixel.slimcolonies.core.entity.ai.workers.AbstractEntityAIBasic;
 import no.monopixel.slimcolonies.core.network.messages.server.colony.InteractionResponse;
 import no.monopixel.slimcolonies.core.quests.objectives.DialogueObjectiveTemplateTemplate;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.entity.player.Player;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.api.distmarker.OnlyIn;
 
 import static no.monopixel.slimcolonies.api.colony.interactionhandling.ModInteractionResponseHandlers.QUEST_ACTION;
 import static no.monopixel.slimcolonies.api.util.constant.Constants.TICKS_SECOND;
@@ -28,8 +27,8 @@ public class QuestDeliveryInteraction extends QuestDialogueInteraction
     /**
      * Two icon options.
      */
-    private static final ResourceLocation QUEST_START_ICON     = ResourceLocation.fromNamespaceAndPath(Constants.MOD_ID, "textures/icons/queststart.png");
-    private static final ResourceLocation QUEST_NEXT_TASK_ICON = ResourceLocation.fromNamespaceAndPath(Constants.MOD_ID, "textures/icons/nexttask.png");
+    private static final ResourceLocation QUEST_START_ICON = new ResourceLocation(Constants.MOD_ID, "textures/icons/queststart.png");
+    private static final ResourceLocation QUEST_NEXT_TASK_ICON = new ResourceLocation(Constants.MOD_ID, "textures/icons/nexttask.png");
 
     public QuestDeliveryInteraction(final Component inquiry, final IChatPriority priority, final ResourceLocation location, final int index, final ICitizenData citizenData)
     {
@@ -98,23 +97,13 @@ public class QuestDeliveryInteraction extends QuestDialogueInteraction
             final IQuestDialogueAnswer result = this.currentElement.getOptionResult(responseId);
             if (result instanceof IFinalQuestDialogueAnswer)
             {
-                Network.getNetwork()
-                    .sendToServer(new InteractionResponse(data.getColonyId(),
-                        data.getId(),
-                        player.level.dimension(),
-                        Component.literal(colonyQuest.getId().toString()),
-                        responseId));
+                new InteractionResponse(data.getColonyId(), data.getId(), player.level().dimension(), Component.literal(colonyQuest.getId().toString()), responseId).sendToServer();
                 this.currentElement = this.startElement;
                 return true;
             }
             else if (result instanceof DialogueObjectiveTemplateTemplate.DialogueElement)
             {
-                Network.getNetwork()
-                    .sendToServer(new InteractionResponse(data.getColonyId(),
-                        data.getId(),
-                        player.level.dimension(),
-                        Component.literal(colonyQuest.getId().toString()),
-                        responseId));
+                new InteractionResponse(data.getColonyId(), data.getId(), player.level().dimension(), Component.literal(colonyQuest.getId().toString()), responseId).sendToServer();
                 this.currentElement = (DialogueObjectiveTemplateTemplate.DialogueElement) result;
                 return false;
             }

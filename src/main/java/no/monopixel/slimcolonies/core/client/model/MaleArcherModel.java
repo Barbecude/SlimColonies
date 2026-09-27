@@ -11,7 +11,7 @@ import net.minecraft.client.model.geom.PartPose;
 import net.minecraft.client.model.geom.builders.*;
 import org.jetbrains.annotations.NotNull;
 
-import static no.monopixel.slimcolonies.core.entity.ai.workers.guard.EntityAIRanger.RENDER_META_ARROW;
+import static no.monopixel.slimcolonies.core.entity.ai.workers.guard.EntityAIRange.RENDER_META_ARROW;
 
 public class MaleArcherModel extends CitizenModel<AbstractEntityCitizen>
 {

@@ -18,7 +18,7 @@ import org.jetbrains.annotations.Nullable;
 import java.util.List;
 import java.util.Objects;
 
-import static com.ldtteam.structurize.api.util.constant.Constants.UPDATE_FLAG;
+import static com.ldtteam.structurize.api.constants.Constants.UPDATE_FLAG;
 
 /**
  * Handler for non-waxed copper blocks.
@@ -93,7 +93,6 @@ public class WeatheredCopperPlacementHandler implements IPlacementHandler
       @NotNull final IPlacementContext placementContext)
     {
         final BlockState expectedBlockState = getExpectedBlockState(world, pos, blockState, !placementContext.fancyPlacement());
-
         if (expectedBlockState == null)
         {
             return ActionProcessingResult.PASS;
@@ -108,14 +107,22 @@ public class WeatheredCopperPlacementHandler implements IPlacementHandler
     }
 
     @Override
-    public List<ItemStack> getRequiredItems(final Level world, final BlockPos pos, final BlockState blockState, @Nullable final CompoundTag tileEntityData, @NotNull final IPlacementContext placementContext)
+    public List<ItemStack> getRequiredItems(final Level world,
+        final BlockPos pos,
+        final BlockState blockState,
+        @Nullable final CompoundTag tileEntityData,
+        @NotNull final IPlacementContext placementContext)
     {
         final BlockState expectedBlockState = getExpectedBlockState(world, pos, blockState, !placementContext.fancyPlacement());
         return expectedBlockState != null ? List.of(BlockUtils.getItemStackFromBlockState(expectedBlockState)) : List.of();
     }
 
     @Override
-    public boolean doesWorldStateMatchBlueprintState(final BlockState worldState, final BlockState blueprintState, @Nullable final Tuple<BlockEntity, CompoundTag> blockEntityData, @NotNull final IPlacementContext placementContext)
+    public boolean doesWorldStateMatchBlueprintState(
+        final BlockState worldState,
+        final BlockState blueprintState,
+        final Tuple<BlockEntity, CompoundTag> blockEntityData,
+        @NotNull final IPlacementContext placementContext)
     {
         return worldState.equals(blueprintState);
     }

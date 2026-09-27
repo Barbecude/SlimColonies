@@ -1,0 +1,1224 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SlimColonies 1.21 — Indonesian Story, Name & Mod Raid Studio</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --panel: #1e293b;
+      --panel-alt: #263449;
+      --border: #334155;
+      --text: #f1f5f9;
+      --muted: #94a3b8;
+      --accent: #38bdf8;
+      --accent-hover: #0284c7;
+      --success: #22c55e;
+      --warn: #f59e0b;
+      --danger: #ef4444;
+      --purple: #a855f7;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+    }
+    header {
+      background: linear-gradient(90deg, #0f172a 0%, #1e293b 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 14px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .brand h1 {
+      margin: 0;
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: var(--accent);
+    }
+    .brand span {
+      font-size: 0.85rem;
+      color: var(--muted);
+    }
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(34, 197, 94, 0.15);
+      border: 1px solid var(--success);
+      color: #86efac;
+      padding: 6px 14px;
+      border-radius: 999px;
+      font-size: 0.85rem;
+      font-weight: 600;
+    }
+    .status-pill.saving {
+      background: rgba(245, 158, 11, 0.15);
+      border-color: var(--warn);
+      color: #fcd34d;
+    }
+    .tabs {
+      display: flex;
+      gap: 8px;
+      padding: 12px 24px 0;
+      background: #131c31;
+      border-bottom: 1px solid var(--border);
+    }
+    .tab-btn {
+      background: transparent;
+      border: 1px solid transparent;
+      border-bottom: none;
+      color: var(--muted);
+      padding: 10px 18px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      border-radius: 8px 8px 0 0;
+      transition: all 0.15s;
+    }
+    .tab-btn:hover { color: var(--text); background: rgba(255,255,255,0.04); }
+    .tab-btn.active {
+      background: var(--bg);
+      color: var(--accent);
+      border-color: var(--border);
+    }
+    main { padding: 20px 24px; max-width: 1600px; margin: 0 auto; }
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 420px 1fr;
+      gap: 20px;
+      align-items: start;
+    }
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 18px;
+      margin-bottom: 16px;
+    }
+    .card h2, .card h3 {
+      margin-top: 0;
+      margin-bottom: 10px;
+    }
+    .btn {
+      background: var(--accent);
+      color: #0f172a;
+      border: none;
+      padding: 8px 14px;
+      border-radius: 6px;
+      font-weight: 600;
+      cursor: pointer;
+      font-size: 0.88rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .btn:hover { background: var(--accent-hover); color: #fff; }
+    .btn.secondary { background: var(--panel-alt); color: var(--text); border: 1px solid var(--border); }
+    .btn.secondary:hover { background: #334155; }
+    .btn.success { background: var(--success); color: #052e16; }
+    .btn.danger { background: rgba(239,68,68,0.2); color: #fca5a5; border: 1px solid var(--danger); }
+    .btn.purple { background: var(--purple); color: #fff; }
+
+    input[type="text"], input[type="number"], select, textarea {
+      width: 100%;
+      background: #0f172a;
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 8px 10px;
+      border-radius: 6px;
+      font-family: inherit;
+      font-size: 0.9rem;
+    }
+    textarea { resize: vertical; min-height: 68px; }
+    label {
+      display: block;
+      font-size: 0.82rem;
+      color: var(--muted);
+      margin-bottom: 4px;
+      font-weight: 600;
+    }
+    .field-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    /* Chronological Quest List */
+    .chrono-group {
+      margin-bottom: 16px;
+    }
+    .chrono-group-title {
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--accent);
+      margin-bottom: 8px;
+      font-weight: 700;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 4px;
+    }
+    .quest-item {
+      background: var(--panel-alt);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 12px;
+      margin-bottom: 8px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .quest-item:hover { border-color: var(--accent); }
+    .quest-item.selected {
+      border-color: var(--accent);
+      background: rgba(56, 189, 248, 0.12);
+      box-shadow: 0 0 0 1px var(--accent);
+    }
+    .quest-item .q-step {
+      font-size: 0.75rem;
+      background: #0f172a;
+      color: var(--accent);
+      padding: 2px 7px;
+      border-radius: 4px;
+      font-weight: 700;
+      margin-right: 6px;
+    }
+    .quest-item .q-title { font-weight: 600; font-size: 0.92rem; }
+    .quest-item .q-desc { font-size: 0.8rem; color: var(--muted); margin-top: 4px; }
+    .quest-item .q-parents { font-size: 0.75rem; color: #cbd5e1; margin-top: 4px; }
+
+    /* Dialogue Node Tree */
+    .dialogue-node {
+      border-left: 3px solid var(--accent);
+      background: rgba(15, 23, 42, 0.55);
+      padding: 12px;
+      border-radius: 0 8px 8px 0;
+      margin-top: 10px;
+    }
+    .option-card {
+      border: 1px solid var(--border);
+      background: var(--panel-alt);
+      border-radius: 8px;
+      padding: 10px;
+      margin-top: 8px;
+    }
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      background: #0f172a;
+      color: var(--accent);
+    }
+    .raid-card {
+      background: var(--panel-alt);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 16px;
+      margin-bottom: 14px;
+    }
+    .lang-row {
+      display: grid;
+      grid-template-columns: 340px 1fr;
+      gap: 12px;
+      padding: 8px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      align-items: center;
+    }
+    .lang-key {
+      font-family: Consolas, monospace;
+      font-size: 0.8rem;
+      color: var(--accent);
+      word-break: break-all;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand">
+      <div>
+        <h1>🏰 SlimColonies NeoForge 1.21 — Story, Name & Custom Raid Studio</h1>
+        <span>Auto-Update langsung ke folder <code>src/main/resources</code> • Bahasa Indonesia & Custom Entity Raid</span>
+      </div>
+    </div>
+    <div id="saveStatus" class="status-pill">● Auto-Save Aktif</div>
+  </header>
+
+  <nav class="tabs">
+    <button class="tab-btn active" onclick="switchTab('quests')">📖 1. Kronologi Cerita & Dialog Quest</button>
+    <button class="tab-btn" onclick="switchTab('raids')">⚔️ 2. Raid Entity Mod Lain (custom_raids.json)</button>
+    <button class="tab-btn" onclick="switchTab('names')">🧑‍🌾 3. Nama NPC Indonesia (citizennames)</button>
+    <button class="tab-btn" onclick="switchTab('lang')">💬 4. Dialog Harian NPC (en_us & id_id)</button>
+  </nav>
+
+  <main>
+    <!-- TAB 1: QUESTS & CHRONOLOGICAL STORY -->
+    <section id="tab-quests" class="tab-panel active">
+      <div class="grid-2">
+        <!-- Left: Chronological Quest Tree -->
+        <div class="card" style="max-height: 84vh; overflow-y: auto;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+            <h3 style="margin:0;">🗺️ Urutan Kronologis Cerita</h3>
+            <button class="btn" onclick="createNewQuest()">+ Quest Baru</button>
+          </div>
+          <p style="font-size:0.82rem; color:var(--muted); margin-top:0;">
+            Berikut urutan kronologis asli MineColonies dari awal membangun koloni hingga akhir. Klik salah satu untuk melihat atau mengubah jalan ceritanya ke versi Anda!
+          </p>
+          <div id="questChronoList">Memuat daftar quest...</div>
+        </div>
+
+        <!-- Right: Visual Quest & Dialogue Editor -->
+        <div id="questEditorContainer" class="card">
+          <h3>Pilih Quest di sebelah kiri untuk mengedit cerita & dialog</h3>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 2: CUSTOM MOD ENTITY RAIDS -->
+    <section id="tab-raids" class="tab-panel">
+      <div class="card">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <div>
+            <h2>⚔️ Konfigurasi Raid Entity Mod Lain (Berkala Malam Hari)</h2>
+            <p style="color:var(--muted); font-size:0.9rem; margin:0;">
+              Sistem Raid SlimColonies 1.21 ini telah dimodifikasi agar <strong>tidak memakai mob Barbarian/Pirate bawaan</strong>, melainkan mem-spawn entity dari mod lain (atau vanilla) secara berkala saat malam tiba, mengarahkan AI mereka menyerbu ke gedung desa, dan dilawan oleh Guard desa!
+            </p>
+          </div>
+          <div style="display:flex; gap:10px;">
+            <button class="btn secondary" onclick="addRaidPreset()">+ Tambah Grup Raid Baru</button>
+            <button class="btn success" onclick="saveRaids()">💾 Simpan custom_raids.json</button>
+          </div>
+        </div>
+
+        <hr style="border:none; border-top:1px solid var(--border); margin:16px 0;" />
+
+        <div class="field-row">
+          <div>
+            <label>Aktifkan Raid Malam Berkala?</label>
+            <select id="raidEnabled" onchange="saveRaids()">
+              <option value="true">Ya (Otomatis seperti MineColonies)</option>
+              <option value="false">Tidak (Hanya lewat Quest / Command)</option>
+            </select>
+          </div>
+          <div>
+            <label>Rata-rata Jeda Hari Antar Raid</label>
+            <input type="number" id="raidNightsInterval" value="3" min="1" onchange="saveRaids()" />
+          </div>
+          <div>
+            <label>Pesan Peringatan Raid (Bahasa Indonesia)</label>
+            <input type="text" id="raidAlertMessage" value="⚠️ Peringatan! Pasukan %s terlihat mendekati desa dari arah %s!" onchange="saveRaids()" />
+          </div>
+          <div>
+            <label>Pesan Kemenangan Raid (Bahasa Indonesia)</label>
+            <input type="text" id="raidVictoryMessage" value="🎉 Para penyerbu berhasil dikalahkan! Desa kembali aman." onchange="saveRaids()" />
+          </div>
+        </div>
+
+        <div id="raidsListContainer"></div>
+      </div>
+    </section>
+
+    <!-- TAB 3: INDONESIAN CITIZEN NAMES -->
+    <section id="tab-names" class="tab-panel">
+      <div class="card">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <div>
+            <h2>🧑‍🌾 Generator & Editor Nama NPC Indonesia</h2>
+            <p style="color:var(--muted); font-size:0.9rem; margin:0;">
+              Atur daftar nama depan pria, nama depan wanita, dan nama belakang/marga warga koloni Anda. Otomatis tersimpan ke <code>citizennames/default.json</code> & <code>indonesian.json</code>.
+            </p>
+          </div>
+          <div style="display:flex; gap:10px;">
+            <button class="btn purple" onclick="applyIndonesianNamesPreset()">🇮🇩 Isi Preset Nama Nusantara</button>
+            <button class="btn secondary" onclick="previewRandomNames()">🎲 Tes Acak Nama</button>
+            <button class="btn success" onclick="saveNames()">💾 Simpan Nama NPC</button>
+          </div>
+        </div>
+
+        <div id="randomNamePreview" style="margin: 14px 0; padding: 12px; background: #0f172a; border-radius: 8px; border: 1px solid var(--border); display:none;"></div>
+
+        <div class="field-row" style="margin-top:14px;">
+          <div>
+            <label>Jumlah Bagian Nama (Parts)</label>
+            <select id="nameParts" onchange="saveNames()">
+              <option value="2">2 Bagian (Nama Depan + Nama Belakang)</option>
+              <option value="3">3 Bagian (Nama Depan + Inisial Tengah + Belakang)</option>
+              <option value="1">1 Bagian (Nama Tunggal)</option>
+            </select>
+          </div>
+          <div>
+            <label>Urutan Nama (Order)</label>
+            <select id="nameOrder" onchange="saveNames()">
+              <option value="WESTERN">WESTERN (Nama Depan Dulu)</option>
+              <option value="EASTERN">EASTERN (Marga Dulu)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="field-row">
+          <div>
+            <label>Nama Depan Laki-Laki (1 nama per baris)</label>
+            <textarea id="maleFirstNames" rows="16" oninput="debouncedSaveNames()"></textarea>
+          </div>
+          <div>
+            <label>Nama Depan Perempuan (1 nama per baris)</label>
+            <textarea id="femaleFirstNames" rows="16" oninput="debouncedSaveNames()"></textarea>
+          </div>
+          <div>
+            <label>Nama Belakang / Marga (1 nama per baris)</label>
+            <textarea id="surnamesList" rows="16" oninput="debouncedSaveNames()"></textarea>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 4: NPC DIALOGUE & TRANSLATIONS -->
+    <section id="tab-lang" class="tab-panel">
+      <div class="card">
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
+          <div>
+            <h2>💬 Editor Dialog Harian NPC & Bahasa Indonesia (<code>en_us.json</code> & <code>id_id.json</code>)</h2>
+            <p style="color:var(--muted); font-size:0.9rem; margin:0;">
+              Setiap perubahan di sini otomatis memperbarui <code>en_us.json</code> dan <code>id_id.json</code> sekaligus, sehingga meskipun bahasa Minecraft Anda disetel ke <em>English (US)</em>, warga tetap berbicara Bahasa Indonesia!
+            </p>
+          </div>
+          <div style="display:flex; gap:10px;">
+            <button class="btn purple" onclick="applyIndonesianDialoguePack()">🇮🇩 Terapkan Paket Dialog Warga Bahasa Indonesia</button>
+            <button class="btn success" onclick="saveDirtyLang()">💾 Simpan Semua Perubahan</button>
+          </div>
+        </div>
+
+        <div class="field-row" style="margin-top:16px;">
+          <div>
+            <label>Cari Teks / Kunci Dialog</label>
+            <input type="text" id="langSearch" placeholder="Ketik kata kunci (mis: hungry, guard, raid, builder, chat)..." oninput="renderLangList()" />
+          </div>
+          <div>
+            <label>Filter Kategori</label>
+            <select id="langCategory" onchange="renderLangList()">
+              <option value="dialogue">💬 Dialog, Keluhan & Interaksi Warga</option>
+              <option value="raid">⚔️ Peringatan & Status Raid</option>
+              <option value="quest">📖 Teks & Objektif Quest</option>
+              <option value="gui">🏛️ GUI & Nama Bangunan</option>
+              <option value="all">🌐 Semua Entri Bahasa</option>
+            </select>
+          </div>
+        </div>
+
+        <div id="langListContainer" style="max-height: 65vh; overflow-y: auto; margin-top: 12px;"></div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    // Panduan Kronologis Asli MineColonies
+    const CHRONO_GUIDE = [
+      {
+        group: "Bab 1: Awal Kedatangan & Fondasi Desa (Urutan 1 - 4)",
+        items: [
+          { relPath: "tutorial/welcome.json", step: "1", desc: "Awal kedatangan warga pertama. Memilih gaya bangunan di Town Hall & mengenal Build Tool." },
+          { relPath: "tutorial/builder.json", step: "2", desc: "Membuat dan membangun Builder's Hut Lv 1 agar Builder bisa mulai membangun desa." },
+          { relPath: "tutorial/tavern.json", step: "3", desc: "Membangun Tavern sebagai tempat tinggal awal 4 warga & tempat merekrut pengunjung." },
+          { relPath: "tutorial/forester.json", step: "4", desc: "Membangun Forester's Hut agar kebutuhan kayu desa terpenuhi otomatis." }
+        ]
+      },
+      {
+        group: "Bab 2A: Jalur Pertahanan & Militer (Cabang setelah Forester)",
+        items: [
+          { relPath: "tutorial/military/torches.json", step: "5A", desc: "Memasang obor di sekitar desa agar monster malam tidak muncul di tengah desa." },
+          { relPath: "tutorial/military/zombies.json", step: "6A", desc: "Ancaman serangan malam pertama dan persiapan pertahanan warga." },
+          { relPath: "tutorial/military/guards.json", step: "7A", desc: "Membangun Guard Tower pertama dan melatih penjaga desa." },
+          { relPath: "tutorial/military/guards2.json", step: "9A", desc: "Memperluas wilayah klaim desa dengan membangun Guard Tower tambahan." },
+          { relPath: "tutorial/military/barracks.json", step: "13A", desc: "Membangun Benteng Pertahanan (Barracks) untuk menampung pasukan besar." }
+        ]
+      },
+      {
+        group: "Bab 2B: Jalur Ekonomi, Pangan & Riset (Cabang setelah Forester)",
+        items: [
+          { relPath: "tutorial/farm.json", step: "5B", desc: "Membangun Farm dan ladang pertanian untuk memproduksi bahan makanan." },
+          { relPath: "tutorial/mine.json", step: "6B", desc: "Membangun Mine agar penambang mengumpulkan batu, batu bara, dan bijih besi." },
+          { relPath: "tutorial/housing.json", step: "7B", desc: "Membangun House/Residence agar populasi desa bisa bertambah dan warga punya anak." },
+          { relPath: "tutorial/restaurant.json", step: "8B", desc: "Membangun Restaurant agar koki memasak dan membagikan makanan ke warga." },
+          { relPath: "tutorial/builder2.json", step: "9B", desc: "Meng-upgrade Builder's Hut ke Level 2 agar bisa meng-upgrade bangunan lain." },
+          { relPath: "tutorial/housing2.json", step: "10B", desc: "Meng-upgrade Residence warga ke level lebih tinggi." },
+          { relPath: "tutorial/tieredfood.json", step: "11A", desc: "Pengenalan variasi makanan untuk warga." },
+          { relPath: "tutorial/warehouse.json", step: "11B", desc: "Membangun Warehouse & Courier's Hut untuk mengotomatisasi pengiriman barang." },
+          { relPath: "tutorial/university.json", step: "12B", desc: "Membangun University untuk membuka pohon riset teknologi koloni." },
+          { relPath: "tutorial/hospital.json", step: "13B", desc: "Membangun Hospital untuk pengobatan warga." },
+          { relPath: "tutorial/sawmill.json", step: "14B", desc: "Membangun Sawmill untuk kerajinan kayu otomatis." }
+        ]
+      },
+      {
+        group: "Bab 3: Panduan Alat (Terbuka setelah Builder Lv 1)",
+        items: [
+          { relPath: "guides/assistantaxe.json", step: "Alat 1", desc: "Panduan kapak/palu asisten untuk membantu Builder membangun instan." },
+          { relPath: "guides/buildergoggles.json", step: "Alat 2", desc: "Panduan Builder's Goggles untuk melihat blueprint bangunan." },
+          { relPath: "guides/clipboard.json", step: "Alat 3", desc: "Panduan Clipboard untuk memantau semua permintaan barang warga." },
+          { relPath: "guides/resourcescroll.json", step: "Alat 4", desc: "Panduan Resource Scroll untuk mengecek daftar material Builder." },
+          { relPath: "guides/rallybanner.json", step: "Alat 5", desc: "Panduan Rallying Banner untuk mengumpulkan pasukan Guard." }
+        ]
+      },
+      {
+        group: "Bab 4: Cerita Sampingan / Side Quests & Romansa",
+        items: [
+          { relPath: "general/thezombiemenace1.json", step: "Side 1", desc: "Ancaman Zombie Bagian I — Membasmi zombie yang mengganggu warga." },
+          { relPath: "general/thezombiemenace2.json", step: "Side 2", desc: "Ancaman Zombie Bagian II — Kelanjutan serangan zombie." },
+          { relPath: "general/wheresthebuilder.json", step: "Side 3", desc: "Mencari Builder dan membantu pekerjaannya." },
+          { relPath: "general/hungrycourier.json", step: "Side 4", desc: "Kurir yang kelaparan meminta bantuan makanan." },
+          { relPath: "general/adayinthefield.json", step: "Side 5", desc: "Cerita keseharian petani di ladang." },
+          { relPath: "general/cookies.json", step: "Side 6", desc: "Membuat kue kering untuk anak-anak di desa." },
+          { relPath: "general/alchemy.json", step: "Side 7", desc: "Eksperimen ramuan di desa." },
+          { relPath: "general/ancientmagic.json", step: "Side 8", desc: "Misteri sihir kuno di sekitar koloni." },
+          { relPath: "general/apromisetokeep.json", step: "Side 9", desc: "Janji seorang warga yang harus ditepati." },
+          { relPath: "general/bumpinthenight.json", step: "Side 10", desc: "Suara misterius di malam hari." },
+          { relPath: "romance/aromanticgesture.json", step: "Romansa 1", desc: "Warga yang ingin menyatakan perasaan kepada pujaan hatinya." },
+          { relPath: "romance/atokenofapp.json", step: "Romansa 2", desc: "Hadiah tanda kasih sayang antar warga." }
+        ]
+      }
+    ];
+
+    let allQuests = [];
+    let selectedQuest = null;
+    let raidsData = { enabled: true, nights_between_raids: 3, alert_message: "", victory_message: "", raids: [] };
+    let namesData = {};
+    let langEntries = {};
+    let dirtyLang = {};
+    let saveTimer = null;
+
+    function setStatus(text, saving = false) {
+      const el = document.getElementById('saveStatus');
+      el.textContent = text;
+      el.className = 'status-pill' + (saving ? ' saving' : '');
+    }
+
+    function switchTab(tab) {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+      event.currentTarget.classList.add('active');
+      document.getElementById('tab-' + tab).classList.add('active');
+    }
+
+    async function initStudio() {
+      await Promise.all([loadQuests(), loadRaids(), loadNames(), loadLang()]);
+    }
+
+    // ==================== 1. QUESTS ====================
+    async function loadQuests() {
+      const res = await fetch('/api/quests');
+      const json = await res.json();
+      if (json.ok) {
+        allQuests = json.quests;
+        renderQuestChronoList();
+        if (!selectedQuest && allQuests.length > 0) {
+          const welcome = allQuests.find(q => q.relPath === 'tutorial/welcome.json') || allQuests[0];
+          selectQuest(welcome.relPath);
+        }
+      }
+    }
+
+    function renderQuestChronoList() {
+      const container = document.getElementById('questChronoList');
+      const knownPaths = new Set();
+      let html = '';
+
+      for (const grp of CHRONO_GUIDE) {
+        html += `<div class="chrono-group"><div class="chrono-group-title">${grp.group}</div>`;
+        for (const item of grp.items) {
+          knownPaths.add(item.relPath);
+          const found = allQuests.find(q => q.relPath === item.relPath);
+          if (!found) continue;
+          const isSel = selectedQuest && selectedQuest.relPath === item.relPath;
+          const parents = (found.data.parents && found.data.parents.length)
+            ? '🔗 Syarat: ' + found.data.parents.map(p => p.replace(/^(slimcolonies|minecolonies):/, '')).join(', ')
+            : '🟢 Awal Cerita (Tanpa Syarat)';
+          html += `
+            <div class="quest-item ${isSel ? 'selected' : ''}" onclick="selectQuest('${item.relPath}')">
+              <div><span class="q-step">${item.step}</span><span class="q-title">${escapeHtml(found.data.name || item.relPath)}</span></div>
+              <div class="q-desc">${escapeHtml(item.desc)}</div>
+              <div class="q-parents">${escapeHtml(parents)}</div>
+            </div>`;
+        }
+        html += `</div>`;
+      }
+
+      const customQuests = allQuests.filter(q => !knownPaths.has(q.relPath) && !q.relPath.includes('template'));
+      if (customQuests.length > 0) {
+        html += `<div class="chrono-group"><div class="chrono-group-title">✨ Cerita Kustom Anda</div>`;
+        for (const q of customQuests) {
+          const isSel = selectedQuest && selectedQuest.relPath === q.relPath;
+          html += `
+            <div class="quest-item ${isSel ? 'selected' : ''}" onclick="selectQuest('${q.relPath}')">
+              <div><span class="q-step">Custom</span><span class="q-title">${escapeHtml(q.data.name || q.relPath)}</span></div>
+              <div class="q-parents">File: ${escapeHtml(q.relPath)}</div>
+            </div>`;
+        }
+        html += `</div>`;
+      }
+
+      container.innerHTML = html;
+    }
+
+    function selectQuest(relPath) {
+      selectedQuest = allQuests.find(q => q.relPath === relPath);
+      renderQuestChronoList();
+      renderQuestEditor();
+    }
+
+    function renderQuestEditor() {
+      const container = document.getElementById('questEditorContainer');
+      if (!selectedQuest) {
+        container.innerHTML = '<h3>Pilih quest di sebelah kiri</h3>';
+        return;
+      }
+      const q = selectedQuest.data;
+      const guideInfo = CHRONO_GUIDE.flatMap(g => g.items).find(i => i.relPath === selectedQuest.relPath);
+
+      let html = `
+        <div style="display:flex; justify-content:space-between; align-items:start; flex-wrap:wrap; gap:10px;">
+          <div>
+            <span class="badge">${escapeHtml(selectedQuest.id)}</span>
+            <h2 style="margin:6px 0 4px;">${escapeHtml(q.name || 'Quest Tanpa Judul')}</h2>
+            <p style="margin:0; font-size:0.85rem; color:var(--muted);">
+              ${guideInfo ? '📌 <strong>Alur Asli MineColonies:</strong> ' + escapeHtml(guideInfo.desc) : '✨ Quest Kustom'}
+            </p>
+          </div>
+          <div style="display:flex; gap:8px;">
+            <button class="btn purple" onclick="autoTranslateQuestToIndonesian()">🇮🇩 Buat Versi Bahasa Indonesia</button>
+            <button class="btn success" onclick="saveCurrentQuest()">💾 Simpan Quest</button>
+          </div>
+        </div>
+        <hr style="border:none; border-top:1px solid var(--border); margin:14px 0;" />
+
+        <div class="field-row">
+          <div>
+            <label>Judul Quest / Bab Cerita</label>
+            <input type="text" value="${escapeAttr(q.name || '')}" oninput="selectedQuest.data.name = this.value; debouncedSaveQuest();" />
+          </div>
+          <div>
+            <label>Maksimal Muncul (max-occurrences)</label>
+            <input type="number" value="${q['max-occurrences'] ?? 1}" oninput="selectedQuest.data['max-occurrences'] = parseInt(this.value || 1); debouncedSaveQuest();" />
+          </div>
+          <div>
+            <label>Quest Pendahulu (Parents, pisahkan koma)</label>
+            <input type="text" value="${escapeAttr((q.parents || []).join(', '))}"
+              placeholder="Contoh: slimcolonies:tutorial/welcome"
+              oninput="selectedQuest.data.parents = this.value.split(',').map(s=>s.trim()).filter(Boolean); debouncedSaveQuest();" />
+          </div>
+        </div>
+
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-top:18px; margin-bottom:8px;">
+          <h3 style="margin:0;">🎭 Daftar Adegan / Objektif (${(q.objectives || []).length})</h3>
+          <div style="display:flex; gap:8px;">
+            <button class="btn secondary" onclick="addDialogueObjective()">+ Tambah Objektif Dialog</button>
+            <button class="btn secondary" onclick="addRaidRewardToQuest()">⚔️ + Tambahkan Trigger Raid di Akhir Quest</button>
+          </div>
+        </div>
+      `;
+
+      (q.objectives || []).forEach((obj, idx) => {
+        html += `<div class="card" style="background:#152033; margin-bottom:12px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+            <strong>Objektif #${idx} — Tipe: <code>${escapeHtml(obj.type)}</code></strong>
+            <button class="btn danger" style="padding:4px 10px; font-size:0.78rem;" onclick="removeObjective(${idx})">Hapus Objektif</button>
+          </div>`;
+
+        if (obj.type && obj.type.endsWith(':dialogue')) {
+          html += renderDialogueNode(obj, `selectedQuest.data.objectives[${idx}]`);
+        } else {
+          html += `<label>Konfigurasi Objektif JSON (Build / Delivery / Kill / PlaceBlock)</label>
+            <textarea rows="5" onchange="updateRawObjective(${idx}, this.value)">${escapeHtml(JSON.stringify(obj, null, 2))}</textarea>`;
+        }
+        html += `</div>`;
+      });
+
+      if (q.rewards && q.rewards.length > 0) {
+        html += `<h3>🎁 Rewards / Efek Selesai Quest</h3>
+          <textarea rows="5" onchange="updateRawRewards(this.value)">${escapeHtml(JSON.stringify(q.rewards, null, 2))}</textarea>`;
+      }
+
+      container.innerHTML = html;
+    }
+
+    function renderDialogueNode(node, pathExpr) {
+      if (!node) return '';
+      const options = node.options || [];
+      let html = `
+        <div class="dialogue-node">
+          <label>🗣️ Kalimat NPC:</label>
+          <textarea rows="2" oninput="${pathExpr}.text = this.value; debouncedSaveQuest();">${escapeHtml(node.text || '')}</textarea>
+          <div style="margin-top:8px;">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <label style="margin:0;">Pilihan Jawaban Pemain (${options.length}):</label>
+              <button class="btn secondary" style="padding:3px 8px; font-size:0.76rem;" onclick="addAnswerOption(${pathExpr})">+ Opsi Jawaban</button>
+            </div>
+      `;
+
+      options.forEach((opt, optIdx) => {
+        const optPath = `${pathExpr}.options[${optIdx}]`;
+        const resType = opt.result ? opt.result.type : 'slimcolonies:return';
+        html += `
+          <div class="option-card">
+            <div style="display:flex; gap:8px; align-items:center; margin-bottom:6px;">
+              <span class="badge">Pilihan ${optIdx + 1}</span>
+              <input type="text" value="${escapeAttr(opt.answer || '')}" placeholder="Jawaban pemain..."
+                oninput="${optPath}.answer = this.value; debouncedSaveQuest();" />
+              <select style="width:220px;" onchange="changeOptionResultType(${optPath}, this.value)">
+                <option value="slimcolonies:dialogue" ${resType.endsWith(':dialogue') ? 'selected' : ''}>💬 Lanjut Balas Dialog</option>
+                <option value="slimcolonies:advanceobjective" ${resType.endsWith(':advanceobjective') ? 'selected' : ''}>➡️ Lanjut ke Objektif #</option>
+                <option value="slimcolonies:return" ${resType.endsWith(':return') ? 'selected' : ''}>⏸️ Tutup Sementara (Return)</option>
+                <option value="slimcolonies:cancel" ${resType.endsWith(':cancel') ? 'selected' : ''}>❌ Batalkan Quest</option>
+              </select>
+              <button class="btn danger" style="padding:4px 8px;" onclick="removeAnswerOption(${pathExpr}, ${optIdx})">✕</button>
+            </div>
+        `;
+        if (opt.result && opt.result.type && opt.result.type.endsWith(':dialogue')) {
+          html += renderDialogueNode(opt.result, `${optPath}.result`);
+        } else if (opt.result && opt.result.type && opt.result.type.endsWith(':advanceobjective')) {
+          html += `
+            <div style="display:flex; align-items:center; gap:8px; margin-top:4px;">
+              <label style="margin:0;">Target Objektif (go-to, isi -1 untuk selesai quest):</label>
+              <input type="number" style="width:100px;" value="${opt.result['go-to'] ?? -1}"
+                oninput="${optPath}.result['go-to'] = parseInt(this.value || 0); debouncedSaveQuest();" />
+            </div>`;
+        }
+        html += `</div>`;
+      });
+
+      html += `</div></div>`;
+      return html;
+    }
+
+    function addAnswerOption(nodeObj) {
+      if (!nodeObj.options) nodeObj.options = [];
+      nodeObj.options.push({
+        answer: "Baik, saya mengerti!",
+        result: { type: "slimcolonies:advanceobjective", "go-to": 1 }
+      });
+      renderQuestEditor();
+      debouncedSaveQuest();
+    }
+
+    function removeAnswerOption(nodeObj, idx) {
+      nodeObj.options.splice(idx, 1);
+      renderQuestEditor();
+      debouncedSaveQuest();
+    }
+
+    function changeOptionResultType(optObj, newType) {
+      if (newType === 'slimcolonies:dialogue') {
+        optObj.result = {
+          type: 'slimcolonies:dialogue',
+          text: 'Terima kasih! Berikut langkah selanjutnya...',
+          options: [{ answer: 'Siap laksanakan!', result: { type: 'slimcolonies:advanceobjective', 'go-to': 1 } }]
+        };
+      } else if (newType === 'slimcolonies:advanceobjective') {
+        optObj.result = { type: 'slimcolonies:advanceobjective', 'go-to': 1 };
+      } else {
+        optObj.result = { type: newType };
+      }
+      renderQuestEditor();
+      debouncedSaveQuest();
+    }
+
+    function addDialogueObjective() {
+      if (!selectedQuest.data.objectives) selectedQuest.data.objectives = [];
+      selectedQuest.data.objectives.push({
+        type: "slimcolonies:dialogue",
+        target: 0,
+        text: "Halo Pemimpin Desa! Ada hal penting yang ingin saya sampaikan.",
+        options: [
+          {
+            answer: "Ada kabar apa? Ceritakan padaku.",
+            result: { type: "slimcolonies:advanceobjective", "go-to": -1 }
+          }
+        ]
+      });
+      renderQuestEditor();
+      debouncedSaveQuest();
+    }
+
+    function removeObjective(idx) {
+      selectedQuest.data.objectives.splice(idx, 1);
+      renderQuestEditor();
+      debouncedSaveQuest();
+    }
+
+    function updateRawObjective(idx, val) {
+      try {
+        selectedQuest.data.objectives[idx] = JSON.parse(val);
+        debouncedSaveQuest();
+      } catch (e) {
+        alert('Format JSON Objektif tidak valid: ' + e.message);
+      }
+    }
+
+    function updateRawRewards(val) {
+      try {
+        selectedQuest.data.rewards = JSON.parse(val);
+        debouncedSaveQuest();
+      } catch (e) {
+        alert('Format JSON Rewards tidak valid: ' + e.message);
+      }
+    }
+
+    function addRaidRewardToQuest() {
+      if (!selectedQuest.data.rewards) selectedQuest.data.rewards = [];
+      const firstRaidId = (raidsData.raids && raidsData.raids[0]) ? raidsData.raids[0].id : 'pillager_outpost_raid';
+      selectedQuest.data.rewards.push({
+        type: "slimcolonies:trigger_raid",
+        raid_id: firstRaidId
+      });
+      // Pastikan objektif terakhir meng-unlock reward ini
+      const objs = selectedQuest.data.objectives || [];
+      if (objs.length > 0) {
+        const lastObj = objs[objs.length - 1];
+        if (!lastObj['unlocks-rewards']) lastObj['unlocks-rewards'] = [];
+        lastObj['unlocks-rewards'].push(selectedQuest.data.rewards.length - 1);
+      }
+      renderQuestEditor();
+      debouncedSaveQuest();
+    }
+
+    function createNewQuest() {
+      const fileName = prompt("Masukkan nama file quest baru (contoh: cerita/bab1_serangan_pertama):", "tutorial/cerita_baru");
+      if (!fileName) return;
+      const cleanRel = fileName.endsWith('.json') ? fileName : fileName + '.json';
+      const newQ = {
+        id: 'slimcolonies:' + cleanRel.replace(/\.json$/, ''),
+        relPath: cleanRel,
+        data: {
+          name: "Bab Baru: Awal Kisah Nusantara",
+          "max-occurrences": 1,
+          parents: [],
+          triggers: [{ type: "slimcolonies:citizen", state: {} }],
+          objectives: [
+            {
+              type: "slimcolonies:dialogue",
+              target: 0,
+              text: "Salam, Pemimpin! Desa kita baru saja berdiri, namun kabarnya ada makhluk asing dari negeri seberang yang mengincar wilayah kita.",
+              options: [
+                {
+                  answer: "Kita harus memperkuat desa ini sekarang juga!",
+                  result: { type: "slimcolonies:advanceobjective", "go-to": -1 }
+                }
+              ]
+            }
+          ],
+          rewards: []
+        }
+      };
+      allQuests.push(newQ);
+      selectQuest(cleanRel);
+      saveCurrentQuest();
+    }
+
+    function autoTranslateQuestToIndonesian() {
+      if (!selectedQuest) return;
+      const dict = [
+        [/^Welcome$/i, "Selamat Datang di Desa Baru"],
+        [/^Your first Building$/i, "Bangunan Pertamamu"],
+        [/^A roof over the head$/i, "Atap Tempat Berteduh"],
+        [/^Gathering Wood$/i, "Mengumpulkan Kayu Hutan"],
+        [/^Mouths to feed$/i, "Lumbung Pangan Desa"],
+        [/^Diggy Diggy Hole$/i, "Menggali Tambang Desa"],
+        [/^Attract a Stork$/i, "Rumah Warga Baru"],
+        [/^Feed the masses$/i, "Dapur Umum & Restoran"],
+        [/^Bring Light into the Darkness$/i, "Terangi Kegelapan Malam"],
+        [/^Dawn of the Undead$/i, "Ancaman Malam Pertama"],
+        [/^Building Defences$/i, "Membangun Menara Penjaga"],
+        [/^Expanding your Territory$/i, "Memperluas Perbatasan Desa"],
+        [/^Assemble an Army$/i, "Membentuk Pasukan Desa"],
+        [/Hello there! I just arrived here and wondered if you wish any guidance setting up the colony\?/gi, "Halo Pemimpin! Aku baru saja tiba di tanah ini. Apakah kamu butuh panduan untuk mulai membangun desa kita?"],
+        [/Yes please!/gi, "Ya, tolong pandu aku!"],
+        [/Yes, but not now\. I will come back to you later!/gi, "Nanti saja ya, aku akan kembali lagi."],
+        [/I'm a Colony Master! You underestimate my power!/gi, "Aku sudah ahli memimpin koloni! Tidak perlu tutorial."],
+        [/Alright! Let me get to it!/gi, "Siap! Aku kerjakan sekarang!"],
+        [/I already picked a style!/gi, "Aku sudah memilih gaya arsitektur desa!"],
+        [/Okay, let me do that!/gi, "Oke, biar kulakukan dulu!"],
+        [/Okay, I'll do that again!/gi, "Baiklah, akan kuperiksa lagi!"],
+        [/Hi! Did you choose a colony style already\?/gi, "Hai! Apakah kamu sudah memilih gaya bangunan untuk desa kita di Town Hall?"],
+        [/Yes, all done, what is next\?/gi, "Sudah beres! Apa langkah selanjutnya?"],
+        [/Not yet, I will get to it later!/gi, "Belum sempat, nanti kukerjakan!"],
+        [/Welcome back! Were you able to navigate the Build Tool\?/gi, "Selamat datang kembali! Apakah kamu sudah mencoba menggunakan Build Tool?"],
+        [/Yes; mission accomplished!/gi, "Sudah! Misi selesai!"]
+      ];
+
+      function translateText(str) {
+        if (!str) return str;
+        let out = str;
+        for (const [re, rep] of dict) {
+          out = out.replace(re, rep);
+        }
+        return out;
+      }
+
+      function walkDialogue(node) {
+        if (!node) return;
+        if (node.text) node.text = translateText(node.text);
+        if (node.options) {
+          for (const opt of node.options) {
+            if (opt.answer) opt.answer = translateText(opt.answer);
+            if (opt.result && opt.result.type && opt.result.type.endsWith(':dialogue')) {
+              walkDialogue(opt.result);
+            }
+          }
+        }
+      }
+
+      selectedQuest.data.name = translateText(selectedQuest.data.name);
+      (selectedQuest.data.objectives || []).forEach(obj => walkDialogue(obj));
+      renderQuestChronoList();
+      renderQuestEditor();
+      saveCurrentQuest();
+    }
+
+    function debouncedSaveQuest() {
+      setStatus("⏳ Menyimpan perubahan quest...", true);
+      clearTimeout(saveTimer);
+      saveTimer = setTimeout(saveCurrentQuest, 500);
+    }
+
+    async function saveCurrentQuest() {
+      if (!selectedQuest) return;
+      setStatus("⏳ Menyimpan quest...", true);
+      const res = await fetch('/api/quests/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ relPath: selectedQuest.relPath, data: selectedQuest.data })
+      });
+      const json = await res.json();
+      if (json.ok) {
+        setStatus("✅ Tersimpan Otomatis (" + selectedQuest.relPath + ")");
+        renderQuestChronoList();
+      } else {
+        setStatus("❌ Gagal menyimpan: " + json.error, true);
+      }
+    }
+
+    // ==================== 2. CUSTOM MOD ENTITY RAIDS ====================
+    async function loadRaids() {
+      const res = await fetch('/api/raids');
+      const json = await res.json();
+      if (json.ok && json.data) {
+        raidsData = json.data;
+        if (!raidsData.raids) raidsData.raids = [];
+        document.getElementById('raidEnabled').value = String(raidsData.enabled !== false);
+        document.getElementById('raidNightsInterval').value = raidsData.nights_between_raids ?? 3;
+        document.getElementById('raidAlertMessage').value = raidsData.alert_message || "⚠️ Peringatan! Pasukan %s terlihat mendekati desa dari arah %s!";
+        document.getElementById('raidVictoryMessage').value = raidsData.victory_message || "🎉 Para penyerbu berhasil dikalahkan! Desa kembali aman.";
+        renderRaidsList();
+      }
+    }
+
+    function renderRaidsList() {
+      const container = document.getElementById('raidsListContainer');
+      let html = '';
+      (raidsData.raids || []).forEach((raid, idx) => {
+        html += `
+          <div class="raid-card">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+              <h3 style="margin:0;">🔥 Grup Raid #${idx + 1}: ${escapeHtml(raid.display_name || raid.id)}</h3>
+              <button class="btn danger" onclick="removeRaid(${idx})">Hapus Grup Raid</button>
+            </div>
+            <div class="field-row">
+              <div>
+                <label>ID Raid Unik</label>
+                <input type="text" value="${escapeAttr(raid.id || '')}" oninput="raidsData.raids[${idx}].id = this.value; debouncedSaveRaids();" />
+              </div>
+              <div>
+                <label>Nama Tampilan (BossBar & Pengumuman Chat)</label>
+                <input type="text" value="${escapeAttr(raid.display_name || '')}" oninput="raidsData.raids[${idx}].display_name = this.value; debouncedSaveRaids();" />
+              </div>
+              <div>
+                <label>Warna BossBar</label>
+                <select onchange="raidsData.raids[${idx}].boss_bar_color = this.value; debouncedSaveRaids();">
+                  ${['RED','PURPLE','YELLOW','GREEN','BLUE','PINK','WHITE'].map(c => `<option value="${c}" ${raid.boss_bar_color === c ? 'selected' : ''}>${c}</option>`).join('')}
+                </select>
+              </div>
+              <div>
+                <label>Min Raid Level Koloni & Peluang (Weight)</label>
+                <div style="display:flex; gap:6px;">
+                  <input type="number" title="Min Raid Level" value="${raid.min_raid_level ?? 0}" oninput="raidsData.raids[${idx}].min_raid_level = parseInt(this.value||0); debouncedSaveRaids();" />
+                  <input type="number" title="Weight" value="${raid.weight ?? 10}" oninput="raidsData.raids[${idx}].weight = parseInt(this.value||1); debouncedSaveRaids();" />
+                </div>
+              </div>
+            </div>
+
+            <div class="field-row">
+              <div>
+                <label>🗡️ Entity Penyerbu Biasa / Melee (ID Mod, pisahkan koma)</label>
+                <input type="text" value="${escapeAttr((raid.normal_entities || []).join(', '))}"
+                  placeholder="Contoh: minecraft:vindicator, alexsmobs:dropbear"
+                  oninput="raidsData.raids[${idx}].normal_entities = this.value.split(',').map(s=>s.trim()).filter(Boolean); debouncedSaveRaids();" />
+              </div>
+              <div>
+                <label>🏹 Entity Penyerbu Jarak Jauh / Ranged (ID Mod, pisahkan koma)</label>
+                <input type="text" value="${escapeAttr((raid.archer_entities || []).join(', '))}"
+                  placeholder="Contoh: minecraft:pillager, minecraft:stray"
+                  oninput="raidsData.raids[${idx}].archer_entities = this.value.split(',').map(s=>s.trim()).filter(Boolean); debouncedSaveRaids();" />
+              </div>
+              <div>
+                <label>👑 Entity Boss / Pemimpin Serbuan (ID Mod, pisahkan koma)</label>
+                <input type="text" value="${escapeAttr((raid.boss_entities || []).join(', '))}"
+                  placeholder="Contoh: minecraft:evoker, minecraft:ravager"
+                  oninput="raidsData.raids[${idx}].boss_entities = this.value.split(',').map(s=>s.trim()).filter(Boolean); debouncedSaveRaids();" />
+              </div>
+            </div>
+
+            <div class="field-row">
+              <div>
+                <label>Pengali HP (Health Multiplier)</label>
+                <input type="number" step="0.1" value="${raid.health_multiplier ?? 1.0}" oninput="raidsData.raids[${idx}].health_multiplier = parseFloat(this.value||1.0); debouncedSaveRaids();" />
+              </div>
+              <div>
+                <label>Pengali Damage (Damage Multiplier)</label>
+                <input type="number" step="0.1" value="${raid.damage_multiplier ?? 1.0}" oninput="raidsData.raids[${idx}].damage_multiplier = parseFloat(this.value||1.0); debouncedSaveRaids();" />
+              </div>
+              <div>
+                <label>Pengali Jumlah Pasukan (Count Multiplier)</label>
+                <input type="number" step="0.1" value="${raid.count_multiplier ?? 1.0}" oninput="raidsData.raids[${idx}].count_multiplier = parseFloat(this.value||1.0); debouncedSaveRaids();" />
+              </div>
+            </div>
+          </div>
+        `;
+      });
+      container.innerHTML = html;
+    }
+
+    function addRaidPreset() {
+      raidsData.raids.push({
+        id: "modded_raid_" + (raidsData.raids.length + 1),
+        display_name: "Serbuan Monster Mod",
+        boss_bar_color: "PURPLE",
+        min_raid_level: 0,
+        weight: 10,
+        normal_entities: ["minecraft:vindicator", "minecraft:husk"],
+        archer_entities: ["minecraft:pillager", "minecraft:skeleton"],
+        boss_entities: ["minecraft:ravager", "minecraft:evoker"],
+        health_multiplier: 1.0,
+        damage_multiplier: 1.0,
+        count_multiplier: 1.0
+      });
+      renderRaidsList();
+      saveRaids();
+    }
+
+    function removeRaid(idx) {
+      raidsData.raids.splice(idx, 1);
+      renderRaidsList();
+      saveRaids();
+    }
+
+    function debouncedSaveRaids() {
+      setStatus("⏳ Menyimpan konfigurasi raid...", true);
+      clearTimeout(saveTimer);
+      saveTimer = setTimeout(saveRaids, 500);
+    }
+
+    async function saveRaids() {
+      raidsData.enabled = document.getElementById('raidEnabled').value === 'true';
+      raidsData.nights_between_raids = parseInt(document.getElementById('raidNightsInterval').value || 3);
+      raidsData.alert_message = document.getElementById('raidAlertMessage').value;
+      raidsData.victory_message = document.getElementById('raidVictoryMessage').value;
+
+      setStatus("⏳ Menyimpan custom_raids.json...", true);
+      const res = await fetch('/api/raids/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ data: raidsData })
+      });
+      const json = await res.json();
+      if (json.ok) {
+        setStatus("✅ custom_raids.json Tersimpan Otomatis");
+      }
+    }
+
+    // ==================== 3. INDONESIAN CITIZEN NAMES ====================
+    async function loadNames() {
+      const res = await fetch('/api/names');
+      const json = await res.json();
+      if (json.ok && json.packs) {
+        const pack = json.packs['indonesian'] || json.packs['default'] || {
+          parts: 2, order: 'WESTERN', male_firstname: [], female_firstname: [], surnames: []
+        };
+        document.getElementById('nameParts').value = String(pack.parts || 2);
+        document.getElementById('nameOrder').value = pack.order || 'WESTERN';
+        document.getElementById('maleFirstNames').value = (pack.male_firstname || []).join('\n');
+        document.getElementById('femaleFirstNames').value = (pack.female_firstname || []).join('\n');
+        document.getElementById('surnamesList').value = (pack.surnames || []).join('\n');
+      }
+    }
+
+    function applyIndonesianNamesPreset() {
+      const male = [
+        "Budi","Raka","Bayu","Dimas","Arjuna","Galih","Bagas","Fajar","Rizky","Adi",
+        "Surya","Gilang","Satria","Pratama","Wahyu","Damar","Panji","Bima","Rangga","Arya",
+        "Joko","Agus","Hendra","Taufik","Ilham","Reza","Nanda","Danu","Wira","Seno",
+        "Guntur","Cakra","Wisnu","rama","Tirta","Lintang","Raditya","Mahesa","Dewa","bara"
+      ];
+      const female = [
+        "Siti","Ayu","Lestari","Kirana","Nadia","Dewi","Putri","Citra","Ratna","Melati",
+        "Kartika","Intan","Sekar","Nabila","Anisa","Wulan","Indah","Laras","Tari","Maya",
+        "Rani","Dinda","Sari","Nirmala","Puspita","Gayatri","Arini","Widya","Shinta","Mentari",
+        "Bunga","Cahaya","Kemala","Senja","Tiara","Ambar","jelita","Maharani","Kinanti","nayla"
+      ];
+      const surnames = [
+        "Pratama","Saputra","Wijaya","Santoso","Nugroho","Kusuma","Hidayat","Setiawan","Permana","Utama",
+        "Gunawan","Susanto","Wibowo","Pradana","Mahendra","Pamungkas","Lesmana","Sanjaya","Wardhana","Adiputra",
+        "Subagyo","Hartono","Suryadi","Ramadhan","Putranto","Kurniawan","Budiman","Sinaga","Siregar","Nasution",
+        "Mangunkusumo","Prawira","Dirgantara","Rajasa","Danurdara","Syailendra","Mandala","Baskara","Chandra","buana"
+      ];
+      document.getElementById('maleFirstNames').value = male.join('\n');
+      document.getElementById('femaleFirstNames').value = female.join('\n');
+      document.getElementById('surnamesList').value = surnames.join('\n');
+      previewRandomNames();
+      saveNames();
+    }
+
+    function previewRandomNames() {
+      const males = document.getElementById('maleFirstNames').value.split('\n').map(s=>s.trim()).filter(Boolean);
+      const females = document.getElementById('femaleFirstNames').value.split('\n').map(s=>s.trim()).filter(Boolean);
+      const surs = document.getElementById('surnamesList').value.split('\n').map(s=>s.trim()).filter(Boolean);
+      const samples = [];
+      for (let i = 0; i < 5; i++) {
+        const m = males[Math.floor(Math.random() * males.length)] || 'Budi';
+        const f = females[Math.floor(Math.random() * females.length)] || 'Siti';
+        const s1 = surs[Math.floor(Math.random() * surs.length)] || 'Pratama';
+        const s2 = surs[Math.floor(Math.random() * surs.length)] || 'Wijaya';
+        samples.push(`👨 ${m} ${s1}`, `👩 ${f} ${s2}`);
+      }
+      const box = document.getElementById('randomNamePreview');
+      box.style.display = 'block';
+      box.innerHTML = `<strong>Contoh Kombinasi Nama Warga:</strong><br/>` + samples.join(' &nbsp;•&nbsp; ');
+    }
+
+    function debouncedSaveNames() {
+      setStatus("⏳ Menyimpan daftar nama NPC...", true);
+      clearTimeout(saveTimer);
+      saveTimer = setTimeout(saveNames, 500);
+    }
+
+    async function saveNames() {
+      const payload = {
+        parts: parseInt(document.getElementById('nameParts').value || 2),
+        order: document.getElementById('nameOrder').value || 'WESTERN',
+        male_firstname: document.getElementById('maleFirstNames').value.split('\n').map(s=>s.trim()).filter(Boolean),
+        female_firstname: document.getElementById('femaleFirstNames').value.split('\n').map(s=>s.trim()).filter(Boolean),
+        surnames: document.getElementById('surnamesList').value.split('\n').map(s=>s.trim()).filter(Boolean)
+      };
+      await fetch('/api/names/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ packName: 'indonesian', setAsDefault: true, data: payload })
+      });
+      setStatus("✅ Nama NPC Indonesia Tersimpan ke default.json & indonesian.json");
+    }
+
+    // ==================== 4. NPC DIALOGUE & LANG ====================
+    async function loadLang() {
+      const res = await fetch('/api/lang');
+      const json = await res.json();
+      if (json.ok && json.entries) {
+        langEntries = json.entries;
+        renderLangList();
+      }
+    }
+
+    function renderLangList() {
+      const q = (document.getElementById('langSearch').value || '').toLowerCase();
+      const cat = document.getElementById('langCategory').value;
+      const container = document.getElementById('langListContainer');
+
+      const keys = Object.keys(langEntries).filter(k => {
+        const val = String(langEntries[k] || '');
+        if (q && !k.toLowerCase().includes(q) && !val.toLowerCase().includes(q)) return false;
+        if (cat === 'dialogue') return k.includes('interactions') || k.includes('chat') || k.includes('message') || k.includes('worker');
+        if (cat === 'raid') return k.includes('raid') || k.includes('event');
+        if (cat === 'quest') return k.includes('quest');
+        if (cat === 'gui') return k.includes('gui');
+        return true;
+      }).slice(0, 150);
+
+      let html = '';
+      for (const k of keys) {
+        const val = dirtyLang[k] !== undefined ? dirtyLang[k] : langEntries[k];
+        html += `
+          <div class="lang-row">
+            <div class="lang-key">${escapeHtml(k)}</div>
+            <input type="text" value="${escapeAttr(val)}" oninput="onLangEdit('${escapeAttr(k)}', this.value)" />
+          </div>
+        `;
+      }
+      container.innerHTML = html || '<p style="color:var(--muted);">Tidak ada entri yang cocok.</p>';
+    }
+
+    function onLangEdit(key, val) {
+      dirtyLang[key] = val;
+      langEntries[key] = val;
+      setStatus("⏳ Menyimpan terjemahan...", true);
+      clearTimeout(saveTimer);
+      saveTimer = setTimeout(saveDirtyLang, 600);
+    }
+
+    async function saveDirtyLang() {
+      if (Object.keys(dirtyLang).length === 0) return;
+      const toSave = { ...dirtyLang };
+      dirtyLang = {};
+      const res = await fetch('/api/lang/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ updates: toSave })
+      });
+      const json = await res.json();
+      if (json.ok) {
+        setStatus(`✅ ${json.updatedCount} Dialog Bahasa Indonesia Tersimpan ke en_us.json & id_id.json`);
+      }
+    }
+
+    async function applyIndonesianDialoguePack() {
+      const indoPack = {
+        "no.monopixel.slimcolonies.coremod.gui.chat.hungry": "Perutku lapar sekali! Apakah ada makanan di Restoran desa?",
+        "no.monopixel.slimcolonies.coremod.gui.chat.nohoused": "Aku belum punya rumah untuk tidur malam ini. Bisakah kamu membangun Residence?",
+        "no.monopixel.slimcolonies.coremod.gui.chat.nojob": "Aku sedang menganggur. Berikan aku pekerjaan di salah satu pondok kerja desa!",
+        "no.monopixel.slimcolonies.coremod.gui.chat.notool": "Aku membutuhkan peralatan kerja (%s) untuk melanjutkan tugasku!",
+        "no.monopixel.slimcolonies.coremod.entity.worker.inventoryfullchest": "Peti penyimpanan di pondok kerjaku sudah penuh! Aku tidak bisa menyimpan barang lagi.",
+        "no.monopixel.slimcolonies.coremod.job.deliveryman.nowarehouse": "Aku belum terhubung ke Gudang (Warehouse)! Tolong tugaskan aku di Warehouse.",
+        "no.monopixel.slimcolonies.coremod.job.deliveryman.chestfull": "Peti di salah satu gedung tujuan sudah penuh!",
+        "no.monopixel.slimcolonies.coremod.raid.end": "🎉 Para penyerbu telah mundur! Desa kita berhasil bertahan.",
+        "no.monopixel.slimcolonies.coremod.raid.end.mercy": "Para penyerbu memutuskan mundur karena melihat desa kita sedang kewalahan.",
+        "no.monopixel.slimcolonies.coremod.questobjectives.answer.progress": "Berbicaralah dengan %s"
+      };
+      Object.assign(dirtyLang, indoPack);
+      Object.assign(langEntries, indoPack);
+      renderLangList();
+      await saveDirtyLang();
+    }
+
+    function escapeHtml(str) {
+      return String(str ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
+    function escapeAttr(str) {
+      return String(str ?? '').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
+
+    initStudio();
+  </script>
+</body>
+</html>

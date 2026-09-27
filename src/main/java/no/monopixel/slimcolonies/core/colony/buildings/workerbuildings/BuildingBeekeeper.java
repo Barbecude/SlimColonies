@@ -10,7 +10,6 @@ import no.monopixel.slimcolonies.api.crafting.IGenericRecipe;
 import no.monopixel.slimcolonies.api.crafting.ItemStorage;
 import no.monopixel.slimcolonies.api.equipment.ModEquipmentTypes;
 import no.monopixel.slimcolonies.api.util.NBTUtils;
-import no.monopixel.slimcolonies.api.util.constant.Constants;
 import no.monopixel.slimcolonies.api.util.constant.NbtTagConstants;
 import no.monopixel.slimcolonies.core.colony.buildings.AbstractBuilding;
 import no.monopixel.slimcolonies.core.colony.buildings.modules.AnimalHerdingModule;
@@ -18,10 +17,12 @@ import no.monopixel.slimcolonies.core.colony.buildings.modules.settings.Beekeepe
 import no.monopixel.slimcolonies.core.colony.buildings.modules.settings.SettingKey;
 import no.monopixel.slimcolonies.core.colony.buildings.views.AbstractBuildingView;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.NbtUtils;
 import net.minecraft.nbt.Tag;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.ItemTags;
 import net.minecraft.util.Tuple;
@@ -46,7 +47,7 @@ public class BuildingBeekeeper extends AbstractBuilding
      * The beekeeper mode.
      */
     public static final ISettingKey<BeekeeperCollectionSetting> MODE =
-        new SettingKey<>(BeekeeperCollectionSetting.class, ResourceLocation.fromNamespaceAndPath(Constants.MOD_ID, "beekeeper"));
+      new SettingKey<>(BeekeeperCollectionSetting.class, new ResourceLocation(no.monopixel.slimcolonies.api.util.constant.Constants.MOD_ID, "beekeeper"));
 
     /**
      * Both setting options.
@@ -76,7 +77,7 @@ public class BuildingBeekeeper extends AbstractBuilding
         super(c, l);
         keepX.put(stack -> Items.SHEARS == stack.getItem(), new Tuple<>(1, true));
         keepX.put(stack -> Items.GLASS_BOTTLE == stack.getItem(), new Tuple<>(4, true));
-        keepX.put(stack -> stack.is(ItemTags.FLOWERS), new Tuple<>(STACKSIZE, true));
+        keepX.put(stack -> stack.is(ItemTags.FLOWERS), new Tuple<>(STACKSIZE,true));
     }
 
     /**
@@ -103,24 +104,31 @@ public class BuildingBeekeeper extends AbstractBuilding
     }
 
     @Override
-    public void deserializeNBT(final CompoundTag compound)
+    public void deserializeNBT(@NotNull final HolderLookup.Provider provider, final CompoundTag compound)
     {
-        super.deserializeNBT(compound);
-        NBTUtils.streamCompound(compound.getList(NbtTagConstants.TAG_HIVES, Tag.TAG_COMPOUND))
-            .map(NbtUtils::readBlockPos)
-            .forEach(this.hives::add);
+        super.deserializeNBT(provider, compound);
+        final ListTag hiveTag = compound.getList(NbtTagConstants.TAG_HIVES, Tag.TAG_INT_ARRAY);
+        for (Tag tag : hiveTag)
+        {
+            hives.add(NBTUtils.readBlockPos(tag));
+        }
     }
 
     @Override
-    public CompoundTag serializeNBT()
+    public CompoundTag serializeNBT(@NotNull final HolderLookup.Provider provider)
     {
-        final CompoundTag nbt = super.serializeNBT();
-        nbt.put(NbtTagConstants.TAG_HIVES, this.hives.stream().map(NbtUtils::writeBlockPos).collect(NBTUtils.toListNBT()));
+        final CompoundTag nbt = super.serializeNBT(provider);
+        @NotNull final ListTag hivesTag = new ListTag();
+        for (@NotNull final BlockPos entry : hives)
+        {
+            hivesTag.add(NBTUtils.writeBlockPos(entry));
+        }
+        nbt.put(NbtTagConstants.TAG_HIVES, hivesTag);
         return nbt;
     }
 
     @Override
-    public void serializeToView(@NotNull final FriendlyByteBuf buf, final boolean fullSync)
+    public void serializeToView(@NotNull final RegistryFriendlyByteBuf buf, final boolean fullSync)
     {
         super.serializeToView(buf, fullSync);
 
@@ -140,6 +148,7 @@ public class BuildingBeekeeper extends AbstractBuilding
         }
         return super.canEat(stack);
     }
+
 
     /**
      * Get the hives/nests positions that belong to this beekeper
@@ -210,7 +219,7 @@ public class BuildingBeekeeper extends AbstractBuilding
         }
 
         @Override
-        public void deserialize(@NotNull FriendlyByteBuf buf)
+        public void deserialize(@NotNull RegistryFriendlyByteBuf buf)
         {
             super.deserialize(buf);
 
@@ -253,8 +262,8 @@ public class BuildingBeekeeper extends AbstractBuilding
             }
 
             return IColonyManager.getInstance().getCompatibilityManager().getImmutableFlowers().stream()
-                .map(flower -> new ItemStorage(flower.getItem(), 2))
-                .collect(Collectors.toList());
+              .map(flower -> new ItemStorage(flower.getItem(), 2))
+              .collect(Collectors.toList());
         }
 
         @NotNull
@@ -264,16 +273,16 @@ public class BuildingBeekeeper extends AbstractBuilding
             final List<IGenericRecipe> recipes = new ArrayList<>(); // we don't kill the bees so don't use the default
 
             recipes.add(GenericRecipe.builder()
-                .withOutput(Items.HONEYCOMB)
-                .withRequiredTool(ModEquipmentTypes.shears.get())
-                .withRequiredEntity(animal.getType())
-                .build());
+                    .withOutput(Items.HONEYCOMB)
+                    .withRequiredTool(ModEquipmentTypes.shears.get())
+                    .withRequiredEntity(animal.getType())
+                    .build());
 
             recipes.add(GenericRecipe.builder()
-                .withOutput(Items.HONEY_BOTTLE)
-                .withInputs(List.of(List.of(Items.GLASS_BOTTLE.getDefaultInstance())))
-                .withRequiredEntity(animal.getType())
-                .build());
+                    .withOutput(Items.HONEY_BOTTLE)
+                    .withInputs(List.of(List.of(Items.GLASS_BOTTLE.getDefaultInstance())))
+                    .withRequiredEntity(animal.getType())
+                    .build());
 
             return recipes;
         }

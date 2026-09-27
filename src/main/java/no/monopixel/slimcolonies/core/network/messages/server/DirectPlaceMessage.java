@@ -1,5 +1,7 @@
 package no.monopixel.slimcolonies.core.network.messages.server;
 
+import com.ldtteam.common.network.AbstractServerPlayMessage;
+import com.ldtteam.common.network.PlayMessageType;
 import com.ldtteam.structurize.storage.ServerFutureProcessor;
 import com.ldtteam.structurize.storage.StructurePacks;
 import no.monopixel.slimcolonies.api.blocks.ModBlocks;
@@ -7,56 +9,47 @@ import no.monopixel.slimcolonies.api.colony.IColony;
 import no.monopixel.slimcolonies.api.colony.IColonyManager;
 import no.monopixel.slimcolonies.api.colony.buildings.IBuilding;
 import no.monopixel.slimcolonies.api.colony.permissions.Action;
-import no.monopixel.slimcolonies.api.network.IMessage;
-import no.monopixel.slimcolonies.core.tileentities.TileEntityColonyBuilding;
+import no.monopixel.slimcolonies.api.items.component.ColonyId;
+import no.monopixel.slimcolonies.api.items.component.HutBlockData;
 import no.monopixel.slimcolonies.api.util.InventoryUtils;
 import no.monopixel.slimcolonies.api.util.MessageUtils;
+import no.monopixel.slimcolonies.api.util.Utils;
+import no.monopixel.slimcolonies.api.util.constant.Constants;
+import no.monopixel.slimcolonies.core.tileentities.TileEntityColonyBuilding;
 import net.minecraft.core.BlockPos;
-import net.minecraft.nbt.CompoundTag;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
-import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraftforge.fml.LogicalSide;
-import net.minecraftforge.network.NetworkEvent;
-import net.minecraftforge.items.wrapper.InvWrapper;
+import net.neoforged.neoforge.items.wrapper.InvWrapper;
+import net.neoforged.neoforge.network.handling.IPayloadContext;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
-import static no.monopixel.slimcolonies.api.util.constant.NbtTagConstants.TAG_COLONY_ID;
-import static no.monopixel.slimcolonies.api.util.constant.NbtTagConstants.TAG_OTHER_LEVEL;
 import static no.monopixel.slimcolonies.api.util.constant.TranslationConstants.WRONG_COLONY;
 
 /**
  * Place a building directly without buildtool.
  */
-public class DirectPlaceMessage implements IMessage
+public class DirectPlaceMessage extends AbstractServerPlayMessage
 {
+    public static final PlayMessageType<?> TYPE = PlayMessageType.forServer(Constants.MOD_ID, "direct_place", DirectPlaceMessage::new);
+
     /**
      * The state to be placed..
      */
-    private BlockState state;
+    private final BlockState state;
 
     /**
      * The position to place it at.
      */
-    private BlockPos pos;
+    private final BlockPos pos;
 
     /**
      * The stack which is going to be placed.
      */
-    private ItemStack stack;
-
-    /**
-     * Empty constructor used when registering the
-     */
-    public DirectPlaceMessage()
-    {
-        super();
-    }
+    private final ItemStack stack;
 
     /**
      * Place the building.
@@ -67,84 +60,76 @@ public class DirectPlaceMessage implements IMessage
      */
     public DirectPlaceMessage(final BlockState state, final BlockPos pos, final ItemStack stack)
     {
-        super();
+        super(TYPE);
         this.state = state;
         this.pos = pos;
         this.stack = stack;
     }
 
     /**
-     * Reads this packet from a {@link FriendlyByteBuf}.
+     * Reads this packet from a {@link RegistryFriendlyByteBuf}.
      *
      * @param buf The buffer begin read from.
      */
-    @Override
-    public void fromBytes(@NotNull final FriendlyByteBuf buf)
+    protected DirectPlaceMessage(final RegistryFriendlyByteBuf buf, final PlayMessageType<?> type)
     {
+        super(buf, type);
         state = Block.stateById(buf.readInt());
         pos = buf.readBlockPos();
-        stack = buf.readItem();
+        stack = Utils.deserializeCodecMess(buf);
     }
 
     /**
-     * Writes this packet to a {@link FriendlyByteBuf}.
+     * Writes this packet to a {@link RegistryFriendlyByteBuf}.
      *
      * @param buf The buffer being written to.
      */
     @Override
-    public void toBytes(@NotNull final FriendlyByteBuf buf)
+    protected void toBytes(@NotNull final RegistryFriendlyByteBuf buf)
     {
         buf.writeInt(Block.getId(state));
         buf.writeBlockPos(pos);
-        buf.writeItem(stack);
-    }
-
-    @Nullable
-    @Override
-    public LogicalSide getExecutionSide()
-    {
-        return LogicalSide.SERVER;
+        Utils.serializeCodecMess(buf, stack);
     }
 
     @Override
-    public void onExecute(final NetworkEvent.Context ctxIn, final boolean isLogicalServer)
+    protected void onExecute(final IPayloadContext ctxIn, final ServerPlayer player)
     {
-        final ServerPlayer player = ctxIn.getSender();
         final Level world = player.getCommandSenderWorld();
         final IColony colony = IColonyManager.getInstance().getColonyByPosFromWorld(world, pos);
         InventoryUtils.reduceStackInItemHandler(new InvWrapper(player.getInventory()), stack);
 
         if ((colony == null && state.getBlock() == ModBlocks.blockHutTownHall) || (colony != null && colony.getPermissions().hasPermission(player, Action.MANAGE_HUTS)))
         {
-            final CompoundTag compound = stack.getTag();
-            if (colony != null && compound != null && compound.contains(TAG_COLONY_ID) && colony.getID() != compound.getInt(TAG_COLONY_ID))
+            final ColonyId colonyId = ColonyId.readFromItemStack(stack);
+            if (colony != null && colonyId.hasColonyId() && colony.getID() != colonyId.id())
             {
-                MessageUtils.format(WRONG_COLONY, compound.getInt(TAG_COLONY_ID)).sendTo(player);
+                MessageUtils.format(WRONG_COLONY, colonyId.id()).sendTo(player);
                 return;
             }
 
             player.getCommandSenderWorld().setBlockAndUpdate(pos, state);
-            final BlockEntity tileEntity = world.getBlockEntity(pos);
-            if (tileEntity instanceof TileEntityColonyBuilding)
+            if (world.getBlockEntity(pos) instanceof final TileEntityColonyBuilding hut)
             {
-                ((TileEntityColonyBuilding) tileEntity).setStructurePack(StructurePacks.selectedPack);
+                hut.setStructurePack(StructurePacks.selectedPack);
 
-                ServerFutureProcessor.queueBlueprint(new ServerFutureProcessor.BlueprintProcessingData(StructurePacks.findBlueprintFuture(StructurePacks.selectedPack.getName(), blueprint -> blueprint.getBlockState(blueprint.getPrimaryBlockOffset()).getBlock() == state.getBlock()), world, (blueprint -> {
+                ServerFutureProcessor.queueBlueprint(new ServerFutureProcessor.BlueprintProcessingData(StructurePacks.findBlueprintFuture(StructurePacks.selectedPack.getName(), blueprint -> blueprint.getBlockState(blueprint.getPrimaryBlockOffset()).getBlock() == state.getBlock(), player.level().registryAccess()), world, (blueprint -> {
                     if (blueprint == null)
                     {
                         return;
                     }
                     String fullPath = blueprint.getFilePath().toString();
                     fullPath = fullPath.replace(StructurePacks.selectedPack.getPath().toString() + "/", "");
-                    ((TileEntityColonyBuilding) tileEntity).setBlueprintPath(fullPath + "/" + blueprint.getFileName().substring(0, blueprint.getFileName().length() - 1) + "1.blueprint");
+                    hut.setBlueprintPath(fullPath + "/" + blueprint.getFileName().substring(0, blueprint.getFileName().length() - 1) + "1.blueprint");
                     state.getBlock().setPlacedBy(world, pos, state, player, stack);
 
-                    if (compound != null && compound.contains(TAG_OTHER_LEVEL))
+                    final HutBlockData hutComponent = HutBlockData.readFromItemStack(stack);
+                    if (hutComponent != null)
                     {
-                        final IBuilding building = colony.getBuildingManager().getBuilding(pos);
+                        final IBuilding building = colony.getServerBuildingManager().getBuilding(pos);
                         if (building != null)
                         {
-                            building.setBuildingLevel(compound.getInt(TAG_OTHER_LEVEL));
+                            building.setBuildingLevel(hutComponent.level());
                             building.setDeconstructed();
                         }
                     }

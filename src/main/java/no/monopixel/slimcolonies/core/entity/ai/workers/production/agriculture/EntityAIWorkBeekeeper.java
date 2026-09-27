@@ -3,6 +3,7 @@ package no.monopixel.slimcolonies.core.entity.ai.workers.production.agriculture;
 import com.google.common.reflect.TypeToken;
 import no.monopixel.slimcolonies.api.colony.interactionhandling.ChatPriority;
 import no.monopixel.slimcolonies.api.colony.requestsystem.requestable.StackList;
+import no.monopixel.slimcolonies.api.compatibility.Compatibility;
 import no.monopixel.slimcolonies.api.crafting.ItemStorage;
 import no.monopixel.slimcolonies.api.entity.ai.statemachine.AITarget;
 import no.monopixel.slimcolonies.api.entity.ai.statemachine.states.IAIState;
@@ -29,6 +30,7 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.BeehiveBlock;
 import net.minecraft.world.level.block.entity.BeehiveBlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
@@ -41,6 +43,7 @@ import java.util.stream.Collectors;
 import static no.monopixel.slimcolonies.api.entity.ai.statemachine.states.AIWorkerState.*;
 import static no.monopixel.slimcolonies.api.util.constant.BuildingConstants.BUILDING_FLOWER_LIST;
 import static no.monopixel.slimcolonies.api.util.constant.Constants.TICKS_SECOND;
+import static no.monopixel.slimcolonies.api.util.constant.EquipmentLevelConstants.TOOL_LEVEL_WOOD_OR_GOLD;
 import static no.monopixel.slimcolonies.api.util.constant.TranslationConstants.*;
 import static no.monopixel.slimcolonies.api.util.constant.StatisticsConstants.BREEDING_ATTEMPTS;
 import static no.monopixel.slimcolonies.api.util.constant.StatisticsConstants.ITEMS_COLLECTED;
@@ -202,7 +205,7 @@ public class EntityAIWorkBeekeeper extends AbstractEntityAIInteract<JobBeekeeper
 
         if (hives.isEmpty())
         {
-            worker.getCitizenData().triggerInteraction(new StandardInteraction(Component.translatable(NO_HIVES), ChatPriority.BLOCKING));
+            worker.getCitizenData().triggerInteraction(new StandardInteraction(Component.translatableEscape(NO_HIVES), ChatPriority.BLOCKING));
             setDelay(NO_HIVES_DELAY);
             return DECIDE;
         }
@@ -210,7 +213,7 @@ public class EntityAIWorkBeekeeper extends AbstractEntityAIInteract<JobBeekeeper
         ItemListModule flowersModule = building.getModuleMatching(ItemListModule.class, m -> m.getId().equals(BUILDING_FLOWER_LIST));
         if (flowersModule.getList().isEmpty() && building.getSetting(BuildingBeekeeper.BREEDING).getValue())
         {
-            worker.getCitizenData().triggerInteraction(new StandardInteraction(Component.translatable(COREMOD_BEEKEEPER_NOFLOWERS), ChatPriority.BLOCKING));
+            worker.getCitizenData().triggerInteraction(new StandardInteraction(Component.translatableEscape(COM_MINECOLONIES_COREMOD_BEEKEEPER_NOFLOWERS), ChatPriority.BLOCKING));
             setDelay(NO_FLOWERS_DELAY);
             return DECIDE;
         }
@@ -232,7 +235,7 @@ public class EntityAIWorkBeekeeper extends AbstractEntityAIInteract<JobBeekeeper
                 job.tickNoBees();
                 if (job.checkForBeeInteraction())
                 {
-                    worker.getCitizenData().triggerInteraction(new StandardInteraction(Component.translatable(NO_BEES), ChatPriority.BLOCKING));
+                    worker.getCitizenData().triggerInteraction(new StandardInteraction(Component.translatableEscape(NO_BEES), ChatPriority.BLOCKING));
                 }
             }
             else
@@ -369,9 +372,11 @@ public class EntityAIWorkBeekeeper extends AbstractEntityAIInteract<JobBeekeeper
         {
             CitizenItemUtils.damageItemInHand(worker, InteractionHand.MAIN_HAND, 1);
 
-            final ItemStack honeycombStack = new ItemStack(Items.HONEYCOMB, getHoneycombsPerHarvest());
-            StatsUtil.trackStatByStack(building, ITEMS_COLLECTED, honeycombStack, honeycombStack.getCount());
-            InventoryUtils.transferItemStackIntoNextBestSlotInItemHandler(honeycombStack, worker.getItemHandlerCitizen());
+            for (ItemStack stackItem : Compatibility.getCombsFromHive(hive, world, getHoneycombsPerHarvest()))
+            {
+                StatsUtil.trackStatByStack(building, ITEMS_COLLECTED, stackItem, stackItem.getCount());
+                InventoryUtils.transferItemStackIntoNextBestSlotInItemHandler(stackItem, worker.getItemHandlerCitizen());
+            }
             world.setBlockAndUpdate(hive, world.getBlockState(hive).setValue(BlockStateProperties.LEVEL_HONEY, 0));
             worker.getCitizenExperienceHandler().addExperience(EXP_PER_HARVEST);
             lastHarvestedBottle = false;
@@ -519,7 +524,7 @@ public class EntityAIWorkBeekeeper extends AbstractEntityAIInteract<JobBeekeeper
     private int getToolSlot(final EquipmentTypeEntry toolType)
     {
         final int slot = InventoryUtils.getFirstSlotOfItemHandlerContainingEquipment(getInventory(), toolType,
-          0, Integer.MAX_VALUE);
+          TOOL_LEVEL_WOOD_OR_GOLD, building.getMaxEquipmentLevel());
 
         if (slot == -1)
         {

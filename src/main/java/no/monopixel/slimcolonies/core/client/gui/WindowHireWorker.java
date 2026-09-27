@@ -8,12 +8,6 @@ import com.ldtteam.blockui.controls.Button;
 import com.ldtteam.blockui.controls.ButtonImage;
 import com.ldtteam.blockui.controls.Text;
 import com.ldtteam.blockui.views.ScrollingList;
-import net.minecraft.ChatFormatting;
-import net.minecraft.core.BlockPos;
-import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.MutableComponent;
-import net.minecraft.network.chat.Style;
-import net.minecraft.resources.ResourceLocation;
 import no.monopixel.slimcolonies.api.colony.ICitizenDataView;
 import no.monopixel.slimcolonies.api.colony.IColonyView;
 import no.monopixel.slimcolonies.api.colony.buildings.HiringMode;
@@ -22,7 +16,6 @@ import no.monopixel.slimcolonies.api.colony.buildings.views.IBuildingView;
 import no.monopixel.slimcolonies.api.colony.jobs.registry.JobEntry;
 import no.monopixel.slimcolonies.api.entity.citizen.Skill;
 import no.monopixel.slimcolonies.api.util.constant.Constants;
-import no.monopixel.slimcolonies.core.Network;
 import no.monopixel.slimcolonies.core.colony.CitizenDataView;
 import no.monopixel.slimcolonies.core.colony.buildings.moduleviews.PupilBuildingModuleView;
 import no.monopixel.slimcolonies.core.colony.buildings.moduleviews.WorkerBuildingModuleView;
@@ -31,6 +24,12 @@ import no.monopixel.slimcolonies.core.entity.citizen.citizenhandlers.CitizenSkil
 import no.monopixel.slimcolonies.core.network.messages.server.colony.citizen.PauseCitizenMessage;
 import no.monopixel.slimcolonies.core.network.messages.server.colony.citizen.RestartCitizenMessage;
 import no.monopixel.slimcolonies.core.util.BuildingUtils;
+import net.minecraft.ChatFormatting;
+import net.minecraft.core.BlockPos;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.network.chat.Style;
+import net.minecraft.resources.ResourceLocation;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
@@ -39,7 +38,7 @@ import java.util.stream.Collectors;
 
 import static no.monopixel.slimcolonies.api.util.constant.TranslationConstants.*;
 import static no.monopixel.slimcolonies.api.util.constant.WindowConstants.*;
-import static no.monopixel.slimcolonies.core.client.gui.modules.WindowBuilderResModule.BLACK;
+import static no.monopixel.slimcolonies.core.client.gui.modules.building.WindowBuilderResModule.BLACK;
 
 /**
  * BOWindow for the hiring or firing of a worker.
@@ -89,9 +88,9 @@ public class WindowHireWorker extends AbstractWindowSkeleton
      */
     public WindowHireWorker(final IColonyView c, final BlockPos buildingId)
     {
-        super(Constants.MOD_ID + HIRE_WORKER_SUFFIX);
+        super(new ResourceLocation(Constants.MOD_ID, "gui/windowhireworker.xml"));
         this.colony = c;
-        building = (AbstractBuildingView) colony.getBuilding(buildingId);
+        building = (AbstractBuildingView) colony.getClientBuildingManager().getBuilding(buildingId);
 
         citizenList = findPaneOfTypeByID(CITIZEN_LIST_UNEMP, ScrollingList.class);
 
@@ -122,17 +121,17 @@ public class WindowHireWorker extends AbstractWindowSkeleton
 
     private void setupDescription(boolean isDedicated)
     {
-        MutableComponent description = Component.translatable(building.getBuildingDisplayName());
+        MutableComponent description = Component.translatableEscape(building.getBuildingDisplayName());
 
         if (isDedicated)
         {
-            final Object[] jobList = moduleViews.stream().map(m -> Component.translatable(m.getJobEntry().getTranslationKey())).toArray();
+            final Object[] jobList = moduleViews.stream().map(m -> Component.translatableEscape(m.getJobEntry().getTranslationKey())).toArray();
             final String format = String.join("/", Collections.nCopies(jobList.length, "%s"));
-            final MutableComponent jobs = Component.translatable(format, jobList);
-            description = Component.translatable("no.monopixel.slimcolonies.coremod.gui.hiring.dedicated", jobs, description);
+            final MutableComponent jobs = Component.translatableEscape(format, jobList);
+            description = Component.translatableEscape("no.monopixel.slimcolonies.coremod.gui.hiring.dedicated", jobs, description);
         }
 
-        findPaneOfTypeByID(JOB_TITLE_LABEL, Text.class).setText(Component.translatable("no.monopixel.slimcolonies.coremod.gui.hiring.description", description));
+        findPaneOfTypeByID(JOB_TITLE_LABEL, Text.class).setText(Component.translatableEscape("no.monopixel.slimcolonies.coremod.gui.hiring.description", description));
     }
 
     /**
@@ -142,7 +141,7 @@ public class WindowHireWorker extends AbstractWindowSkeleton
      */
     private void cancelClicked(@NotNull final Button button)
     {
-        if (button.getID().equals(BUTTON_CANCEL) && colony.getTownHall() != null)
+        if (button.getID().equals(BUTTON_CANCEL) && colony.getClientBuildingManager().getTownHall() != null)
         {
             building.openGui(false);
         }
@@ -187,7 +186,7 @@ public class WindowHireWorker extends AbstractWindowSkeleton
      */
     private void setupSettings(final Button settingsButton)
     {
-        settingsButton.setText(Component.translatable(selectedModule.getHiringMode().getTranslationKey()));
+        settingsButton.setText(Component.translatableEscape(selectedModule.getHiringMode().getTranslationKey()));
     }
 
     /**
@@ -200,7 +199,7 @@ public class WindowHireWorker extends AbstractWindowSkeleton
         final int row = citizenList.getListElementIndexByPane(button);
         final int id = citizens.toArray(new CitizenDataView[0])[row].getId();
 
-        Network.getNetwork().sendToServer(new RestartCitizenMessage(this.building, id));
+        new RestartCitizenMessage(this.building, id).sendToServer();
         this.close();
     }
 
@@ -215,7 +214,7 @@ public class WindowHireWorker extends AbstractWindowSkeleton
         final int id = citizens.toArray(new CitizenDataView[0])[row].getId();
         @NotNull final ICitizenDataView citizen = citizens.get(row);
 
-        Network.getNetwork().sendToServer(new PauseCitizenMessage(this.building, id));
+        new PauseCitizenMessage(this.building, id).sendToServer();
         citizen.setPaused(!citizen.isPaused());
     }
 
@@ -246,7 +245,7 @@ public class WindowHireWorker extends AbstractWindowSkeleton
         // Fire citizen if they already have a job
         if (citizen.getWorkBuilding() != null && selectedModule instanceof WorkerBuildingModuleView)
         {
-            IBuildingView oldJob = colony.getBuilding(citizen.getWorkBuilding());
+            IBuildingView oldJob = colony.getClientBuildingManager().getBuilding(citizen.getWorkBuilding());
             oldJob.getModuleViewMatching(IAssignmentModuleView.class,
                     m -> m.getJobEntry() == citizen.getJobView().getEntry())
                 .removeCitizen(citizen);
@@ -312,7 +311,7 @@ public class WindowHireWorker extends AbstractWindowSkeleton
      */
     protected void showEmployedToggled(@NotNull final Button button)
     {
-        button.setText(Component.translatable(showEmployed ? "gui.no" : "gui.yes"));
+        button.setText(Component.translatableEscape(showEmployed ? "gui.no" : "gui.yes"));
         showEmployed = !showEmployed;
 
         onOpened();
@@ -327,8 +326,8 @@ public class WindowHireWorker extends AbstractWindowSkeleton
     {
         Button button = findPaneOfTypeByID(TOGGLE_SHOW_EMPLOYED, Button.class);
         button.setEnabled(selectedModule instanceof WorkerBuildingModuleView
-            && !(selectedModule instanceof PupilBuildingModuleView));
-        button.setText(Component.translatable("gui.no"));
+                            && !(selectedModule instanceof PupilBuildingModuleView));
+        button.setText(Component.translatableEscape("gui.no"));
         showEmployed = false;
     }
 
@@ -434,7 +433,7 @@ public class WindowHireWorker extends AbstractWindowSkeleton
                     }
 
                     isPaused.on();
-                    isPaused.setText(Component.translatable(citizen.isPaused() ? COREMOD_GUI_HIRE_UNPAUSE : COREMOD_GUI_HIRE_PAUSE));
+                    isPaused.setText(Component.translatableEscape(citizen.isPaused() ? COM_MINECOLONIES_COREMOD_GUI_HIRE_UNPAUSE : COM_MINECOLONIES_COREMOD_GUI_HIRE_PAUSE));
                 }
 
                 if (citizen.isPaused())
@@ -463,7 +462,7 @@ public class WindowHireWorker extends AbstractWindowSkeleton
                     final int skillLevel = entry.getValue().getLevel();
                     final Style skillStyle = createColor(primary, secondary, entry.getKey());
 
-                    textBuilder.append(Component.translatable("no.monopixel.slimcolonies.coremod.gui.citizen.skills." + skillName).setStyle(skillStyle));
+                    textBuilder.append(Component.translatableEscape("no.monopixel.slimcolonies.coremod.gui.citizen.skills." + skillName).setStyle(skillStyle));
                     textBuilder.append(Component.literal(": " + skillLevel).setStyle(skillStyle));
                     if (--skillCount > 0)
                     {
@@ -472,36 +471,35 @@ public class WindowHireWorker extends AbstractWindowSkeleton
                 }
                 textBuilder.newLine(); // finish the current line
 
-                Component citizenLabelComponent = Component.translatable(citizen.getJob().isEmpty() ? COREMOD_GUI_TOWNHALL_CITIZEN_UNEMPLOYED : citizen.getJob())
-                    .append(": ")
-                    .append(citizen.getName());
+                Component citizenLabelComponent = Component.translatableEscape(citizen.getJob().isEmpty() ? COM_MINECOLONIES_COREMOD_GUI_TOWNHALL_CITIZEN_UNEMPLOYED : citizen.getJob())
+                  .append(": ")
+                  .append(citizen.getName());
                 rowPane.findPaneOfTypeByID(CITIZEN_LABEL, Text.class).setText(citizenLabelComponent);
                 if (citizen.getHomeBuilding() == null)
                 {
-                    rowPane.findPaneOfTypeByID(DISTANCE_LABEL, Text.class).setText(Component.translatable("no.monopixel.slimcolonies.core.gui.hiring.homeless"));
+                    rowPane.findPaneOfTypeByID(DISTANCE_LABEL, Text.class).setText(Component.translatableEscape("no.monopixel.slimcolonies.core.gui.hiring.homeless"));
                 }
                 else if (citizen.getHomeBuilding().equals(building.getPosition()))
                 {
-                    rowPane.findPaneOfTypeByID(DISTANCE_LABEL, Text.class).setText(Component.translatable("no.monopixel.slimcolonies.core.gui.hiring.liveshere"));
+                    rowPane.findPaneOfTypeByID(DISTANCE_LABEL, Text.class).setText(Component.translatableEscape("no.monopixel.slimcolonies.core.gui.hiring.liveshere"));
                 }
                 else if (citizen.getHomeBuilding().equals(citizen.getWorkBuilding()))
                 {
-                    rowPane.findPaneOfTypeByID(DISTANCE_LABEL, Text.class).setText(Component.translatable("no.monopixel.slimcolonies.core.gui.hiring.livesatwork"));
+                    rowPane.findPaneOfTypeByID(DISTANCE_LABEL, Text.class).setText(Component.translatableEscape("no.monopixel.slimcolonies.core.gui.hiring.livesatwork"));
                 }
                 else
                 {
                     rowPane.findPaneOfTypeByID(DISTANCE_LABEL, Text.class)
-                        .setText(Component.translatable("no.monopixel.slimcolonies.core.gui.hiring.distance",
-                            (int) Math.sqrt(citizen.getHomeBuilding().distSqr(building.getPosition()))));
+                      .setText(Component.translatableEscape("no.monopixel.slimcolonies.core.gui.hiring.distance", (int) Math.sqrt(citizen.getHomeBuilding().distSqr(building.getPosition()))));
                 }
 
                 rowPane.findPaneOfTypeByID(ATTRIBUTES_LABEL, Text.class).setText(textBuilder.getText());
 
                 final JobEntry entry = selectedModule.getJobEntry();
                 PaneBuilders.tooltipBuilder()
-                    .hoverPane(rowPane.findPaneOfTypeByID(ATTRIBUTES_LABEL, Text.class))
-                    .build()
-                    .setText(Component.translatable(entry.getKey().toString() + ".skills.desc"));
+                  .hoverPane(rowPane.findPaneOfTypeByID(ATTRIBUTES_LABEL, Text.class))
+                  .build()
+                  .setText(Component.translatableEscape(entry.getKey().toString() + ".skills.desc"));
             }
         });
 
@@ -513,18 +511,22 @@ public class WindowHireWorker extends AbstractWindowSkeleton
         int xOffset = 15;
         for (final IAssignmentModuleView hireModule : moduleViews)
         {
+            if (hireModule.getResearchRequirement() != null && colony.getResearchManager().getResearchEffects().getEffectStrength(hireModule.getResearchRequirement()) <= 0)
+            {
+                continue;
+            }
             final JobEntry entry = hireModule.getJobEntry();
 
             final ButtonImage jobButton = new ButtonImage();
-            jobButton.setImage(new ResourceLocation("slimcolonies:textures/gui/builderhut/builder_button_medium.png"), false);
+            jobButton.setImage(new ResourceLocation("slimcolonies", "textures/gui/builderhut/builder_button_medium.png"));
             jobButton.setPosition(xOffset, 30);
             if (!hireModule.getAssignedCitizens().isEmpty())
             {
-                jobButton.setText(Component.translatable(entry.getTranslationKey()).append(Component.literal(" " + hireModule.getAssignedCitizens().size())));
+                jobButton.setText(Component.translatableEscape(entry.getTranslationKey()).append(Component.literal(" " + hireModule.getAssignedCitizens().size())));
             }
             else
             {
-                jobButton.setText(Component.translatable(entry.getTranslationKey()));
+                jobButton.setText(Component.translatableEscape(entry.getTranslationKey()));
             }
             jobButton.setID(hireModule.getJobEntry().getKey().toString());
             jobButton.setHandler(this::jobClicked);
@@ -532,7 +534,7 @@ public class WindowHireWorker extends AbstractWindowSkeleton
             jobButton.setTextSize(86, 17);
 
             this.addChild(jobButton);
-            PaneBuilders.tooltipBuilder().hoverPane(jobButton).build().setText(Component.translatable(entry.getKey().toString() + ".job.desc"));
+            PaneBuilders.tooltipBuilder().hoverPane(jobButton).build().setText(Component.translatableEscape(entry.getKey().toString() + ".job.desc"));
             if (entry.equals(selectedModule.getJobEntry()))
             {
                 jobButton.disable();

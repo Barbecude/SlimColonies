@@ -10,6 +10,7 @@ import no.monopixel.slimcolonies.api.colony.IColonyView;
 import no.monopixel.slimcolonies.api.util.constant.Constants;
 import no.monopixel.slimcolonies.core.client.gui.AbstractWindowSkeleton;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.HashMap;
@@ -26,11 +27,6 @@ import static no.monopixel.slimcolonies.core.client.gui.questlog.Constants.LIST_
 public class WindowQuestLog extends AbstractWindowSkeleton
 {
     /**
-     * Link to the xml file of the window.
-     */
-    private static final String WINDOW_RESOURCE = ":gui/windowquestlog.xml";
-
-    /**
      * Map of the different module classes, each dedicated to its own view.
      */
     private final Map<String, QuestModuleContainer<?>> moduleMap = new HashMap<>();
@@ -42,7 +38,7 @@ public class WindowQuestLog extends AbstractWindowSkeleton
      */
     public WindowQuestLog(final @NotNull IColonyView colonyView)
     {
-        super(Constants.MOD_ID + WINDOW_RESOURCE);
+        super(new ResourceLocation(Constants.MOD_ID, "gui/windowquestlog.xml"));
         registerButton(BUTTON_QUEST_LOCATOR, this::locateCitizenClickedInternal);
 
         this.moduleMap.put("pageInProgress", new QuestModuleContainer<>(new WindowQuestLogInProgressQuestQuestModule(), colonyView, switchView, "pageInProgress"));
@@ -138,7 +134,7 @@ public class WindowQuestLog extends AbstractWindowSkeleton
                     if (questLocator != null)
                     {
                         PaneBuilders.tooltipBuilder()
-                          .append(Component.translatable(QUEST_LOG_TRACK_CITIZEN_TEXT))
+                          .append(Component.translatableEscape(QUEST_LOG_TRACK_CITIZEN_TEXT))
                           .hoverPane(questLocator)
                           .build();
                     }

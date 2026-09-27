@@ -3,6 +3,7 @@ package no.monopixel.slimcolonies.core.generation.defaults;
 import com.google.common.collect.ImmutableList;
 import com.google.gson.JsonObject;
 import no.monopixel.slimcolonies.api.colony.jobs.ModJobs;
+import no.monopixel.slimcolonies.api.entity.mobs.RaiderType;
 import no.monopixel.slimcolonies.api.sounds.EventType;
 import no.monopixel.slimcolonies.api.util.constant.Constants;
 import net.minecraft.data.CachedOutput;
@@ -43,15 +44,16 @@ public class DefaultSoundProvider implements DataProvider
                                    .resolve("main")
                                    .resolve("resources")
                                    .resolve("assets")
-                                   .resolve(Constants.MOD_ID)
+                                   .resolve("slimcolonies")
                                    .resolve("sounds")
                                    .resolve("mob")
                                    .resolve("citizen")
                                    .toFile();
         final List<ResourceLocation> mainTypes = new ArrayList<>(ModJobs.getJobs());
         mainTypes.remove(ModJobs.placeHolder.getId());
-        mainTypes.add(ResourceLocation.fromNamespaceAndPath(Constants.MOD_ID, "unemployed"));
-        mainTypes.add(ResourceLocation.fromNamespaceAndPath(Constants.MOD_ID, "visitor"));
+        mainTypes.add(new ResourceLocation(Constants.MOD_ID, "unemployed"));
+        mainTypes.add(new ResourceLocation(Constants.MOD_ID, "visitor"));
+        mainTypes.add(new ResourceLocation(Constants.MOD_ID, "child"));
 
         if (soundFolder.isDirectory())
         {
@@ -72,7 +74,7 @@ public class DefaultSoundProvider implements DataProvider
                     for (final File soundFile : subList)
                     {
                         final String soundName = soundFile.getName();
-                        soundList.add(Constants.MOD_ID + ":mob/citizen/" + name + "/" + soundName.replace(".ogg", ""));
+                        soundList.add("slimcolonies:mob/citizen/" + name + "/" + soundName.replace(".ogg", ""));
                     }
 
                     for (final ResourceLocation job : mainTypes)
@@ -88,8 +90,8 @@ public class DefaultSoundProvider implements DataProvider
         }
 
         final List<String> childSounds = new ArrayList<>();
-        childSounds.add(Constants.MOD_ID + ":mob/citizen/child/laugh1");
-        childSounds.add(Constants.MOD_ID + ":mob/citizen/child/laugh2");
+        childSounds.add("slimcolonies:mob/citizen/child/laugh1");
+        childSounds.add("slimcolonies:mob/citizen/child/laugh2");
 
         for (final EventType soundEvents : EventType.values())
         {
@@ -97,11 +99,44 @@ public class DefaultSoundProvider implements DataProvider
             sounds.add(CITIZEN_SOUND_EVENT_PREFIX + "child.female." + soundEvents.name().toLowerCase(Locale.US), createSoundJson("neutral", getDefaultProperties(), childSounds));
         }
 
+        for (final RaiderType type : RaiderType.values())
+        {
+            sounds.add("mob." + type.name().toLowerCase(Locale.US) + ".death", createSoundJson("hostile", getDefaultProperties(), ImmutableList.of("slimcolonies:mob/barbarian/death")));
+            sounds.add("mob." + type.name().toLowerCase(Locale.US) + ".say", createSoundJson("hostile", getDefaultProperties(), ImmutableList.of("slimcolonies:mob/barbarian/say")));
+            
+            sounds.add("mob." + type.name().toLowerCase(Locale.US) + ".hurt",
+              createSoundJson("hostile",
+                getDefaultProperties(),
+                ImmutableList.of("slimcolonies:mob/barbarian/hurt1", "slimcolonies:mob/barbarian/hurt2", "slimcolonies:mob/barbarian/hurt3", "slimcolonies:mob/barbarian/hurt4")));
+        }
 
-        sounds.add("mob.citizen.snore", createSoundJson("neutral", getDefaultProperties(), ImmutableList.of(Constants.MOD_ID + ":mob/citizen/snore")));
+        sounds.add("mob.citizen.snore", createSoundJson("neutral", getDefaultProperties(), ImmutableList.of("slimcolonies:mob/citizen/snore")));
 
-        sounds.add("tile.sawmill.saw", createSoundJson("neutral", getDefaultProperties(), ImmutableList.of(Constants.MOD_ID + ":tile/sawmill/saw")));
+        JsonObject tavernProperties = getDefaultProperties();
+        tavernProperties.addProperty("attenuation_distance", 23);
+        tavernProperties.addProperty("stream", true);
+        tavernProperties.addProperty("comment", "Credits to Darren Curtis - Fireside Tales");
+        sounds.add("tile.tavern.tavern_theme", createSoundJson("music", tavernProperties, ImmutableList.of("slimcolonies:tile/tavern/tavern_theme")));
 
+        sounds.add("mob.mercenary.attack", createSoundJson("neutral", getDefaultProperties(), ImmutableList.of("slimcolonies:mob/mercenary/attack/attack1", "slimcolonies:mob/mercenary/attack/attack2", "slimcolonies:mob/mercenary/attack/attack3", "slimcolonies:mob/mercenary/attack/attack4")));
+        sounds.add("mob.mercenary.celebrate", createSoundJson("neutral", getDefaultProperties(), ImmutableList.of("slimcolonies:mob/mercenary/celebrate/celebrate1")));
+        sounds.add("mob.mercenary.die", createSoundJson("neutral", getDefaultProperties(), ImmutableList.of("slimcolonies:mob/mercenary/die/death1", "slimcolonies:mob/mercenary/die/death2")));
+        sounds.add("mob.mercenary.hurt", createSoundJson("neutral", getDefaultProperties(), ImmutableList.of("slimcolonies:mob/mercenary/hurt/hurt1", "slimcolonies:mob/mercenary/hurt/hurt2", "slimcolonies:mob/mercenary/hurt/hurt3")));
+        sounds.add("mob.mercenary.say", createSoundJson("neutral", getDefaultProperties(), ImmutableList.of("slimcolonies:mob/mercenary/say/say1", "slimcolonies:mob/mercenary/say/say2", "slimcolonies:mob/mercenary/say/say3")));
+        sounds.add("mob.mercenary.step", createSoundJson("neutral", getDefaultProperties(), ImmutableList.of("slimcolonies:mob/mercenary/step/step1", "slimcolonies:mob/mercenary/step/step2", "slimcolonies:mob/mercenary/step/step3", "slimcolonies:mob/mercenary/step/step4")));
+        sounds.add("tile.sawmill.saw", createSoundJson("neutral", getDefaultProperties(), ImmutableList.of("slimcolonies:tile/sawmill/saw")));
+
+        addMusic("record", false,
+          "raid.raid_alert",
+          "raid.raid_alert_early",
+          "raid.raid_won",
+          "raid.raid_won_early");
+
+        addMusic("music", true,
+          "raid.desert.desert_raid",
+          "raid.desert.desert_raid_warning",
+          "raid.desert.desert_raid_victory",
+          "raid.amazon.amazon_raid");
 
         return DataProvider.saveStable(cache, sounds, getPath());
     }
@@ -126,5 +161,16 @@ public class DefaultSoundProvider implements DataProvider
         JsonObject properties = new JsonObject();
         properties.addProperty("stream", false);
         return properties;
+    }
+
+    private void addMusic(String category, boolean stream, String... ids)
+    {
+        for (String id : ids)
+        {
+            JsonObject obj = new JsonObject();
+            obj.addProperty("stream", stream);
+            obj.addProperty("relative", true);
+            sounds.add(id, createSoundJson(category, obj, ImmutableList.of(Constants.MOD_ID+":"+id.replace(".", "/"))));
+        }
     }
 }

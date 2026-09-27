@@ -1,5 +1,11 @@
 {
   "branch": "slimcolonies:technology",
+  "costs": [
+    {
+      "count": 64,
+      "item": "slimcolonies:compost"
+    }
+  ],
   "effects": [
     {
       "id": "slimcolonies:effects/blockhutflorist",
@@ -8,5 +14,12 @@
   ],
   "icon": "slimcolonies:blockhutflorist",
   "parentResearch": "slimcolonies:technology/biodegradable",
+  "requirements": [
+    {
+      "type": "slimcolonies:building",
+      "building": "slimcolonies:composter",
+      "level": 3
+    }
+  ],
   "researchLevel": 2
 }

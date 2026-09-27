@@ -10,7 +10,6 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.world.level.Level;
-import no.monopixel.slimcolonies.core.colony.managers.GraveManager;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Map;
@@ -18,14 +17,14 @@ import java.util.Map;
 import static no.monopixel.slimcolonies.api.util.constant.NbtTagConstants.*;
 
 /**
- * Client-side read-only copy of the {@link GraveManager}.
+ * Client-side read-only copy of the {@link no.monopixel.slimcolonies.core.colony.managers.GraveManager}.
  */
 public class GraveManagerView implements IGraveManager
 {
     private Map<BlockPos, Boolean> graves = ImmutableMap.of();
 
     /**
-     * This needs to read what {@link GraveManager#write} wrote.
+     * This needs to read what {@link no.monopixel.slimcolonies.core.colony.managers.GraveManager#write} wrote.
      *
      * @param compound the compound.
      */

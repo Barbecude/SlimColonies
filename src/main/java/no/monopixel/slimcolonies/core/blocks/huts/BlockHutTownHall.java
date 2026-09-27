@@ -1,24 +1,7 @@
 package no.monopixel.slimcolonies.core.blocks.huts;
 
-import net.minecraft.ChatFormatting;
-import net.minecraft.client.multiplayer.ClientLevel;
-import net.minecraft.client.player.LocalPlayer;
-import net.minecraft.core.BlockPos;
-import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.MutableComponent;
-import net.minecraft.network.chat.Style;
-import net.minecraft.server.level.ServerLevel;
-import net.minecraft.world.InteractionHand;
-import net.minecraft.world.InteractionResult;
-import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.level.BlockGetter;
-import net.minecraft.world.level.Level;
-import net.minecraft.world.level.block.SoundType;
-import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.level.material.MapColor;
-import net.minecraft.world.phys.BlockHitResult;
-import net.minecraftforge.items.wrapper.InvWrapper;
 import no.monopixel.slimcolonies.api.blocks.AbstractBlockHut;
+import no.monopixel.slimcolonies.api.colony.IColony;
 import no.monopixel.slimcolonies.api.colony.IColonyManager;
 import no.monopixel.slimcolonies.api.colony.buildings.IBuilding;
 import no.monopixel.slimcolonies.api.colony.buildings.ModBuildings;
@@ -28,16 +11,36 @@ import no.monopixel.slimcolonies.api.colony.permissions.Action;
 import no.monopixel.slimcolonies.api.util.InventoryUtils;
 import no.monopixel.slimcolonies.api.util.MessageUtils;
 import no.monopixel.slimcolonies.api.util.constant.Constants;
-import no.monopixel.slimcolonies.core.Network;
-import no.monopixel.slimcolonies.core.SlimColonies;
+import no.monopixel.slimcolonies.core.MineColonies;
 import no.monopixel.slimcolonies.core.network.messages.server.GetColonyInfoMessage;
+import net.minecraft.ChatFormatting;
+import net.minecraft.client.multiplayer.ClientLevel;
+import net.minecraft.client.player.LocalPlayer;
+import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.network.chat.Style;
+import net.minecraft.world.ItemInteractionResult;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.block.SoundType;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.InteractionResult;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.level.material.MapColor;
+import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.network.chat.Component;
+import net.minecraft.world.level.BlockGetter;
+import net.minecraft.world.level.Level;
+import net.minecraft.server.level.ServerLevel;
+import net.neoforged.neoforge.items.wrapper.InvWrapper;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import static no.monopixel.slimcolonies.api.util.constant.TranslationConstants.TOWNHALL_BREAKING_DONE_MESSAGE;
+import static no.monopixel.slimcolonies.api.util.constant.TranslationConstants.WARNING_DUPLICATE_TOWN_HALL;
+
 import java.util.ArrayList;
 import java.util.List;
-
-import static no.monopixel.slimcolonies.api.util.constant.TranslationConstants.TOWNHALL_BREAKING_DONE_MESSAGE;
 
 /**
  * Hut for the town hall. Sets the working range for the town hall in the constructor
@@ -72,14 +75,14 @@ public class BlockHutTownHall extends AbstractBlockHut<BlockHutTownHall>
     @Override
     public float getDestroyProgress(final BlockState state, @NotNull final Player player, @NotNull final BlockGetter blockReader, @NotNull final BlockPos pos)
     {
-        if (SlimColonies.getConfig().getServer().pvp_mode.get() && player.level instanceof ServerLevel)
+        if(MineColonies.getConfig().getServer().pvp_mode.get() && player.level() instanceof ServerLevel)
         {
-            final IBuilding building = IColonyManager.getInstance().getBuilding(player.level, pos);
-            if (building != null && building.getColony().isCoordInColony(player.level, pos)
-                && building.getColony().getPermissions().getRank(player).isHostile())
+            final IBuilding building = IColonyManager.getInstance().getBuilding(player.level(), pos);
+            if (building != null && building.getColony().isCoordInColony(player.level(), pos)
+                  && building.getColony().getPermissions().getRank(player).isHostile())
             {
                 final double localProgress = breakProgressOnTownHall;
-                final double hardness = state.getDestroySpeed(player.level, pos) * 20.0 * 1.5;
+                final double hardness = state.getDestroySpeed(player.level(), pos) * 20.0 * 1.5;
 
                 if (localProgress >= hardness / 10.0 * 9.0 && localProgress <= hardness / 10.0 * 9.0 + 1)
                 {
@@ -103,7 +106,7 @@ public class BlockHutTownHall extends AbstractBlockHut<BlockHutTownHall>
                     validTownHallBreak = true;
                 }
 
-                if (player.level.getGameTime() - lastTownHallBreakingTick < 10)
+                if (player.level().getGameTime() - lastTownHallBreakingTick < 10)
                 {
                     breakProgressOnTownHall++;
                 }
@@ -113,19 +116,19 @@ public class BlockHutTownHall extends AbstractBlockHut<BlockHutTownHall>
                     breakProgressOnTownHall = 0;
                     validTownHallBreak = false;
                 }
-                lastTownHallBreakingTick = player.level.getGameTime();
+                lastTownHallBreakingTick = player.level().getGameTime();
             }
             else
             {
                 validTownHallBreak = true;
             }
         }
-        else if (!SlimColonies.getConfig().getServer().pvp_mode.get())
+        else if (!MineColonies.getConfig().getServer().pvp_mode.get())
         {
             validTownHallBreak = true;
         }
-        final float def = super.getDestroyProgress(state, player, player.level, pos);
-        return SlimColonies.getConfig().getServer().pvp_mode.get() ? def / 12 : def;
+        final float def = super.getDestroyProgress(state, player, player.level(), pos);
+        return MineColonies.getConfig().getServer().pvp_mode.get() ? def / 12 : def;
     }
 
     @Override
@@ -134,9 +137,8 @@ public class BlockHutTownHall extends AbstractBlockHut<BlockHutTownHall>
         final List<MutableComponent> requirements = new ArrayList<>();
         if (InventoryUtils.findFirstSlotInItemHandlerWith(new InvWrapper(player.getInventory()), this) == -1)
         {
-            requirements.add(Component.translatable("no.monopixel.slimcolonies.coremod.hut.cost", Component.translatable("block." + Constants.MOD_ID + "." + getHutName()))
-                .setStyle((Style.EMPTY).withColor(
-                    ChatFormatting.RED)));
+            requirements.add(Component.translatableEscape("no.monopixel.slimcolonies.coremod.hut.cost", Component.translatableEscape("block." + Constants.MOD_ID + "." + getHutName())).setStyle((Style.EMPTY).withColor(
+              ChatFormatting.RED)));
         }
 
         return requirements;
@@ -144,8 +146,7 @@ public class BlockHutTownHall extends AbstractBlockHut<BlockHutTownHall>
 
     /**
      * Getter for the Block's state to breakable.
-     *
-     * @return True if the block is eligible for destruction
+     * @return  True if the block is eligible for destruction
      */
     public boolean getValidBreak()
     {
@@ -178,13 +179,14 @@ public class BlockHutTownHall extends AbstractBlockHut<BlockHutTownHall>
      */
     @NotNull
     @Override
-    public InteractionResult use(
-        final BlockState state,
-        final Level worldIn,
-        final BlockPos pos,
-        final Player player,
-        final InteractionHand hand,
-        final BlockHitResult ray)
+    public ItemInteractionResult useItemOn(
+      final ItemStack stack,
+      final BlockState state,
+      final Level worldIn,
+      final BlockPos pos,
+      final Player player,
+      final InteractionHand hand,
+      final BlockHitResult ray)
     {
        /*
         If the world is client, open the gui of the building
@@ -194,17 +196,42 @@ public class BlockHutTownHall extends AbstractBlockHut<BlockHutTownHall>
             @Nullable final IBuildingView building = IColonyManager.getInstance().getBuildingView(worldIn.dimension(), pos);
 
             if (building != null
-                && building.getColony() != null
-                && building.getColony().getPermissions().hasPermission(player, Action.ACCESS_HUTS))
+                  && building.getColony() != null
+                  && building.getColony().getPermissions().hasPermission(player, Action.ACCESS_HUTS))
             {
                 building.openGui(player.isShiftKeyDown());
             }
             else if (System.currentTimeMillis() > timeout)
             {
-                Network.getNetwork().sendToServer(new GetColonyInfoMessage(pos));
+                new GetColonyInfoMessage(pos).sendToServer();
                 timeout = System.currentTimeMillis() + 1000;
             }
         }
-        return InteractionResult.SUCCESS;
+        return ItemInteractionResult.SUCCESS;
+    }
+
+    /**
+     * Check if the block can be placed at the given position by the player.
+     *
+     * @param pos the position to check.
+     * @param player the player trying to place the block.
+     * @return true if the block can be placed.
+     */
+    @Override
+    public boolean canPlaceAt(final BlockPos pos, final Player player)
+    {
+        IColony colony = IColonyManager.getInstance().getIColony(player.level(), pos);
+        
+        if (colony.getCommonBuildingManager().hasTownHall())
+        {
+            IBuilding townHall = colony.getServerBuildingManager().getTownHall();
+            
+            if (colony.getWorld() != null && !colony.getWorld().isClientSide)
+            {
+                MessageUtils.format(WARNING_DUPLICATE_TOWN_HALL, townHall.getPosition().toShortString()).sendTo(player);
+            }
+            return false;
+        }
+        return true;
     }
 }

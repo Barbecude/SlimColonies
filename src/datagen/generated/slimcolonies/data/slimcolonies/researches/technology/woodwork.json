@@ -1,5 +1,11 @@
 {
   "branch": "slimcolonies:technology",
+  "costs": [
+    {
+      "count": 64,
+      "tag": "minecraft:planks"
+    }
+  ],
   "effects": [
     {
       "id": "slimcolonies:effects/blockhutsawmill",
@@ -11,7 +17,7 @@
     {
       "type": "slimcolonies:building",
       "building": "slimcolonies:lumberjack",
-      "level": 1
+      "level": 3
     }
   ],
   "researchLevel": 1,

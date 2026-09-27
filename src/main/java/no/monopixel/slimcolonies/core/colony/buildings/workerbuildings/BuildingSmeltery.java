@@ -1,6 +1,26 @@
 package no.monopixel.slimcolonies.core.colony.buildings.workerbuildings;
 
+import no.monopixel.slimcolonies.api.IMinecoloniesAPI;
+import no.monopixel.slimcolonies.api.colony.IColony;
+import no.monopixel.slimcolonies.api.colony.IColonyManager;
+import no.monopixel.slimcolonies.api.colony.buildings.modules.settings.ISettingKey;
+import no.monopixel.slimcolonies.api.colony.jobs.registry.JobEntry;
+import no.monopixel.slimcolonies.api.colony.requestsystem.token.IToken;
+import no.monopixel.slimcolonies.api.compatibility.ICompatibilityManager;
+import no.monopixel.slimcolonies.api.crafting.*;
+import no.monopixel.slimcolonies.api.entity.citizen.AbstractEntityCitizen;
+import no.monopixel.slimcolonies.api.items.ModTags;
+import no.monopixel.slimcolonies.api.util.ItemStackUtils;
+import no.monopixel.slimcolonies.api.util.Utils;
+import no.monopixel.slimcolonies.core.colony.buildings.AbstractBuilding;
+import no.monopixel.slimcolonies.core.colony.buildings.modules.AbstractCraftingBuildingModule;
+import no.monopixel.slimcolonies.core.colony.buildings.modules.settings.IntSetting;
+import no.monopixel.slimcolonies.core.colony.buildings.modules.settings.SettingKey;
+import no.monopixel.slimcolonies.core.colony.crafting.CustomRecipe;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Holder;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.Tuple;
@@ -9,20 +29,7 @@ import net.minecraft.world.item.enchantment.Enchantments;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
-import net.minecraftforge.registries.ForgeRegistries;
-import no.monopixel.slimcolonies.api.colony.IColony;
-import no.monopixel.slimcolonies.api.colony.IColonyManager;
-import no.monopixel.slimcolonies.api.colony.jobs.registry.JobEntry;
-import no.monopixel.slimcolonies.api.colony.requestsystem.token.IToken;
-import no.monopixel.slimcolonies.api.compatibility.ICompatibilityManager;
-import no.monopixel.slimcolonies.api.crafting.*;
-import no.monopixel.slimcolonies.api.entity.citizen.AbstractEntityCitizen;
-import no.monopixel.slimcolonies.api.items.ModTags;
-import no.monopixel.slimcolonies.api.util.ItemStackUtils;
-import no.monopixel.slimcolonies.core.colony.buildings.AbstractBuilding;
-import no.monopixel.slimcolonies.core.colony.buildings.modules.AbstractCraftingBuildingModule;
-import no.monopixel.slimcolonies.core.colony.crafting.CustomRecipe;
-import no.monopixel.slimcolonies.core.util.FurnaceRecipes;
+import net.minecraft.world.level.storage.loot.LootTable;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
@@ -30,11 +37,12 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
+import static no.monopixel.slimcolonies.api.util.constant.Suppression.OVERRIDE_EQUALS;
 
 /**
  * Class of the smeltery building.
  */
-
+@SuppressWarnings(OVERRIDE_EQUALS)
 public class BuildingSmeltery extends AbstractBuilding
 {
     /**
@@ -53,6 +61,11 @@ public class BuildingSmeltery extends AbstractBuilding
     private static final int STUFF_TO_KEEP = 10;
 
     /**
+     * Key for min remainder at warehouse.
+     */
+    public static final ISettingKey<IntSetting> MIN = new SettingKey<>(IntSetting.class, new ResourceLocation(no.monopixel.slimcolonies.api.util.constant.Constants.MOD_ID, "warehousemin"));
+
+    /**
      * Instantiates a new smeltery building.
      *
      * @param c the colony.
@@ -63,8 +76,8 @@ public class BuildingSmeltery extends AbstractBuilding
         super(c, l);
         keepX.put(IColonyManager.getInstance().getCompatibilityManager()::isOre, new Tuple<>(Integer.MAX_VALUE, true));
         keepX.put(stack -> !ItemStackUtils.isEmpty(stack)
-                && (stack.getItem() instanceof SwordItem || stack.getItem() instanceof DiggerItem || stack.getItem() instanceof ArmorItem)
-            , new Tuple<>(STUFF_TO_KEEP, true));
+                             && (stack.getItem() instanceof SwordItem || stack.getItem() instanceof DiggerItem || stack.getItem() instanceof ArmorItem)
+          , new Tuple<>(STUFF_TO_KEEP, true));
     }
 
     @NotNull
@@ -116,7 +129,7 @@ public class BuildingSmeltery extends AbstractBuilding
             {
                 if (ItemStackUtils.IS_SMELTABLE.and(compatibility::isOre).and(s -> !compatibility.isBreakableOre(s)).test(stack))
                 {
-                    final ItemStack output = FurnaceRecipes.getInstance().getSmeltingResult(stack);
+                    final ItemStack output = IColonyManager.getInstance().getCompatibilityManager().getFurnaceRecipes().getSmeltingResult(stack);
                     recipes.add(createSmeltingRecipe(stack, output, Blocks.FURNACE));
                 }
             }
@@ -126,10 +139,10 @@ public class BuildingSmeltery extends AbstractBuilding
         private static IGenericRecipe createSmeltingRecipe(final ItemStack input, final ItemStack output, final Block intermediate)
         {
             return GenericRecipe.builder()
-                .withInputs(List.of(List.of(input)))
-                .withOutput(output)
-                .withIntermediate(intermediate)
-                .build();
+                    .withInputs(List.of(List.of(input)))
+                    .withOutput(output)
+                    .withIntermediate(intermediate)
+                    .build();
         }
     }
 
@@ -142,14 +155,14 @@ public class BuildingSmeltery extends AbstractBuilding
 
         @NotNull
         @Override
-        public List<ResourceLocation> getAdditionalLootTables()
+        public List<ResourceKey<LootTable>> getAdditionalLootTables()
         {
-            final List<ResourceLocation> lootTables = new ArrayList<>(super.getAdditionalLootTables());
+            final List<ResourceKey<LootTable>> lootTables = new ArrayList<>(super.getAdditionalLootTables());
 
             //noinspection ConstantConditions
-            for (final Item input : ForgeRegistries.ITEMS.tags().getTag(ModTags.breakable_ore))
+            for (final Holder<Item> input : BuiltInRegistries.ITEM.getTagOrEmpty(ModTags.breakable_ore))
             {
-                lootTables.add(getLootTable(input));
+                lootTables.add(getLootTable(input.value()));
             }
 
             return lootTables;
@@ -171,18 +184,18 @@ public class BuildingSmeltery extends AbstractBuilding
         public List<IGenericRecipe> getAdditionalRecipesForDisplayPurposesOnly(@NotNull final Level world)
         {
             final List<IGenericRecipe> recipes = new ArrayList<>(super.getAdditionalRecipesForDisplayPurposesOnly(world));
-            final ICompatibilityManager compat = IColonyManager.getInstance().getCompatibilityManager();
+            final ICompatibilityManager compat = IMinecoloniesAPI.getInstance().getColonyManager().getCompatibilityManager();
 
             //noinspection ConstantConditions
-            for (final Item input : ForgeRegistries.ITEMS.tags().getTag(ModTags.breakable_ore))
+            for (final Holder<Item> input : BuiltInRegistries.ITEM.getTagOrEmpty(ModTags.breakable_ore))
             {
-                final ItemStack inputStack = input.getDefaultInstance();
+                final ItemStack inputStack = input.value().getDefaultInstance();
                 if (compat.isBreakableOre(inputStack))
                 {
                     recipes.add(GenericRecipe.builder()
-                        .withInputs(List.of(List.of(inputStack)))
-                        .withLootTable(getLootTable(input))
-                        .build());
+                            .withInputs(List.of(List.of(inputStack)))
+                            .withLootTable(getLootTable(input.value()))
+                            .build());
                 }
             }
 
@@ -194,17 +207,17 @@ public class BuildingSmeltery extends AbstractBuilding
         {
             super.checkForWorkerSpecificRecipes();
 
-            final ICompatibilityManager compat = IColonyManager.getInstance().getCompatibilityManager();
+            final ICompatibilityManager compat = IMinecoloniesAPI.getInstance().getColonyManager().getCompatibilityManager();
 
-            for (final Item input : ForgeRegistries.ITEMS.tags().getTag(ModTags.breakable_ore))
+            for (final Holder<Item> input : BuiltInRegistries.ITEM.getTagOrEmpty(ModTags.breakable_ore))
             {
-                final ItemStack inputStack = input.getDefaultInstance();
+                final ItemStack inputStack = input.value().getDefaultInstance();
                 if (!compat.isBreakableOre(inputStack))
                 {
                     continue;
                 }
 
-                Block b = Block.byItem(input);
+                Block b = Block.byItem(input.value());
                 List<ItemStack> drops = Block.getDrops(b.defaultBlockState(), (ServerLevel) building.getColony().getWorld(), building.getID(), null);
                 for (ItemStack drop : drops)
                 {
@@ -215,10 +228,10 @@ public class BuildingSmeltery extends AbstractBuilding
                 }
 
                 final RecipeStorage tempRecipe = RecipeStorage.builder()
-                    .withInputs(Collections.singletonList(new ItemStorage(inputStack)))
-                    .withSecondaryOutputs(drops)    // this is just a display example
-                    .withLootTable(getLootTable(input))
-                    .build();
+                        .withInputs(Collections.singletonList(new ItemStorage(inputStack)))
+                        .withSecondaryOutputs(drops)    // this is just a display example
+                        .withLootTable(getLootTable(input.value()))
+                        .build();
                 IToken<?> token = IColonyManager.getInstance().getRecipeManager().checkOrAddRecipe(tempRecipe);
                 this.addRecipeToList(token, false);
             }
@@ -231,12 +244,12 @@ public class BuildingSmeltery extends AbstractBuilding
             int fortuneLevel = building.getBuildingLevel() - 1;
             if (fortuneLevel > 0)
             {
-                pick.enchant(Enchantments.BLOCK_FORTUNE, fortuneLevel);
+                pick.enchant(Utils.getRegistryValue(Enchantments.FORTUNE, worker.level()), fortuneLevel);
             }
             return pick;
         }
 
-        protected ResourceLocation getLootTable(Item item)
+        protected ResourceKey<LootTable> getLootTable(Item item)
         {
             if (item instanceof BlockItem)
             {

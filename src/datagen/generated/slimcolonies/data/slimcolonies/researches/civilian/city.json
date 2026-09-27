@@ -1,0 +1,25 @@
+{
+  "branch": "slimcolonies:civilian",
+  "costs": [
+    {
+      "count": 512,
+      "item": "minecraft:cooked_beef"
+    }
+  ],
+  "effects": [
+    {
+      "id": "slimcolonies:effects/citizencapaddition",
+      "level": 5
+    }
+  ],
+  "icon": "slimcolonies:blockhutcitizen:200",
+  "parentResearch": "slimcolonies:civilian/village",
+  "requirements": [
+    {
+      "type": "slimcolonies:single-building",
+      "building": "slimcolonies:townhall",
+      "level": 5
+    }
+  ],
+  "researchLevel": 5
+}

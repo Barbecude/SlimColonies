@@ -1,18 +1,18 @@
 package no.monopixel.slimcolonies.api.tileentities;
 
+import no.monopixel.slimcolonies.api.colony.IGraveData;
+import no.monopixel.slimcolonies.core.tileentities.TileEntityRack;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.MenuProvider;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
-import no.monopixel.slimcolonies.api.colony.IGraveData;
-import no.monopixel.slimcolonies.core.tileentities.TileEntityRack;
 import org.jetbrains.annotations.Nullable;
 
 import static no.monopixel.slimcolonies.api.util.constant.Constants.DEFAULT_SIZE;
 import static no.monopixel.slimcolonies.api.util.constant.Constants.TICKS_SECOND;
 
 /**
- * Abstract class for graves.
+ * Abstract class for slimcolonies graves.
  */
 public abstract class AbstractTileEntityGrave extends TileEntityRack implements MenuProvider
 {
@@ -46,7 +46,6 @@ public abstract class AbstractTileEntityGrave extends TileEntityRack implements 
 
     /**
      * Delay the decay timer by minutes
-     *
      * @param minutes number of minutes to delay the time by
      */
     public void delayDecayTimer(final double minutes)
@@ -64,7 +63,6 @@ public abstract class AbstractTileEntityGrave extends TileEntityRack implements 
 
     /**
      * Set the graveData of the saved citizen
-     *
      * @param graveData
      */
     public void setGraveData(IGraveData graveData)

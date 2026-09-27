@@ -4,6 +4,7 @@ import no.monopixel.slimcolonies.api.crafting.ItemStorage;
 import no.monopixel.slimcolonies.api.entity.ai.statemachine.AITarget;
 import no.monopixel.slimcolonies.api.entity.ai.statemachine.states.IAIState;
 import no.monopixel.slimcolonies.api.entity.citizen.VisibleCitizenStatus;
+import no.monopixel.slimcolonies.api.items.ModItems;
 import no.monopixel.slimcolonies.api.util.InventoryUtils;
 import no.monopixel.slimcolonies.api.util.StatsUtil;
 import no.monopixel.slimcolonies.api.util.constant.Constants;
@@ -22,8 +23,8 @@ import net.minecraft.world.entity.animal.MushroomCow;
 import net.minecraft.world.entity.animal.goat.Goat;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
-import net.minecraftforge.common.util.FakePlayer;
-import net.minecraftforge.common.util.FakePlayerFactory;
+import net.neoforged.neoforge.common.util.FakePlayer;
+import net.neoforged.neoforge.common.util.FakePlayerFactory;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Collections;
@@ -32,7 +33,6 @@ import java.util.List;
 import static no.monopixel.slimcolonies.api.entity.ai.statemachine.states.AIWorkerState.*;
 import static no.monopixel.slimcolonies.api.util.constant.StatisticsConstants.MILKING_ATTEMPTS;
 import static no.monopixel.slimcolonies.core.colony.buildings.workerbuildings.BuildingCowboy.MILKING_AMOUNT;
-
 /**
  * The AI behind the {@link JobCowboy} for Breeding, Killing and Milking Cows.
  */
@@ -48,7 +48,7 @@ public class EntityAIWorkCowboy extends AbstractEntityAIHerder<JobCowboy, Buildi
      * Herd cow icon
      */
     private final static VisibleCitizenStatus HERD_COW =
-        new VisibleCitizenStatus(ResourceLocation.fromNamespaceAndPath(Constants.MOD_ID, "textures/icons/work/cowboy.png"), "no.monopixel.slimcolonies.gui.visiblestatus.cowboy");
+      new VisibleCitizenStatus(new ResourceLocation(Constants.MOD_ID, "textures/icons/work/cowboy.png"), "no.monopixel.slimcolonies.gui.visiblestatus.cowboy");
 
     /**
      * Min wait between failed milking attempts.
@@ -67,8 +67,8 @@ public class EntityAIWorkCowboy extends AbstractEntityAIHerder<JobCowboy, Buildi
     {
         super(job);
         super.registerTargets(
-            new AITarget(COWBOY_MILK, this::milkCows, 1),
-            new AITarget(COWBOY_STEW, this::milkMooshrooms, 1)
+          new AITarget(COWBOY_MILK, this::milkCows, 1),
+          new AITarget(COWBOY_STEW, this::milkMooshrooms, 1)
         );
     }
 
@@ -76,7 +76,7 @@ public class EntityAIWorkCowboy extends AbstractEntityAIHerder<JobCowboy, Buildi
     protected void updateRenderMetaData()
     {
         String renderMeta = getState() == IDLE ? "" : RENDER_META_WORKING;
-        if (worker.getCitizenInventoryHandler().hasItemInInventory(Items.BUCKET))
+        if (worker.getCitizenInventoryHandler().hasItemInInventory(Items.BUCKET) || worker.getCitizenInventoryHandler().hasItemInInventory(ModItems.large_empty_bottle))
         {
             renderMeta += RENDER_META_BUCKET;
         }
@@ -120,16 +120,18 @@ public class EntityAIWorkCowboy extends AbstractEntityAIHerder<JobCowboy, Buildi
     }
 
     @Override
-    public @NotNull List<ItemStorage> getExtraItemsNeeded()
+    public List<ItemStorage> getExtraItemsNeeded()
     {
         final List<ItemStorage> list = super.getExtraItemsNeeded();
         if (building != null && building.getFirstModuleOccurance(BuildingCowboy.HerdingModule.class).canTryToMilk() &&
-            !searchForAnimals(a -> a instanceof Cow && !(a instanceof MushroomCow)).isEmpty())
+              !searchForAnimals(a -> a instanceof Cow && !(a instanceof MushroomCow)).isEmpty())
         {
-            list.add(new ItemStorage(building.getMilkInputItem().copy(), building.getSetting(MILKING_AMOUNT).getValue()));
+            final ItemStorage stack = new ItemStorage(building.getMilkInputItem().copy());
+            stack.setAmount(building.getSetting(MILKING_AMOUNT).getValue());
+            list.add(stack);
         }
         if (building != null && building.getFirstModuleOccurance(BuildingCowboy.HerdingModule.class).canTryToStew() &&
-            !searchForAnimals(a -> a instanceof MushroomCow).isEmpty())
+              !searchForAnimals(a -> a instanceof MushroomCow).isEmpty())
         {
             list.add(new ItemStorage(Items.BOWL));
         }
@@ -177,11 +179,12 @@ public class EntityAIWorkCowboy extends AbstractEntityAIHerder<JobCowboy, Buildi
                 CitizenItemUtils.setHeldItem(worker, InteractionHand.MAIN_HAND, getItemSlot(building.getMilkOutputItem().getItem()));
                 InventoryUtils.tryRemoveStackFromItemHandler(worker.getInventoryCitizen(), building.getMilkInputItem());
 
-                final SoundEvent sound = animal instanceof Goat goat ? goat.getMilkingSound() : SoundEvents.COW_MILK;
+                final SoundEvent sound = animal instanceof Goat goat ? (goat.isScreamingGoat() ? SoundEvents.GOAT_SCREAMING_MILK : SoundEvents.GOAT_MILK) : SoundEvents.COW_MILK;
                 worker.queueSound(sound, animal.blockPosition(), 10, 0, 0.9f, worker.getRandom().nextFloat());
             }
 
-            incrementActionsDoneAndDecSaturation();
+            this.incrementActionsDone();
+            worker.decreaseSaturationForContinuousAction();
             StatsUtil.trackStat(building, MILKING_ATTEMPTS, 1);
             worker.getCitizenExperienceHandler().addExperience(1.0);
             return INVENTORY_FULL;
@@ -214,7 +217,7 @@ public class EntityAIWorkCowboy extends AbstractEntityAIHerder<JobCowboy, Buildi
         }
 
         final MushroomCow mooshroom = searchForAnimals(a -> a instanceof MushroomCow && !a.isBaby()).stream()
-            .map(a -> (MushroomCow) a).findFirst().orElse(null);
+                                        .map(a -> (MushroomCow) a).findFirst().orElse(null);
 
         if (mooshroom == null)
         {
@@ -224,7 +227,7 @@ public class EntityAIWorkCowboy extends AbstractEntityAIHerder<JobCowboy, Buildi
 
         if (equipItem(InteractionHand.MAIN_HAND, Collections.singletonList(new ItemStorage(Items.BOWL))) && !walkingToAnimal(mooshroom))
         {
-            final FakePlayer fakePlayer = FakePlayerFactory.getMinecraft((ServerLevel) worker.level);
+            final FakePlayer fakePlayer = FakePlayerFactory.getMinecraft((ServerLevel) worker.level());
             fakePlayer.setItemInHand(InteractionHand.MAIN_HAND, new ItemStack(Items.BOWL));
             if (mooshroom.mobInteract(fakePlayer, InteractionHand.MAIN_HAND).equals(InteractionResult.CONSUME))
             {
@@ -238,7 +241,8 @@ public class EntityAIWorkCowboy extends AbstractEntityAIHerder<JobCowboy, Buildi
                 fakePlayer.setItemInHand(InteractionHand.MAIN_HAND, ItemStack.EMPTY);
             }
 
-            incrementActionsDoneAndDecSaturation();
+            this.incrementActionsDone();
+            worker.decreaseSaturationForContinuousAction();
             StatsUtil.trackStat(building, MILKING_ATTEMPTS, 1);
             worker.getCitizenExperienceHandler().addExperience(1.0);
             return INVENTORY_FULL;

@@ -18,6 +18,7 @@ import org.jetbrains.annotations.NotNull;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import static no.monopixel.slimcolonies.api.util.constant.BuildingConstants.CONST_DEFAULT_MAX_BUILDING_LEVEL;
@@ -35,24 +36,24 @@ public final class GenericRecipeUtils
         final List<Component> restrictions = new ArrayList<>();
         if (customRecipe.getMinBuildingLevel() == customRecipe.getMaxBuildingLevel())
         {
-            restrictions.add(Component.translatable(TranslationConstants.PARTIAL_JEI_INFO + "onelevelrestriction",
+            restrictions.add(Component.translatableEscape(TranslationConstants.PARTIAL_JEI_INFO + "onelevelrestriction",
                     customRecipe.getMinBuildingLevel()));
         }
         else if (customRecipe.getMinBuildingLevel() > 1 || customRecipe.getMaxBuildingLevel() < CONST_DEFAULT_MAX_BUILDING_LEVEL)
         {
-            restrictions.add(Component.translatable(TranslationConstants.PARTIAL_JEI_INFO + "levelrestriction",
+            restrictions.add(Component.translatableEscape(TranslationConstants.PARTIAL_JEI_INFO + "levelrestriction",
                     customRecipe.getMinBuildingLevel(), customRecipe.getMaxBuildingLevel()));
         }
         for (final ResourceLocation researchId : customRecipe.getRequiredResearchIds())
         {
             final Component researchName = getResearchDisplayName(researchId);
-            restrictions.add(Component.translatable(TranslationConstants.PARTIAL_JEI_INFO + "minresearch",
+            restrictions.add(Component.translatableEscape(TranslationConstants.PARTIAL_JEI_INFO + "minresearch",
                     researchName));
         }
         for (final ResourceLocation researchId : customRecipe.getExcludedResearchIds())
         {
             final Component researchName = getResearchDisplayName(researchId);
-            restrictions.add(Component.translatable(TranslationConstants.PARTIAL_JEI_INFO + "maxresearch",
+            restrictions.add(Component.translatableEscape(TranslationConstants.PARTIAL_JEI_INFO + "maxresearch",
                     researchName));
         }
         return restrictions;
@@ -90,9 +91,7 @@ public final class GenericRecipeUtils
 
         for (final List<ItemStack> slot : recipe.getInputs())
         {
-            final List<ItemStack> newSlot = slot.stream()
-                    .filter(stack -> predicate.test(stack).orElse(fallbackAccept))
-                    .collect(Collectors.toList());
+            final List<ItemStack> newSlot = filterList(slot, predicate, fallbackAccept);
 
             if (newSlot.isEmpty() && !slot.isEmpty())
             {
@@ -112,6 +111,21 @@ public final class GenericRecipeUtils
         }
 
         return GenericRecipe.builder(recipe).withInputs(newInputs).build();
+    }
+
+    private static <T> List<T> filterList(@NotNull final List<T> input,
+                                          @NotNull final OptionalPredicate<T> predicate,
+                                          final boolean fallbackAccept)
+    {
+        final List<T> newList = new ArrayList<>();
+        for (T stack : input)
+        {
+            if (predicate.test(stack).orElse(fallbackAccept))
+            {
+                newList.add(stack);
+            }
+        }
+        return newList;
     }
 
     private static boolean isDomumRecipe(@NotNull final IGenericRecipe recipe)

@@ -1,19 +1,19 @@
 package no.monopixel.slimcolonies.api.util;
 
+import com.ldtteam.structurize.api.RotationMirror;
 import com.ldtteam.structurize.blueprints.v1.Blueprint;
 import com.ldtteam.structurize.storage.ClientFutureProcessor;
 import com.ldtteam.structurize.storage.ServerFutureProcessor;
 import com.ldtteam.structurize.storage.StructurePacks;
 import com.ldtteam.structurize.util.IOPool;
-import com.ldtteam.structurize.util.RotationMirror;
-import no.monopixel.slimcolonies.api.colony.IColonyTagCapability;
+import no.monopixel.slimcolonies.api.colony.IColonyManager;
+import no.monopixel.slimcolonies.api.colony.claim.IChunkClaimData;
 import net.minecraft.core.BlockPos;
 import net.minecraft.util.Tuple;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.level.block.Mirror;
-import net.minecraft.world.level.chunk.LevelChunk;
+import net.minecraft.world.level.chunk.ChunkAccess;
 import net.minecraft.world.phys.AABB;
-import net.minecraftforge.fml.loading.FMLEnvironment;
+import net.neoforged.fml.loading.FMLEnvironment;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -21,7 +21,6 @@ import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 
-import static no.monopixel.slimcolonies.api.colony.IColony.CLOSE_COLONY_CAP;
 import static no.monopixel.slimcolonies.api.util.constant.ColonyManagerConstants.NO_COLONY_ID;
 
 /**
@@ -68,7 +67,7 @@ public final class ColonyUtils
         final Consumer<String> errorHandler)
     {
         final CompletableFuture<Blueprint> future =
-            CompletableFuture.supplyAsync(() -> StructurePacks.getBlueprint(structurePack, structurePath, FMLEnvironment.production), IOPool.getExecutor());
+            CompletableFuture.supplyAsync(() -> StructurePacks.getBlueprint(structurePack, structurePath, FMLEnvironment.production, world.registryAccess()), IOPool.getExecutor());
         if (world.isClientSide)
         {
             ClientFutureProcessor.queueBlueprint(new ClientFutureProcessor.BlueprintProcessingData(future,
@@ -111,23 +110,21 @@ public final class ColonyUtils
      * @param pos        the central position.
      * @param world      the world.
      * @param blueprint  the structureWrapper.
-     * @param rotation   the rotation.
-     * @param isMirrored if its mirrored.
+     * @param rotMir     the rotation and mirror.
      * @return a tuple with the required corners.
      */
     public static Tuple<BlockPos, BlockPos> calculateCorners(
       final BlockPos pos,
       final Level world,
       final Blueprint blueprint,
-      final int rotation,
-      final boolean isMirrored)
+      final RotationMirror rotMir)
     {
         if (blueprint == null)
         {
             return new Tuple<>(pos, pos);
         }
 
-        blueprint.setRotationMirror(RotationMirror.of(BlockPosUtil.getRotationFromRotations(rotation), isMirrored ? Mirror.FRONT_BACK : Mirror.NONE), world);
+        blueprint.setRotationMirror(rotMir, world);
         final BlockPos zeroPos = pos.subtract(blueprint.getPrimaryBlockOffset());
 
         final BlockPos pos1 = new BlockPos(zeroPos.getX(), zeroPos.getY(), zeroPos.getZ());
@@ -140,7 +137,7 @@ public final class ColonyUtils
      * Reports the block corners from a bounding box.
      *
      * @param box the bounding box.
-     * @return    the corners.
+     * @return the corners.
      */
     public static Tuple<BlockPos, BlockPos> calculateCorners(@NotNull final AABB box)
     {
@@ -154,9 +151,9 @@ public final class ColonyUtils
      * @param chunk the chunk to check.
      * @return the colony id.
      */
-    public static int getOwningColony(final LevelChunk chunk)
+    public static int getOwningColony(final ChunkAccess chunk)
     {
-        final IColonyTagCapability cap = chunk.getCapability(CLOSE_COLONY_CAP, null).resolve().orElse(null);
+        final IChunkClaimData cap = IColonyManager.getInstance().getClaimData(chunk.getLevel().dimension(), chunk.getPos());
         return cap == null ? NO_COLONY_ID : cap.getOwningColony();
     }
 
@@ -165,9 +162,9 @@ public final class ColonyUtils
      * @param chunk the chunk they are at.
      * @return the map from colony to building claims.
      */
-    public static Map<Integer, Set<BlockPos>> getAllClaimingBuildings(final LevelChunk chunk)
+    public static Map<Integer, Set<BlockPos>> getAllClaimingBuildings(final ChunkAccess chunk)
     {
-        final IColonyTagCapability cap = chunk.getCapability(CLOSE_COLONY_CAP, null).resolve().orElse(null);
+        final IChunkClaimData cap = IColonyManager.getInstance().getClaimData(chunk.getLevel().dimension(), chunk.getPos());
         return cap == null ? new HashMap<>() : cap.getAllClaimingBuildings();
     }
 
@@ -176,11 +173,10 @@ public final class ColonyUtils
      * @param chunk the chunk to get it from.
      * @return the list.
      */
-    @Deprecated
-    public static List<Integer> getStaticClaims(final LevelChunk chunk)
+    public static List<Integer> getStaticClaims(final ChunkAccess chunk)
     {
-        // Static claims have been removed, return empty list for backwards compatibility
-        return new ArrayList<>();
+        final IChunkClaimData cap = IColonyManager.getInstance().getClaimData(chunk.getLevel().dimension(), chunk.getPos());
+        return cap == null ? new ArrayList<>() : cap.getStaticClaimColonies();
     }
 
     /**
@@ -189,9 +185,9 @@ public final class ColonyUtils
      * @return the ownership data, or null.
      */
     @Nullable
-    public static ChunkCapData getChunkCapData(final LevelChunk chunk)
+    public static ChunkCapData getChunkCapData(final ChunkAccess chunk)
     {
-        final IColonyTagCapability cap = chunk.getCapability(CLOSE_COLONY_CAP, null).resolve().orElse(null);
-        return cap == null ? new ChunkCapData(chunk.getPos().x, chunk.getPos().z) : new ChunkCapData(chunk.getPos().x, chunk.getPos().z, cap.getOwningColony(), cap.getAllClaimingBuildings());
+        final IChunkClaimData cap = IColonyManager.getInstance().getClaimData(chunk.getLevel().dimension(), chunk.getPos());
+        return cap == null ? new ChunkCapData(chunk.getPos().x, chunk.getPos().z) : new ChunkCapData(chunk.getPos().x, chunk.getPos().z, cap.getOwningColony(), cap.getStaticClaimColonies(), cap.getAllClaimingBuildings());
     }
 }

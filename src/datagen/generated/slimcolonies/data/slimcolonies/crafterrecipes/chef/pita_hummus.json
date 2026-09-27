@@ -1,0 +1,30 @@
+{
+  "type": "recipe",
+  "crafter": "chef_crafting",
+  "inputs": [
+    {
+      "id": "slimcolonies:flatbread"
+    },
+    {
+      "id": "slimcolonies:chickpea"
+    },
+    {
+      "id": "slimcolonies:chickpea"
+    },
+    {
+      "id": "slimcolonies:eggplant"
+    },
+    {
+      "id": "slimcolonies:onion"
+    },
+    {
+      "id": "slimcolonies:garlic"
+    }
+  ],
+  "intermediate": "minecraft:air",
+  "min-building-level": 4,
+  "result": {
+    "id": "slimcolonies:pita_hummus"
+  },
+  "show-tooltip": true
+}

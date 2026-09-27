@@ -4,10 +4,13 @@
   "inputs": [
     {
       "count": 2,
-      "item": "minecraft:gravel"
+      "id": "minecraft:gravel"
     }
   ],
   "intermediate": "minecraft:air",
+  "loot-table": "slimcolonies:recipes/gravel",
   "not-research-id": "slimcolonies:effects/crushing11unlock",
-  "result": "minecraft:sand"
+  "result": {
+    "id": "minecraft:sand"
+  }
 }

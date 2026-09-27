@@ -1,9 +1,44 @@
 package no.monopixel.slimcolonies.core.event;
 
-import net.minecraft.client.multiplayer.ClientLevel;
+import no.monopixel.slimcolonies.api.blocks.AbstractBlockHut;
+import no.monopixel.slimcolonies.api.blocks.ModBlocks;
+import no.monopixel.slimcolonies.api.blocks.interfaces.IRSComponentBlock;
+import no.monopixel.slimcolonies.api.client.render.modeltype.CitizenModel;
+import no.monopixel.slimcolonies.api.colony.ICitizenData;
+import no.monopixel.slimcolonies.api.colony.IColony;
+import no.monopixel.slimcolonies.api.colony.IColonyManager;
+import no.monopixel.slimcolonies.api.colony.IVisitorData;
+import no.monopixel.slimcolonies.api.colony.buildings.IBuilding;
+import no.monopixel.slimcolonies.api.colony.buildings.IGuardBuilding;
+import no.monopixel.slimcolonies.api.colony.buildings.ModBuildings;
+import no.monopixel.slimcolonies.api.colony.interactionhandling.ChatPriority;
+import no.monopixel.slimcolonies.api.colony.permissions.Action;
+import no.monopixel.slimcolonies.api.entity.ModEntities;
+import no.monopixel.slimcolonies.api.entity.ai.statemachine.tickratestatemachine.TickRateStateMachine;
+import no.monopixel.slimcolonies.api.entity.citizen.AbstractEntityCitizen;
+import no.monopixel.slimcolonies.api.entity.other.AbstractFastMinecoloniesEntity;
+import no.monopixel.slimcolonies.api.items.ModTags;
+import no.monopixel.slimcolonies.api.util.*;
+import no.monopixel.slimcolonies.core.MineColonies;
+import no.monopixel.slimcolonies.core.blocks.BlockScarecrow;
+import no.monopixel.slimcolonies.core.blocks.MinecoloniesCropBlock;
+import no.monopixel.slimcolonies.core.blocks.huts.BlockHutTownHall;
+import no.monopixel.slimcolonies.core.client.render.RenderBipedCitizen;
+import no.monopixel.slimcolonies.core.colony.ColonyManager;
+import no.monopixel.slimcolonies.core.colony.buildings.modules.BuildingModules;
+import no.monopixel.slimcolonies.core.colony.buildings.modules.TavernBuildingModule;
+import no.monopixel.slimcolonies.core.colony.interactionhandling.RecruitmentInteraction;
+import no.monopixel.slimcolonies.core.colony.jobs.AbstractJobGuard;
+import no.monopixel.slimcolonies.core.colony.jobs.JobFarmer;
+import no.monopixel.slimcolonies.core.colony.requestsystem.locations.EntityLocation;
+import no.monopixel.slimcolonies.core.commands.EntryPoint;
+import no.monopixel.slimcolonies.core.entity.citizen.EntityCitizen;
+import no.monopixel.slimcolonies.core.entity.mobs.EntityMercenary;
+import no.monopixel.slimcolonies.core.items.ItemBannerRallyGuards;
+import no.monopixel.slimcolonies.core.network.messages.client.OpenSuggestionWindowMessage;
+import no.monopixel.slimcolonies.core.util.ChunkDataHelper;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.util.Mth;
@@ -18,72 +53,46 @@ import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.BedBlock;
 import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.SpawnerBlock;
+import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.entity.SpawnerBlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.BedPart;
 import net.minecraft.world.level.chunk.LevelChunk;
-import net.minecraftforge.event.AttachCapabilitiesEvent;
-import net.minecraftforge.event.ForgeEventFactory;
-import net.minecraftforge.event.RegisterCommandsEvent;
-import net.minecraftforge.event.TickEvent;
-import net.minecraftforge.event.entity.EntityJoinLevelEvent;
-import net.minecraftforge.event.entity.EntityTravelToDimensionEvent;
-import net.minecraftforge.event.entity.living.LivingConversionEvent;
-import net.minecraftforge.event.entity.living.MobSpawnEvent;
-import net.minecraftforge.event.entity.player.PlayerEvent;
-import net.minecraftforge.event.entity.player.PlayerInteractEvent;
-import net.minecraftforge.event.level.ChunkEvent;
-import net.minecraftforge.event.level.LevelEvent;
-import net.minecraftforge.eventbus.api.Event;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
-import no.monopixel.slimcolonies.api.blocks.AbstractBlockHut;
-import no.monopixel.slimcolonies.api.blocks.interfaces.IRSComponentBlock;
-import no.monopixel.slimcolonies.api.client.render.modeltype.CitizenModel;
-import no.monopixel.slimcolonies.api.colony.ICitizenData;
-import no.monopixel.slimcolonies.api.colony.IColony;
-import no.monopixel.slimcolonies.api.colony.IColonyManager;
-import no.monopixel.slimcolonies.api.colony.IVisitorData;
-import no.monopixel.slimcolonies.api.colony.buildings.IBuilding;
-import no.monopixel.slimcolonies.api.colony.buildings.IGuardBuilding;
-import no.monopixel.slimcolonies.api.colony.buildings.ModBuildings;
-import no.monopixel.slimcolonies.api.colony.interactionhandling.ChatPriority;
-import no.monopixel.slimcolonies.api.colony.permissions.Action;
-import no.monopixel.slimcolonies.api.entity.ModEntities;
-import no.monopixel.slimcolonies.api.entity.ai.statemachine.tickratestatemachine.TickRateStateMachine;
-import no.monopixel.slimcolonies.api.entity.other.AbstractFastSlimColoniesEntity;
-import no.monopixel.slimcolonies.api.items.ModTags;
-import no.monopixel.slimcolonies.api.util.*;
-import no.monopixel.slimcolonies.api.util.constant.Constants;
-import no.monopixel.slimcolonies.core.Network;
-import no.monopixel.slimcolonies.core.SlimColonies;
-import no.monopixel.slimcolonies.core.blocks.BlockScarecrow;
-import no.monopixel.slimcolonies.core.blocks.huts.BlockHutTownHall;
-import no.monopixel.slimcolonies.core.client.render.RenderBipedCitizen;
-import no.monopixel.slimcolonies.core.colony.ColonyManager;
-import no.monopixel.slimcolonies.core.colony.buildings.modules.BuildingModules;
-import no.monopixel.slimcolonies.core.colony.buildings.modules.TavernBuildingModule;
-import no.monopixel.slimcolonies.core.colony.interactionhandling.RecruitmentInteraction;
-import no.monopixel.slimcolonies.core.colony.jobs.AbstractJobGuard;
-import no.monopixel.slimcolonies.core.commands.EntryPoint;
-import no.monopixel.slimcolonies.core.entity.citizen.EntityCitizen;
-import no.monopixel.slimcolonies.core.event.capabilityproviders.SlimColoniesChunkCapabilityProvider;
-import no.monopixel.slimcolonies.core.event.capabilityproviders.SlimColoniesWorldCapabilityProvider;
-import no.monopixel.slimcolonies.core.event.capabilityproviders.SlimColoniesWorldColonyManagerCapabilityProvider;
-import no.monopixel.slimcolonies.core.network.messages.client.OpenSuggestionWindowMessage;
-import no.monopixel.slimcolonies.core.network.messages.client.UpdateChunkCapabilityMessage;
-import no.monopixel.slimcolonies.core.network.messages.client.UpdateChunkRangeCapabilityMessage;
-import no.monopixel.slimcolonies.core.util.ChunkClientDataHelper;
-import no.monopixel.slimcolonies.core.util.ChunkDataHelper;
+import net.minecraft.world.level.storage.loot.BuiltInLootTables;
+import net.minecraft.world.level.storage.loot.LootPool;
+import net.minecraft.world.level.storage.loot.entries.LootItem;
+import net.minecraft.world.level.storage.loot.predicates.LootItemRandomChanceCondition;
+import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.neoforge.event.EventHooks;
+import net.neoforged.neoforge.event.LootTableLoadEvent;
+import net.neoforged.neoforge.event.RegisterCommandsEvent;
+import net.neoforged.neoforge.event.entity.EntityJoinLevelEvent;
+import net.neoforged.neoforge.event.entity.EntityTravelToDimensionEvent;
+import net.neoforged.neoforge.event.entity.living.LivingConversionEvent;
+import net.neoforged.neoforge.event.entity.living.MobDespawnEvent;
+import net.neoforged.neoforge.event.entity.living.MobSpawnEvent;
+import net.neoforged.neoforge.event.entity.player.PlayerEvent;
+import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent;
+import net.neoforged.neoforge.event.level.BlockEvent;
+import net.neoforged.neoforge.event.level.ChunkEvent;
+import net.neoforged.neoforge.event.level.LevelEvent;
+import net.neoforged.neoforge.event.tick.PlayerTickEvent;
+import net.neoforged.neoforge.event.tick.ServerTickEvent;
 import org.jetbrains.annotations.NotNull;
 
 import java.time.LocalDateTime;
 import java.time.Month;
 import java.util.*;
 
-import static net.minecraftforge.eventbus.api.EventPriority.HIGHEST;
-import static net.minecraftforge.eventbus.api.EventPriority.LOWEST;
+import static no.monopixel.slimcolonies.api.research.util.ResearchConstants.SOFT_SHOES;
 import static no.monopixel.slimcolonies.api.util.constant.ColonyManagerConstants.NO_COLONY_ID;
+import static no.monopixel.slimcolonies.api.util.constant.NbtTagConstants.TAG_COLONY_ID;
+import static no.monopixel.slimcolonies.api.util.constant.NbtTagConstants.TAG_EVENT_ID;
 import static no.monopixel.slimcolonies.api.util.constant.TranslationConstants.*;
 import static no.monopixel.slimcolonies.api.util.constant.translation.BaseGameTranslationConstants.BASE_BED_OCCUPIED;
+import static net.neoforged.bus.api.EventPriority.HIGHEST;
+import static net.neoforged.bus.api.EventPriority.LOWEST;
 
 /**
  * Handles all forge events.
@@ -111,16 +120,17 @@ public class EventHandler
     {
         if (!event.getLevel().isClientSide())
         {
-            if (SlimColonies.getConfig().getServer().mobAttackCitizens.get() && event.getEntity() instanceof Mob && event.getEntity() instanceof Enemy && !(event.getEntity()
-                .getType()
+            if (MineColonies.getConfig().getServer().mobAttackCitizens.get() && event.getEntity() instanceof Mob && event.getEntity() instanceof Enemy && !(event.getEntity()
+              .getType()
                 .is(ModTags.mobAttackBlacklist))
-                && !(event.getEntity() instanceof AbstractFastSlimColoniesEntity))
+                && !(event.getEntity() instanceof AbstractFastMinecoloniesEntity))
             {
                 ((Mob) event.getEntity()).targetSelector.addGoal(6,
-                    new NearestAttackableTargetGoal<>((Mob) event.getEntity(), EntityCitizen.class, true, citizen -> !citizen.isInvisible()));
+                  new NearestAttackableTargetGoal<>((Mob) event.getEntity(), EntityCitizen.class, true, citizen -> !citizen.isInvisible()));
+                ((Mob) event.getEntity()).targetSelector.addGoal(7, new NearestAttackableTargetGoal<>((Mob) event.getEntity(), EntityMercenary.class, true));
             }
 
-            if (event.getEntity() instanceof AbstractFastSlimColoniesEntity && ((ServerLevel) event.getLevel()).getEntity(event.getEntity().getUUID()) != null)
+            if (event.getEntity() instanceof AbstractFastMinecoloniesEntity && ((ServerLevel) event.getLevel()).getEntity(event.getEntity().getUUID()) != null)
             {
                 event.setCanceled(true);
             }
@@ -133,28 +143,19 @@ public class EventHandler
         }
     }
 
-    /**
-     * Event called to attach capabilities on a chunk.
-     *
-     * @param event the event.
-     */
     @SubscribeEvent
-    public static void onAttachingCapabilitiesChunk(@NotNull final AttachCapabilitiesEvent<LevelChunk> event)
+    public static void onLootTableLoad(@NotNull final LootTableLoadEvent event)
     {
-        event.addCapability(ResourceLocation.fromNamespaceAndPath(Constants.MOD_ID, "closecolony"), new SlimColoniesChunkCapabilityProvider());
-    }
-
-    /**
-     * Event called to attach capabilities on the world.
-     *
-     * @param event the event.
-     */
-    @SubscribeEvent
-    public static void onAttachingCapabilitiesWorld(@NotNull final AttachCapabilitiesEvent<Level> event)
-    {
-        event.addCapability(ResourceLocation.fromNamespaceAndPath(Constants.MOD_ID, "chunkupdate"), new SlimColoniesWorldCapabilityProvider());
-        event.addCapability(ResourceLocation.fromNamespaceAndPath(Constants.MOD_ID, "colonymanager"),
-            new SlimColoniesWorldColonyManagerCapabilityProvider(event.getObject().dimension() == Level.OVERWORLD));
+        if (event.getName().equals(BuiltInLootTables.SIMPLE_DUNGEON.location()))
+        {
+            final LootPool.Builder pool = LootPool.lootPool();
+            for (final MinecoloniesCropBlock crop : ModBlocks.getCrops())
+            {
+                pool.add(LootItem.lootTableItem(crop)
+                        .when(LootItemRandomChanceCondition.randomChance(0.005f)));
+            }
+            event.getTable().addPool(pool.build());
+        }
     }
 
     /**
@@ -168,13 +169,6 @@ public class EventHandler
         if (event.getLevel() instanceof ServerLevel)
         {
             ChunkDataHelper.loadChunk((LevelChunk) event.getChunk(), (ServerLevel) event.getLevel());
-        }
-        else if (event.getLevel() instanceof ClientLevel)
-        {
-            if (event.getChunk() instanceof LevelChunk)
-            {
-                ChunkClientDataHelper.applyLate((LevelChunk) event.getChunk());
-            }
         }
     }
 
@@ -203,13 +197,13 @@ public class EventHandler
         if (event.getEntity() instanceof ServerPlayer && !event.isCanceled())
         {
             final ServerPlayer player = (ServerPlayer) event.getEntity();
-            final LevelChunk oldChunk = player.level.getChunk(player.chunkPosition().x, player.chunkPosition().z);
+            final LevelChunk oldChunk = player.level().getChunk(player.chunkPosition().x, player.chunkPosition().z);
             final int owningColony = ColonyUtils.getOwningColony(oldChunk);
 
             // Remove visiting/subscriber from old colony
             if (owningColony != 0)
             {
-                final IColony oldColony = IColonyManager.getInstance().getColonyByWorld(owningColony, player.level);
+                final IColony oldColony = IColonyManager.getInstance().getColonyByWorld(owningColony, player.level());
                 if (oldColony != null)
                 {
                     oldColony.removeVisitingPlayer(player);
@@ -231,10 +225,10 @@ public class EventHandler
         {
             final ServerPlayer player = (ServerPlayer) event.getEntity();
 
-            final LevelChunk newChunk = player.level.getChunk(player.chunkPosition().x, player.chunkPosition().z);
+            final LevelChunk newChunk = player.level().getChunk(player.chunkPosition().x, player.chunkPosition().z);
 
             // Add visiting/subscriber to new colony
-            final IColony newColony = IColonyManager.getInstance().getColonyByWorld(ColonyUtils.getOwningColony(newChunk), player.level);
+            final IColony newColony = IColonyManager.getInstance().getColonyByWorld(ColonyUtils.getOwningColony(newChunk), player.level());
             if (newColony != null)
             {
                 newColony.addVisitingPlayer(player);
@@ -247,23 +241,22 @@ public class EventHandler
      * Event called when the player enters a new chunk.
      */
     @SubscribeEvent
-    public static void onEnteringChunk(final TickEvent.PlayerTickEvent event)
+    public static void onEnteringChunk(final PlayerTickEvent.Pre event)
     {
-        if (event.phase != TickEvent.Phase.END || event.player.level.isClientSide() || event.player.level.getGameTime() % 100 != 0)
+        if (!(event.getEntity().level() instanceof final ServerLevel world) || event.getEntity().level().getGameTime() % 100 != 0)
         {
             return;
         }
 
-        final Level world = event.player.level;
-        final ChunkPos chunkPos = event.player.chunkPosition();
+        final ChunkPos chunkPos = event.getEntity().chunkPosition();
 
-        final ChunkPos oldPos = playerPositions.get(event.player.getUUID());
+        final ChunkPos oldPos = playerPositions.get(event.getEntity().getUUID());
         if (oldPos != null && oldPos.equals(chunkPos))
         {
             return;
         }
 
-        playerPositions.put(event.player.getUUID(), chunkPos);
+        playerPositions.put(event.getEntity().getUUID(), chunkPos);
 
         final LevelChunk chunk = world.getChunk(chunkPos.x, chunkPos.z);
 
@@ -274,14 +267,7 @@ public class EventHandler
 
         ChunkDataHelper.loadChunk(chunk, world);
 
-        Network.getNetwork()
-            .sendToPlayer(new UpdateChunkRangeCapabilityMessage(world,
-                chunkPos.x,
-                chunkPos.z,
-                8, true), (ServerPlayer) event.player);
-
         final ChunkCapData chunkCapData = ColonyUtils.getChunkCapData(chunk);
-        Network.getNetwork().sendToPlayer(new UpdateChunkCapabilityMessage(chunkCapData), (ServerPlayer) event.player);
 
         // Check if we get into a differently claimed chunk
         if (chunkCapData.getOwningColony() != -1)
@@ -290,8 +276,8 @@ public class EventHandler
             final IColony colony = IColonyManager.getInstance().getColonyByWorld(chunkCapData.getOwningColony(), world);
             if (colony != null)
             {
-                colony.addVisitingPlayer(event.player);
-                colony.getPackageManager().addCloseSubscriber((ServerPlayer) event.player);
+                colony.addVisitingPlayer(event.getEntity());
+                colony.getPackageManager().addCloseSubscriber((ServerPlayer) event.getEntity());
             }
         }
 
@@ -305,10 +291,10 @@ public class EventHandler
                 {
                     for (final BlockPos buildingPos : entry.getValue())
                     {
-                        IBuilding building = newColony.getBuildingManager().getBuilding(buildingPos);
+                        IBuilding building = newColony.getServerBuildingManager().getBuilding(buildingPos);
                         if (building != null)
                         {
-                            building.onPlayerEnterNearby(event.player);
+                            building.onPlayerEnterNearby(event.getEntity());
                         }
                     }
                 }
@@ -341,8 +327,21 @@ public class EventHandler
         {
             return;
         }
-        // Prevent hostile mob spawns in colony borders
-        event.setResult(Event.Result.DENY);
+        final IColony newColony = IColonyManager.getInstance().getColonyByWorld(owningColony, (Level) event.getLevel());
+        if (newColony == null)
+        {
+            return;
+        }
+
+        for (final BlockPos buildingPos : ColonyUtils.getAllClaimingBuildings(chunk).getOrDefault(owningColony, Collections.emptySet()))
+        {
+            final IBuilding building = newColony.getServerBuildingManager().getBuilding(buildingPos);
+            if (building != null && building.getBuildingLevel() >= 1 && building.isInBuilding(pos))
+            {
+                event.setResult(MobDespawnEvent.PositionCheck.Result.FAIL);
+                return;
+            }
+        }
     }
 
     /**
@@ -358,12 +357,21 @@ public class EventHandler
             final ServerPlayer player = (ServerPlayer) event.getEntity();
             for (final IColony colony : IColonyManager.getInstance().getAllColonies())
             {
-                if (colony.getPermissions().hasPermission(player, Action.CAN_KEEP_COLONY_ACTIVE_WHILE_AWAY)
-                    || colony.getPermissions().hasPermission(player, Action.RECEIVE_MESSAGES_FAR_AWAY))
+                if (colony.getPermissions().getRank(player).isColonyManager())
                 {
                     colony.getPackageManager().addImportantColonyPlayer(player);
                     colony.getPackageManager().sendColonyViewPackets();
                     colony.getPackageManager().sendPermissionsPackets();
+                }
+            }
+
+            final int size = player.getInventory().getContainerSize();
+            for (int i = 0; i < size; i++)
+            {
+                final ItemStack stack = player.getInventory().getItem(i);
+                if (stack.getItem() instanceof ItemBannerRallyGuards)
+                {
+                    ItemBannerRallyGuards.broadcastPlayerToRally(stack, player.level(), new EntityLocation(player.getUUID()));
                 }
             }
         }
@@ -394,9 +402,9 @@ public class EventHandler
      */
     public static void onEnteringChunkEntity(@NotNull final EntityCitizen entityCitizen, final ChunkPos newChunkPos)
     {
-        if (SlimColonies.getConfig().getServer().pvp_mode.get() && newChunkPos != null)
+        if (MineColonies.getConfig().getServer().pvp_mode.get() && newChunkPos != null)
         {
-            if (entityCitizen.level == null || !WorldUtil.isEntityChunkLoaded(entityCitizen.level, new ChunkPos(newChunkPos.x, newChunkPos.z)))
+            if (entityCitizen.level() == null || !WorldUtil.isEntityChunkLoaded(entityCitizen.level(), new ChunkPos(newChunkPos.x, newChunkPos.z)))
             {
                 return;
             }
@@ -408,13 +416,44 @@ public class EventHandler
                 final LevelChunk chunk = world.getChunk(newChunkPos.x, newChunkPos.z);
                 final int owningColony = ColonyUtils.getOwningColony(chunk);
                 if (owningColony != NO_COLONY_ID
-                    && entityCitizen.getCitizenColonyHandler().getColonyId() != owningColony)
+                      && entityCitizen.getCitizenColonyHandler().getColonyId() != owningColony)
                 {
-                    final IColony colony = IColonyManager.getInstance().getColonyByWorld(owningColony, entityCitizen.level);
+                    final IColony colony = IColonyManager.getInstance().getColonyByWorld(owningColony, entityCitizen.level());
                     if (colony != null)
                     {
                         colony.addGuardToAttackers(entityCitizen, ((IGuardBuilding) entityCitizen.getCitizenColonyHandler().getWorkBuilding()).getPlayerToFollowOrRally());
                     }
+                }
+            }
+        }
+    }
+
+    /**
+     * Event called on player block breaks.
+     *
+     * @param event the event.
+     */
+    @SubscribeEvent
+    public static void onBlockBreak(@NotNull final BlockEvent.BreakEvent event)
+    {
+        if (event.getLevel().isClientSide() || !(event.getLevel() instanceof Level))
+        {
+            return;
+        }
+
+        final Level world = (Level) event.getLevel();
+
+        if (event.getState().getBlock() instanceof SpawnerBlock)
+        {
+            final BlockEntity spawner = event.getLevel().getBlockEntity(event.getPos());
+            if (spawner instanceof SpawnerBlockEntity spawnerBE && spawnerBE.getSpawner().nextSpawnData != null)
+            {
+                final IColony colony = IColonyManager.getInstance()
+                                         .getColonyByDimension(spawnerBE.getSpawner().nextSpawnData.getEntityToSpawn().getInt(TAG_COLONY_ID),
+                    world.dimension());
+                if (colony != null)
+                {
+                    colony.getEventManager().onTileEntityBreak(spawnerBE.getSpawner().nextSpawnData.getEntityToSpawn().getInt(TAG_EVENT_ID), spawner);
                 }
             }
         }
@@ -435,16 +474,23 @@ public class EventHandler
 
         // this was the simple way of doing it, minecraft calls onBlockActivated
         // and uses that return value, but I didn't want to call it twice
-        if (playerRightClickInteract(player, world, event.getPos()) && world.getBlockState(event.getPos()).getBlock() instanceof AbstractBlockHut)
+        if (playerRightClickInteract(player, world, event.getPos()))
         {
-            final IColony colony = IColonyManager.getInstance().getIColony(world, event.getPos());
-            if (colony != null
-                && !colony.getPermissions().hasPermission(player, Action.ACCESS_HUTS))
+            final Block block = world.getBlockState(event.getPos()).getBlock();
+            if (block instanceof AbstractBlockHut<?> abstractBlockHut)
             {
-                event.setCanceled(true);
-            }
+                if (abstractBlockHut.canRightClickWithoutPermissions())
+                {
+                    return;
+                }
+                final IColony colony = IColonyManager.getInstance().getIColony(world, event.getPos());
+                if (colony != null && !colony.getPermissions().hasPermission(player, Action.ACCESS_HUTS))
+                {
+                    event.setCanceled(true);
+                }
 
-            return;
+                return;
+            }
         }
 
         if (world.getBlockState(event.getPos()).getBlock().isBed(world.getBlockState(event.getPos()), world, event.getPos(), player))
@@ -490,12 +536,14 @@ public class EventHandler
                     final ItemStack stack = event.getItemStack();
                     if (!stack.isEmpty() && !world.isClientSide)
                     {
-                        Network.getNetwork()
-                            .sendToPlayer(new OpenSuggestionWindowMessage(block.defaultBlockState().setValue(AbstractBlockHut.FACING,
-                                event.getEntity().getDirection()), event.getPos().relative(event.getFace()), stack), (ServerPlayer) player);
+                        new OpenSuggestionWindowMessage(
+                            block.defaultBlockState().setValue(AbstractBlockHut.FACING, event.getEntity().getDirection()),
+                            event.getPos().relative(event.getFace()),
+                            stack).sendToPlayer((ServerPlayer) player);
                     }
                     event.setCanceled(true);
                 }
+                return;
             }
         }
     }
@@ -511,7 +559,7 @@ public class EventHandler
     private static boolean playerRightClickInteract(@NotNull final Player player, final Level world, final BlockPos pos)
     {
         return !player.isShiftKeyDown() || player.getMainHandItem() == null || player.getMainHandItem().getItem() == null
-            || player.getMainHandItem().getItem().doesSneakBypassUse(player.getMainHandItem(), world, pos, player);
+                 || player.getMainHandItem().getItem().doesSneakBypassUse(player.getMainHandItem(), world, pos, player);
     }
 
     /**
@@ -520,7 +568,7 @@ public class EventHandler
      * @param event  the event.
      * @param player the player causing it.
      */
-    private static void handleEventCancellation(@NotNull final PlayerInteractEvent event, @NotNull final Player player)
+    private static void handleEventCancellation(@NotNull final PlayerInteractEvent.RightClickBlock event, @NotNull final Player player)
     {
         final Block heldBlock = Block.byItem(event.getItemStack().getItem());
         if (heldBlock instanceof AbstractBlockHut || heldBlock instanceof BlockScarecrow)
@@ -547,7 +595,7 @@ public class EventHandler
      */
     public static boolean onBlockHutPlaced(@NotNull final Level world, @NotNull final Player player, final Block block, final BlockPos pos)
     {
-        if (!SlimColonies.getConfig().getServer().allowOtherDimColonies.get() && !WorldUtil.isOverworldType(world))
+        if (!MineColonies.getConfig().getServer().allowOtherDimColonies.get() && !WorldUtil.isOverworldType(world))
         {
             MessageUtils.format(CANT_PLACE_COLONY_IN_OTHER_DIM).sendTo(player);
             return false;
@@ -587,14 +635,14 @@ public class EventHandler
         }
         else
         {
-            return player.isCreative() || colony.getBuildingManager().canPlaceAt(block, pos, player);
+            return player.isCreative() || colony.getServerBuildingManager().canPlaceAt(block, pos, player);
         }
     }
 
     /**
      * Gets called when world loads. Calls {@link ColonyManager#onWorldLoad(Level)})}
      *
-     * @param event {@link net.minecraftforge.event.level.LevelEvent.Load}
+     * @param event {@link net.neoforged.neoforge.event.level.LevelEvent.Load}
      */
     @SubscribeEvent(priority = HIGHEST)
     public static void onWorldLoad(@NotNull final LevelEvent.Load event)
@@ -606,16 +654,16 @@ public class EventHandler
 
         // Global events
         // Halloween ghost mode
-        if (event.getLevel().isClientSide() && SlimColonies.getConfig().getClient().holidayFeatures.get() &&
-            (LocalDateTime.now().getDayOfMonth() == 31 && LocalDateTime.now().getMonth() == Month.OCTOBER
-                || LocalDateTime.now().getDayOfMonth() == 1 && LocalDateTime.now().getMonth() == Month.NOVEMBER
-                || LocalDateTime.now().getDayOfMonth() == 2 && LocalDateTime.now().getMonth() == Month.NOVEMBER))
+        if (event.getLevel().isClientSide() && MineColonies.getConfig().getClient().holidayFeatures.get() &&
+              (LocalDateTime.now().getDayOfMonth() == 31 && LocalDateTime.now().getMonth() == Month.OCTOBER
+                 || LocalDateTime.now().getDayOfMonth() == 1 && LocalDateTime.now().getMonth() == Month.NOVEMBER
+                 || LocalDateTime.now().getDayOfMonth() == 2 && LocalDateTime.now().getMonth() == Month.NOVEMBER))
         {
             // Re-enable for ghostly halloween
             RenderBipedCitizen.isItGhostTime = false;
         }
         // April 1st mode
-        if (event.getLevel().isClientSide() && SlimColonies.getConfig().getClient().holidayFeatures.get() &&
+        if (event.getLevel().isClientSide() && MineColonies.getConfig().getClient().holidayFeatures.get() &&
             LocalDateTime.now().getDayOfMonth() == 1 && LocalDateTime.now().getMonth() == Month.APRIL)
         {
             CitizenModel.isItApril1st = true;
@@ -625,7 +673,7 @@ public class EventHandler
     /**
      * Gets called when world unloads. Calls {@link ColonyManager#onWorldLoad(Level)}
      *
-     * @param event {@link net.minecraftforge.event.level.LevelEvent.Unload}
+     * @param event {@link net.neoforged.neoforge.event.level.LevelEvent.Unload}
      */
     @SubscribeEvent
     public static void onWorldUnload(@NotNull final LevelEvent.Unload event)
@@ -634,10 +682,23 @@ public class EventHandler
         {
             IColonyManager.getInstance().onWorldUnload((Level) event.getLevel());
         }
-        if (event.getLevel().isClientSide())
+    }
+
+    /**
+     * Gets called when farmland is trampled
+     *
+     * @param event the event to handle
+     */
+    @SubscribeEvent
+    public static void onCropTrample(BlockEvent.FarmlandTrampleEvent event)
+    {
+        if (!event.getLevel().isClientSide()
+              && event.getEntity() instanceof AbstractEntityCitizen
+              && ((AbstractEntityCitizen) event.getEntity()).getCitizenJobHandler().getColonyJob() instanceof JobFarmer
+              && ((AbstractEntityCitizen) event.getEntity()).getCitizenColonyHandler().getColonyOrRegister().getResearchManager().getResearchEffects().getEffectStrength(SOFT_SHOES) > 0
+        )
         {
-            IColonyManager.getInstance().resetColonyViews();
-            Log.getLogger().info("Removed all colony views");
+            event.setCanceled(true);
         }
     }
 
@@ -654,17 +715,17 @@ public class EventHandler
         {
             final Level world = entity.getCommandSenderWorld();
             final IColony colony = IColonyManager.getInstance().getIColony(world, entity.blockPosition());
-            if (colony != null && colony.hasBuilding(ModBuildings.tavern.get().getRegistryName(), 1, false))
+            if (colony != null && colony.getCommonBuildingManager().hasBuilding(ModBuildings.tavern.get().getRegistryName(), 1, false))
             {
-                if (ForgeEventFactory.canLivingConvert(entity, ModEntities.VISITOR, null))
+                if (EventHooks.canLivingConvert(entity, ModEntities.VISITOR, null))
                 {
-                    final BlockPos tavernPos = colony.getBuildingManager().getRandomBuilding(b -> !b.getModulesByType(TavernBuildingModule.class).isEmpty());
+                    final BlockPos tavernPos = colony.getServerBuildingManager().getRandomBuilding(b -> !b.getModulesByType(TavernBuildingModule.class).isEmpty());
                     if (tavernPos == null)
                     {
                         return;
                     }
 
-                    final IBuilding tavern = colony.getBuildingManager().getBuilding(tavernPos);
+                    final IBuilding tavern = colony.getServerBuildingManager().getBuilding(tavernPos);
                     final TavernBuildingModule module = tavern.getModule(BuildingModules.TAVERN_VISITOR);
                     final IVisitorData visitorData = module.spawnVisitor();
                     if (visitorData == null)
@@ -672,9 +733,9 @@ public class EventHandler
                         return;
                     }
                     event.setCanceled(true);
-
                     visitorData.triggerInteraction(new RecruitmentInteraction(Component.translatable(
                         "no.monopixel.slimcolonies.coremod.gui.chat.recruitstorycured", visitorData.getName().split(" ")[0]), ChatPriority.IMPORTANT));
+
                     visitorData.getEntity().ifPresent(e -> e.setPos(entity.getX(), entity.getY(), entity.getZ()));
                     if (!entity.isSilent())
                     {
@@ -688,14 +749,13 @@ public class EventHandler
     }
 
     @SubscribeEvent
-    public static void onServerTick(TickEvent.ServerTickEvent event)
+    public static void onServerTick(ServerTickEvent.Pre event)
     {
-        final double lastTickMs = event.getServer().tickTimes[event.getServer().getTickCount() % 100] * 1.0E-6D;
+        final double lastTickMs = event.getServer().getTickTimesNanos()[event.getServer().getTickCount() % 100] * 1.0E-6D;
         if (lastTickMs > 50)
         {
             TickRateStateMachine.slownessFactor = Mth.clamp(lastTickMs / 50, 1.0D, 5.0D);
-        }
-        else
+        } else
         {
             TickRateStateMachine.slownessFactor = 1.0D;
         }

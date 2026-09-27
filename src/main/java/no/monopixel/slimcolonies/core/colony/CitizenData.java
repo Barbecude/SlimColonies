@@ -1,20 +1,7 @@
 package no.monopixel.slimcolonies.core.colony;
 
-import net.minecraft.core.BlockPos;
-import net.minecraft.nbt.*;
-import net.minecraft.network.FriendlyByteBuf;
-import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
-import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.InteractionHand;
-import net.minecraft.world.entity.Entity;
-import net.minecraft.world.entity.EquipmentSlot;
-import net.minecraft.world.entity.ai.attributes.AttributeModifier;
-import net.minecraft.world.entity.ai.attributes.Attributes;
-import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.item.ItemStack;
-import no.monopixel.slimcolonies.api.ISlimColoniesAPI;
-import no.monopixel.slimcolonies.api.SlimColoniesAPIProxy;
+import no.monopixel.slimcolonies.api.IMinecoloniesAPI;
+import no.monopixel.slimcolonies.api.MinecoloniesAPIProxy;
 import no.monopixel.slimcolonies.api.colony.CitizenNameFile;
 import no.monopixel.slimcolonies.api.colony.ICitizenData;
 import no.monopixel.slimcolonies.api.colony.IColony;
@@ -32,8 +19,8 @@ import no.monopixel.slimcolonies.api.entity.citizen.AbstractCivilianEntity;
 import no.monopixel.slimcolonies.api.entity.citizen.AbstractEntityCitizen;
 import no.monopixel.slimcolonies.api.entity.citizen.Skill;
 import no.monopixel.slimcolonies.api.entity.citizen.VisibleCitizenStatus;
+import no.monopixel.slimcolonies.api.entity.citizen.citizenhandlers.ICitizenDiseaseHandler;
 import no.monopixel.slimcolonies.api.entity.citizen.citizenhandlers.ICitizenFoodHandler;
-import no.monopixel.slimcolonies.api.entity.citizen.citizenhandlers.ICitizenInjuryHandler;
 import no.monopixel.slimcolonies.api.entity.citizen.citizenhandlers.ICitizenSkillHandler;
 import no.monopixel.slimcolonies.api.eventbus.events.colony.citizens.CitizenJobChangedModEvent;
 import no.monopixel.slimcolonies.api.inventory.InventoryCitizen;
@@ -41,17 +28,34 @@ import no.monopixel.slimcolonies.api.quests.IQuestDeliveryObjective;
 import no.monopixel.slimcolonies.api.quests.IQuestInstance;
 import no.monopixel.slimcolonies.api.quests.IQuestManager;
 import no.monopixel.slimcolonies.api.util.*;
-import no.monopixel.slimcolonies.core.Network;
+import no.monopixel.slimcolonies.api.util.constant.Suppression;
+import no.monopixel.slimcolonies.core.MineColonies;
 import no.monopixel.slimcolonies.core.colony.buildings.modules.LivingBuildingModule;
 import no.monopixel.slimcolonies.core.colony.interactionhandling.QuestDeliveryInteraction;
 import no.monopixel.slimcolonies.core.colony.interactionhandling.QuestDialogueInteraction;
 import no.monopixel.slimcolonies.core.colony.interactionhandling.ServerCitizenInteraction;
+import no.monopixel.slimcolonies.core.colony.interactionhandling.StandardInteraction;
 import no.monopixel.slimcolonies.core.entity.citizen.EntityCitizen;
-import no.monopixel.slimcolonies.core.entity.citizen.citizenhandlers.CitizenFoodHandler;
-import no.monopixel.slimcolonies.core.entity.citizen.citizenhandlers.CitizenInjuryHandler;
-import no.monopixel.slimcolonies.core.entity.citizen.citizenhandlers.CitizenSkillHandler;
+import no.monopixel.slimcolonies.core.entity.citizen.citizenhandlers.*;
 import no.monopixel.slimcolonies.core.network.messages.client.colony.ColonyViewCitizenViewMessage;
 import no.monopixel.slimcolonies.core.util.AttributeModifierUtils;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.nbt.*;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EquipmentSlot;
+import net.minecraft.world.entity.ai.attributes.AttributeInstance;
+import net.minecraft.world.entity.ai.attributes.AttributeModifier;
+import net.minecraft.world.entity.ai.attributes.Attributes;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.enchantment.EnchantmentHelper;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -65,15 +69,15 @@ import static no.monopixel.slimcolonies.api.util.constant.CitizenConstants.*;
 import static no.monopixel.slimcolonies.api.util.constant.ColonyConstants.UPDATE_SUBSCRIBERS_INTERVAL;
 import static no.monopixel.slimcolonies.api.util.constant.Constants.TAG_STRING;
 import static no.monopixel.slimcolonies.api.util.constant.Constants.TICKS_SECOND;
-import static no.monopixel.slimcolonies.api.util.constant.NbtTagConstants.*;
 import static no.monopixel.slimcolonies.api.util.constant.NbtTagConstants.TAG_ID;
 import static no.monopixel.slimcolonies.api.util.constant.NbtTagConstants.TAG_NAME;
-import static no.monopixel.slimcolonies.api.util.constant.TranslationConstants.MESSAGE_CITIZEN_RESTARTED;
+import static no.monopixel.slimcolonies.api.util.constant.NbtTagConstants.*;
+import static no.monopixel.slimcolonies.api.util.constant.TranslationConstants.*;
 
 /**
  * Extra data for Citizens.
  */
-@SuppressWarnings("PMD.ExcessiveClassLength")
+@SuppressWarnings({Suppression.BIG_CLASS, "PMD.ExcessiveClassLength"})
 public class CitizenData implements ICitizenData
 {
     /**
@@ -85,6 +89,11 @@ public class CitizenData implements ICitizenData
      * Max levels of an attribute a citizen may initially have.
      */
     private static final int LETTERS_IN_THE_ALPHABET = 26;
+
+    /**
+     * Minimum saturation of a citizen.
+     */
+    private static final int MIN_SATURATION = 0;
 
     /**
      * Possible texture suffixes.
@@ -200,6 +209,16 @@ public class CitizenData implements ICitizenData
     private BlockPos lastPosition = new BlockPos(0, 0, 0);
 
     /**
+     * The citizen happiness handler.
+     */
+    private final CitizenHappinessHandler citizenHappinessHandler;
+
+    /**
+     * The citizen happiness handler.
+     */
+    private final CitizenMournHandler citizenMournHandler;
+
+    /**
      * The citizen skill handler.
      */
     private final CitizenSkillHandler citizenSkillHandler;
@@ -212,7 +231,7 @@ public class CitizenData implements ICitizenData
     /**
      * Disease handler
      */
-    private final CitizenInjuryHandler citizenInjuryHandler;
+    private final CitizenDiseaseHandler citizenDiseaseHandler;
 
     /**
      * The citizen chat options on the server side.
@@ -244,6 +263,11 @@ public class CitizenData implements ICitizenData
      * The citizen data random.
      */
     private final Random random = new Random();
+
+    /**
+     * Chance to complain for having no guard nearby
+     */
+    private static final int NO_GUARD_COMPLAIN_CHANCE = 10;
 
     /**
      * Consumed position to determine the next position to respawn at.
@@ -321,6 +345,11 @@ public class CitizenData implements ICitizenData
     private UUID textureUUID;
 
     /**
+     * Citizen leisure time in ticks.
+     */
+    private int leisureTime;
+
+    /**
      * Create a CitizenData given an ID. Used as a super-constructor or during loading.
      *
      * @param id     ID of the Citizen.
@@ -330,10 +359,12 @@ public class CitizenData implements ICitizenData
     {
         this.id = id;
         this.colony = colony;
-        inventory = new InventoryCitizen("SlimColonies Inventory", true, this);
+        inventory = new InventoryCitizen("Minecolonies Inventory", true, this);
+        this.citizenHappinessHandler = new CitizenHappinessHandler(this);
+        this.citizenMournHandler = new CitizenMournHandler(this);
         this.citizenSkillHandler = new CitizenSkillHandler();
         this.citizenFoodHandler = new CitizenFoodHandler(this);
-        citizenInjuryHandler = new CitizenInjuryHandler(this);
+        citizenDiseaseHandler = new CitizenDiseaseHandler(this);
     }
 
     @Override
@@ -381,9 +412,14 @@ public class CitizenData implements ICitizenData
     @Override
     public void setEntity(@Nullable final AbstractCivilianEntity citizen)
     {
-        if (entity.get() != null)
+        final Entity old = entity.get();
+        if (old != null)
         {
             entity.clear();
+            if (old.isAlive())
+            {
+                old.discard();
+            }
         }
 
         if (citizen != null)
@@ -404,7 +440,7 @@ public class CitizenData implements ICitizenData
             {
                 if (getColony().getWorld().getPlayerByUUID(player) instanceof ServerPlayer playerEntity)
                 {
-                    Network.getNetwork().sendToPlayer(new ColonyViewCitizenViewMessage((Colony) getColony(), this), playerEntity);
+                    new ColonyViewCitizenViewMessage((Colony) getColony(), this).sendToPlayer(playerEntity);
                 }
             }
         }
@@ -438,55 +474,13 @@ public class CitizenData implements ICitizenData
         return (char) (rand.nextInt(LETTERS_IN_THE_ALPHABET) + 'A');
     }
 
-    private static boolean isVowel(final char c)
-    {
-        final char lower = Character.toLowerCase(c);
-        return lower == 'a' || lower == 'e' || lower == 'i' || lower == 'o' || lower == 'u' ||
-               lower == 'á' || lower == 'é' || lower == 'í' || lower == 'ó' || lower == 'ú' ||
-               lower == 'ý' || lower == 'æ' || lower == 'ø' || lower == 'å' || lower == 'ö';
-    }
-
-    private static String getFatherFirstName(final String firstParentName, @NotNull final CitizenNameFile nameFile, @NotNull final Random rand)
-    {
-        if (firstParentName == null || firstParentName.isEmpty())
-        {
-            return getRandomElement(rand, nameFile.maleFirstNames);
-        }
-
-        final String[] nameSplit = firstParentName.split(" ");
-        final boolean eastern = nameFile.order == CitizenNameFile.NameOrder.EASTERN;
-        return eastern ? nameSplit[nameSplit.length - 1] : nameSplit[0];
-    }
-
-    private static String generatePatronymicSurname(@NotNull final Random rand, @NotNull final String fatherFirstName, final boolean female, @NotNull final CitizenNameFile nameFile)
-    {
-        final List<String> suffixes = female ? nameFile.femaleSuffixes : nameFile.maleSuffixes;
-
-        String suffix;
-        if (isVowel(fatherFirstName.charAt(fatherFirstName.length() - 1)))
-        {
-            suffix = suffixes.stream()
-                .filter(s -> s.startsWith("s"))
-                .findFirst()
-                .orElse(getRandomElement(rand, suffixes));
-        }
-        else
-        {
-            suffix = suffixes.stream()
-                .filter(s -> !s.startsWith("s"))
-                .findFirst()
-                .orElse(getRandomElement(rand, suffixes));
-        }
-
-        return fatherFirstName + suffix;
-    }
-
     @Override
     public int hashCode()
     {
         return id;
     }
 
+    @SuppressWarnings(Suppression.TOO_MANY_RETURNS)
     @Override
     public boolean equals(final Object o)
     {
@@ -534,8 +528,12 @@ public class CitizenData implements ICitizenData
 
         saturation = MAX_SATURATION;
 
-        // Initialize skills with random levels 1-9
-        citizenSkillHandler.init(10);
+        int levelCap = (int) colony.getOverallHappiness() * 2;
+        if (colony.getCitizenManager().getCitizens().size() < IMinecoloniesAPI.getInstance().getConfig().getServer().initialCitizenAmount.get())
+        {
+            levelCap = Math.max(5, levelCap);
+        }
+        citizenSkillHandler.init(levelCap);
 
         markDirty(0);
     }
@@ -615,7 +613,17 @@ public class CitizenData implements ICitizenData
 
             if (!ItemStackUtils.isEmpty(stack))
             {
-                citizen.getAttributes().addTransientAttributeModifiers(stack.getAttributeModifiers(slot));
+                stack.forEachModifier(slot, (attributeHolder, modifier) -> {
+                    AttributeInstance attributeinstance = citizen.getAttributes().getInstance(attributeHolder);
+                    if (attributeinstance != null) {
+                        attributeinstance.removeModifier(modifier.id());
+                        attributeinstance.addTransientModifier(modifier);
+                    }
+
+                    if (citizen.level() instanceof ServerLevel serverlevel) {
+                        EnchantmentHelper.runLocationChangedEffects(serverlevel, stack, citizen, slot);
+                    }
+                });
             }
         }
     }
@@ -637,22 +645,21 @@ public class CitizenData implements ICitizenData
 
         if (female)
         {
-            firstName = getRandomElement(rand, nameFile.femaleFirstNames);
+            firstName = getRandomElement(rand, nameFile.femalefirstNames);
         }
         else
         {
             firstName = getRandomElement(rand, nameFile.maleFirstNames);
         }
 
-        if (nameFile.patronymic && nameFile.maleSuffixes != null && nameFile.femaleSuffixes != null)
+        middleInitial = String.valueOf(getRandomLetter(rand));
+        if (nameFile.order == CitizenNameFile.NameOrder.PATRONYMIC || nameFile.surnames.isEmpty())
         {
-            final String fatherFirstName = getFatherFirstName(null, nameFile, rand);
-            lastName = generatePatronymicSurname(rand, fatherFirstName, female, nameFile);
-            middleInitial = "";
+            final String parentFirstName = getRandomElement(rand, nameFile.maleFirstNames);
+            lastName = parentFirstName + (female ? nameFile.femaleSuffix : nameFile.maleSuffix);
         }
         else
         {
-            middleInitial = String.valueOf(getRandomLetter(rand));
             lastName = getRandomElement(rand, nameFile.surnames);
         }
 
@@ -698,77 +705,69 @@ public class CitizenData implements ICitizenData
      */
     public void generateName(@NotNull final Random rand, final String firstParentName, final String secondParentName, final CitizenNameFile nameFile)
     {
+        String nameA = firstParentName;
+        String nameB = secondParentName;
+
         String citizenName;
         final String firstName;
         String middleInitial = "";
         final String lastName;
 
-        if (nameFile.patronymic && nameFile.maleSuffixes != null && nameFile.femaleSuffixes != null)
+        if (firstParentName == null || firstParentName.isEmpty())
         {
-            final String fatherFirstName = getFatherFirstName(firstParentName, nameFile, rand);
-            lastName = generatePatronymicSurname(rand, fatherFirstName, female, nameFile);
+            nameA = generateName(rand, rand.nextBoolean(), colony, nameFile);
         }
-        else
+
+        if (secondParentName == null || secondParentName.isEmpty())
         {
-            String nameA = firstParentName;
-            String nameB = secondParentName;
+            nameB = generateName(rand, rand.nextBoolean(), colony, nameFile);
+        }
 
-            if (firstParentName == null || firstParentName.isEmpty())
+        final String[] firstParentNameSplit = nameA.split(" ");
+        final String[] secondParentNameSplit = nameB.split(" ");
+
+        if (firstParentNameSplit.length <= 1)
+        {
+            generateName(rand, "", secondParentName, nameFile);
+            return;
+        }
+
+        if (secondParentNameSplit.length <= 1)
+        {
+            generateName(rand, firstParentName, "", nameFile);
+            return;
+        }
+
+        final boolean eastern = nameFile.order == CitizenNameFile.NameOrder.EASTERN;
+
+        if (random.nextBoolean())
+        {
+            if (nameFile.parts == 3)
             {
-                nameA = generateName(rand, rand.nextBoolean(), colony, nameFile);
-            }
-
-            if (secondParentName == null || secondParentName.isEmpty())
-            {
-                nameB = generateName(rand, rand.nextBoolean(), colony, nameFile);
-            }
-
-            final String[] firstParentNameSplit = nameA.split(" ");
-            final String[] secondParentNameSplit = nameB.split(" ");
-
-            if (firstParentNameSplit.length <= 1)
-            {
-                generateName(rand, "", secondParentName, nameFile);
-                return;
-            }
-
-            if (secondParentNameSplit.length <= 1)
-            {
-                generateName(rand, firstParentName, "", nameFile);
-                return;
-            }
-
-            final boolean eastern = nameFile.order == CitizenNameFile.NameOrder.EASTERN;
-
-            if (random.nextBoolean())
-            {
-                if (nameFile.parts == 3)
-                {
-                    middleInitial = firstParentNameSplit[eastern ? 0 : firstParentNameSplit.length - 1].substring(0, 1);
-                    lastName = secondParentNameSplit[eastern ? 0 : secondParentNameSplit.length - 1];
-                }
-                else
-                {
-                    lastName = secondParentNameSplit[eastern ? 0 : secondParentNameSplit.length - 1];
-                }
+                middleInitial = firstParentNameSplit[eastern ? 0 : firstParentNameSplit.length - 1].substring(0, 1);
+                lastName = secondParentNameSplit[eastern ? 0 : secondParentNameSplit.length - 1];
             }
             else
             {
-                if (nameFile.parts == 3)
-                {
-                    middleInitial = secondParentNameSplit[eastern ? 0 : secondParentNameSplit.length - 1].substring(0, 1);
-                    lastName = firstParentNameSplit[eastern ? 0 : firstParentNameSplit.length - 1];
-                }
-                else
-                {
-                    lastName = firstParentNameSplit[eastern ? 0 : firstParentNameSplit.length - 1];
-                }
+                lastName = eastern ? secondParentNameSplit[0] : nameB.replace(secondParentNameSplit[0], "").trim();
+            }
+        }
+        else
+        {
+            if (nameFile.parts == 3)
+            {
+                middleInitial = secondParentNameSplit[eastern ? 0 : secondParentNameSplit.length - 1].substring(0, 1);
+                lastName = firstParentNameSplit[eastern ? 0 : firstParentNameSplit.length - 1];
+            }
+            else
+            {
+                lastName = eastern ? firstParentNameSplit[0] : nameA.replace(firstParentNameSplit[0], "").trim();
             }
         }
 
         if (female)
         {
-            firstName = getRandomElement(rand, nameFile.femaleFirstNames);
+            firstName = getRandomElement(rand, nameFile.femalefirstNames);
         }
         else
         {
@@ -946,10 +945,12 @@ public class CitizenData implements ICitizenData
         if (getEntity().isPresent())
         {
             final Entity entity = getEntity().get();
-            if (entity.isAlive() && WorldUtil.isEntityBlockLoaded(entity.level, entity.blockPosition()))
+            if (entity.isAlive() && WorldUtil.isEntityBlockLoaded(entity.level(), entity.blockPosition()))
             {
                 return;
             }
+
+            setEntity(null);
         }
 
         //Check if we are traveling, we don't spawn an entity if we are traveling.
@@ -974,23 +975,34 @@ public class CitizenData implements ICitizenData
             spawnVisible = true;
         }
 
+        List<BlockPos> spawnPositions = new ArrayList<>();
         if (nextRespawnPos != null)
         {
-            ICitizenData data = colony.getCitizenManager().spawnOrCreateCivilian(this, colony.getWorld(), nextRespawnPos, true);
-            data.getEntity().ifPresent(entity -> {
-                entity.getCitizenJobHandler().setModelDependingOnJob(data.getJob());
+            spawnPositions.add(nextRespawnPos);
+        }
+        spawnPositions.add(lastPosition);
+        if (getWorkBuilding() != null)
+        {
+            spawnPositions.add(getWorkBuilding().getPosition());
+        }
+        if (getHomeBuilding() != null)
+        {
+            spawnPositions.add(getHomeBuilding().getPosition());
+        }
+
+        colony.getCitizenManager().spawnOrCreateCivilian(this, colony.getWorld(), spawnPositions, true);
+
+        if (nextRespawnPos != null)
+        {
+            getEntity().ifPresent(entity -> {
+                entity.getCitizenJobHandler().setModelDependingOnJob(getJob());
                 if (!spawnVisible)
                 {
                     entity.setInvisible(true);
                     entity.setPos(nextRespawnPos.getX(), nextRespawnPos.getY(), nextRespawnPos.getZ());
                 }
+                nextRespawnPos = null;
             });
-
-            nextRespawnPos = null;
-        }
-        else
-        {
-            colony.getCitizenManager().spawnOrCreateCivilian(this, colony.getWorld(), lastPosition, true);
         }
     }
 
@@ -1028,7 +1040,7 @@ public class CitizenData implements ICitizenData
 
         if (!onLoad)
         {
-            ISlimColoniesAPI.getInstance().getEventBus().post(new CitizenJobChangedModEvent(this, Optional.ofNullable(oldJob).map(IJob::getJobRegistryEntry).orElse(null)));
+            IMinecoloniesAPI.getInstance().getEventBus().post(new CitizenJobChangedModEvent(this, Optional.ofNullable(oldJob).map(IJob::getJobRegistryEntry).orElse(null)));
         }
 
         markDirty(0);
@@ -1047,7 +1059,7 @@ public class CitizenData implements ICitizenData
     }
 
     @Override
-    public void serializeViewNetworkData(@NotNull final FriendlyByteBuf buf)
+    public void serializeViewNetworkData(@NotNull final RegistryFriendlyByteBuf buf)
     {
         buf.writeUtf(name);
         buf.writeBoolean(female);
@@ -1071,6 +1083,7 @@ public class CitizenData implements ICitizenData
         }
 
         buf.writeDouble(getSaturation());
+        buf.writeDouble(citizenHappinessHandler.getHappiness(getColony(), this));
 
         buf.writeNbt(citizenSkillHandler.write());
 
@@ -1079,7 +1092,7 @@ public class CitizenData implements ICitizenData
         buf.writeInt(colony.getID());
 
         final CompoundTag compound = new CompoundTag();
-        inventory.write(compound);
+        inventory.write(buf.registryAccess(), compound);
         buf.writeNbt(compound);
         buf.writeBlockPos(lastPosition);
 
@@ -1090,13 +1103,17 @@ public class CitizenData implements ICitizenData
             buf.writeInt(subInteractions.size());
             for (final IInteractionResponseHandler interactionHandler : subInteractions)
             {
-                buf.writeNbt(interactionHandler.serializeNBT());
+                buf.writeNbt(interactionHandler.serializeNBT(buf.registryAccess()));
             }
         }
         else
         {
             buf.writeInt(0);
         }
+
+        final CompoundTag happinessCompound = new CompoundTag();
+        citizenHappinessHandler.write(buf.registryAccess(), happinessCompound, false);
+        buf.writeNbt(happinessCompound);
 
         buf.writeInt(status != null ? status.getId() : -1);
 
@@ -1155,6 +1172,7 @@ public class CitizenData implements ICitizenData
             buf.writeBoolean(true);
             buf.writeUUID(textureUUID);
         }
+        buf.writeBoolean(citizenDiseaseHandler.isSick());
     }
 
     @Override
@@ -1168,7 +1186,7 @@ public class CitizenData implements ICitizenData
     {
         if (colony != null && colony.isActive())
         {
-            this.saturation = Math.max(0, this.saturation - extraSaturation);
+            this.saturation = Math.max(MIN_SATURATION, this.saturation - Math.abs(extraSaturation * MineColonies.getConfig().getServer().foodModifier.get()));
             this.justAte = false;
         }
     }
@@ -1226,12 +1244,25 @@ public class CitizenData implements ICitizenData
     public void setAsleep(final boolean asleep)
     {
         isAsleep = asleep;
+        leisureTime = 0;
     }
 
     @Override
     public void setBedPos(final BlockPos bedPos)
     {
         this.bedPos = bedPos;
+    }
+
+    @Override
+    public CitizenHappinessHandler getCitizenHappinessHandler()
+    {
+        return citizenHappinessHandler;
+    }
+
+    @Override
+    public CitizenMournHandler getCitizenMournHandler()
+    {
+        return citizenMournHandler;
     }
 
     @Override
@@ -1247,9 +1278,9 @@ public class CitizenData implements ICitizenData
     }
 
     @Override
-    public ICitizenInjuryHandler getCitizenInjuryHandler()
+    public ICitizenDiseaseHandler getCitizenDiseaseHandler()
     {
-        return citizenInjuryHandler;
+        return citizenDiseaseHandler;
     }
 
     @Override
@@ -1303,7 +1334,7 @@ public class CitizenData implements ICitizenData
     }
 
     @Override
-    public CompoundTag serializeNBT()
+    public CompoundTag serializeNBT(@NotNull final HolderLookup.Provider provider)
     {
         final CompoundTag nbtTagCompound = new CompoundTag();
 
@@ -1328,15 +1359,16 @@ public class CitizenData implements ICitizenData
 
         if (job != null)
         {
-            @NotNull final Tag jobCompound = job.serializeNBT();
+            @NotNull final Tag jobCompound = job.serializeNBT(provider);
             nbtTagCompound.put("job", jobCompound);
         }
 
-        // Happiness system removed
+        citizenHappinessHandler.write(provider, nbtTagCompound, true);
+        citizenMournHandler.write(nbtTagCompound);
         citizenFoodHandler.write(nbtTagCompound);
-        citizenInjuryHandler.write(nbtTagCompound);
+        citizenDiseaseHandler.write(nbtTagCompound);
 
-        inventory.write(nbtTagCompound);
+        inventory.write(provider, nbtTagCompound);
         nbtTagCompound.putInt(TAG_HELD_ITEM_SLOT, inventory.getHeldItemSlot(InteractionHand.MAIN_HAND));
         nbtTagCompound.putInt(TAG_OFFHAND_HELD_ITEM_SLOT, inventory.getHeldItemSlot(InteractionHand.OFF_HAND));
 
@@ -1348,7 +1380,7 @@ public class CitizenData implements ICitizenData
         for (@NotNull final IInteractionResponseHandler entry : citizenChatOptions.values())
         {
             @NotNull final CompoundTag chatOptionCompound = new CompoundTag();
-            chatOptionCompound.put(TAG_CHAT_OPTION, entry.serializeNBT());
+            chatOptionCompound.put(TAG_CHAT_OPTION, entry.serializeNBT(provider));
             chatTagList.add(chatOptionCompound);
         }
 
@@ -1373,6 +1405,7 @@ public class CitizenData implements ICitizenData
         nbtTagCompound.put(TAG_CHILDREN, childrenNBT);
         nbtTagCompound.putInt(TAG_PARTNER, partner);
         nbtTagCompound.putBoolean(TAG_ACTIVE, this.isWorking);
+        nbtTagCompound.putInt(TAG_LEISURE, this.leisureTime);
 
         @NotNull final ListTag avQuestNBT = new ListTag();
         for (final ResourceLocation quest : availableQuests)
@@ -1410,7 +1443,7 @@ public class CitizenData implements ICitizenData
     }
 
     @Override
-    public void deserializeNBT(final CompoundTag nbtTagCompound)
+    public void deserializeNBT(@NotNull final HolderLookup.Provider provider, final CompoundTag nbtTagCompound)
     {
         name = nbtTagCompound.getString(TAG_NAME);
         female = nbtTagCompound.getBoolean(TAG_FEMALE);
@@ -1449,12 +1482,12 @@ public class CitizenData implements ICitizenData
 
         if (nbtTagCompound.contains("job"))
         {
-            setJob(IJobDataManager.getInstance().createFrom(this, nbtTagCompound.getCompound("job")), true);
+            setJob(IJobDataManager.getInstance().createFrom(this, nbtTagCompound.getCompound("job"), provider), true);
         }
 
         if (nbtTagCompound.contains(TAG_INVENTORY))
         {
-            this.inventory.read(nbtTagCompound);
+            this.inventory.read(provider, nbtTagCompound);
             this.inventory.setHeldItem(InteractionHand.MAIN_HAND, nbtTagCompound.getInt(TAG_HELD_ITEM_SLOT));
             this.inventory.setHeldItem(InteractionHand.OFF_HAND, nbtTagCompound.getInt(TAG_OFFHAND_HELD_ITEM_SLOT));
         }
@@ -1484,9 +1517,9 @@ public class CitizenData implements ICitizenData
                 try
                 {
                     final ServerCitizenInteraction handler =
-                        (ServerCitizenInteraction) SlimColoniesAPIProxy.getInstance()
+                        (ServerCitizenInteraction) MinecoloniesAPIProxy.getInstance()
                             .getInteractionResponseHandlerDataManager()
-                            .createFrom(this, handlerTagList.getCompound(i).getCompound(TAG_CHAT_OPTION));
+                            .createFrom(provider, this, handlerTagList.getCompound(i).getCompound(TAG_CHAT_OPTION));
                     citizenChatOptions.put(handler.getId(), handler);
                 }
                 catch (final Exception ex)
@@ -1496,12 +1529,14 @@ public class CitizenData implements ICitizenData
             }
         }
 
+        this.citizenHappinessHandler.read(provider, nbtTagCompound, true);
+        this.citizenMournHandler.read(nbtTagCompound);
         this.citizenFoodHandler.read(nbtTagCompound);
-        citizenInjuryHandler.read(nbtTagCompound);
+        citizenDiseaseHandler.read(nbtTagCompound);
 
         if (nbtTagCompound.contains(TAG_LEVEL_MAP) && !nbtTagCompound.contains(TAG_NEW_SKILLS))
         {
-            citizenSkillHandler.init(10);
+            citizenSkillHandler.init((int) citizenHappinessHandler.getHappiness(getColony(), this));
             final Map<String, Integer> levels = new HashMap<>();
             final ListTag levelTagList = nbtTagCompound.getList(TAG_LEVEL_MAP, Tag.TAG_COMPOUND);
             for (int i = 0; i < levelTagList.size(); ++i)
@@ -1549,6 +1584,7 @@ public class CitizenData implements ICitizenData
 
         partner = nbtTagCompound.getInt(TAG_PARTNER);
         this.isWorking = nbtTagCompound.getBoolean(TAG_ACTIVE);
+        this.leisureTime = nbtTagCompound.getInt(TAG_LEISURE);
 
         @NotNull final ListTag availQuestNbt = nbtTagCompound.getList(TAG_AV_QUESTS, TAG_STRING);
         for (int i = 0; i < availQuestNbt.size(); i++)
@@ -1596,7 +1632,7 @@ public class CitizenData implements ICitizenData
 
         if (job.getBuildingPos() != null && job.getWorkBuilding() == null)
         {
-            final IBuilding building = colony.getBuildingManager().getBuilding(job.getBuildingPos());
+            final IBuilding building = colony.getServerBuildingManager().getBuilding(job.getBuildingPos());
 
             if (building != null)
             {
@@ -1629,6 +1665,16 @@ public class CitizenData implements ICitizenData
         if (!getEntity().isPresent() || !getEntity().get().isAlive())
         {
             return;
+        }
+
+        final int homeBuildingLevel = homeBuilding == null ? 1 : homeBuilding.getBuildingLevel();
+        if (leisureTime > 0)
+        {
+            leisureTime -= tickRate;
+        }
+        else if (MathUtils.RANDOM.nextInt(TICKS_SECOND * 60 * (int) (60 / (homeBuildingLevel / 2.0)) / tickRate) <= 0)
+        {
+            leisureTime = (int) (TICKS_SECOND * 60 * 3.0);
         }
 
         if (interactedRecently > 0)
@@ -1681,7 +1727,7 @@ public class CitizenData implements ICitizenData
             }
         }
 
-        citizenInjuryHandler.update(tickRate);
+        citizenDiseaseHandler.update(tickRate);
     }
 
     @Override
@@ -1755,6 +1801,15 @@ public class CitizenData implements ICitizenData
     }
 
     @Override
+    public void onRequestCompleted(final IToken<?> token)
+    {
+        if (isRequestAsync(token))
+        {
+            job.getAsyncRequests().remove(token);
+        }
+    }
+
+    @Override
     public boolean isRequestAsync(@NotNull final IToken<?> token)
     {
         if (job != null)
@@ -1803,10 +1858,10 @@ public class CitizenData implements ICitizenData
      * @param nbt    nbt compound to read from
      * @return new CitizenData
      */
-    public static CitizenData loadFromNBT(final IColony colony, final CompoundTag nbt)
+    public static CitizenData loadFromNBT(final IColony colony, final CompoundTag nbt, @NotNull final HolderLookup.Provider provider)
     {
         final CitizenData data = new CitizenData(nbt.getInt(TAG_ID), colony);
-        data.deserializeNBT(nbt);
+        data.deserializeNBT(provider, nbt);
         return data;
     }
 
@@ -1829,19 +1884,42 @@ public class CitizenData implements ICitizenData
 
             final AttributeModifier speedModifier = new AttributeModifier(RESEARCH_BONUS_MULTIPLIER,
                 colony.getResearchManager().getResearchEffects().getEffectStrength(WALKING),
-                AttributeModifier.Operation.MULTIPLY_TOTAL);
+                AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL);
             AttributeModifierUtils.addModifier(citizen, speedModifier, Attributes.MOVEMENT_SPEED);
 
             final AttributeModifier healthModLevel =
-                new AttributeModifier(HEALTH_BOOST.toString(),
+                new AttributeModifier(HEALTH_BOOST,
                     colony.getResearchManager().getResearchEffects().getEffectStrength(HEALTH_BOOST),
-                    AttributeModifier.Operation.ADDITION);
+                    AttributeModifier.Operation.ADD_VALUE);
             AttributeModifierUtils.addHealthModifier(citizen, healthModLevel);
 
             if (getColony().getResearchManager().getResearchEffects().getEffectStrength(MORE_AIR) > 0)
             {
                 ((EntityCitizen) citizen).setMaxAir(600);
             }
+        }
+    }
+
+    @Override
+    public void onGoSleep()
+    {
+        if (random.nextInt(NO_GUARD_COMPLAIN_CHANCE) != 0)
+        {
+            return;
+        }
+
+        if (job != null && job.getWorkBuilding() != null && !job.getWorkBuilding().isGuardBuildingNear() && !WorldUtil.isPeaceful(colony.getWorld()))
+        {
+            triggerInteraction(new StandardInteraction(Component.translatableEscape(CITIZEN_NOT_GUARD_NEAR_WORK),
+                Component.translatableEscape(CITIZEN_NOT_GUARD_NEAR_WORK),
+                ChatPriority.CHITCHAT));
+        }
+
+        if (homeBuilding != null && !homeBuilding.isGuardBuildingNear() && !WorldUtil.isPeaceful(colony.getWorld()))
+        {
+            triggerInteraction(new StandardInteraction(Component.translatableEscape(CITIZEN_NOT_GUARD_NEAR_HOME),
+                Component.translatableEscape(CITIZEN_NOT_GUARD_NEAR_HOME),
+                ChatPriority.CHITCHAT));
         }
     }
 
@@ -1958,7 +2036,6 @@ public class CitizenData implements ICitizenData
     public void setParents(final String firstParent, final String secondParent)
     {
         this.parents = new Tuple<>(firstParent, secondParent);
-        markDirty(0);
     }
 
     @Override
@@ -2077,18 +2154,30 @@ public class CitizenData implements ICitizenData
 
         if (colony != null)
         {
-            final IBuilding tavern = colony.getBuildingManager().getFirstBuildingMatching(b -> b.getBuildingType() == ModBuildings.tavern.get());
+            final IBuilding tavern = colony.getServerBuildingManager().getFirstBuildingMatching(b -> b.getBuildingType() == ModBuildings.tavern.get());
             if (tavern != null && tavern.getBuildingLevel() > 0)
             {
                 return tavern.getPosition();
             }
-            else if (colony.getBuildingManager().getTownHall() != null)
+            else if (colony.getServerBuildingManager().getTownHall() != null)
             {
-                return colony.getBuildingManager().getTownHall().getPosition();
+                return colony.getServerBuildingManager().getTownHall().getPosition();
             }
             return colony.getCenter();
         }
 
         return null;
+    }
+
+    @Override
+    public double getDiseaseModifier()
+    {
+        return citizenFoodHandler.getDiseaseModifier(getJob() == null ? 1 : getJob().getDiseaseModifier());
+    }
+
+    @Override
+    public int getLeisureTime()
+    {
+        return this.leisureTime;
     }
 }

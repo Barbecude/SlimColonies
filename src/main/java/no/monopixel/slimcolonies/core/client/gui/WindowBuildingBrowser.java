@@ -2,10 +2,10 @@ package no.monopixel.slimcolonies.core.client.gui;
 
 import com.google.common.collect.ImmutableList;
 import com.ldtteam.blockui.Pane;
-import com.ldtteam.blockui.controls.ImageRepeatable;
+import com.ldtteam.blockui.controls.Image;
 import com.ldtteam.blockui.controls.Text;
 import com.ldtteam.blockui.views.ScrollingList;
-import com.ldtteam.structurize.api.util.Log;
+import com.ldtteam.structurize.api.Log;
 import com.ldtteam.structurize.blockentities.interfaces.IBlueprintDataProviderBE;
 import com.ldtteam.structurize.blocks.interfaces.IInvisibleBlueprintAnchorBlock;
 import com.ldtteam.structurize.blueprints.v1.Blueprint;
@@ -15,13 +15,14 @@ import com.ldtteam.structurize.util.BlockInfo;
 import com.ldtteam.structurize.util.IOPool;
 import no.monopixel.slimcolonies.api.blocks.AbstractBlockHut;
 import no.monopixel.slimcolonies.api.blocks.interfaces.IBuildingBrowsableBlock;
+import no.monopixel.slimcolonies.api.util.constant.Constants;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraftforge.registries.ForgeRegistries;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
@@ -36,9 +37,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static com.ldtteam.structurize.api.util.constant.Constants.INVISIBLE_TAG;
+import static com.ldtteam.structurize.api.constants.Constants.INVISIBLE_TAG;
 import static com.ldtteam.structurize.blockentities.interfaces.IBlueprintDataProviderBE.TAG_BLUEPRINTDATA;
-import static no.monopixel.slimcolonies.api.util.constant.Constants.MOD_ID;
 import static no.monopixel.slimcolonies.api.util.constant.WindowConstants.LABEL_CONSTRUCTION_NAME;
 
 /**
@@ -50,7 +50,6 @@ public class WindowBuildingBrowser extends AbstractWindowSkeleton
      * Number of worker threads to spawn to scan blueprints (each pack on a separate thread); higher reduces total search time.
      */
     private static final int WORKER_THREADS = 4;
-    private static final ResourceLocation WINDOW_RESOURCE = ResourceLocation.fromNamespaceAndPath(MOD_ID, "gui/windowbrowsebuilding.xml");
     @SuppressWarnings("ConstantConditions") private static final int COLOR_NORMAL          = ChatFormatting.BLACK.getColor();
     @SuppressWarnings("ConstantConditions") private static final int COLOR_CHILD           = ChatFormatting.DARK_GREEN.getColor();
     @SuppressWarnings("ConstantConditions") private static final int COLOR_INVISIBLE       = ChatFormatting.DARK_BLUE.getColor();
@@ -70,7 +69,7 @@ public class WindowBuildingBrowser extends AbstractWindowSkeleton
      */
     public WindowBuildingBrowser(@NotNull final Block block)
     {
-        super(WINDOW_RESOURCE.toString());
+        super(new ResourceLocation(Constants.MOD_ID, "gui/windowbrowsebuilding.xml"));
         this.block = block;
     }
 
@@ -133,7 +132,7 @@ public class WindowBuildingBrowser extends AbstractWindowSkeleton
         }
         else if (futureBuildings != null)
         {
-            final ImageRepeatable progress = findPaneOfTypeByID("progress", ImageRepeatable.class);
+            final Image progress = findPaneOfTypeByID("progress", Image.class);
             final int fullWidth = findPaneOfTypeByID("loading", Text.class).getWidth();
             final double progressValue = currentProgress.doubleValue() / totalProgress;
             final int progressWidth = (int) Math.round(progressValue * fullWidth);
@@ -144,7 +143,7 @@ public class WindowBuildingBrowser extends AbstractWindowSkeleton
     private void displayBuildings()
     {
         findPaneOfTypeByID("loading", Text.class).hide();
-        findPaneOfTypeByID("progress", ImageRepeatable.class).hide();
+        findPaneOfTypeByID("progress", Image.class).hide();
 
         final List<BuildingInfo> visibleBuildings = mc.player.isCreative() ? buildings
                 : buildings.stream().filter(b -> !b.isInvisible()).toList();
@@ -209,7 +208,7 @@ public class WindowBuildingBrowser extends AbstractWindowSkeleton
         final int maxLevel = list.get(list.size() - 1);
         if (list.size() == maxLevel - minLevel + 1)
         {
-            return Component.translatable("%s-%s", Integer.toString(minLevel), Integer.toString(maxLevel));
+            return Component.translatableEscape("%s-%s", Integer.toString(minLevel), Integer.toString(maxLevel));
         }
         return Component.literal(String.join(",", list.stream().map(i -> Integer.toString(i)).toList()));
     }
@@ -240,9 +239,9 @@ public class WindowBuildingBrowser extends AbstractWindowSkeleton
         // to reduce total search time, kick work off to several worker threads (currently 4 threads ~= 5s on a decent CPU and slow disk)
         final ExecutorService packPool = Executors.newFixedThreadPool(WORKER_THREADS, runnable ->
         {
-            final Thread thread = new Thread(runnable, "SlimColonies Building Browser Worker");
+            final Thread thread = new Thread(runnable, "Minecolonies Building Browser Worker");
             thread.setDaemon(true);
-            thread.setUncaughtExceptionHandler((thread1, throwable) -> Log.getLogger().error("SlimColonies Building Browser errored! ", throwable));
+            thread.setUncaughtExceptionHandler((thread1, throwable) -> Log.getLogger().error("Minecolonies Building Browser errored! ", throwable));
             return thread;
         });
         totalProgress = StructurePacks.getPackMetas().size();
@@ -301,7 +300,7 @@ public class WindowBuildingBrowser extends AbstractWindowSkeleton
                     if (futureBuildings.isCancelled()) { return; }
                     if (!Files.isDirectory(file) && file.toString().endsWith(".blueprint"))
                     {
-                        final Blueprint blueprint = StructurePacks.getBlueprint(pack.getName(), file, true);
+                        final Blueprint blueprint = StructurePacks.getBlueprint(pack.getName(), file, true, mc.level.registryAccess());
                         if (blueprint != null)
                         {
                             final BlockState anchor = blueprint.getBlockState(blueprint.getPrimaryBlockOffset());
@@ -327,7 +326,7 @@ public class WindowBuildingBrowser extends AbstractWindowSkeleton
     @NotNull
     private static List<Block> findBrowsableBlocks()
     {
-        return ForgeRegistries.BLOCKS.getValues().stream()
+        return BuiltInRegistries.BLOCK.stream()
                 .filter(block -> block instanceof IBuildingBrowsableBlock)
                 .toList();
     }

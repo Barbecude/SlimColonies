@@ -13,6 +13,8 @@ import no.monopixel.slimcolonies.api.entity.ai.statemachine.AITarget;
 import no.monopixel.slimcolonies.api.entity.ai.statemachine.states.AIBlockingEventType;
 import no.monopixel.slimcolonies.api.entity.ai.statemachine.states.IAIState;
 import no.monopixel.slimcolonies.api.entity.citizen.VisibleCitizenStatus;
+import no.monopixel.slimcolonies.api.equipment.ModEquipmentTypes;
+import no.monopixel.slimcolonies.api.items.ModItems;
 import no.monopixel.slimcolonies.api.util.BlockPosUtil;
 import no.monopixel.slimcolonies.api.util.InventoryUtils;
 import no.monopixel.slimcolonies.api.util.ItemStackUtils;
@@ -23,9 +25,11 @@ import no.monopixel.slimcolonies.core.colony.buildings.workerbuildings.BuildingA
 import no.monopixel.slimcolonies.core.colony.interactionhandling.StandardInteraction;
 import no.monopixel.slimcolonies.core.colony.jobs.JobAlchemist;
 import no.monopixel.slimcolonies.core.entity.pathfinding.navigation.EntityNavigationUtils;
+import no.monopixel.slimcolonies.core.network.messages.client.BlockParticleEffectMessage;
 import no.monopixel.slimcolonies.core.util.citizenutils.CitizenItemUtils;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
+import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
@@ -34,7 +38,7 @@ import net.minecraft.world.level.block.*;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.BrewingStandBlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraftforge.items.wrapper.InvWrapper;
+import net.neoforged.neoforge.items.wrapper.InvWrapper;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
@@ -45,6 +49,7 @@ import static no.monopixel.slimcolonies.api.entity.ai.statemachine.states.AIWork
 import static no.monopixel.slimcolonies.api.util.ItemStackUtils.*;
 import static no.monopixel.slimcolonies.api.util.constant.CitizenConstants.TICKS_20;
 import static no.monopixel.slimcolonies.api.util.constant.Constants.*;
+import static no.monopixel.slimcolonies.api.util.constant.EquipmentLevelConstants.TOOL_LEVEL_WOOD_OR_GOLD;
 import static no.monopixel.slimcolonies.api.util.constant.TranslationConstants.BAKER_HAS_NO_FURNACES_MESSAGE;
 import static no.monopixel.slimcolonies.api.util.constant.StatisticsConstants.ITEMS_BREWED;
 import static no.monopixel.slimcolonies.api.util.constant.StatisticsConstants.INGREDIENTS_HARVESTED;
@@ -64,6 +69,10 @@ public class EntityAIWorkAlchemist extends AbstractEntityAICrafting<JobAlchemist
      */
     private static final int DELAY_TO_HARVEST_NETHERWART = 30;
 
+    /**
+     * Average delay to switch to mistletoe harvesting.
+     */
+    private static final int DELAY_TO_HARVEST_MISTLETOE = 30;
 
     /**
      * BrewingStand to fuel
@@ -98,6 +107,7 @@ public class EntityAIWorkAlchemist extends AbstractEntityAICrafting<JobAlchemist
           new AITarget(RETRIEVING_END_PRODUCT_FROM_BREWINGSTAMD, this::retrieveBrewableFromBrewingStand, TICKS_SECOND),
           new AITarget(RETRIEVING_USED_FUEL_FROM_BREWINGSTAND, this::retrieveUsedFuel, TICKS_SECOND),
           new AITarget(ADD_FUEL_TO_BREWINGSTAND, this::addFuelToBrewingStand, TICKS_SECOND),
+          new AITarget(HARVEST_MISTLETOE, this::harvestMistleToe, TICKS_SECOND),
           new AITarget(HARVEST_NETHERWART, this::harvestNetherWart, TICKS_SECOND)
         );
     }
@@ -163,7 +173,7 @@ public class EntityAIWorkAlchemist extends AbstractEntityAICrafting<JobAlchemist
                 }
 
                 List<ItemStack> netherwartDrops = getNetherwartDrops(walkTo.above());
-
+                
                 if (mineBlock(walkTo.above()))
                 {
                     for (ItemStack netherwartDrop : netherwartDrops)
@@ -171,6 +181,7 @@ public class EntityAIWorkAlchemist extends AbstractEntityAICrafting<JobAlchemist
                         StatsUtil.trackStatByName(building, INGREDIENTS_HARVESTED, netherwartDrop.getDescriptionId(), netherwartDrop.getCount());
                     }
                     walkTo = null;
+                    worker.decreaseSaturationForContinuousAction();
                     return IDLE;
                 }
             }
@@ -190,6 +201,7 @@ public class EntityAIWorkAlchemist extends AbstractEntityAICrafting<JobAlchemist
                 }
 
                 world.setBlockAndUpdate(walkTo.above(), Blocks.NETHER_WART.defaultBlockState());
+                worker.decreaseSaturationForContinuousAction();
                 getInventory().extractItem(slot, 1, false);
                 walkTo = null;
                 return IDLE;
@@ -208,17 +220,86 @@ public class EntityAIWorkAlchemist extends AbstractEntityAICrafting<JobAlchemist
     {
         final List<ItemStack> localItems = new ArrayList<>();
         final ItemStack tool = worker.getMainHandItem();
-        localItems.addAll(BlockPosUtil.getBlockDrops(world, blockToMine, ItemStackUtils.getFortuneOf(tool), tool, worker));
+        localItems.addAll(BlockPosUtil.getBlockDrops(world, blockToMine, ItemStackUtils.getFortuneOf(tool, worker.level()), tool, worker));
 
         return localItems;
     }
 
-
-    @Override
-    public boolean hasWorkToDo()
+    /**
+     * Go to a random position with leaves and hit the leaves until getting a mistletoe.
+     *
+     * @return next state to go to.
+     */
+    private IAIState harvestMistleToe()
     {
-        // Alchemist can always work to either craft or go gather netherwart, etc.
-        return true;
+        if (checkForToolOrWeapon(ModEquipmentTypes.shears.get()))
+        {
+            return IDLE;
+        }
+
+        if (walkTo == null)
+        {
+            final List<BlockPos> leaveList = building.getAllLeavePositions();
+
+            if (leaveList.isEmpty())
+            {
+                return IDLE;
+            }
+
+            final BlockPos randomLeaf = leaveList.get(worker.getRandom().nextInt(leaveList.size()));
+            if (WorldUtil.isBlockLoaded(world, randomLeaf))
+            {
+                if (world.getBlockState(randomLeaf).getBlock() instanceof LeavesBlock)
+                {
+                    walkTo = randomLeaf;
+                }
+                else
+                {
+                    building.removeLeafPosition(randomLeaf);
+                }
+            }
+            return HARVEST_MISTLETOE;
+        }
+
+        if (WorldUtil.isBlockLoaded(world, walkTo) && world.getBlockState(walkTo).getBlock() instanceof LeavesBlock)
+        {
+            if (!walkToWorkPos(walkTo))
+            {
+                return HARVEST_MISTLETOE;
+            }
+
+            final BlockState state = world.getBlockState(walkTo);
+
+            final int slot =
+              InventoryUtils.getFirstSlotOfItemHandlerContainingEquipment(worker.getInventoryCitizen(), ModEquipmentTypes.shears.get(), TOOL_LEVEL_WOOD_OR_GOLD, building.getMaxEquipmentLevel());
+            CitizenItemUtils.setHeldItem(worker, InteractionHand.MAIN_HAND, slot);
+
+            worker.swing(InteractionHand.MAIN_HAND);
+            world.playSound(null,
+              walkTo,
+              state.getSoundType(world, walkTo, worker).getBreakSound(),
+              SoundSource.BLOCKS,
+              state.getSoundType(world, walkTo, worker).getVolume(),
+              state.getSoundType(world, walkTo, worker).getPitch());
+            new BlockParticleEffectMessage(walkTo, state, worker.getRandom().nextInt(7) - 1).sendToTrackingEntity(worker);
+            if (worker.getRandom().nextInt(40) <= 0)
+            {
+                worker.decreaseSaturationForContinuousAction();
+                ItemStack mistletoe = new ItemStack(ModItems.mistletoe, 1);
+                StatsUtil.trackStatByName(building, INGREDIENTS_HARVESTED, mistletoe.getDescriptionId(), mistletoe.getCount());
+                InventoryUtils.addItemStackToItemHandler(worker.getInventoryCitizen(), mistletoe);
+                walkTo = null;
+                CitizenItemUtils.damageItemInHand(worker, InteractionHand.MAIN_HAND, 1);
+                return INVENTORY_FULL;
+            }
+        }
+        else
+        {
+            walkTo = null;
+            return IDLE;
+        }
+
+        return HARVEST_MISTLETOE;
     }
 
     @Override
@@ -232,6 +313,11 @@ public class EntityAIWorkAlchemist extends AbstractEntityAICrafting<JobAlchemist
                 if (worker.getRandom().nextInt(DELAY_TO_HARVEST_NETHERWART) <= 1)
                 {
                     return HARVEST_NETHERWART;
+                }
+
+                if (worker.getRandom().nextInt(DELAY_TO_HARVEST_MISTLETOE) <= 1)
+                {
+                    return HARVEST_MISTLETOE;
                 }
 
                 if (building.isInBuilding(worker.blockPosition()))
@@ -546,7 +632,7 @@ public class EntityAIWorkAlchemist extends AbstractEntityAICrafting<JobAlchemist
             }
         }
 
-        //Fueling is confused, start over.
+        //Fueling is confused, start over. 
         preFuelState = null;
         fuelPos = null;
         return START_WORKING;
@@ -747,7 +833,7 @@ public class EntityAIWorkAlchemist extends AbstractEntityAICrafting<JobAlchemist
         InvWrapper standWrapper = new InvWrapper(brewingStand);
         String extractName = standWrapper.getStackInSlot(slot).getDescriptionId();
         int extractQty = standWrapper.getStackInSlot(slot).getCount();
-
+        
         InventoryUtils.transferItemStackIntoNextFreeSlotInItemHandler(standWrapper, slot, worker.getInventoryCitizen());
         if (slot <= 3 && slot >= 0)
         {
@@ -808,7 +894,7 @@ public class EntityAIWorkAlchemist extends AbstractEntityAICrafting<JobAlchemist
         {
             if (worker.getCitizenData() != null)
             {
-                worker.getCitizenData().triggerInteraction(new StandardInteraction(Component.translatable(BAKER_HAS_NO_FURNACES_MESSAGE), ChatPriority.BLOCKING));
+                worker.getCitizenData().triggerInteraction(new StandardInteraction(Component.translatableEscape(BAKER_HAS_NO_FURNACES_MESSAGE), ChatPriority.BLOCKING));
             }
             setDelay(STANDARD_DELAY);
             return START_WORKING;
@@ -834,7 +920,8 @@ public class EntityAIWorkAlchemist extends AbstractEntityAICrafting<JobAlchemist
             if (isEmpty(((BrewingStandBlockEntity) entity).getItem(0)) || isEmpty(((BrewingStandBlockEntity) entity).getItem(1))
                   || isEmpty(((BrewingStandBlockEntity) entity).getItem(2)))
             {
-                final ItemStack potionStack = currentRecipeStorage.getCleanedInput().get(1).getItemStack();
+
+                final ItemStack potionStack = currentRecipeStorage.getCleanedInput().get(0).getItemStack();
 
                 final Predicate<ItemStack> potion = stack -> ItemStackUtils.compareItemStacksIgnoreStackSize(potionStack, stack);
 
@@ -902,7 +989,7 @@ public class EntityAIWorkAlchemist extends AbstractEntityAICrafting<JobAlchemist
             }
             else if (isEmpty(((BrewingStandBlockEntity) entity).getItem(INGREDIENT_SLOT)))
             {
-                final ItemStack ingredientStack = currentRecipeStorage.getCleanedInput().get(0).getItemStack();
+                final ItemStack ingredientStack = currentRecipeStorage.getCleanedInput().get(1).getItemStack();
                 final Predicate<ItemStack> ingredient = stack -> ItemStackUtils.compareItemStacksIgnoreStackSize(ingredientStack, stack);
                 final int ingredientInBrewingStand = getExtendedCount(ingredientStack);
                 final int targetCount =
@@ -991,7 +1078,7 @@ public class EntityAIWorkAlchemist extends AbstractEntityAICrafting<JobAlchemist
         {
             if (worker.getCitizenData() != null)
             {
-                worker.getCitizenData().triggerInteraction(new StandardInteraction(Component.translatable(BAKER_HAS_NO_FURNACES_MESSAGE), ChatPriority.BLOCKING));
+                worker.getCitizenData().triggerInteraction(new StandardInteraction(Component.translatableEscape(BAKER_HAS_NO_FURNACES_MESSAGE), ChatPriority.BLOCKING));
             }
             setDelay(STANDARD_DELAY);
             return START_WORKING;
@@ -1024,5 +1111,12 @@ public class EntityAIWorkAlchemist extends AbstractEntityAICrafting<JobAlchemist
         }
 
         return checkIfAbleToSmelt();
+    }
+
+    @Override
+    public boolean hasWorkToDo()
+    {
+        // Alchemist can always work to either craft or go gather mistletoe, netherwart, etc.
+        return true;
     }
 }

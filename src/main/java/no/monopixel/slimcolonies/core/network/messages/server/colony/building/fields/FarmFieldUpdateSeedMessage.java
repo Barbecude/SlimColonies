@@ -1,13 +1,17 @@
 package no.monopixel.slimcolonies.core.network.messages.server.colony.building.fields;
 
+import com.ldtteam.common.network.PlayMessageType;
 import no.monopixel.slimcolonies.api.colony.IColony;
 import no.monopixel.slimcolonies.api.colony.buildingextensions.registry.BuildingExtensionRegistries;
+import no.monopixel.slimcolonies.api.util.Utils;
+import no.monopixel.slimcolonies.api.util.constant.Constants;
 import no.monopixel.slimcolonies.core.colony.buildingextensions.FarmField;
 import no.monopixel.slimcolonies.core.network.messages.server.AbstractColonyServerMessage;
 import net.minecraft.core.BlockPos;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.ItemStack;
-import net.minecraftforge.network.NetworkEvent;
+import net.neoforged.neoforge.network.handling.IPayloadContext;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -15,23 +19,17 @@ import org.jetbrains.annotations.NotNull;
  */
 public class FarmFieldUpdateSeedMessage extends AbstractColonyServerMessage
 {
+    public static final PlayMessageType<?> TYPE = PlayMessageType.forServer(Constants.MOD_ID, "farm_field_update_seed", FarmFieldUpdateSeedMessage::new);
+
     /**
      * The new seed to assign to the field.
      */
-    private ItemStack newSeed;
+    private final ItemStack newSeed;
 
     /**
      * The field position.
      */
-    private BlockPos position;
-
-    /**
-     * Forge default constructor
-     */
-    public FarmFieldUpdateSeedMessage()
-    {
-        super();
-    }
+    private final BlockPos position;
 
     /**
      * Default constructor.
@@ -40,38 +38,34 @@ public class FarmFieldUpdateSeedMessage extends AbstractColonyServerMessage
      * @param newSeed  the new seed to assign to the field.
      * @param position the field position.
      */
-    public FarmFieldUpdateSeedMessage(@NotNull IColony colony, ItemStack newSeed, BlockPos position)
+    public FarmFieldUpdateSeedMessage(@NotNull final IColony colony, final ItemStack newSeed, final BlockPos position)
     {
-        super(colony);
+        super(TYPE, colony);
         this.newSeed = newSeed;
         this.position = position;
     }
 
     @Override
-    protected void onExecute(final NetworkEvent.Context ctxIn, final boolean isLogicalServer, final IColony colony)
+    protected void onExecute(final IPayloadContext ctxIn, final ServerPlayer player, final IColony colony)
     {
-        if (!isLogicalServer || ctxIn.getSender() == null)
-        {
-            return;
-        }
-
-        colony.getBuildingManager()
+        colony.getServerBuildingManager()
           .getMatchingBuildingExtension(f -> f.getBuildingExtensionType().equals(BuildingExtensionRegistries.farmField.get()) && f.getPosition().equals(position))
           .map(m -> (FarmField) m)
           .ifPresent(field -> field.setSeed(newSeed));
     }
 
     @Override
-    public void toBytesOverride(final FriendlyByteBuf buf)
+    protected void toBytes(final RegistryFriendlyByteBuf buf)
     {
-        buf.writeItem(newSeed);
+        super.toBytes(buf);
+        Utils.serializeCodecMess(buf, newSeed);
         buf.writeBlockPos(position);
     }
 
-    @Override
-    public void fromBytesOverride(final FriendlyByteBuf buf)
+    protected FarmFieldUpdateSeedMessage(final RegistryFriendlyByteBuf buf, final PlayMessageType<?> type)
     {
-        newSeed = buf.readItem();
+        super(buf, type);
+        newSeed = Utils.deserializeCodecMess(buf);
         position = buf.readBlockPos();
     }
 }

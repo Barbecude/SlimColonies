@@ -1,51 +1,49 @@
 package no.monopixel.slimcolonies.core.network.messages.server.colony;
 
+import com.ldtteam.common.network.AbstractServerPlayMessage;
+import com.ldtteam.common.network.PlayMessageType;
 import no.monopixel.slimcolonies.api.colony.IColony;
 import no.monopixel.slimcolonies.api.colony.IColonyManager;
-import no.monopixel.slimcolonies.api.network.IMessage;
 import no.monopixel.slimcolonies.api.util.MessageUtils;
-import net.minecraft.network.FriendlyByteBuf;
+import no.monopixel.slimcolonies.api.util.constant.Constants;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraftforge.fml.LogicalSide;
-import net.minecraftforge.network.NetworkEvent;
-import org.jetbrains.annotations.Nullable;
+import net.neoforged.neoforge.network.handling.IPayloadContext;
 
 import static no.monopixel.slimcolonies.api.util.constant.TranslationConstants.*;
 
 /**
  * Message for deleting an owned colony
  */
-public class ColonyAbandonOwnMessage implements IMessage
+public class ColonyAbandonOwnMessage extends AbstractServerPlayMessage
 {
-    @Override
-    public void toBytes(final FriendlyByteBuf buf)
-    {
+    public static final PlayMessageType<?> TYPE = PlayMessageType.forServer(Constants.MOD_ID, "colony_abandon_own", ColonyAbandonOwnMessage::new);
 
+    @Override
+    protected void toBytes(final RegistryFriendlyByteBuf buf)
+    {
+        // noop
+    }
+
+    protected ColonyAbandonOwnMessage(final RegistryFriendlyByteBuf buf, final PlayMessageType<?> type)
+    {
+        super(buf, type);
+    }
+
+    public ColonyAbandonOwnMessage()
+    {
+        super(TYPE);
     }
 
     @Override
-    public void fromBytes(final FriendlyByteBuf buf)
+    protected void onExecute(final IPayloadContext ctxIn, final ServerPlayer player)
     {
-
-    }
-
-    @Nullable
-    @Override
-    public LogicalSide getExecutionSide()
-    {
-        return LogicalSide.SERVER;
-    }
-
-    @Override
-    public void onExecute(final NetworkEvent.Context ctxIn, final boolean isLogicalServer)
-    {
-        final ServerPlayer player = ctxIn.getSender();
         if (player == null)
         {
             return;
         }
 
-        final IColony colony = IColonyManager.getInstance().getIColonyByOwner(player.level, player);
+        final IColony colony = IColonyManager.getInstance().getIColonyByOwner(player.level(), player);
         if (colony != null)
         {
             colony.getPermissions().setOwnerAbandoned();

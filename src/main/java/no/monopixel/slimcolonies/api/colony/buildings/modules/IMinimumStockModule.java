@@ -1,5 +1,7 @@
 package no.monopixel.slimcolonies.api.colony.buildings.modules;
 
+import no.monopixel.slimcolonies.api.colony.requestsystem.request.IRequest;
+import no.monopixel.slimcolonies.api.colony.requestsystem.requestable.IDeliverable;
 import net.minecraft.world.item.ItemStack;
 
 /**

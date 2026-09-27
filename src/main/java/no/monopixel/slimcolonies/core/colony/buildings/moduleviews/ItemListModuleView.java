@@ -1,19 +1,20 @@
 package no.monopixel.slimcolonies.core.colony.buildings.moduleviews;
 
 import com.ldtteam.blockui.views.BOWindow;
-import net.minecraft.network.FriendlyByteBuf;
-import net.minecraft.resources.ResourceLocation;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.api.distmarker.OnlyIn;
 import no.monopixel.slimcolonies.api.colony.buildings.modules.AbstractBuildingModuleView;
 import no.monopixel.slimcolonies.api.colony.buildings.modules.IItemListModuleView;
 import no.monopixel.slimcolonies.api.colony.buildings.views.IBuildingView;
 import no.monopixel.slimcolonies.api.crafting.ItemStorage;
+import no.monopixel.slimcolonies.api.util.Utils;
 import no.monopixel.slimcolonies.api.util.constant.Constants;
-import no.monopixel.slimcolonies.core.Network;
-import no.monopixel.slimcolonies.core.client.gui.modules.ItemListModuleWindow;
+import no.monopixel.slimcolonies.core.client.gui.modules.building.ItemListModuleWindow;
 import no.monopixel.slimcolonies.core.network.messages.server.colony.building.AssignFilterableItemMessage;
 import no.monopixel.slimcolonies.core.network.messages.server.colony.building.ResetFilterableItemMessage;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.api.distmarker.OnlyIn;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
@@ -49,17 +50,16 @@ public class ItemListModuleView extends AbstractBuildingModuleView implements II
     /**
      * Lang string for description.
      */
-    private final String desc;
+    private final Component desc;
 
     /**
      * Create a nw grouped item list view for the client side.
-     *
-     * @param id       the id.
-     * @param desc     desc lang string.
+     * @param id the id.
+     * @param desc desc lang string.
      * @param inverted enabling or disabling.
      * @param allItems a supplier for all the items.
      */
-    public ItemListModuleView(final String id, final String desc, final boolean inverted, final Function<IBuildingView, Set<ItemStorage>> allItems)
+    public ItemListModuleView(final String id, final Component desc, final boolean inverted, final Function<IBuildingView, Set<ItemStorage>> allItems)
     {
         super();
         this.id = id;
@@ -71,7 +71,7 @@ public class ItemListModuleView extends AbstractBuildingModuleView implements II
     @Override
     public void addItem(final ItemStorage item)
     {
-        Network.getNetwork().sendToServer(new AssignFilterableItemMessage(this.buildingView, getProducer().getRuntimeID(), item, true));
+        new AssignFilterableItemMessage(this.buildingView, getProducer().getRuntimeID(), item, true).sendToServer();
         listsOfItems.add(item);
     }
 
@@ -90,7 +90,7 @@ public class ItemListModuleView extends AbstractBuildingModuleView implements II
     @Override
     public void removeItem(final ItemStorage item)
     {
-        Network.getNetwork().sendToServer(new AssignFilterableItemMessage(this.buildingView, getProducer().getRuntimeID(), item, false));
+        new AssignFilterableItemMessage(this.buildingView, getProducer().getRuntimeID(), item, false).sendToServer();
         listsOfItems.remove(item);
     }
 
@@ -115,25 +115,25 @@ public class ItemListModuleView extends AbstractBuildingModuleView implements II
     @Override
     public void clearItems()
     {
-        Network.getNetwork().sendToServer(new ResetFilterableItemMessage(this.buildingView, getProducer().getRuntimeID()));
+        new ResetFilterableItemMessage(this.buildingView, getProducer().getRuntimeID()).sendToServer();
         listsOfItems.clear();
     }
 
     @Override
-    public String getDesc()
+    public Component getDesc()
     {
         return desc;
     }
 
     @Override
-    public void deserialize(@NotNull final FriendlyByteBuf buf)
+    public void deserialize(@NotNull final RegistryFriendlyByteBuf buf)
     {
         listsOfItems.clear();
         final int size = buf.readInt();
 
         for (int j = 0; j < size; j++)
         {
-            listsOfItems.add(new ItemStorage(buf.readItem()));
+            listsOfItems.add(new ItemStorage(Utils.deserializeCodecMess(buf)));
         }
     }
 
@@ -141,12 +141,12 @@ public class ItemListModuleView extends AbstractBuildingModuleView implements II
     @OnlyIn(Dist.CLIENT)
     public BOWindow getWindow()
     {
-        return new ItemListModuleWindow(Constants.MOD_ID + ":gui/layouthuts/layoutfilterablelist.xml", buildingView, this);
+        return new ItemListModuleWindow(this, new ResourceLocation(Constants.MOD_ID, "gui/layouthuts/layoutfilterablelist.xml"));
     }
 
     @Override
     public ResourceLocation getIconResourceLocation()
     {
-        return ResourceLocation.fromNamespaceAndPath(Constants.MOD_ID, "textures/gui/modules/" + this.getId() + ".png");
+        return new ResourceLocation(Constants.MOD_ID, "textures/gui/modules/" + this.getId() + ".png");
     }
 }

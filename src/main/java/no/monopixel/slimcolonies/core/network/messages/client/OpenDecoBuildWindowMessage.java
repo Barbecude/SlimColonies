@@ -1,21 +1,21 @@
 package no.monopixel.slimcolonies.core.network.messages.client;
 
+import com.ldtteam.common.network.AbstractServerPlayMessage;
+import com.ldtteam.common.network.PlayMessageType;
+import com.ldtteam.structurize.api.RotationMirror;
 import no.monopixel.slimcolonies.api.colony.workorders.WorkOrderType;
-import no.monopixel.slimcolonies.api.network.IMessage;
+import no.monopixel.slimcolonies.api.util.constant.Constants;
 import no.monopixel.slimcolonies.core.network.messages.server.DecorationBuildRequestMessage;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
-import net.minecraft.world.level.block.Mirror;
-import net.minecraft.world.level.block.Rotation;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 
 /**
  * Message to open the deco build window on the client.
  */
 public class OpenDecoBuildWindowMessage extends OpenBuildWindowMessage
 {
-    public OpenDecoBuildWindowMessage()
-    {
-    }
+    public static final PlayMessageType<?> TYPE = PlayMessageType.forClient(Constants.MOD_ID, "open_deco_build_window", OpenDecoBuildWindowMessage::new);
 
     /**
      * Create a new message.
@@ -28,15 +28,19 @@ public class OpenDecoBuildWindowMessage extends OpenBuildWindowMessage
       final BlockPos pos,
       final String packName,
       final String path,
-      final Rotation rotation,
-      final Mirror mirror)
+      final RotationMirror rotationMirror)
     {
-        super(pos, packName, path, rotation, mirror);
+        super(TYPE, pos, packName, path, rotationMirror);
+    }
+
+    protected OpenDecoBuildWindowMessage(final RegistryFriendlyByteBuf buf, final PlayMessageType<?> type)
+    {
+        super(buf, type);
     }
 
     @Override
-    public IMessage createWorkOrderMessage(final BlockPos builder)
+    public AbstractServerPlayMessage createWorkOrderMessage(final BlockPos builder)
     {
-        return new DecorationBuildRequestMessage(WorkOrderType.BUILD, pos, packName, path, Minecraft.getInstance().level.dimension(), rotation, mirror, builder);
+        return new DecorationBuildRequestMessage(WorkOrderType.BUILD, pos, packName, path, Minecraft.getInstance().level.dimension(), rotationMirror, builder);
     }
 }

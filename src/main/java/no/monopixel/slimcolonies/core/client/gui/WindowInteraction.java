@@ -11,7 +11,6 @@ import no.monopixel.slimcolonies.api.colony.interactionhandling.ChatPriority;
 import no.monopixel.slimcolonies.api.colony.interactionhandling.IInteractionResponseHandler;
 import no.monopixel.slimcolonies.api.util.Log;
 import no.monopixel.slimcolonies.api.util.constant.Constants;
-import no.monopixel.slimcolonies.core.Network;
 import no.monopixel.slimcolonies.core.client.gui.citizen.MainWindowCitizen;
 import no.monopixel.slimcolonies.core.colony.interactionhandling.QuestDialogueInteraction;
 import no.monopixel.slimcolonies.core.network.messages.server.colony.InteractionClose;
@@ -57,7 +56,7 @@ public class WindowInteraction extends AbstractWindowSkeleton
      */
     public WindowInteraction(final ICitizenDataView citizen)
     {
-        super(Constants.MOD_ID + INTERACTION_RESOURCE_SUFFIX, new MainWindowCitizen(citizen));
+        super(new MainWindowCitizen(citizen), new ResourceLocation(Constants.MOD_ID, "gui/citizen/windowinteraction.xml"));
         this.citizen = citizen;
         this.interactions = new ArrayList<>(citizen.getOrderedInteractions());
         registerButton(BUTTON_CANCEL, this::cancelClicked);
@@ -113,7 +112,7 @@ public class WindowInteraction extends AbstractWindowSkeleton
         for (final Component component : handler.getPossibleResponses())
         {
             final ButtonImage button = new ButtonImage();
-            button.setImage(ResourceLocation.fromNamespaceAndPath(Constants.MOD_ID, MEDIUM_SIZED_BUTTON_RES), false);
+            button.setImage(new ResourceLocation(Constants.MOD_ID, MEDIUM_SIZED_BUTTON_RES));
 
             final int textLen = mc.font.width(component.getString());
             int buttonHeight = BUTTON_HEIGHT;
@@ -127,7 +126,7 @@ public class WindowInteraction extends AbstractWindowSkeleton
             button.setPosition(x, y);
             button.setID(BUTTON_RESPONSE_ID + responseIndex);
             button.setTextRenderBox(BUTTON_LENGTH, buttonHeight);
-            button.setTextAlignment(Alignment.MIDDLE);
+            button.setTextAlignment(Alignment.TOP_MIDDLE);
             button.setText(component);
             group.addChild(button);
             button.setTextWrap(true);
@@ -153,7 +152,7 @@ public class WindowInteraction extends AbstractWindowSkeleton
         if (currentInteraction < interactions.size())
         {
             interactions.get(currentInteraction).onClosed();
-            Network.getNetwork().sendToServer(new InteractionClose(citizen.getColonyId(), citizen.getId(), mc.level.dimension(), interactions.get(currentInteraction).getInquiry()));
+            new InteractionClose(citizen.getColonyId(), citizen.getId(), mc.level.dimension(), interactions.get(currentInteraction).getInquiry()).sendToServer();
         }
     }
 

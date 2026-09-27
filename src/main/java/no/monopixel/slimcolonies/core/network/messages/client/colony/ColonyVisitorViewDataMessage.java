@@ -1,39 +1,42 @@
 package no.monopixel.slimcolonies.core.network.messages.client.colony;
 
+import com.ldtteam.common.network.AbstractClientPlayMessage;
+import com.ldtteam.common.network.PlayMessageType;
 import no.monopixel.slimcolonies.api.colony.IColony;
 import no.monopixel.slimcolonies.api.colony.IColonyManager;
 import no.monopixel.slimcolonies.api.colony.IColonyView;
 import no.monopixel.slimcolonies.api.colony.IVisitorData;
-import no.monopixel.slimcolonies.api.network.IMessage;
 import no.monopixel.slimcolonies.api.util.Log;
+import no.monopixel.slimcolonies.api.util.constant.Constants;
 import io.netty.buffer.Unpooled;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
-import net.minecraftforge.fml.LogicalSide;
-import net.minecraftforge.network.NetworkEvent;
-import no.monopixel.slimcolonies.core.colony.CitizenDataView;
+import net.neoforged.neoforge.network.handling.IPayloadContext;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 import java.util.Set;
 
 /**
  * Sends visitor data to the client
  */
-public class ColonyVisitorViewDataMessage implements IMessage
+public class ColonyVisitorViewDataMessage extends AbstractClientPlayMessage
 {
+    public static final PlayMessageType<?> TYPE = PlayMessageType.forClient(Constants.MOD_ID, "colony_visitor_view_data", ColonyVisitorViewDataMessage::new);
+
     /**
      * The colony id
      */
-    private int colonyId;
+    private final int colonyId;
 
     /**
      * The dimension the citizen is in.
      */
-    private ResourceKey<Level> dimension;
+    private final ResourceKey<Level> dimension;
 
     /**
      * Visiting entity data
@@ -43,35 +46,28 @@ public class ColonyVisitorViewDataMessage implements IMessage
     /**
      * Visitor buf to read on client side.
      */
-    private FriendlyByteBuf visitorBuf;
+    private final RegistryFriendlyByteBuf visitorBuf;
 
     /**
      * If a general refresh is necessary,
      */
-    private boolean refresh;
+    private final boolean refresh;
 
     /**
-     * Empty constructor used when registering the
-     */
-    public ColonyVisitorViewDataMessage()
-    {
-        super();
-    }
-
-    /**
-     * Updates a {@link CitizenDataView} of the citizens.
+     * Updates a {@link no.monopixel.slimcolonies.core.colony.CitizenDataView} of the citizens.
      *
      * @param colony Colony of the citizen
      */
     public ColonyVisitorViewDataMessage(@NotNull final IColony colony, @NotNull final Set<IVisitorData> visitors, final boolean refresh)
     {
-        super();
+        super(TYPE);
         this.colonyId = colony.getID();
         this.dimension = colony.getDimension();
         this.visitors = visitors;
         this.refresh = refresh;
 
-        visitorBuf = new FriendlyByteBuf(Unpooled.buffer());
+        visitorBuf = new RegistryFriendlyByteBuf(new FriendlyByteBuf(Unpooled.buffer()), colony.getWorld().registryAccess());
+        visitorBuf.writeInt(visitors.size());
         for (final IVisitorData data : visitors)
         {
             visitorBuf.writeInt(data.getId());
@@ -79,35 +75,27 @@ public class ColonyVisitorViewDataMessage implements IMessage
         }
     }
 
-    @Override
-    public void fromBytes(@NotNull final FriendlyByteBuf buf)
+    public ColonyVisitorViewDataMessage(@NotNull final RegistryFriendlyByteBuf buf, final PlayMessageType<?> type)
     {
+        super(buf, type);
         colonyId = buf.readInt();
-        dimension = ResourceKey.create(Registries.DIMENSION, new ResourceLocation(buf.readUtf(32767)));
+        dimension = ResourceKey.create(Registries.DIMENSION, ResourceLocation.parse(buf.readUtf(32767)));
         refresh = buf.readBoolean();
-        this.visitorBuf = new FriendlyByteBuf(buf.retain());
+        this.visitorBuf = new RegistryFriendlyByteBuf(new FriendlyByteBuf(Unpooled.wrappedBuffer(buf.readByteArray())), buf.registryAccess());
     }
 
     @Override
-    public void toBytes(@NotNull final FriendlyByteBuf buf)
+    protected void toBytes(@NotNull final RegistryFriendlyByteBuf buf)
     {
         visitorBuf.resetReaderIndex();
         buf.writeInt(colonyId);
         buf.writeUtf(dimension.location().toString());
         buf.writeBoolean(refresh);
-        buf.writeInt(visitors.size());
-        buf.writeBytes(visitorBuf);
-    }
-
-    @Nullable
-    @Override
-    public LogicalSide getExecutionSide()
-    {
-        return LogicalSide.CLIENT;
+        buf.writeByteArray(visitorBuf.array());
     }
 
     @Override
-    public void onExecute(final NetworkEvent.Context ctxIn, final boolean isLogicalServer)
+    protected void onExecute(final IPayloadContext ctxIn, final Player player)
     {
         final IColonyView colony = IColonyManager.getInstance().getColonyView(colonyId, dimension);
 
@@ -119,6 +107,5 @@ public class ColonyVisitorViewDataMessage implements IMessage
         {
             colony.handleColonyViewVisitorMessage(visitorBuf, refresh);
         }
-        visitorBuf.release();
     }
 }

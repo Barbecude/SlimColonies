@@ -1,5 +1,11 @@
 {
   "branch": "slimcolonies:technology",
+  "costs": [
+    {
+      "count": 32,
+      "item": "minecraft:glow_berries"
+    }
+  ],
   "effects": [
     {
       "id": "slimcolonies:effects/plantationexotic",

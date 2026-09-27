@@ -4,5 +4,7 @@
   "name": "Zarlios",
   "chance": 0.001,
   "storylangkey": "no.monopixel.slimcolonies.coremod.gui.chat.zarlios",
+  "recruitcost": "minecraft:baked_potato",
+  "recruitcostcount": 64,
   "gender": "female"
 }

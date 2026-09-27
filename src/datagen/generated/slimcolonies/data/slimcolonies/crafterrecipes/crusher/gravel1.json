@@ -4,11 +4,12 @@
   "inputs": [
     {
       "count": 2,
-      "item": "minecraft:cobblestone"
+      "id": "minecraft:cobblestone"
     }
   ],
   "intermediate": "minecraft:air",
-  "loot-table": "slimcolonies:recipes/gravel",
   "not-research-id": "slimcolonies:effects/crushing11unlock",
-  "result": "minecraft:gravel"
+  "result": {
+    "id": "minecraft:gravel"
+  }
 }

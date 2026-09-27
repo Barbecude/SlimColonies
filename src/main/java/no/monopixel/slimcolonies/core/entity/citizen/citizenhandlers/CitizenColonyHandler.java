@@ -1,17 +1,20 @@
 package no.monopixel.slimcolonies.core.entity.citizen.citizenhandlers;
 
-import net.minecraft.network.syncher.EntityDataAccessor;
-import net.minecraft.resources.ResourceLocation;
-import net.minecraft.world.entity.Entity;
 import no.monopixel.slimcolonies.api.colony.IColony;
 import no.monopixel.slimcolonies.api.colony.IColonyManager;
 import no.monopixel.slimcolonies.api.colony.buildings.IBuilding;
 import no.monopixel.slimcolonies.api.entity.citizen.AbstractEntityCitizen;
 import no.monopixel.slimcolonies.api.entity.citizen.citizenhandlers.ICitizenColonyHandler;
 import no.monopixel.slimcolonies.api.util.Log;
+import net.minecraft.network.syncher.EntityDataAccessor;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.level.Level;
 import org.jetbrains.annotations.Nullable;
 
 import static no.monopixel.slimcolonies.api.entity.citizen.AbstractEntityCitizen.*;
+import static no.monopixel.slimcolonies.api.util.constant.CitizenConstants.SATURATION_DECREASE_FACTOR;
 
 /**
  * Handles all colony related methods for the citizen.
@@ -84,7 +87,7 @@ public class CitizenColonyHandler implements ICitizenColonyHandler
             return;
         }
 
-        if (citizen.level.getEntity(citizen.getId()) != citizen)
+        if (citizen.level().getEntity(citizen.getId()) != citizen)
         {
             Log.getLogger().warn("Registering too early, entity not added to world!", new Exception());
             citizen.discard();
@@ -100,7 +103,7 @@ public class CitizenColonyHandler implements ICitizenColonyHandler
             return;
         }
 
-        final IColony colony = IColonyManager.getInstance().getColonyByWorld(colonyId, citizen.level);
+        final IColony colony = IColonyManager.getInstance().getColonyByWorld(colonyId, citizen.level());
 
         if (colony == null)
         {
@@ -138,7 +141,7 @@ public class CitizenColonyHandler implements ICitizenColonyHandler
                 citizen.discard();
                 return;
             }
-            colony = IColonyManager.getInstance().getColonyView(colonyId, citizen.level.dimension());
+            colony = IColonyManager.getInstance().getColonyView(colonyId, citizen.level().dimension());
 
             if (citizen.getCivilianID() == 0)
             {
@@ -147,7 +150,7 @@ public class CitizenColonyHandler implements ICitizenColonyHandler
 
             citizen.setFemale(citizen.getEntityData().get(DATA_IS_FEMALE) != 0);
             citizen.setIsChild(citizen.getEntityData().get(DATA_IS_CHILD));
-            citizen.setModelId(new ResourceLocation(citizen.getEntityData().get(DATA_MODEL)));
+            citizen.setModelId(ResourceLocation.parse(citizen.getEntityData().get(DATA_MODEL)));
             citizen.setTextureId(citizen.getEntityData().get(DATA_TEXTURE));
             citizen.setRenderMetadata(citizen.getEntityData().get(DATA_RENDER_METADATA));
             citizen.setTexture();
@@ -160,8 +163,8 @@ public class CitizenColonyHandler implements ICitizenColonyHandler
     public void onSyncDataUpdate(final EntityDataAccessor<?> data)
     {
         if (data.equals(DATA_COLONY_ID) || data.equals(DATA_CITIZEN_ID) || data.equals(DATA_IS_FEMALE) || data.equals(DATA_IS_CHILD) || data.equals(DATA_MODEL)
-            || data.equals(DATA_TEXTURE)
-            || data.equals(DATA_TEXTURE_SUFFIX) || data.equals(DATA_STYLE) || data.equals(DATA_RENDER_METADATA))
+              || data.equals(DATA_TEXTURE)
+              || data.equals(DATA_TEXTURE_SUFFIX) || data.equals(DATA_STYLE) || data.equals(DATA_RENDER_METADATA))
         {
             needsClientUpdate = true;
         }
@@ -182,7 +185,7 @@ public class CitizenColonyHandler implements ICitizenColonyHandler
     @Nullable
     public IColony getColonyOrRegister()
     {
-        if (colony == null && !citizen.level.isClientSide)
+        if (colony == null && !citizen.level().isClientSide)
         {
             registerWithColony(getColonyId(), citizen.getCivilianID());
         }

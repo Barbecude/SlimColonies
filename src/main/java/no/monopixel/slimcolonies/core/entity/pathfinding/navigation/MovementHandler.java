@@ -2,23 +2,23 @@ package no.monopixel.slimcolonies.core.entity.pathfinding.navigation;
 
 import no.monopixel.slimcolonies.api.util.ShapeUtil;
 import no.monopixel.slimcolonies.core.entity.pathfinding.PathfindingUtils;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.tags.BlockTags;
+import net.minecraft.util.Mth;
+import net.minecraft.world.entity.Mob;
+import net.minecraft.world.entity.ai.attributes.AttributeInstance;
+import net.minecraft.world.entity.ai.attributes.Attributes;
+import net.minecraft.world.entity.ai.control.MoveControl;
+import net.minecraft.world.entity.ai.navigation.PathNavigation;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.entity.Mob;
-import net.minecraft.world.entity.ai.attributes.Attributes;
-import net.minecraft.world.entity.ai.attributes.AttributeInstance;
-import net.minecraft.world.entity.ai.control.MoveControl;
 import net.minecraft.world.level.pathfinder.NodeEvaluator;
-import net.minecraft.world.entity.ai.navigation.PathNavigation;
-import net.minecraft.world.level.pathfinder.BlockPathTypes;
-import net.minecraft.tags.BlockTags;
-import net.minecraft.core.Direction;
-import net.minecraft.core.BlockPos;
-import net.minecraft.util.Mth;
+import net.minecraft.world.level.pathfinder.PathType;
 import net.minecraft.world.phys.shapes.VoxelShape;
 
 /**
- * Custom movement handler for minecolonies citizens (avoid jumping so much).
+ * Custom movement handler for slimcolonies citizens (avoid jumping so much).
  * Note that the "speed" variable of the super is a speedFactor to our attributes base speed.
  */
 public class MovementHandler extends MoveControl
@@ -39,11 +39,16 @@ public class MovementHandler extends MoveControl
      */
     private float speedValue;
 
+    /**
+     * Tick timer for jumping to not get stuck in jumping
+     */
+    private int jumpingticks = 0;
+
     public MovementHandler(Mob mob)
     {
         super(mob);
         this.speedAtr = this.mob.getAttribute(Attributes.MOVEMENT_SPEED);
-        stepHeight = mob.getStepHeight();
+        stepHeight = mob.maxUpStep();
         speedValue = (float) speedAtr.getValue();
     }
 
@@ -52,7 +57,7 @@ public class MovementHandler extends MoveControl
     {
         if (mob.tickCount % 20 == 0)
         {
-            stepHeight = this.mob.getStepHeight();
+            stepHeight = this.mob.maxUpStep();
             speedValue = (float) speedAtr.getValue();
         }
 
@@ -77,15 +82,9 @@ public class MovementHandler extends MoveControl
             final float rot2 = strafe * cosRotation + forward * sinRotation;
             final PathNavigation pathnavigator = this.mob.getNavigation();
 
-            final NodeEvaluator nodeprocessor = pathnavigator.getNodeEvaluator();
-            if (nodeprocessor.getBlockPathType(this.mob.level,
-              Mth.floor(this.mob.getX() + (double) rot1),
-              Mth.floor(this.mob.getY()),
-              Mth.floor(this.mob.getZ() + (double) rot2)) != BlockPathTypes.WALKABLE)
-            {
+            if (!this.isWalkable(rot1, rot2)) {
                 this.strafeForwards = 1.0F;
                 this.strafeRight = 0.0F;
-                speed = speedAtt;
             }
 
             this.mob.setSpeed(speed);
@@ -110,10 +109,10 @@ public class MovementHandler extends MoveControl
             this.mob.setYRot(this.rotlerp(this.mob.getYRot(), range, 90.0F));
             this.mob.setSpeed((float) (this.speedModifier * speedValue));
             final BlockPos blockpos = this.mob.blockPosition();
-            final BlockState blockstate = this.mob.level.getBlockState(blockpos);
+            final BlockState blockstate = this.mob.level().getBlockState(blockpos);
 
-            if (PathfindingUtils.isWater(mob.level, mob.blockPosition(), blockstate, blockstate.getFluidState())
-                  && PathfindingUtils.isWater(mob.level, mob.blockPosition().above(), null, null))
+            if (PathfindingUtils.isWater(mob.level(), mob.blockPosition(), blockstate, blockstate.getFluidState())
+                  && PathfindingUtils.isWater(mob.level(), mob.blockPosition().above(), null, null))
             {
                 if (yDif != 0.0D)
                 {
@@ -125,24 +124,26 @@ public class MovementHandler extends MoveControl
             }
 
             final Block block = blockstate.getBlock();
-            final VoxelShape voxelshape = blockstate.getCollisionShape(this.mob.level, blockpos);
-            if ((yDif > (double) stepHeight && xDif * xDif + zDif * zDif < (double) Math.max(1.0F, this.mob.getBbWidth()))
+            final VoxelShape voxelshape = blockstate.getCollisionShape(this.mob.level(), blockpos);
+            if (((yDif > (double) stepHeight || yDif > 0 && !mob.onGround()) && xDif * xDif + zDif * zDif < (double) Math.max(1.0F, this.mob.getBbWidth()))
                   || (!ShapeUtil.isEmpty(voxelshape) && this.mob.getY() < ShapeUtil.max(voxelshape, Direction.Axis.Y) + (double) blockpos.getY() && !blockstate.is(BlockTags.DOORS)
                         && !blockstate.is(
               BlockTags.FENCES) && !blockstate.is(BlockTags.FENCE_GATES))
-                       && !block.isLadder(blockstate, this.mob.level, blockpos, this.mob))
+                       && !block.isLadder(blockstate, this.mob.level(), blockpos, this.mob))
             {
+                jumpingticks = 0;
                 this.mob.getJumpControl().jump();
                 this.operation = net.minecraft.world.entity.ai.control.MoveControl.Operation.JUMPING;
             }
         }
         else if (this.operation == net.minecraft.world.entity.ai.control.MoveControl.Operation.JUMPING)
         {
+            jumpingticks++;
             this.mob.setSpeed((float) (this.speedModifier * speedValue));
 
             // Avoid beeing stuck in jumping while in liquids
             final BlockPos blockpos = this.mob.blockPosition();
-            final BlockState blockstate = this.mob.level.getBlockState(blockpos);
+            final BlockState blockstate = this.mob.level().getBlockState(blockpos);
             if (this.mob.onGround() || blockstate.liquid())
             {
                 this.operation = net.minecraft.world.entity.ai.control.MoveControl.Operation.WAIT;
@@ -158,6 +159,28 @@ public class MovementHandler extends MoveControl
     public void setWantedPosition(double x, double y, double z, double speedIn)
     {
         super.setWantedPosition(x, y, z, speedIn);
-        this.operation = MoveControl.Operation.MOVE_TO;
+        if (this.operation != MoveControl.Operation.JUMPING || (wantedX != x || wantedY != y || wantedZ != z) || jumpingticks > 20)
+        {
+            this.operation = MoveControl.Operation.MOVE_TO;
+        }
+    }
+
+    private boolean isWalkable(float p_24997_, float p_24998_)
+    {
+        PathNavigation pathnavigation = this.mob.getNavigation();
+        if (pathnavigation != null)
+        {
+            NodeEvaluator nodeevaluator = pathnavigation.getNodeEvaluator();
+            if (nodeevaluator != null
+                  && nodeevaluator.getPathType(
+              this.mob, BlockPos.containing(this.mob.getX() + (double) p_24997_, (double) this.mob.getBlockY(), this.mob.getZ() + (double) p_24998_)
+            )
+                       != PathType.WALKABLE)
+            {
+                return false;
+            }
+        }
+
+        return true;
     }
 }

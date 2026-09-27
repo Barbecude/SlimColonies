@@ -12,7 +12,7 @@ public final class Log
     /**
      * Mod logger.
      */
-    private static final Logger logger = LogManager.getLogger(Constants.MOD_ID);
+    private static Logger logger = LogManager.getLogger(Constants.MOD_ID);
 
     /**
      * Private constructor to hide the public one.
@@ -25,7 +25,7 @@ public final class Log
     }
 
     /**
-     * Getter for the Logger.
+     * Getter for the slimcolonies Logger.
      *
      * @return the logger.
      */

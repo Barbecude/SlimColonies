@@ -62,8 +62,9 @@ public class FloristRecipeCategory extends JobBasedRecipeCategory<FloristRecipeC
                 .setBackground(this.slot, -1, -1)
                 .addItemStack(new ItemStack(ModItems.compost));
 
+        if (recipe.flowers().isEmpty()) return;
         final int initialColumns = LOOT_SLOTS_W / this.slot.getWidth();
-        final int rows = (recipe.flowers().size() + initialColumns - 1) / initialColumns;
+        final int rows = Math.max(1, (recipe.flowers().size() + initialColumns - 1) / initialColumns);
         final int columns = (recipe.flowers().size() + rows - 1) / rows;
         final int startX = LOOT_SLOTS_X + (LOOT_SLOTS_W - (columns * this.slot.getWidth())) / 2;
         int x = startX;
@@ -97,7 +98,7 @@ public class FloristRecipeCategory extends JobBasedRecipeCategory<FloristRecipeC
         super.draw(recipe, recipeSlotsView, stack, mouseX, mouseY);
 
         final BlockState block = ModBlocks.blockCompostedDirt.defaultBlockState();
-        RenderHelper.renderBlock(stack.pose(), block, WIDTH - 38, CITIZEN_Y - 20, 100, -30F, 30F, 16F);
+        RenderHelper.renderBlock(stack, block, WIDTH - 38, CITIZEN_Y - 20, 100, -30F, 30F, 16F);
     }
 
     @NotNull

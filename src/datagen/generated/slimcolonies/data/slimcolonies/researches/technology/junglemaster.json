@@ -1,5 +1,19 @@
 {
   "branch": "slimcolonies:technology",
+  "costs": [
+    {
+      "count": 16,
+      "item": "minecraft:bamboo"
+    },
+    {
+      "count": 16,
+      "item": "minecraft:cocoa_beans"
+    },
+    {
+      "count": 16,
+      "item": "minecraft:vine"
+    }
+  ],
   "effects": [
     {
       "id": "slimcolonies:effects/plantationjungle",

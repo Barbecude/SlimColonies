@@ -1,10 +1,9 @@
 package no.monopixel.slimcolonies.core.commands.colonycommands;
 
 import no.monopixel.slimcolonies.api.colony.IColony;
-import no.monopixel.slimcolonies.api.colony.IColonyManager;
+import no.monopixel.slimcolonies.core.commands.arguments.ColonyIdArgument;
 import no.monopixel.slimcolonies.core.commands.commandTypes.IMCColonyOfficerCommand;
 import no.monopixel.slimcolonies.core.commands.commandTypes.IMCCommand;
-import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
 import net.minecraft.commands.CommandSourceStack;
@@ -12,7 +11,6 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
 
-import static no.monopixel.slimcolonies.api.util.constant.translation.CommandTranslationConstants.COMMAND_COLONY_ID_NOT_FOUND;
 import static no.monopixel.slimcolonies.api.util.constant.translation.CommandTranslationConstants.COMMAND_OWNER_CHANGE_SUCCESS;
 import static no.monopixel.slimcolonies.core.commands.CommandArgumentNames.COLONYID_ARG;
 
@@ -27,14 +25,7 @@ public class CommandSetAbandoned implements IMCColonyOfficerCommand
     public int onExecute(final CommandContext<CommandSourceStack> context)
     {
         final Entity sender = context.getSource().getEntity();
-
-        final int colonyID = IntegerArgumentType.getInteger(context, COLONYID_ARG);
-        final IColony colony = IColonyManager.getInstance().getColonyByDimension(colonyID, context.getSource().getLevel().dimension());
-        if (colony == null)
-        {
-            context.getSource().sendSuccess(() -> Component.translatable(COMMAND_COLONY_ID_NOT_FOUND, colonyID), true);
-            return 0;
-        }
+        final IColony colony = ColonyIdArgument.getColony(context, COLONYID_ARG);
 
         boolean addOfficer = false;
         if (sender != null && (colony.getPermissions().getRank((Player) sender).isColonyManager()))
@@ -49,7 +40,7 @@ public class CommandSetAbandoned implements IMCColonyOfficerCommand
             colony.getPermissions().addPlayer(((Player) sender).getGameProfile(), colony.getPermissions().getRankOfficer());
         }
 
-        context.getSource().sendSuccess(() -> Component.translatable(COMMAND_OWNER_CHANGE_SUCCESS, "[abandoned]", colony.getName()), true);
+        context.getSource().sendSuccess(() -> Component.translatableEscape(COMMAND_OWNER_CHANGE_SUCCESS, "[abandoned]", colony.getName()), true);
         return 1;
     }
 
@@ -66,6 +57,6 @@ public class CommandSetAbandoned implements IMCColonyOfficerCommand
     public LiteralArgumentBuilder<CommandSourceStack> build()
     {
         return IMCCommand.newLiteral(getName())
-                 .then(IMCCommand.newArgument(COLONYID_ARG, IntegerArgumentType.integer(1)).executes(this::checkPreConditionAndExecute));
+                 .then(IMCCommand.newArgument(COLONYID_ARG, ColonyIdArgument.id()).executes(this::checkPreConditionAndExecute));
     }
 }

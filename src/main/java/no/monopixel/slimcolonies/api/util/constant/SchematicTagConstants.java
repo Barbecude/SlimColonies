@@ -15,6 +15,7 @@ public class SchematicTagConstants
     public static final String TAG_STAND_IN  = "stand_in";
     public static final String TAG_STAND_OUT = "stand_out";
     public static final String BUILDING_SIGN = "building_sign";
+    public static final String TAG_GROUNDLEVEL = "groundlevel";
 
     /**
      * Gate tags.
@@ -23,6 +24,28 @@ public class SchematicTagConstants
     public static final String TAG_ARCHER = "archer";
     public static final String TAG_GATE   = "gate";
 
+    /**
+     * Military tags.
+     */
+    public static final String TAG_PATROL_POINT = "patrol_point";
+
+    /**
+     * Raider tags.
+     */
+    public static final String NORMAL_RAIDER = "normal";
+    public static final String ARCHER_RAIDER = "archer";
+    public static final String BOSS_RAIDER   = "boss";
+
+    /**
+     * Miner tags
+     */
+    public static final String TAG_COBBLE = "cobble";
+    public static final String TAG_LADDER = "ladder";
+
+    /**
+     * Leisure tag.
+     */
+    public static final String TAG_LEISURE = "leisure";
 
     /**
      * Plantation field tags.

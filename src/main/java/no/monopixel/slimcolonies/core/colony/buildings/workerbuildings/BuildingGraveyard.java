@@ -1,7 +1,18 @@
 package no.monopixel.slimcolonies.core.colony.buildings.workerbuildings;
 
+import no.monopixel.slimcolonies.api.blocks.AbstractBlockMinecoloniesNamedGrave;
+import no.monopixel.slimcolonies.api.blocks.ModBlocks;
+import no.monopixel.slimcolonies.api.colony.IColony;
+import no.monopixel.slimcolonies.api.equipment.ModEquipmentTypes;
+import no.monopixel.slimcolonies.core.tileentities.TileEntityGrave;
+import no.monopixel.slimcolonies.api.util.BlockPosUtil;
+import no.monopixel.slimcolonies.api.util.ItemStackUtils;
+import no.monopixel.slimcolonies.api.util.Tuple;
+import no.monopixel.slimcolonies.api.util.WorldUtil;
+import no.monopixel.slimcolonies.core.colony.buildings.AbstractBuilding;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
@@ -9,20 +20,12 @@ import net.minecraft.world.item.Items;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
-import no.monopixel.slimcolonies.api.blocks.AbstractBlockSlimColoniesNamedGrave;
-import no.monopixel.slimcolonies.api.blocks.ModBlocks;
-import no.monopixel.slimcolonies.api.colony.IColony;
-import no.monopixel.slimcolonies.api.equipment.ModEquipmentTypes;
-import no.monopixel.slimcolonies.api.util.BlockPosUtil;
-import no.monopixel.slimcolonies.api.util.ItemStackUtils;
-import no.monopixel.slimcolonies.api.util.Tuple;
-import no.monopixel.slimcolonies.api.util.WorldUtil;
-import no.monopixel.slimcolonies.core.colony.buildings.AbstractBuilding;
-import no.monopixel.slimcolonies.core.tileentities.TileEntityGrave;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
+
+import static no.monopixel.slimcolonies.api.util.constant.EquipmentLevelConstants.TOOL_LEVEL_WOOD_OR_GOLD;
 
 /**
  * Class which handles the graveyard building.
@@ -79,7 +82,7 @@ public class BuildingGraveyard extends AbstractBuilding
     public BuildingGraveyard(final IColony c, final BlockPos l)
     {
         super(c, l);
-        keepX.put(itemStack -> ItemStackUtils.isEquipmentType(itemStack, ModEquipmentTypes.shovel.get()), new net.minecraft.util.Tuple<>(1, true));
+        keepX.put(itemStack -> ItemStackUtils.hasEquipmentLevel(itemStack, ModEquipmentTypes.shovel.get(), TOOL_LEVEL_WOOD_OR_GOLD, getMaxEquipmentLevel()), new net.minecraft.util.Tuple<>(1, true));
         keepX.put(itemStack -> itemStack.getItem() == Items.TOTEM_OF_UNDYING, new net.minecraft.util.Tuple<>(2, true));
     }
 
@@ -99,7 +102,7 @@ public class BuildingGraveyard extends AbstractBuilding
     @Nullable
     public BlockPos getGraveToWorkOn()
     {
-        if (currentGrave != null)
+        if(currentGrave != null)
         {
             if (WorldUtil.isBlockLoaded(colony.getWorld(), currentGrave))
             {
@@ -119,9 +122,9 @@ public class BuildingGraveyard extends AbstractBuilding
     }
 
     @Override
-    public void deserializeNBT(final CompoundTag compound)
+    public void deserializeNBT(@NotNull final HolderLookup.Provider provider, final CompoundTag compound)
     {
-        super.deserializeNBT(compound);
+        super.deserializeNBT(provider, compound);
 
         if (compound.contains(TAG_CURRENT_GRAVE))
         {
@@ -140,9 +143,9 @@ public class BuildingGraveyard extends AbstractBuilding
     }
 
     @Override
-    public CompoundTag serializeNBT()
+    public CompoundTag serializeNBT(@NotNull final HolderLookup.Provider provider)
     {
-        final CompoundTag compound = super.serializeNBT();
+        final CompoundTag compound = super.serializeNBT(provider);
 
         if (currentGrave != null)
         {
@@ -163,7 +166,6 @@ public class BuildingGraveyard extends AbstractBuilding
 
     /**
      * Get the set of grave positions.
-     *
      * @return the set of positions with their directions.
      */
     public Set<Tuple<BlockPos, Direction>> getGravePositions()
@@ -190,7 +192,7 @@ public class BuildingGraveyard extends AbstractBuilding
         super.registerBlockPosition(state, pos, world);
         if (state.getBlock() == ModBlocks.blockNamedGrave)
         {
-            visualGravePositions.add(new Tuple<>(pos, state.getValue(AbstractBlockSlimColoniesNamedGrave.FACING)));
+            visualGravePositions.add(new Tuple<>(pos, state.getValue(AbstractBlockMinecoloniesNamedGrave.FACING)));
         }
     }
 
@@ -205,7 +207,7 @@ public class BuildingGraveyard extends AbstractBuilding
         }
 
         final List<Tuple<BlockPos, Direction>> availablePos = new ArrayList<Tuple<BlockPos, Direction>>();
-        for (final Tuple<BlockPos, Direction> tuple : visualGravePositions)
+        for(final Tuple<BlockPos, Direction> tuple : visualGravePositions)
         {
             if (getColony().getWorld().getBlockState(tuple.getA()).canBeReplaced())
             {

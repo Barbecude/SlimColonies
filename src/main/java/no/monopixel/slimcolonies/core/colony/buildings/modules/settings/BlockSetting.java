@@ -4,6 +4,14 @@ import com.ldtteam.blockui.Pane;
 import com.ldtteam.blockui.controls.ButtonImage;
 import com.ldtteam.blockui.controls.ItemIcon;
 import com.ldtteam.blockui.views.BOWindow;
+import com.ldtteam.structurize.client.gui.WindowSelectRes;
+import no.monopixel.slimcolonies.api.colony.IColonyManager;
+import no.monopixel.slimcolonies.api.colony.buildings.modules.ICommonSettingsModule;
+import no.monopixel.slimcolonies.api.colony.buildings.modules.ISettingsModule;
+import no.monopixel.slimcolonies.api.colony.buildings.modules.settings.ISetting;
+import no.monopixel.slimcolonies.api.colony.buildings.modules.settings.ISettingKey;
+import no.monopixel.slimcolonies.api.colony.buildings.modules.settings.ISettingsModuleView;
+import no.monopixel.slimcolonies.api.colony.buildings.views.IBuildingView;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
@@ -22,13 +30,8 @@ import net.minecraft.world.level.material.FluidState;
 import net.minecraft.world.level.material.Fluids;
 import net.minecraft.world.phys.shapes.CollisionContext;
 import net.minecraft.world.phys.shapes.Shapes;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.api.distmarker.OnlyIn;
-import no.monopixel.slimcolonies.api.colony.buildings.modules.settings.ISetting;
-import no.monopixel.slimcolonies.api.colony.buildings.modules.settings.ISettingKey;
-import no.monopixel.slimcolonies.api.colony.buildings.modules.settings.ISettingsModuleView;
-import no.monopixel.slimcolonies.api.colony.buildings.views.IBuildingView;
-import no.monopixel.slimcolonies.core.client.gui.WindowSelectRes;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.api.distmarker.OnlyIn;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -105,57 +108,61 @@ public class BlockSetting implements ISetting<BlockItem>
     @Override
     public ResourceLocation getLayoutItem()
     {
-        return new ResourceLocation("slimcolonies:gui/layouthuts/layoutblocksetting.xml");
+        return new ResourceLocation("slimcolonies", "gui/layouthuts/layoutblocksetting.xml");
     }
 
     @OnlyIn(Dist.CLIENT)
     @Override
     public void setupHandler(
-        final ISettingKey<?> key,
-        final Pane pane,
-        final ISettingsModuleView settingsModuleView,
-        final IBuildingView building,
-        final BOWindow window)
+      final ISettingKey<?> key,
+      final Pane pane,
+      final ICommonSettingsModule settingsModuleView,
+      final IBuildingView building,
+      final BOWindow window)
     {
-        pane.findPaneOfTypeByID("trigger", ButtonImage.class).setHandler(button -> new WindowSelectRes(
-            window,
-            stack -> {
-                final Item item = stack.getItem();
-                if (!(item instanceof BlockItem))
-                {
-                    return false;
-                }
+        pane.findPaneOfTypeByID("trigger", ButtonImage.class).setHandler(button ->
+            new WindowSelectRes(
+                window,
+                Component.empty(),
+                new ItemStack(value),
+                IColonyManager.getInstance().getCompatibilityManager().getListOfMatchingItems(stack -> {
+                    final Item item = stack.getItem();
+                    if (!(item instanceof BlockItem))
+                    {
+                        return false;
+                    }
 
-                final Block block = ((BlockItem) item).getBlock();
-                final BlockState state = block.defaultBlockState();
-                if (block instanceof EntityBlock || block instanceof FallingBlock || state.is(BlockTags.LEAVES))
-                {
-                    return false;
-                }
+                    final Block block = ((BlockItem) item).getBlock();
+                    final BlockState state = block.defaultBlockState();
+                    if (block instanceof EntityBlock || block instanceof FallingBlock || state.is(BlockTags.LEAVES))
+                    {
+                        return false;
+                    }
 
-                return block.getShape(state, new SingleStateBlockGetter(state), BlockPos.ZERO, CollisionContext.empty()).equals(Shapes.block()) && state.blocksMotion();
-            }, (stack, qty) -> {
-            if (stack.isEmpty())
-            {
-                return;
-            }
-            value = (BlockItem) stack.getItem();
-            settingsModuleView.getSetting(new SettingKey(key.getType(), key.getUniqueId())).updateSetting(this);
-            settingsModuleView.trigger(key);
-        }, false).open());
+                    return state.getShape(new SingleStateBlockGetter(state), BlockPos.ZERO, CollisionContext.empty()).equals(Shapes.block()) && state.blocksMotion();
+                }),
+                (stack, qty) -> {
+                    if (stack.isEmpty())
+                    {
+                        return;
+                    }
+                    value = (BlockItem) stack.getItem();
+                    settingsModuleView.getSetting(new SettingKey(key.getType(), key.getUniqueId())).updateSetting(this);
+                    settingsModuleView.trigger(key);
+                }).open());
     }
 
     @Override
     public void render(
-        final ISettingKey<?> key,
-        final Pane pane,
-        final ISettingsModuleView settingsModuleView,
-        final IBuildingView building,
-        final BOWindow window)
+      final ISettingKey<?> key,
+      final Pane pane,
+      final ICommonSettingsModule settingsModuleView,
+      final IBuildingView building,
+      final BOWindow window)
     {
         pane.findPaneOfTypeByID("icon", ItemIcon.class).setItem(new ItemStack(value));
         ButtonImage triggerButton = pane.findPaneOfTypeByID("trigger", ButtonImage.class);
-        triggerButton.setEnabled(isActive(settingsModuleView));
+        triggerButton.setEnabled(isActive((ISettingsModuleView) settingsModuleView));
         triggerButton.setText(Component.translatable(SWITCH));
         setHoverPane(key, triggerButton, settingsModuleView);
     }
@@ -193,9 +200,7 @@ public class BlockSetting implements ISetting<BlockItem>
         public BlockState getBlockState(@NotNull BlockPos pos)
         {
             if (pos == BlockPos.ZERO)
-            {
                 return state;
-            }
             return Blocks.AIR.defaultBlockState();
         }
 

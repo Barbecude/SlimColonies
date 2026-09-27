@@ -2,10 +2,11 @@ package no.monopixel.slimcolonies.core.colony.eventhooks.buildingEvents;
 
 import no.monopixel.slimcolonies.api.colony.colonyEvents.descriptions.IBuildingEventDescription;
 import no.monopixel.slimcolonies.api.util.BlockPosUtil;
-import no.monopixel.slimcolonies.core.colony.eventhooks.AbstractEvent;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.core.BlockPos;
+import org.jetbrains.annotations.NotNull;
 
 import static no.monopixel.slimcolonies.api.util.constant.NbtTagConstants.TAG_BUILDING_LEVEL;
 import static no.monopixel.slimcolonies.api.util.constant.NbtTagConstants.TAG_BUILDING_NAME;
@@ -14,33 +15,32 @@ import static no.monopixel.slimcolonies.api.util.constant.NbtTagConstants.TAG_EV
 /**
  * The abstract event handling building/upgrading huts.
  */
-public abstract class AbstractBuildingEvent extends AbstractEvent implements IBuildingEventDescription
+public abstract class AbstractBuildingEvent implements IBuildingEventDescription
 {
+
     private BlockPos eventPos;
-    private String   buildingName;
-    private int      level;
+    private String buildingName;
+    private int level;
 
     /**
      * Creates a new building event.
      */
     public AbstractBuildingEvent()
     {
-
     }
 
     /**
      * Creates a new building event.
-     *
+     * 
      * @param eventPos      the position of the hut block of the building.
      * @param buildingName  the name of the building.
      * @param buildingLevel the level of the building after this event.
      */
-    public AbstractBuildingEvent(final boolean includeInSummary, final BlockPos eventPos, final String buildingName, final int buildingLevel)
+    public AbstractBuildingEvent(BlockPos eventPos, String buildingName, int buildingLevel)
     {
-        super(includeInSummary);
         this.eventPos = eventPos;
         this.buildingName = buildingName;
-        this.level = buildingLevel;
+        level = buildingLevel;
     }
 
     @Override
@@ -56,9 +56,9 @@ public abstract class AbstractBuildingEvent extends AbstractEvent implements IBu
     }
 
     @Override
-    public CompoundTag serializeNBT()
+    public CompoundTag serializeNBT(@NotNull final HolderLookup.Provider provider)
     {
-        CompoundTag compound = super.serializeNBT();
+        CompoundTag compound = new CompoundTag();
         BlockPosUtil.write(compound, TAG_EVENT_POS, eventPos);
         compound.putString(TAG_BUILDING_NAME, buildingName);
         compound.putInt(TAG_BUILDING_LEVEL, level);
@@ -66,27 +66,24 @@ public abstract class AbstractBuildingEvent extends AbstractEvent implements IBu
     }
 
     @Override
-    public void deserializeNBT(CompoundTag compound)
+    public void deserializeNBT(@NotNull final HolderLookup.Provider provider, CompoundTag compound)
     {
-        super.deserializeNBT(compound);
         eventPos = BlockPosUtil.read(compound, TAG_EVENT_POS);
         buildingName = compound.getString(TAG_BUILDING_NAME);
         level = compound.getInt(TAG_BUILDING_LEVEL);
     }
 
     @Override
-    public void serialize(FriendlyByteBuf buf)
+    public void serialize(RegistryFriendlyByteBuf buf)
     {
-        super.serialize(buf);
         buf.writeBlockPos(eventPos);
         buf.writeUtf(buildingName);
         buf.writeInt(level);
     }
 
     @Override
-    public void deserialize(FriendlyByteBuf buf)
+    public void deserialize(RegistryFriendlyByteBuf buf)
     {
-        super.deserialize(buf);
         eventPos = buf.readBlockPos();
         buildingName = buf.readUtf();
         level = buf.readInt();

@@ -1,10 +1,10 @@
 package no.monopixel.slimcolonies.api.quests;
 
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Player;
-import net.minecraftforge.common.util.INBTSerializable;
+import net.neoforged.neoforge.common.util.INBTSerializable;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.HashMap;
@@ -119,12 +119,12 @@ public interface IQuestManager extends INBTSerializable<CompoundTag>
      * @param buf
      * @param hasNewSubscribers
      */
-    void serialize(FriendlyByteBuf buf, boolean hasNewSubscribers);
+    void serialize(RegistryFriendlyByteBuf buf, boolean hasNewSubscribers);
 
     /**
      * Deserialize network data
      *
      * @param buf
      */
-    void deserialize(FriendlyByteBuf buf);
+    void deserialize(RegistryFriendlyByteBuf buf);
 }

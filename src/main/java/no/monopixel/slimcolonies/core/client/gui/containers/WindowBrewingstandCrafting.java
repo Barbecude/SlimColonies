@@ -5,10 +5,10 @@ import no.monopixel.slimcolonies.api.crafting.ItemStorage;
 import no.monopixel.slimcolonies.api.crafting.ModCraftingTypes;
 import no.monopixel.slimcolonies.api.inventory.container.ContainerCraftingBrewingstand;
 import no.monopixel.slimcolonies.api.util.ItemStackUtils;
-import no.monopixel.slimcolonies.core.Network;
 import no.monopixel.slimcolonies.core.colony.buildings.moduleviews.CraftingModuleView;
 import no.monopixel.slimcolonies.core.colony.buildings.views.AbstractBuildingView;
 import no.monopixel.slimcolonies.core.network.messages.server.colony.building.worker.AddRemoveRecipeMessage;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
@@ -31,7 +31,7 @@ import static no.monopixel.slimcolonies.api.util.constant.translation.BaseGameTr
  */
 public class WindowBrewingstandCrafting extends AbstractContainerScreen<ContainerCraftingBrewingstand>
 {
-    private static final ResourceLocation BREWING_STAND_LOCATION = new ResourceLocation("textures/gui/container/brewing_stand.png");
+    private static final ResourceLocation BREWING_STAND_LOCATION = ResourceLocation.withDefaultNamespace("textures/gui/container/brewing_stand.png");
 
     /**
      * X offset of the button.
@@ -79,7 +79,7 @@ public class WindowBrewingstandCrafting extends AbstractContainerScreen<Containe
     {
         super(container, playerInventory, iTextComponent);
         this.container = container;
-        this.building = (AbstractBuildingView) IColonyManager.getInstance().getBuildingView(playerInventory.player.level.dimension(), container.getPos());
+        this.building = (AbstractBuildingView) IColonyManager.getInstance().getBuildingView(playerInventory.player.level().dimension(), container.getPos());
         this.module = (CraftingModuleView) building.getModuleView(container.getModuleId());
     }
 
@@ -93,7 +93,7 @@ public class WindowBrewingstandCrafting extends AbstractContainerScreen<Containe
     protected void init()
     {
         super.init();
-        final Component buttonDisplay = Component.translatable(module.canLearn(ModCraftingTypes.BREWING.get()) ? BASE_GUI_DONE : WARNING_MAXIMUM_NUMBER_RECIPES);
+        final Component buttonDisplay = Component.translatableEscape(module.canLearn(ModCraftingTypes.BREWING.get()) ? BASE_GUI_DONE : WARNING_MAXIMUM_NUMBER_RECIPES);
         /*
          * The button to click done after finishing the recipe.
          */
@@ -112,19 +112,18 @@ public class WindowBrewingstandCrafting extends AbstractContainerScreen<Containe
         {
             if (module.canLearn(ModCraftingTypes.BREWING.get()))
             {
+                final ItemStack potion = container.getSlot(0).getItem();
+                final ItemStack ingredient = container.getSlot(3).getItem();
+
                 final List<ItemStorage> input = new ArrayList<>();
-                input.add(new ItemStorage(container.slots.get(0).getItem()));
-                input.add(new ItemStorage(container.slots.get(1).getItem()));
-                input.add(new ItemStorage(container.slots.get(2).getItem()));
-                input.add(new ItemStorage(container.slots.get(3).getItem()));
+                input.add(new ItemStorage(potion, 3, false));
+                input.add(new ItemStorage(ingredient));
 
-                final ItemStack
-                  primaryOutput = net.minecraftforge.common.brewing.BrewingRecipeRegistry.getOutput(container.slots.get(3).getItem(), container.slots.get(0).getItem()).copy();
-                primaryOutput.setCount(3);
+                final ItemStack primaryOutput = Minecraft.getInstance().level.potionBrewing().mix(ingredient, potion);
 
-                if (!ItemStackUtils.isEmpty(primaryOutput))
+                if (!ItemStackUtils.isEmpty(primaryOutput) && primaryOutput != potion)
                 {
-                    Network.getNetwork().sendToServer(new AddRemoveRecipeMessage(building, input, 1, primaryOutput, false, Blocks.BREWING_STAND, module.getProducer().getRuntimeID()));
+                    new AddRemoveRecipeMessage(building, input, 1, primaryOutput.copyWithCount(3), false, Blocks.BREWING_STAND, module.getProducer().getRuntimeID()).sendToServer();
                 }
             }
         }
@@ -133,7 +132,6 @@ public class WindowBrewingstandCrafting extends AbstractContainerScreen<Containe
     @Override
     public void render(@NotNull final GuiGraphics stack, int x, int y, float z)
     {
-        this.renderBackground(stack);
         super.render(stack, x, y, z);
         this.renderTooltip(stack, x, y);
     }

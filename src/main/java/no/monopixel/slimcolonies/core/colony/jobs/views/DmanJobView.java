@@ -6,7 +6,7 @@ import no.monopixel.slimcolonies.api.colony.requestsystem.StandardFactoryControl
 import no.monopixel.slimcolonies.api.colony.requestsystem.data.IRequestSystemDeliveryManJobDataStore;
 import no.monopixel.slimcolonies.api.colony.requestsystem.token.IToken;
 import no.monopixel.slimcolonies.api.util.constant.TypeConstants;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 
 /**
  * Extended dman job information on the client side, valid for all job types.
@@ -29,7 +29,7 @@ public class DmanJobView extends DefaultJobView
     }
 
     @Override
-    public void deserialize(final FriendlyByteBuf buffer)
+    public void deserialize(final RegistryFriendlyByteBuf buffer)
     {
         super.deserialize(buffer);
         this.rsDataStoreToken = StandardFactoryController.getInstance().deserialize(buffer);

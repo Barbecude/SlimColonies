@@ -1,18 +1,12 @@
 package no.monopixel.slimcolonies.core.entity.ai.workers.guard;
 
-import net.minecraft.core.BlockPos;
-import net.minecraft.world.InteractionHand;
-import net.minecraft.world.effect.MobEffectInstance;
-import net.minecraft.world.effect.MobEffects;
-import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.entity.player.Player;
-import net.minecraftforge.registries.ForgeRegistries;
+import no.monopixel.slimcolonies.api.colony.ICitizenData;
 import no.monopixel.slimcolonies.api.colony.IColony;
 import no.monopixel.slimcolonies.api.colony.IColonyManager;
 import no.monopixel.slimcolonies.api.colony.buildings.IBuilding;
 import no.monopixel.slimcolonies.api.colony.buildings.IGuardBuilding;
 import no.monopixel.slimcolonies.api.colony.jobs.ModJobs;
-import no.monopixel.slimcolonies.api.colony.permissions.Action;
+import no.monopixel.slimcolonies.api.colony.requestsystem.location.ILocation;
 import no.monopixel.slimcolonies.api.entity.ai.combat.CombatAIStates;
 import no.monopixel.slimcolonies.api.entity.ai.combat.threat.IThreatTableEntity;
 import no.monopixel.slimcolonies.api.entity.ai.statemachine.AIOneTimeEventTarget;
@@ -22,7 +16,7 @@ import no.monopixel.slimcolonies.api.entity.citizen.AbstractEntityCitizen;
 import no.monopixel.slimcolonies.api.entity.citizen.Skill;
 import no.monopixel.slimcolonies.api.equipment.registry.EquipmentTypeEntry;
 import no.monopixel.slimcolonies.api.util.*;
-import no.monopixel.slimcolonies.core.Network;
+import no.monopixel.slimcolonies.api.util.constant.ColonyConstants;
 import no.monopixel.slimcolonies.core.colony.buildings.AbstractBuildingGuards;
 import no.monopixel.slimcolonies.core.colony.buildings.modules.BuildingModules;
 import no.monopixel.slimcolonies.core.colony.buildings.modules.EntityListModule;
@@ -35,14 +29,23 @@ import no.monopixel.slimcolonies.core.entity.other.SittingEntity;
 import no.monopixel.slimcolonies.core.entity.pathfinding.navigation.EntityNavigationUtils;
 import no.monopixel.slimcolonies.core.network.messages.client.SleepingParticleMessage;
 import no.monopixel.slimcolonies.core.util.TeleportHelper;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.util.Mth;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.effect.MobEffectInstance;
+import net.minecraft.world.effect.MobEffects;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.player.Player;
 import org.jetbrains.annotations.NotNull;
 
 import java.lang.ref.WeakReference;
+import java.util.Random;
 
 import static no.monopixel.slimcolonies.api.entity.ai.statemachine.states.AIWorkerState.*;
-import static no.monopixel.slimcolonies.api.research.util.ResearchConstants.FLEEING_SPEED;
-import static no.monopixel.slimcolonies.api.research.util.ResearchConstants.RETREAT;
-import static no.monopixel.slimcolonies.api.util.constant.Constants.*;
+import static no.monopixel.slimcolonies.api.research.util.ResearchConstants.*;
+import static no.monopixel.slimcolonies.api.util.constant.Constants.GLOW_EFFECT_DURATION;
+import static no.monopixel.slimcolonies.api.util.constant.Constants.TICKS_SECOND;
 import static no.monopixel.slimcolonies.api.util.constant.GuardConstants.GUARD_FOLLOW_LOSE_RANGE;
 import static no.monopixel.slimcolonies.api.util.constant.GuardConstants.GUARD_FOLLOW_TIGHT_RANGE;
 import static no.monopixel.slimcolonies.core.colony.buildings.AbstractBuildingGuards.HOSTILE_LIST;
@@ -63,6 +66,11 @@ public abstract class AbstractEntityAIGuard<J extends AbstractJobGuard<J>, B ext
      * Max derivation of current position when patrolling.
      */
     private static final int MAX_PATROL_DERIVATION = 80;
+
+    /**
+     * How far off patrols are alterated to match a raider attack point, sq dist
+     */
+    public static final int PATROL_DEVIATION_RAID_POINT = 40 * 40;
 
     /**
      * Max derivation of current position when following..
@@ -87,7 +95,7 @@ public abstract class AbstractEntityAIGuard<J extends AbstractJobGuard<J>, B ext
     /**
      * The current blockPos we're patrolling at.
      */
-    private BlockPos currentPatrolPoint = null;
+    protected BlockPos currentPatrolPoint = null;
 
     /**
      * The guard building assigned to this job.
@@ -140,6 +148,11 @@ public abstract class AbstractEntityAIGuard<J extends AbstractJobGuard<J>, B ext
     protected WeakReference<EntityCitizen> sleepingGuard = new WeakReference<>(null);
 
     /**
+     * Random generator for this AI.
+     */
+    private Random randomGenerator = new Random();
+
+    /**
      * Small timer for increasing actions done for continuous actions
      */
     private int regularActionTimer = 0;
@@ -153,18 +166,18 @@ public abstract class AbstractEntityAIGuard<J extends AbstractJobGuard<J>, B ext
     {
         super(job);
         super.registerTargets(
-            new AITarget(DECIDE, CombatAIStates.NO_TARGET, 1),
-            new AITarget(CombatAIStates.NO_TARGET, this::shouldSleep, () -> GUARD_SLEEP, SHOULD_SLEEP_INTERVAL),
-            new AITarget(GUARD_SLEEP, this::sleep, 1),
-            new AITarget(GUARD_SLEEP, this::sleepParticles, PARTICLE_INTERVAL),
-            new AITarget(GUARD_REGEN, this::regen, GUARD_REGEN_INTERVAL),
-            new AITarget(GUARD_FLEE, this::flee, 20),
-            new AITarget(CombatAIStates.ATTACKING, this::shouldFlee, () -> GUARD_FLEE, GUARD_REGEN_INTERVAL),
+          new AITarget(DECIDE, CombatAIStates.NO_TARGET, 1),
+          new AITarget(CombatAIStates.NO_TARGET, this::shouldSleep, () -> GUARD_SLEEP, SHOULD_SLEEP_INTERVAL),
+          new AITarget(GUARD_SLEEP, this::sleep, 1),
+          new AITarget(GUARD_SLEEP, this::sleepParticles, PARTICLE_INTERVAL),
+          new AITarget(GUARD_REGEN, this::regen, GUARD_REGEN_INTERVAL),
+          new AITarget(GUARD_FLEE, this::flee, 20),
+          new AITarget(CombatAIStates.ATTACKING, this::shouldFlee, () -> GUARD_FLEE, GUARD_REGEN_INTERVAL),
             new AITarget(CombatAIStates.NO_TARGET, this::shouldFlee, () -> GUARD_FLEE, GUARD_REGEN_INTERVAL),
-            new AITarget(CombatAIStates.NO_TARGET, this::decide, GUARD_TASK_INTERVAL),
-            new AITarget(GUARD_WAKE, this::wakeUpGuard, TICKS_SECOND),
+          new AITarget(CombatAIStates.NO_TARGET, this::decide, GUARD_TASK_INTERVAL),
+          new AITarget(GUARD_WAKE, this::wakeUpGuard, TICKS_SECOND),
 
-            new AITarget(CombatAIStates.ATTACKING, this::inCombat, 8)
+          new AITarget(CombatAIStates.ATTACKING, this::inCombat, 8)
         );
 
         buildingGuards = building;
@@ -216,9 +229,9 @@ public abstract class AbstractEntityAIGuard<J extends AbstractJobGuard<J>, B ext
     private IAIState wakeUpGuard()
     {
         if (sleepingGuard.get() == null || !(sleepingGuard.get().getCitizenJobHandler().getColonyJob() instanceof AbstractJobGuard) || !sleepingGuard.get()
-            .getCitizenJobHandler()
-            .getColonyJob(AbstractJobGuard.class)
-            .isAsleep())
+                                                                                                                                          .getCitizenJobHandler()
+                                                                                                                                          .getColonyJob(AbstractJobGuard.class)
+                                                                                                                                          .isAsleep())
         {
             return CombatAIStates.NO_TARGET;
         }
@@ -254,19 +267,16 @@ public abstract class AbstractEntityAIGuard<J extends AbstractJobGuard<J>, B ext
      */
     private boolean shouldSleep()
     {
-        if (worker.getLastHurtByMob() != null || target != null || fighttimer > 0)
+        if (worker.getLastHurtByMob() != null || target != null || fighttimer > 0 || job.getCitizen().getCitizenDiseaseHandler().isSick())
         {
             return false;
         }
 
-        if (!WorldUtil.isDayTime(worker.level))
-        {
-            return false;
-        }
+        final double chance = 1 / (1 + worker.getCitizenColonyHandler().getColonyOrRegister().getResearchManager().getResearchEffects().getEffectStrength(SLEEP_LESS));
 
-        // Checked every 10 seconds. Base chance: 1 in 40. Higher Adaptability = less sleep needed
-        // Level 0: 1/40, Level 10: 1/45, Level 20: 1/50
-        if (worker.getRandom().nextInt((int) (worker.getCitizenData().getCitizenSkillHandler().getLevel(Skill.Adaptability) * 0.5) + 40) == 1)
+        // Chance to fall asleep every 10sec, Chance is 1 in (10 + level/2) = 1 in Level1:5,Level2:6 Level6:8 Level 12:11 etc
+        if (worker.getRandom().nextInt((int) (worker.getCitizenData().getCitizenSkillHandler().getLevel(Skill.Adaptability) * 0.5) + 20) == 1
+              && worker.getRandom().nextDouble() < chance)
         {
             // Sleep for 2500-3000 ticks
             sleepTimer = worker.getRandom().nextInt(500) + 2500;
@@ -286,7 +296,7 @@ public abstract class AbstractEntityAIGuard<J extends AbstractJobGuard<J>, B ext
      */
     private IAIState sleepParticles()
     {
-        Network.getNetwork().sendToTrackingEntity(new SleepingParticleMessage(worker.getX(), worker.getY() + 2.0d, worker.getZ()), worker);
+        new SleepingParticleMessage(worker.getX(), worker.getY() + 2.0d, worker.getZ()).sendToTrackingEntity(worker);
 
         if (worker.getHealth() < worker.getMaxHealth())
         {
@@ -301,7 +311,7 @@ public abstract class AbstractEntityAIGuard<J extends AbstractJobGuard<J>, B ext
      *
      * @return the next state to go into
      */
-    private IAIState sleep()
+    protected IAIState sleep()
     {
         if (worker.getLastHurtByMob() != null || (sleepTimer -= getTickRate()) < 0)
         {
@@ -312,11 +322,11 @@ public abstract class AbstractEntityAIGuard<J extends AbstractJobGuard<J>, B ext
         }
 
         worker.getLookControl()
-            .setLookAt(worker.getX() + worker.getDirection().getStepX(),
-                worker.getY() + worker.getDirection().getStepY(),
-                worker.getZ() + worker.getDirection().getStepZ(),
-                0f,
-                30f);
+          .setLookAt(worker.getX() + worker.getDirection().getStepX(),
+            worker.getY() + worker.getDirection().getStepY(),
+            worker.getZ() + worker.getDirection().getStepZ(),
+            0f,
+            30f);
         ((LookHandler) worker.getLookControl()).setLookAtCooldown(sleepTimer);
         return null;
     }
@@ -324,7 +334,7 @@ public abstract class AbstractEntityAIGuard<J extends AbstractJobGuard<J>, B ext
     /**
      * Stops the guard from sleeping
      */
-    private void stopSleeping()
+    protected void stopSleeping()
     {
         if (getState() == GUARD_SLEEP)
         {
@@ -414,7 +424,10 @@ public abstract class AbstractEntityAIGuard<J extends AbstractJobGuard<J>, B ext
      */
     public void guardMovement()
     {
-        walkToSafePos(buildingGuards.getGuardPos(worker));
+        if (ColonyConstants.rand.nextInt(10) == 0)
+        {
+            walkToUnSafePos(buildingGuards.getGuardPos(worker), 5);
+        }
     }
 
     /**
@@ -440,6 +453,36 @@ public abstract class AbstractEntityAIGuard<J extends AbstractJobGuard<J>, B ext
         return ACTIONS_UNTIL_DUMPING * building.getBuildingLevelEquivalent();
     }
 
+    /**
+     * Rally to a location. This function assumes that the given location is reachable by the worker.
+     *
+     * @return the next state to run into.
+     */
+    private IAIState rally(final ILocation location)
+    {
+        final ICitizenData citizenData = worker.getCitizenData();
+        if (!walkToUnSafePos(location.getInDimensionLocation()
+                                             .offset(randomGenerator.nextInt(GUARD_FOLLOW_TIGHT_RANGE) - GUARD_FOLLOW_TIGHT_RANGE / 2,
+                                               0,
+                                               randomGenerator.nextInt(GUARD_FOLLOW_TIGHT_RANGE) - GUARD_FOLLOW_TIGHT_RANGE / 2),
+          GUARD_FOLLOW_TIGHT_RANGE) && citizenData != null)
+        {
+            if (!worker.hasEffect(MobEffects.MOVEMENT_SPEED))
+            {
+                // Guards will rally faster with higher skill.
+                // Considering 99 is the maximum for any skill, the maximum theoretical getJobModifier() = 99 + 99/4 = 124. We want them to have Speed 5
+                // when they're at half-max, so at about skill60. Therefore, divide the skill by 20.
+                worker.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SPEED,
+                  5 * TICKS_SECOND,
+                    Mth.clamp((citizenData.getCitizenSkillHandler().getLevel(Skill.Adaptability) / 30), 0, 3),
+                  false,
+                  false));
+            }
+        }
+
+        return null;
+    }
+
     @Override
     protected IAIState startWorkingAtOwnBuilding()
     {
@@ -451,6 +494,15 @@ public abstract class AbstractEntityAIGuard<J extends AbstractJobGuard<J>, B ext
     }
 
     /**
+     * Provides a random patrol point from all buildings in the colony when the guard is set to automatic patrol mode.
+     * @return a BlockPos of the patrol point.
+     */
+    protected BlockPos randomPatrolPoint()
+    {
+        return buildingGuards.getColony().getServerBuildingManager().getRandomBuilding(b -> true);
+    }
+
+    /**
      * Patrol between a list of patrol points.
      *
      * @return the next patrol point to go to.
@@ -459,7 +511,7 @@ public abstract class AbstractEntityAIGuard<J extends AbstractJobGuard<J>, B ext
     {
         if (buildingGuards.requiresManualTarget())
         {
-            if (currentPatrolPoint == null || walkToSafePos(currentPatrolPoint))
+            if (currentPatrolPoint == null || walkToSafePos(currentPatrolPoint) || !WorldUtil.isEntityBlockLoaded(world, currentPatrolPoint))
             {
                 currentPatrolPoint = null;
                 if (!EntityNavigationUtils.walkToRandomPos(worker, 20, 1.0))
@@ -469,7 +521,7 @@ public abstract class AbstractEntityAIGuard<J extends AbstractJobGuard<J>, B ext
 
                 if (worker.getRandom().nextInt(5) <= 1)
                 {
-                    currentPatrolPoint = buildingGuards.getColony().getBuildingManager().getRandomBuilding(b -> true);
+                    currentPatrolPoint = randomPatrolPoint();
                     if (currentPatrolPoint != null)
                     {
                         walkToSafePos(currentPatrolPoint);
@@ -480,7 +532,7 @@ public abstract class AbstractEntityAIGuard<J extends AbstractJobGuard<J>, B ext
         else
         {
             currentPatrolPoint = buildingGuards.getNextPatrolTarget(false);
-            if (currentPatrolPoint != null && (walkToSafePos(currentPatrolPoint)))
+            if (currentPatrolPoint != null && (!WorldUtil.isEntityBlockLoaded(world, currentPatrolPoint) || walkToSafePos(currentPatrolPoint)))
             {
                 setCurrentDelay(10);
                 buildingGuards.arrivedAtPatrolPoint(worker);
@@ -502,7 +554,7 @@ public abstract class AbstractEntityAIGuard<J extends AbstractJobGuard<J>, B ext
         }
         if (currentPatrolPoint == null || walkToSafePos(currentPatrolPoint))
         {
-            final IBuilding building = buildingGuards.getColony().getBuildingManager().getBuilding(buildingGuards.getMinePos());
+            final IBuilding building = buildingGuards.getColony().getServerBuildingManager().getBuilding(buildingGuards.getMinePos());
             if (building != null)
             {
                 if (building instanceof BuildingMiner)
@@ -542,6 +594,16 @@ public abstract class AbstractEntityAIGuard<J extends AbstractJobGuard<J>, B ext
     }
 
     /**
+     * Get the current patrol point
+     *
+     * @return
+     */
+    public BlockPos getCurrentPatrolPoint()
+    {
+        return currentPatrolPoint;
+    }
+
+    /**
      * Check if the worker has the required tool to fight.
      *
      * @return true if so.
@@ -550,7 +612,7 @@ public abstract class AbstractEntityAIGuard<J extends AbstractJobGuard<J>, B ext
     {
         for (final EquipmentTypeEntry toolType : toolsNeeded)
         {
-            if (!InventoryUtils.hasItemHandlerEquipmentWithLevel(getInventory(), toolType, 0, Integer.MAX_VALUE))
+            if (!InventoryUtils.hasItemHandlerEquipmentWithLevel(getInventory(), toolType, 0, buildingGuards.getMaxEquipmentLevel()))
             {
                 return false;
             }
@@ -601,6 +663,7 @@ public abstract class AbstractEntityAIGuard<J extends AbstractJobGuard<J>, B ext
      */
     protected IAIState decide()
     {
+        final ILocation rallyLocation = buildingGuards.getRallyLocation();
 
         if (regularActionTimer++ > ACTION_INCREASE_INTERVAL)
         {
@@ -632,24 +695,28 @@ public abstract class AbstractEntityAIGuard<J extends AbstractJobGuard<J>, B ext
             lastGuardActionPos = worker.blockPosition();
         }
 
-        if (buildingGuards.getTask().equals(GuardTaskSetting.FOLLOW))
+        if (rallyLocation != null || buildingGuards.getTask().equals(GuardTaskSetting.FOLLOW))
         {
-            worker.addEffect(new MobEffectInstance(GLOW_EFFECT, GLOW_EFFECT_DURATION, GLOW_EFFECT_MULTIPLIER, false, false));
+            worker.addEffect(new MobEffectInstance(MobEffects.GLOWING, GLOW_EFFECT_DURATION, 0, false, false));
         }
         else
         {
-            worker.removeEffect(GLOW_EFFECT);
+            worker.removeEffect(MobEffects.GLOWING);
         }
 
+        if (rallyLocation != null && rallyLocation.isReachableFromLocation(worker.getLocation()))
+        {
+            return rally(rallyLocation);
+        }
 
         return switch (buildingGuards.getTask())
-        {
-            case GuardTaskSetting.PATROL -> patrol();
-            case GuardTaskSetting.GUARD -> guard();
-            case GuardTaskSetting.FOLLOW -> follow();
-            case GuardTaskSetting.PATROL_MINE -> patrolMine();
-            default -> PREPARING;
-        };
+                 {
+                     case GuardTaskSetting.PATROL -> patrol();
+                     case GuardTaskSetting.GUARD -> guard();
+                     case GuardTaskSetting.FOLLOW -> follow();
+                     case GuardTaskSetting.PATROL_MINE -> patrolMine();
+                     default -> PREPARING;
+                 };
     }
 
     /**
@@ -687,8 +754,12 @@ public abstract class AbstractEntityAIGuard<J extends AbstractJobGuard<J>, B ext
      *
      * @return the block distance at which a guard should chase his target
      */
-    private int getPersecutionDistance()
+    protected int getPersecutionDistance()
     {
+        if (buildingGuards.getRallyLocation() != null)
+        {
+            return MAX_FOLLOW_DERIVATION;
+        }
         switch (buildingGuards.getTask())
         {
             case GuardTaskSetting.PATROL:
@@ -704,8 +775,8 @@ public abstract class AbstractEntityAIGuard<J extends AbstractJobGuard<J>, B ext
     @Override
     public boolean canBeInterrupted()
     {
-        if (fighttimer > 0 || getState() == CombatAIStates.ATTACKING || worker.getLastAttacker() != null || buildingGuards.getTask()
-            .equals(GuardTaskSetting.FOLLOW))
+        if (fighttimer > 0 || getState() == CombatAIStates.ATTACKING || worker.getLastAttacker() != null || buildingGuards.getRallyLocation() != null || buildingGuards.getTask()
+                                                                                                                                                           .equals(GuardTaskSetting.FOLLOW))
         {
             return false;
         }
@@ -715,6 +786,7 @@ public abstract class AbstractEntityAIGuard<J extends AbstractJobGuard<J>, B ext
     /**
      * Set the citizen to wakeup
      *
+     * @param citizen
      */
     public void setWakeCitizen(final EntityCitizen citizen)
     {
@@ -732,19 +804,27 @@ public abstract class AbstractEntityAIGuard<J extends AbstractJobGuard<J>, B ext
     /**
      * Check whether the target is attackable
      *
+     * @param user
+     * @param entity
+     * @return
      */
     public static boolean isAttackableTarget(final AbstractEntityCitizen user, final LivingEntity entity)
     {
-        if (IColonyManager.getInstance().getCompatibilityManager().getAllMonsters().contains(ForgeRegistries.ENTITY_TYPES.getKey(entity.getType())) && !user.getCitizenData()
-            .getWorkBuilding()
-            .getModuleMatching(
-                EntityListModule.class,
-                m -> m.getId()
-                    .equals(
-                        HOSTILE_LIST))
-            .isEntityInList(
-                ForgeRegistries.ENTITY_TYPES.getKey(
-                    entity.getType())))
+        if (entity.getTags().contains("slimcolonies_raider") || entity.getPersistentData().contains("slimcolonies:colony_id"))
+        {
+            return true;
+        }
+
+        if (IColonyManager.getInstance().getCompatibilityManager().getAllMonsters().contains(BuiltInRegistries.ENTITY_TYPE.getKey(entity.getType())) && !user.getCitizenData()
+                                                                                                                                                          .getWorkBuilding()
+                                                                                                                                                          .getModuleMatching(
+                                                                                                                                                            EntityListModule.class,
+                                                                                                                                                            m -> m.getId()
+                                                                                                                                                                   .equals(
+                                                                                                                                                                     HOSTILE_LIST))
+                                                                                                                                                          .isEntityInList(
+                                                                                                                                                            BuiltInRegistries.ENTITY_TYPE.getKey(
+                                                                                                                                                              entity.getType())))
         {
             return true;
         }
@@ -756,8 +836,7 @@ public abstract class AbstractEntityAIGuard<J extends AbstractJobGuard<J>, B ext
         }
 
         // Players
-        if (entity instanceof Player && (colony.getPermissions().hasPermission((Player) entity, Action.GUARDS_ATTACK)
-            || colony.isValidAttackingPlayer((Player) entity)))
+        if (entity instanceof Player && (colony.getPermissions().getRank((Player) entity).isHostile() || colony.isValidAttackingPlayer((Player) entity)))
         {
             return true;
         }
@@ -770,5 +849,15 @@ public abstract class AbstractEntityAIGuard<J extends AbstractJobGuard<J>, B ext
         }
 
         return false;
+    }
+
+    /**
+     * Getter for the job.
+     * @return the job.
+     */
+    @NotNull
+    public J getJob()
+    {
+        return job;
     }
 }

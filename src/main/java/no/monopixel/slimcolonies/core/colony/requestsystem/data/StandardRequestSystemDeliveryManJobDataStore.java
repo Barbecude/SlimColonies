@@ -10,9 +10,10 @@ import no.monopixel.slimcolonies.api.colony.requestsystem.token.IToken;
 import no.monopixel.slimcolonies.api.util.NBTUtils;
 import no.monopixel.slimcolonies.api.util.constant.SerializationIdentifierConstants;
 import no.monopixel.slimcolonies.api.util.constant.TypeConstants;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.Tag;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 
 import org.jetbrains.annotations.NotNull;
 
@@ -93,25 +94,26 @@ public class StandardRequestSystemDeliveryManJobDataStore implements IRequestSys
         @NotNull
         @Override
         public CompoundTag serialize(
+          @NotNull final HolderLookup.Provider provider,
           @NotNull final IFactoryController controller, @NotNull final StandardRequestSystemDeliveryManJobDataStore standardRequestSystemDeliveryManJobDataStore)
         {
             final CompoundTag compound = new CompoundTag();
-            compound.put(TAG_TOKEN, controller.serialize(standardRequestSystemDeliveryManJobDataStore.id));
-            compound.put(TAG_LIST, standardRequestSystemDeliveryManJobDataStore.queue.stream().map(controller::serialize).collect(NBTUtils.toListNBT()));
-            compound.put(TAG_ONGOING_LIST, standardRequestSystemDeliveryManJobDataStore.ongoingDeliveries.stream().map(controller::serialize).collect(NBTUtils.toListNBT()));
+            compound.put(TAG_TOKEN, controller.serializeTag(provider, standardRequestSystemDeliveryManJobDataStore.id));
+            compound.put(TAG_LIST, standardRequestSystemDeliveryManJobDataStore.queue.stream().map(s -> controller.serializeTag(provider, s)).collect(NBTUtils.toListNBT()));
+            compound.put(TAG_ONGOING_LIST, standardRequestSystemDeliveryManJobDataStore.ongoingDeliveries.stream().map(s -> controller.serializeTag(provider, s)).collect(NBTUtils.toListNBT()));
             return compound;
         }
 
         @NotNull
         @Override
-        public StandardRequestSystemDeliveryManJobDataStore deserialize(@NotNull final IFactoryController controller, @NotNull final CompoundTag nbt) throws Throwable
+        public StandardRequestSystemDeliveryManJobDataStore deserialize(@NotNull final HolderLookup.Provider provider, @NotNull final IFactoryController controller, @NotNull final CompoundTag nbt) throws Throwable
         {
-            final IToken<?> token = controller.deserialize(nbt.getCompound(TAG_TOKEN));
+            final IToken<?> token = controller.deserializeTag(provider, nbt.getCompound(TAG_TOKEN));
             final LinkedList<IToken<?>> queue = NBTUtils.streamCompound(nbt.getList(TAG_LIST, Tag.TAG_COMPOUND))
-                                                  .map(CompoundTag -> (IToken<?>) controller.deserialize(CompoundTag))
+                                                  .map(tag -> (IToken<?>) controller.deserializeTag(provider, tag))
                                                   .collect(Collectors.toCollection(LinkedList::new));
             final HashSet<IToken<?>> ongoingDeliveries = NBTUtils.streamCompound(nbt.getList(TAG_ONGOING_LIST, Tag.TAG_COMPOUND))
-                                                  .map(CompoundTag -> (IToken<?>) controller.deserialize(CompoundTag))
+                                                  .map(tag -> (IToken<?>) controller.deserializeTag(provider, tag))
                                                   .collect(Collectors.toCollection(HashSet::new));
             return new StandardRequestSystemDeliveryManJobDataStore(token, queue, ongoingDeliveries);
         }
@@ -119,7 +121,7 @@ public class StandardRequestSystemDeliveryManJobDataStore implements IRequestSys
         @Override
         public void serialize(
           IFactoryController controller, StandardRequestSystemDeliveryManJobDataStore input,
-          FriendlyByteBuf packetBuffer)
+          RegistryFriendlyByteBuf packetBuffer)
         {
             controller.serialize(packetBuffer, input.id);
             packetBuffer.writeInt(input.queue.size());
@@ -132,7 +134,7 @@ public class StandardRequestSystemDeliveryManJobDataStore implements IRequestSys
         @Override
         public StandardRequestSystemDeliveryManJobDataStore deserialize(
           IFactoryController controller,
-          @NotNull FriendlyByteBuf buffer) throws Throwable
+          @NotNull RegistryFriendlyByteBuf buffer) throws Throwable
         {
             final IToken<?> id = controller.deserialize(buffer);
             final LinkedList<IToken<?>> queue = new LinkedList<>();

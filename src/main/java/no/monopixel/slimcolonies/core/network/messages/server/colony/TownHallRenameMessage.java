@@ -1,12 +1,15 @@
 package no.monopixel.slimcolonies.core.network.messages.server.colony;
 
-import net.minecraft.network.FriendlyByteBuf;
-import net.minecraftforge.network.NetworkEvent;
-import no.monopixel.slimcolonies.api.ISlimColoniesAPI;
+import com.ldtteam.common.network.PlayMessageType;
+import no.monopixel.slimcolonies.api.IMinecoloniesAPI;
 import no.monopixel.slimcolonies.api.colony.IColony;
 import no.monopixel.slimcolonies.api.colony.IColonyView;
 import no.monopixel.slimcolonies.api.eventbus.events.colony.ColonyNameChangedModEvent;
+import no.monopixel.slimcolonies.api.util.constant.Constants;
 import no.monopixel.slimcolonies.core.network.messages.server.AbstractColonyServerMessage;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.server.level.ServerPlayer;
+import net.neoforged.neoforge.network.handling.IPayloadContext;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -14,17 +17,11 @@ import org.jetbrains.annotations.NotNull;
  */
 public class TownHallRenameMessage extends AbstractColonyServerMessage
 {
+    public static final PlayMessageType<?> TYPE = PlayMessageType.forServer(Constants.MOD_ID, "town_hall_rename", TownHallRenameMessage::new);
+
     private static final int    MAX_NAME_LENGTH  = 25;
     private static final int    SUBSTRING_LENGTH = MAX_NAME_LENGTH - 1;
-    private              String name;
-
-    /**
-     * Empty public constructor.
-     */
-    public TownHallRenameMessage()
-    {
-        super();
-    }
+    private final              String name;
 
     /**
      * Object creation for the town hall rename
@@ -34,27 +31,28 @@ public class TownHallRenameMessage extends AbstractColonyServerMessage
      */
     public TownHallRenameMessage(@NotNull final IColonyView colony, final String name)
     {
-        super(colony);
+        super(TYPE, colony);
         this.name = (name.length() <= MAX_NAME_LENGTH) ? name : name.substring(0, SUBSTRING_LENGTH);
     }
 
-    @Override
-    public void fromBytesOverride(@NotNull final FriendlyByteBuf buf)
+    protected TownHallRenameMessage(final RegistryFriendlyByteBuf buf, final PlayMessageType<?> type)
     {
-        name = buf.readUtf(32767);
+        super(buf, type);
+        final String nameLong = buf.readUtf(32767);
+        name = (nameLong.length() <= MAX_NAME_LENGTH) ? nameLong : nameLong.substring(0, SUBSTRING_LENGTH);
     }
 
     @Override
-    public void toBytesOverride(@NotNull final FriendlyByteBuf buf)
+    protected void toBytes(@NotNull final RegistryFriendlyByteBuf buf)
     {
+        super.toBytes(buf);
         buf.writeUtf(name);
     }
 
     @Override
-    protected void onExecute(final NetworkEvent.Context ctxIn, final boolean isLogicalServer, final IColony colony)
+    protected void onExecute(final IPayloadContext ctxIn, final ServerPlayer player, final IColony colony)
     {
-        name = (name.length() <= MAX_NAME_LENGTH) ? name : name.substring(0, SUBSTRING_LENGTH);
         colony.setName(name);
-        ISlimColoniesAPI.getInstance().getEventBus().post(new ColonyNameChangedModEvent(colony));
+        IMinecoloniesAPI.getInstance().getEventBus().post(new ColonyNameChangedModEvent(colony));
     }
 }

@@ -2,20 +2,20 @@ package no.monopixel.slimcolonies.core.client.gui.townhall;
 
 import com.ldtteam.blockui.PaneBuilders;
 import com.ldtteam.blockui.controls.Text;
-import no.monopixel.slimcolonies.core.Network;
+import no.monopixel.slimcolonies.api.util.constant.Constants;
 import no.monopixel.slimcolonies.core.client.gui.AbstractWindowSkeleton;
 import no.monopixel.slimcolonies.core.network.messages.server.PickupBlockMessage;
 import net.minecraft.client.resources.sounds.SimpleSoundInstance;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.sounds.SoundEvents;
 
-import static no.monopixel.slimcolonies.api.util.constant.Constants.MOD_ID;
 import static no.monopixel.slimcolonies.api.util.constant.WindowConstants.*;
 
 /**
- * UI to notify the player that a colony can't be created here.
+ *  UI to notify the player that a colony can't be created here.
  */
 public class WindowTownHallCantCreateColony extends AbstractWindowSkeleton
 {
@@ -26,7 +26,7 @@ public class WindowTownHallCantCreateColony extends AbstractWindowSkeleton
 
     public WindowTownHallCantCreateColony(final BlockPos pos, final MutableComponent warningMsg, final boolean displayConfigTooltip)
     {
-        super(MOD_ID + TOWNHALL_CANT_CREATE_GUI);
+        super(new ResourceLocation(Constants.MOD_ID, "gui/townhall/windowcantfoundcolony.xml"));
         mc.getSoundManager().play(SimpleSoundInstance.forUI(SoundEvents.BOOK_PAGE_TURN, 1.0F));
         this.pos = pos;
         registerButton(BUTTON_CANCEL, this::close);
@@ -44,7 +44,7 @@ public class WindowTownHallCantCreateColony extends AbstractWindowSkeleton
      */
     private void pickup()
     {
-        Network.getNetwork().sendToServer(new PickupBlockMessage(pos));
+        new PickupBlockMessage(pos).sendToServer();
         close();
     }
 }

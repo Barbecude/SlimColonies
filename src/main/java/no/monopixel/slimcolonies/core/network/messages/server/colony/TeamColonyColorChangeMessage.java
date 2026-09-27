@@ -1,13 +1,16 @@
 package no.monopixel.slimcolonies.core.network.messages.server.colony;
 
-import net.minecraft.ChatFormatting;
-import net.minecraft.network.FriendlyByteBuf;
-import net.minecraftforge.network.NetworkEvent;
-import no.monopixel.slimcolonies.api.ISlimColoniesAPI;
+import com.ldtteam.common.network.PlayMessageType;
+import no.monopixel.slimcolonies.api.IMinecoloniesAPI;
 import no.monopixel.slimcolonies.api.colony.IColony;
 import no.monopixel.slimcolonies.api.colony.buildings.views.IBuildingView;
 import no.monopixel.slimcolonies.api.eventbus.events.colony.ColonyTeamColorChangedModEvent;
+import no.monopixel.slimcolonies.api.util.constant.Constants;
 import no.monopixel.slimcolonies.core.network.messages.server.AbstractColonyServerMessage;
+import net.minecraft.ChatFormatting;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.server.level.ServerPlayer;
+import net.neoforged.neoforge.network.handling.IPayloadContext;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -15,18 +18,12 @@ import org.jetbrains.annotations.NotNull;
  */
 public class TeamColonyColorChangeMessage extends AbstractColonyServerMessage
 {
+    public static final PlayMessageType<?> TYPE = PlayMessageType.forServer(Constants.MOD_ID, "team_colony_color_change", TeamColonyColorChangeMessage::new);
+
     /**
      * The color to set.
      */
-    private int colorOrdinal;
-
-    /**
-     * Empty public constructor.
-     */
-    public TeamColonyColorChangeMessage()
-    {
-        super();
-    }
+    private final int colorOrdinal;
 
     /**
      * Creates object for the player to handle the color
@@ -36,7 +33,7 @@ public class TeamColonyColorChangeMessage extends AbstractColonyServerMessage
      */
     public TeamColonyColorChangeMessage(final int colorOrdinal, @NotNull final IBuildingView building)
     {
-        super(building.getColony());
+        super(TYPE, building.getColony());
         this.colorOrdinal = colorOrdinal;
     }
 
@@ -45,9 +42,9 @@ public class TeamColonyColorChangeMessage extends AbstractColonyServerMessage
      *
      * @param buf the used byteBuffer.
      */
-    @Override
-    public void fromBytesOverride(@NotNull final FriendlyByteBuf buf)
+    protected TeamColonyColorChangeMessage(final RegistryFriendlyByteBuf buf, final PlayMessageType<?> type)
     {
+        super(buf, type);
 
         colorOrdinal = buf.readInt();
     }
@@ -58,15 +55,16 @@ public class TeamColonyColorChangeMessage extends AbstractColonyServerMessage
      * @param buf the used byteBuffer.
      */
     @Override
-    public void toBytesOverride(@NotNull final FriendlyByteBuf buf)
+    protected void toBytes(@NotNull final RegistryFriendlyByteBuf buf)
     {
+        super.toBytes(buf);
         buf.writeInt(colorOrdinal);
     }
 
     @Override
-    protected void onExecute(final NetworkEvent.Context ctxIn, final boolean isLogicalServer, final IColony colony)
+    protected void onExecute(final IPayloadContext ctxIn, final ServerPlayer player, final IColony colony)
     {
         colony.setColonyColor(ChatFormatting.values()[colorOrdinal]);
-        ISlimColoniesAPI.getInstance().getEventBus().post(new ColonyTeamColorChangedModEvent(colony));
+        IMinecoloniesAPI.getInstance().getEventBus().post(new ColonyTeamColorChangedModEvent(colony));
     }
 }

@@ -1,0 +1,23 @@
+{
+  "type": "recipe",
+  "crafter": "baker_crafting",
+  "inputs": [
+    {
+      "id": "slimcolonies:plain_cheesecake"
+    },
+    {
+      "id": "slimcolonies:mint"
+    },
+    {
+      "id": "minecraft:cocoa_beans"
+    },
+    {
+      "id": "minecraft:cocoa_beans"
+    }
+  ],
+  "intermediate": "minecraft:air",
+  "min-building-level": 4,
+  "result": {
+    "id": "slimcolonies:mintchoco_cheesecake"
+  }
+}

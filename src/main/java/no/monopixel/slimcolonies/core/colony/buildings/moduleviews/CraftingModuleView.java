@@ -1,24 +1,24 @@
 package no.monopixel.slimcolonies.core.colony.buildings.moduleviews;
 
 import com.ldtteam.blockui.views.BOWindow;
-import net.minecraft.client.Minecraft;
-import net.minecraft.core.BlockPos;
-import net.minecraft.network.FriendlyByteBuf;
-import net.minecraft.resources.ResourceLocation;
-import net.minecraft.world.MenuProvider;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.api.distmarker.OnlyIn;
-import no.monopixel.slimcolonies.api.SlimColoniesAPIProxy;
+import no.monopixel.slimcolonies.api.MinecoloniesAPIProxy;
 import no.monopixel.slimcolonies.api.colony.buildings.modules.AbstractBuildingModuleView;
 import no.monopixel.slimcolonies.api.colony.jobs.registry.JobEntry;
 import no.monopixel.slimcolonies.api.colony.requestsystem.StandardFactoryController;
 import no.monopixel.slimcolonies.api.crafting.IRecipeStorage;
 import no.monopixel.slimcolonies.api.crafting.registry.CraftingType;
 import no.monopixel.slimcolonies.api.util.constant.Constants;
-import no.monopixel.slimcolonies.core.Network;
-import no.monopixel.slimcolonies.core.client.gui.modules.WindowListRecipes;
+import no.monopixel.slimcolonies.core.client.gui.modules.building.WindowListRecipes;
 import no.monopixel.slimcolonies.core.colony.buildings.views.AbstractBuildingView;
 import no.monopixel.slimcolonies.core.network.messages.server.colony.building.OpenCraftingGUIMessage;
+import net.minecraft.client.Minecraft;
+import net.minecraft.core.BlockPos;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.MenuProvider;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.api.distmarker.OnlyIn;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -58,6 +58,11 @@ public class CraftingModuleView extends AbstractBuildingModuleView
     protected final List<IRecipeStorage> disabledRecipes = new ArrayList<>();
 
     /**
+     * The active recipes.
+     */
+    private int activeRecipes;
+
+    /**
      * The max recipes.
      */
     private int maxRecipes;
@@ -68,11 +73,11 @@ public class CraftingModuleView extends AbstractBuildingModuleView
     private boolean isVisible = false;
 
     @Override
-    public void deserialize(@NotNull FriendlyByteBuf buf)
+    public void deserialize(@NotNull RegistryFriendlyByteBuf buf)
     {
         if (buf.readBoolean())
         {
-            this.jobEntry = buf.readRegistryIdSafe(JobEntry.class);
+            this.jobEntry = buf.readById(MinecoloniesAPIProxy.getInstance().getJobRegistry()::byIdOrThrow);
         }
         else
         {
@@ -83,7 +88,7 @@ public class CraftingModuleView extends AbstractBuildingModuleView
         final int size = buf.readVarInt();
         for (int i = 0; i < size; ++i)
         {
-            final CraftingType type = buf.readRegistryIdUnsafe(SlimColoniesAPIProxy.getInstance().getCraftingTypeRegistry());
+            final CraftingType type = buf.readById(MinecoloniesAPIProxy.getInstance().getCraftingTypeRegistry()::byIdOrThrow);
             if (type != null)
             {
                 recipeTypeSet.add(type);
@@ -98,7 +103,7 @@ public class CraftingModuleView extends AbstractBuildingModuleView
             final int recipesSize = buf.readInt();
             for (int i = 0; i < recipesSize; i++)
             {
-                final IRecipeStorage storage = StandardFactoryController.getInstance().deserialize(buf.readNbt());
+                final IRecipeStorage storage = StandardFactoryController.getInstance().deserialize(buf);
                 if (storage != null)
                 {
                     recipes.add(storage);
@@ -108,7 +113,7 @@ public class CraftingModuleView extends AbstractBuildingModuleView
             final int disabledRecipeSize = buf.readInt();
             for (int i = 0; i < disabledRecipeSize; i++)
             {
-                final IRecipeStorage storage = StandardFactoryController.getInstance().deserialize(buf.readNbt());
+                final IRecipeStorage storage = StandardFactoryController.getInstance().deserialize(buf);
                 if (storage != null)
                 {
                     disabledRecipes.add(storage);
@@ -116,14 +121,14 @@ public class CraftingModuleView extends AbstractBuildingModuleView
             }
         }
 
-        this.maxRecipes = buf.readInt();
+        this.activeRecipes = buf.readVarInt();
+        this.maxRecipes = buf.readVarInt();
         this.id = buf.readUtf(32767);
         this.isVisible = buf.readBoolean();
     }
 
     /**
      * Gets the job associated with this crafting module.
-     *
      * @return The job, or null if there was no such job.
      */
     @Nullable
@@ -134,7 +139,6 @@ public class CraftingModuleView extends AbstractBuildingModuleView
 
     /**
      * Check if recipes can be taught.
-     *
      * @return true if so.
      */
     public boolean isRecipeAlterationAllowed()
@@ -144,7 +148,6 @@ public class CraftingModuleView extends AbstractBuildingModuleView
 
     /**
      * Check if the worker can learn a certain type of recipe.
-     *
      * @param type the type to check for.
      * @return true if so.
      */
@@ -155,7 +158,6 @@ public class CraftingModuleView extends AbstractBuildingModuleView
 
     /**
      * Get the supported crafting types.
-     *
      * @return a set of types.
      */
     public Set<CraftingType> getSupportedCraftingTypes()
@@ -165,7 +167,6 @@ public class CraftingModuleView extends AbstractBuildingModuleView
 
     /**
      * Unique id of the crafting module view.
-     *
      * @return the id.
      */
     @Deprecated
@@ -184,7 +185,7 @@ public class CraftingModuleView extends AbstractBuildingModuleView
     @OnlyIn(Dist.CLIENT)
     public BOWindow getWindow()
     {
-        return new WindowListRecipes(buildingView, Constants.MOD_ID + ":gui/layouthuts/layoutlistrecipes.xml", this);
+        return new WindowListRecipes(this);
     }
 
     @Override
@@ -194,14 +195,13 @@ public class CraftingModuleView extends AbstractBuildingModuleView
     }
 
     @Override
-    public String getDesc()
+    public Component getDesc()
     {
-        return "no.monopixel.slimcolonies.coremod.gui.workerhuts.recipe." + id;
+        return Component.translatable("no.monopixel.slimcolonies.coremod.gui.workerhuts.recipe." + id);
     }
 
     /**
      * Get a list of all recipes.
-     *
      * @return the list.
      */
     public List<IRecipeStorage> getRecipes()
@@ -211,17 +211,19 @@ public class CraftingModuleView extends AbstractBuildingModuleView
 
     /**
      * Remove the recipe at index.
-     *
      * @param index the index to remove.
      */
     public void removeRecipe(int index)
     {
-        recipes.remove(index);
+        final IRecipeStorage doomed = recipes.remove(index);
+        if (doomed.getRecipeSource() == null && !disabledRecipes.contains(doomed))
+        {
+            --activeRecipes;
+        }
     }
 
     /**
      * Switch order in recipe list.
-     *
      * @param i first index.
      * @param j second index.
      */
@@ -246,6 +248,11 @@ public class CraftingModuleView extends AbstractBuildingModuleView
         }
     }
 
+    public int getActiveRecipes()
+    {
+        return activeRecipes;
+    }
+
     public int getMaxRecipes()
     {
         return maxRecipes;
@@ -255,12 +262,11 @@ public class CraftingModuleView extends AbstractBuildingModuleView
     {
         final BlockPos pos = buildingView.getPosition();
         Minecraft.getInstance().player.openMenu((MenuProvider) Minecraft.getInstance().level.getBlockEntity(pos));
-        Network.getNetwork().sendToServer(new OpenCraftingGUIMessage((AbstractBuildingView) buildingView, this.getProducer().getRuntimeID()));
+        new OpenCraftingGUIMessage((AbstractBuildingView) buildingView, this.getProducer().getRuntimeID()).sendToServer();
     }
 
     /**
      * Enable/disable a recipe.
-     *
      * @param row the location of the recipe.
      */
     public void toggle(final int row)
@@ -269,16 +275,23 @@ public class CraftingModuleView extends AbstractBuildingModuleView
         if (disabledRecipes.contains(storage))
         {
             disabledRecipes.remove(storage);
+            if (storage.getRecipeSource() == null)
+            {
+                ++activeRecipes;
+            }
         }
         else
         {
             disabledRecipes.add(storage);
+            if (storage.getRecipeSource() == null)
+            {
+                --activeRecipes;
+            }
         }
     }
 
     /**
      * Check if a recipe is disabled.
-     *
      * @param recipe the recipe to check for.
      * @return true if so.
      */

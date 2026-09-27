@@ -4,9 +4,10 @@ import no.monopixel.slimcolonies.api.util.WorldUtil;
 import no.monopixel.slimcolonies.api.util.constant.Constants;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.core.Registry;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.InteractionHand;
-import net.minecraft.world.InteractionResult;
+import net.minecraft.world.ItemInteractionResult;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
@@ -30,7 +31,6 @@ import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.shapes.CollisionContext;
 import net.minecraft.world.phys.shapes.Shapes;
 import net.minecraft.world.phys.shapes.VoxelShape;
-import net.minecraftforge.registries.IForgeRegistry;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -70,7 +70,7 @@ public abstract class AbstractBlockGate extends DoorBlock implements LiquidBlock
 
     public AbstractBlockGate(final String name, final float hardness, final int maxWidth, final int maxHeight)
     {
-        super(Properties.of().mapColor(MapColor.WOOD).sound(SoundType.WOOD).strength(hardness, hardness * 5).noOcclusion(), BlockSetType.SPRUCE);
+        super(BlockSetType.SPRUCE, Properties.of().mapColor(MapColor.WOOD).sound(SoundType.WOOD).strength(hardness, hardness * 5).noOcclusion());
         registerDefaultState(defaultBlockState());
         this.name = name;
         this.maxWidth = maxWidth;
@@ -89,21 +89,22 @@ public abstract class AbstractBlockGate extends DoorBlock implements LiquidBlock
     }
 
     @Override
-    public InteractionResult use(BlockState state, Level worldIn, BlockPos pos, Player player, InteractionHand handIn, BlockHitResult hit)
+    protected ItemInteractionResult useItemOn(final ItemStack stack, final BlockState state, final Level worldIn, final BlockPos pos, final Player player, final InteractionHand handIn, final BlockHitResult hit)
     {
         toggleGate(worldIn, pos, state.getValue(FACING).getClockWise());
         worldIn.levelEvent(player, state.getValue(OPEN) ? 1005 : 1011, pos, 0);
-        return InteractionResult.SUCCESS;
+        return ItemInteractionResult.SUCCESS;
     }
 
     @Override
-    public void playerWillDestroy(Level worldIn, BlockPos pos, BlockState state, Player player)
+    public BlockState playerWillDestroy(Level worldIn, BlockPos pos, BlockState state, Player player)
     {
         int count = removeGate(worldIn, pos, state.getValue(FACING).getClockWise());
         for (int i = 0; i < count; i++)
         {
             Block.dropResources(state, worldIn, pos, null, player, player.getMainHandItem());
         }
+        return super.playerWillDestroy(worldIn, pos, state, player);
     }
 
     /**
@@ -470,7 +471,7 @@ public abstract class AbstractBlockGate extends DoorBlock implements LiquidBlock
     {
         BlockPos blockpos = context.getClickedPos();
 
-        if (blockpos.getY() < 255 && context.getLevel().getBlockState(blockpos.above()).canBeReplaced(context))
+        if (blockpos.getY() < context.getLevel().getMaxBuildHeight() && context.getLevel().getBlockState(blockpos.above()).canBeReplaced(context))
         {
             return this.defaultBlockState().setValue(FACING, context.getHorizontalDirection());
         }
@@ -487,9 +488,9 @@ public abstract class AbstractBlockGate extends DoorBlock implements LiquidBlock
      * @param registry the registry to use.
      * @return the block itself.
      */
-    public AbstractBlockGate registerBlock(final IForgeRegistry<Block> registry)
+    public AbstractBlockGate registerBlock(final Registry<Block> registry)
     {
-        registry.register(ResourceLocation.fromNamespaceAndPath(Constants.MOD_ID, this.name), this);
+        Registry.register(registry, new ResourceLocation(Constants.MOD_ID, this.name), this);
         return this;
     }
 
@@ -499,13 +500,18 @@ public abstract class AbstractBlockGate extends DoorBlock implements LiquidBlock
      * @param registry   the registry to use.
      * @param properties the item properties.
      */
-    public void registerBlockItem(final IForgeRegistry<Item> registry, final Item.Properties properties)
+    public void registerBlockItem(final Registry<Item> registry, final Item.Properties properties)
     {
-        registry.register(ResourceLocation.fromNamespaceAndPath(Constants.MOD_ID, this.name), new BlockItem(this, properties));
+        Registry.register(registry, new ResourceLocation(Constants.MOD_ID, this.name), new BlockItem(this, properties));
     }
 
     @Override
-    public boolean canPlaceLiquid(@NotNull final BlockGetter blockGetter, @NotNull final BlockPos pos, @NotNull final BlockState state, @NotNull final Fluid fluid)
+    public boolean canPlaceLiquid(
+        @Nullable Player player,
+        @NotNull final BlockGetter blockGetter,
+        @NotNull final BlockPos pos,
+        @NotNull final BlockState state,
+        @NotNull final Fluid fluid)
     {
         return false;
     }

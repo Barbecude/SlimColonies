@@ -7,6 +7,7 @@ import no.monopixel.slimcolonies.api.util.constant.Constants;
 import no.monopixel.slimcolonies.core.colony.buildings.AbstractBuilding;
 import no.monopixel.slimcolonies.core.colony.buildings.modules.AbstractCraftingBuildingModule;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import no.monopixel.slimcolonies.core.colony.buildings.modules.settings.RecipeSetting;
 import no.monopixel.slimcolonies.core.colony.buildings.modules.settings.IntSetting;
@@ -24,8 +25,8 @@ public class BuildingCrusher extends AbstractBuilding
     /**
      * Settings key for the building mode.
      */
-    public static final ISettingKey<RecipeSetting> MODE        = new SettingKey<>(RecipeSetting.class, ResourceLocation.fromNamespaceAndPath(Constants.MOD_ID, "crushermode"));
-    public static final ISettingKey<IntSetting>    DAILY_LIMIT = new SettingKey<>(IntSetting.class, ResourceLocation.fromNamespaceAndPath(Constants.MOD_ID, "dailylimit"));
+    public static final ISettingKey<RecipeSetting> MODE        = new SettingKey<>(RecipeSetting.class, new ResourceLocation(Constants.MOD_ID, "crushermode"));
+    public static final ISettingKey<IntSetting>    DAILY_LIMIT = new SettingKey<>(IntSetting.class, new ResourceLocation(Constants.MOD_ID, "dailylimit"));
 
     /**
      * The multiplier to define the max craft per day.
@@ -113,17 +114,17 @@ public class BuildingCrusher extends AbstractBuilding
     }
 
     @Override
-    public void deserializeNBT(final CompoundTag compound)
+    public void deserializeNBT(@NotNull final HolderLookup.Provider provider, final CompoundTag compound)
     {
-        super.deserializeNBT(compound);
+        super.deserializeNBT(provider, compound);
         this.currentDailyQuantity = compound.getInt(TAG_CURRENT_DAILY);
         this.oneByOne = compound.getBoolean(TAG_CRUSHER_RATIO);
     }
 
     @Override
-    public CompoundTag serializeNBT()
+    public CompoundTag serializeNBT(@NotNull final HolderLookup.Provider provider)
     {
-        final CompoundTag compound = super.serializeNBT();
+        final CompoundTag compound = super.serializeNBT(provider);
         compound.putInt(TAG_CURRENT_DAILY, currentDailyQuantity);
         compound.putBoolean(TAG_CRUSHER_RATIO, oneByOne);
         return compound;

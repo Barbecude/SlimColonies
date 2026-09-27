@@ -1,0 +1,26 @@
+{
+  "branch": "slimcolonies:technology",
+  "costs": [
+    {
+      "count": 64,
+      "item": "slimcolonies:gate_wood"
+    },
+    {
+      "count": 2,
+      "item": "slimcolonies:ancienttome"
+    },
+    {
+      "count": 5,
+      "item": "minecraft:iron_block"
+    }
+  ],
+  "effects": [
+    {
+      "id": "slimcolonies:effects/enhancesgatedurabilityaddition",
+      "level": 1
+    }
+  ],
+  "icon": "slimcolonies:gate_wood",
+  "parentResearch": "slimcolonies:technology/whatyaneed",
+  "researchLevel": 3
+}

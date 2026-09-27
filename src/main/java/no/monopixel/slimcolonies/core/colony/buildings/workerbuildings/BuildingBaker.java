@@ -82,6 +82,12 @@ public class BuildingBaker extends AbstractBuilding
     }
 
     @Override
+    protected boolean keepFood()
+    {
+        return false;
+    }
+
+    @Override
     public boolean canEat(final ItemStack stack)
     {
         if (stack.getItem() == Items.WHEAT)
@@ -152,6 +158,14 @@ public class BuildingBaker extends AbstractBuilding
         }
 
         @Override
+        public Set<CraftingType> getSupportedCraftingTypes()
+        {
+            return (building == null || building.getBuildingLevel() >= 3)
+                    ? super.getSupportedCraftingTypes()
+                    : ImmutableSet.of();
+        }
+
+        @Override
         public Map<Predicate<ItemStack>, Tuple<Integer, Boolean>> getRequiredItemsAndAmount()
         {
             final Map<Predicate<ItemStack>, Tuple<Integer, Boolean>> map = super.getRequiredItemsAndAmount();
@@ -197,6 +211,14 @@ public class BuildingBaker extends AbstractBuilding
                 return false;
             }
             return CraftingUtils.isRecipeCompatibleBasedOnTags(recipe, CRAFTING_BAKER).orElse(false);
+        }
+
+        @Override
+        public Set<CraftingType> getSupportedCraftingTypes()
+        {
+            return (building == null || building.getBuildingLevel() >= 3)
+                    ? super.getSupportedCraftingTypes()
+                    : ImmutableSet.of();
         }
     }
 }

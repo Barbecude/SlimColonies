@@ -9,6 +9,7 @@ import no.monopixel.slimcolonies.api.equipment.registry.EquipmentTypeEntry;
 import no.monopixel.slimcolonies.api.util.InventoryUtils;
 import no.monopixel.slimcolonies.api.util.ItemStackUtils;
 import no.monopixel.slimcolonies.api.util.StatsUtil;
+import no.monopixel.slimcolonies.api.util.Utils;
 import no.monopixel.slimcolonies.api.util.WorldUtil;
 import no.monopixel.slimcolonies.api.util.constant.ColonyConstants;
 import no.monopixel.slimcolonies.core.colony.buildings.AbstractBuilding;
@@ -18,6 +19,7 @@ import no.monopixel.slimcolonies.core.entity.ai.workers.AbstractEntityAIInteract
 import no.monopixel.slimcolonies.core.entity.pathfinding.navigation.EntityNavigationUtils;
 import no.monopixel.slimcolonies.core.util.citizenutils.CitizenItemUtils;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Holder;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.damagesource.DamageSource;
@@ -27,10 +29,9 @@ import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.enchantment.Enchantment;
-import net.minecraft.world.item.enchantment.EnchantmentHelper;
 import net.minecraft.world.item.enchantment.Enchantments;
 import net.minecraft.world.phys.Vec3;
-import net.minecraftforge.common.util.FakePlayer;
+import net.neoforged.neoforge.common.util.FakePlayer;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -42,6 +43,7 @@ import java.util.stream.Stream;
 import static no.monopixel.slimcolonies.api.entity.ai.statemachine.states.AIWorkerState.*;
 import static no.monopixel.slimcolonies.api.research.util.ResearchConstants.LOOTING;
 import static no.monopixel.slimcolonies.api.util.constant.Constants.TICKS_SECOND;
+import static no.monopixel.slimcolonies.api.util.constant.EquipmentLevelConstants.TOOL_LEVEL_WOOD_OR_GOLD;
 import static no.monopixel.slimcolonies.api.util.constant.StatisticsConstants.*;
 
 /**
@@ -49,6 +51,7 @@ import static no.monopixel.slimcolonies.api.util.constant.StatisticsConstants.*;
  */
 public abstract class AbstractEntityAIHerder<J extends AbstractJob<?, J>, B extends AbstractBuilding> extends AbstractEntityAIInteract<J, B>
 {
+        
     /**
      * How many animals per hut level the worker should max have.
      */
@@ -318,9 +321,9 @@ public abstract class AbstractEntityAIHerder<J extends AbstractJob<?, J>, B exte
             checkIfRequestForItemExistOrCreateAsync(breedingItem.getItemStack(), breedingItem.getAmount() * EXTRA_BREEDING_ITEMS_REQUEST, breedingItem.getAmount());
         }
 
-        for (final ItemStorage items : getExtraItemsNeeded())
+        for (final ItemStorage item : getExtraItemsNeeded())
         {
-            checkIfRequestForItemExistOrCreateAsync(items.getItemStack(), items.getAmount(), items.getAmount());
+            checkIfRequestForItemExistOrCreateAsync(item.getItemStack(), item.getAmount(), item.getAmount());
         }
 
         return DECIDE;
@@ -361,7 +364,7 @@ public abstract class AbstractEntityAIHerder<J extends AbstractJob<?, J>, B exte
         {
             if (!entity.isBaby() && !entity.isInLove())
             {
-                if (toKill == null || !entity.level.canSeeSky(entity.blockPosition()) && toKill.level.canSeeSky(toKill.blockPosition()))
+                if (toKill == null || !entity.level().canSeeSky(entity.blockPosition()) && toKill.level().canSeeSky(toKill.blockPosition()))
                 {
                     toKill = entity;
                 }
@@ -379,7 +382,8 @@ public abstract class AbstractEntityAIHerder<J extends AbstractJob<?, J>, B exte
         {
             StatsUtil.trackStat(building, ANIMALS_BUTCHERED, 1);
             worker.getCitizenExperienceHandler().addExperience(XP_PER_ACTION);
-            incrementActionsDoneAndDecSaturation();
+            this.incrementActionsDone();
+            this.worker.decreaseSaturationForContinuousAction();
             fedRecently.remove(toKill.getUUID());
             return DECIDE;
         }
@@ -529,7 +533,7 @@ public abstract class AbstractEntityAIHerder<J extends AbstractJob<?, J>, B exte
 
         for (final Animal animal : animals)
         {
-            if (worker.level.getGameTime() - fedRecently.getOrDefault(animal.getUUID(), 0L) > TICKS_SECOND * 60 * 5)
+            if (worker.level().getGameTime() - fedRecently.getOrDefault(animal.getUUID(), 0L) > TICKS_SECOND * 60 * 5)
             {
                 toFeed = animal;
                 break;
@@ -553,14 +557,15 @@ public abstract class AbstractEntityAIHerder<J extends AbstractJob<?, J>, B exte
             StatsUtil.trackStatByName(building, ITEM_USED, worker.getMainHandItem().getItem().getDescriptionId(), 1);
             worker.getMainHandItem().shrink(1);
             worker.getCitizenExperienceHandler().addExperience(XP_PER_ACTION);
-            worker.level.broadcastEntityEvent(toFeed, (byte) 18);
+            worker.level().broadcastEntityEvent(toFeed, (byte) 18);
             toFeed.playSound(SoundEvents.GENERIC_EAT, 1.0F, 1.0F);
             CitizenItemUtils.removeHeldItem(worker);
-            fedRecently.put(toFeed.getUUID(), worker.level.getGameTime());
+            fedRecently.put(toFeed.getUUID(), worker.level().getGameTime());
 
             return DECIDE;
         }
 
+        worker.decreaseSaturationForContinuousAction();
         return getState();
     }
 
@@ -578,7 +583,8 @@ public abstract class AbstractEntityAIHerder<J extends AbstractJob<?, J>, B exte
             return getState();
         }
 
-        incrementActionsDoneAndDecSaturation();
+        this.incrementActionsDone();
+        this.worker.decreaseSaturationForContinuousAction();
 
         return DECIDE;
     }
@@ -641,7 +647,7 @@ public abstract class AbstractEntityAIHerder<J extends AbstractJob<?, J>, B exte
             {
                 it.remove();
             }
-            else if (!walkingToAnimal(animal))
+            else if (walkingToAnimal(animal))
             {
                 break;
             }
@@ -653,6 +659,7 @@ public abstract class AbstractEntityAIHerder<J extends AbstractJob<?, J>, B exte
                 StatsUtil.trackStat(building, BREEDING_ATTEMPTS, 1);
                 worker.getMainHandItem().shrink(1);
                 worker.getCitizenExperienceHandler().addExperience(XP_PER_ACTION);
+                worker.decreaseSaturationForAction();
                 it.remove();
             }
         }
@@ -716,7 +723,7 @@ public abstract class AbstractEntityAIHerder<J extends AbstractJob<?, J>, B exte
     private int getToolSlot(final EquipmentTypeEntry toolType)
     {
         final int slot = InventoryUtils.getFirstSlotOfItemHandlerContainingEquipment(getInventory(), toolType,
-          0, Integer.MAX_VALUE);
+          TOOL_LEVEL_WOOD_OR_GOLD, building.getMaxEquipmentLevel());
 
         if (slot == -1)
         {
@@ -758,24 +765,19 @@ public abstract class AbstractEntityAIHerder<J extends AbstractJob<?, J>, B exte
     }
 
     /**
-     * Ensures that the provided ItemStack has at least Looting I.
-     * If the ItemStack does not have Looting, it will be added.
-     * If the ItemStack has Looting but with a level less than 1, it will be increased to 1.
-     * This method will NOT increase the level of Looting if it is already 1 or higher.
-     *
-     * @param stack the ItemStack to check and modify if necessary.
+     * Ensures that the given itemStack has looting I
      */
-    private static void ensureLootingI(ItemStack stack)
-    {
-        Map<Enchantment, Integer> ench = new HashMap<>(EnchantmentHelper.getEnchantments(stack));
-        int current = ench.getOrDefault(Enchantments.MOB_LOOTING, 0);
+    private void ensureLootingI(ItemStack stack)
+    {        
+        int enchantLevel = 1;
 
-        // Force at least Looting I
-        if (current < 1)
+        Holder<Enchantment> enchantment =  Utils.getRegistryValue(Enchantments.LOOTING, world);
+        
+        if (stack.supportsEnchantment(enchantment) && enchantLevel >= enchantment.value().getMinLevel() && enchantLevel <= enchantment.value().getMaxLevel())
         {
-            ench.put(Enchantments.MOB_LOOTING, 1);
-            EnchantmentHelper.setEnchantments(ench, stack);
+            stack.enchant(enchantment, enchantLevel);
         }
+
     }
 
     /**
@@ -787,7 +789,7 @@ public abstract class AbstractEntityAIHerder<J extends AbstractJob<?, J>, B exte
     protected void butcherSwing(FakePlayer fakePlayer, Animal animal)
     {
         worker.swing(InteractionHand.MAIN_HAND); // visual only
-        DamageSource ds = animal.level.damageSources().playerAttack(fakePlayer);
+        DamageSource ds = animal.level().damageSources().playerAttack(fakePlayer);
         animal.hurt(ds, (float) getButcheringAttackDamage());
         CitizenItemUtils.damageItemInHand(worker, InteractionHand.MAIN_HAND, 1);
     }
@@ -827,7 +829,7 @@ public abstract class AbstractEntityAIHerder<J extends AbstractJob<?, J>, B exte
                     fp.setItemInHand(InteractionHand.MAIN_HAND, prev);
                 }
             }
-            else
+            else 
             {
                 butcherSwing(getFakePlayer(), animal);
             }

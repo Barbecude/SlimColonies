@@ -6,23 +6,23 @@ import com.ldtteam.blockui.views.ScrollingList;
 import no.monopixel.slimcolonies.api.colony.ICitizenDataView;
 import no.monopixel.slimcolonies.api.util.MessageUtils;
 import no.monopixel.slimcolonies.api.util.constant.Constants;
-import no.monopixel.slimcolonies.core.Network;
-import no.monopixel.slimcolonies.core.client.gui.AbstractWindowModuleBuilding;
+import no.monopixel.slimcolonies.core.client.gui.AbstractBuildingMainWindow;
 import no.monopixel.slimcolonies.core.client.gui.WindowAssignCitizen;
 import no.monopixel.slimcolonies.core.colony.buildings.views.LivingBuildingView;
 import no.monopixel.slimcolonies.core.network.messages.server.colony.building.RecallCitizenHutMessage;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
 import org.jetbrains.annotations.NotNull;
 
-import static no.monopixel.slimcolonies.api.util.constant.TranslationConstants.COREMOD_GUI_WORKERHUTS_LEVEL_0;
+import static no.monopixel.slimcolonies.api.util.constant.TranslationConstants.COM_MINECOLONIES_COREMOD_GUI_WORKERHUTS_LEVEL_0;
 import static no.monopixel.slimcolonies.api.util.constant.TranslationConstants.LABEL_HOUSE_ASSIGNED_CITIZENS;
 import static no.monopixel.slimcolonies.api.util.constant.WindowConstants.BUTTON_RECALL;
 
 /**
  * BOWindow for the tavern
  */
-public class WindowHutLiving extends AbstractWindowModuleBuilding<LivingBuildingView>
+public class WindowHutLiving extends AbstractBuildingMainWindow<LivingBuildingView>
 {
     /**
      * Id of the hire/fire button in the GUI.
@@ -33,11 +33,6 @@ public class WindowHutLiving extends AbstractWindowModuleBuilding<LivingBuilding
      * Label showing the assigned.
      */
     private static final String ASSIGNED_LABEL = "assignedlabel";
-
-    /**
-     * Suffix describing the window xml.
-     */
-    private static final String HOME_BUILDING_RESOURCE_SUFFIX = ":gui/windowhuthome.xml";
 
     /**
      * Id to identify the list of the citizen in the view.
@@ -61,7 +56,7 @@ public class WindowHutLiving extends AbstractWindowModuleBuilding<LivingBuilding
      */
     public WindowHutLiving(final LivingBuildingView building)
     {
-        super(building, Constants.MOD_ID + HOME_BUILDING_RESOURCE_SUFFIX);
+        super(building, new ResourceLocation(Constants.MOD_ID, "gui/windowhuthome.xml"));
 
         super.registerButton(BUTTON_ASSIGN, this::assignClicked);
         super.registerButton(BUTTON_RECALL, this::recallClicked);
@@ -74,7 +69,7 @@ public class WindowHutLiving extends AbstractWindowModuleBuilding<LivingBuilding
      */
     private void recallClicked()
     {
-        Network.getNetwork().sendToServer(new RecallCitizenHutMessage(building));
+        new RecallCitizenHutMessage(buildingView).sendToServer();
     }
 
     @Override
@@ -96,7 +91,7 @@ public class WindowHutLiving extends AbstractWindowModuleBuilding<LivingBuilding
                 final ICitizenDataView citizenDataView = home.getColony().getCitizen(home.getResidents().get(index));
                 if (citizenDataView != null)
                 {
-                    rowPane.findPaneOfTypeByID("name", Text.class).setText(Component.literal((citizenDataView.getJob().isEmpty() ? "" : (Component.translatable(citizenDataView.getJob()).getString() + ": ")) + citizenDataView.getName()));
+                    rowPane.findPaneOfTypeByID("name", Text.class).setText(Component.literal((citizenDataView.getJob().isEmpty() ? "" : (Component.translatableEscape(citizenDataView.getJob()).getString() + ": ")) + citizenDataView.getName()));
                 }
             }
         });
@@ -109,7 +104,7 @@ public class WindowHutLiving extends AbstractWindowModuleBuilding<LivingBuilding
      */
     private void refreshView()
     {
-        findPaneOfTypeByID(ASSIGNED_LABEL, Text.class).setText(Component.translatable(LABEL_HOUSE_ASSIGNED_CITIZENS, building.getResidents().size(), building.getMax()));
+        findPaneOfTypeByID(ASSIGNED_LABEL, Text.class).setText(Component.translatableEscape(LABEL_HOUSE_ASSIGNED_CITIZENS, buildingView.getResidents().size(), buildingView.getMax()));
         citizen.refreshElementPanes();
     }
 
@@ -118,12 +113,12 @@ public class WindowHutLiving extends AbstractWindowModuleBuilding<LivingBuilding
      */
     private void assignClicked()
     {
-        if (building.getBuildingLevel() == 0)
+        if (buildingView.getBuildingLevel() == 0)
         {
-            MessageUtils.format(COREMOD_GUI_WORKERHUTS_LEVEL_0).sendTo(Minecraft.getInstance().player);
+            MessageUtils.format(COM_MINECOLONIES_COREMOD_GUI_WORKERHUTS_LEVEL_0).sendTo(Minecraft.getInstance().player);
             return;
         }
 
-        new WindowAssignCitizen(building.getColony(), building).open();
+        new WindowAssignCitizen(buildingView.getColony(), buildingView).open();
     }
 }

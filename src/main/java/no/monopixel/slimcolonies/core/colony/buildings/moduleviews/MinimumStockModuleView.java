@@ -5,15 +5,18 @@ import no.monopixel.slimcolonies.api.colony.buildings.modules.AbstractBuildingMo
 import no.monopixel.slimcolonies.api.colony.buildings.modules.IMinimumStockModuleView;
 import no.monopixel.slimcolonies.api.crafting.ItemStorage;
 import no.monopixel.slimcolonies.api.util.Tuple;
+import no.monopixel.slimcolonies.api.util.Utils;
 import no.monopixel.slimcolonies.api.util.constant.Constants;
-import no.monopixel.slimcolonies.core.client.gui.modules.MinimumStockModuleWindow;
-import net.minecraft.network.FriendlyByteBuf;
+import no.monopixel.slimcolonies.core.client.gui.modules.building.MinimumStockModuleWindow;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.api.distmarker.OnlyIn;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.api.distmarker.OnlyIn;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Client side representation of the minimum stock module.
@@ -23,7 +26,7 @@ public class MinimumStockModuleView extends AbstractBuildingModuleView implement
     /**
      * The minimum stock.
      */
-    private List<Tuple<ItemStorage, Integer>> minimumStock = new ArrayList<>();
+    private final List<Tuple<ItemStorage, Integer>> minimumStock = new ArrayList<>();
 
     /**
      * If the stock limit was reached.
@@ -31,18 +34,18 @@ public class MinimumStockModuleView extends AbstractBuildingModuleView implement
     private boolean reachedLimit = false;
 
     /**
-     * Read this view from a {@link FriendlyByteBuf}.
+     * Read this view from a {@link RegistryFriendlyByteBuf}.
      *
      * @param buf The buffer to read this view from.
      */
     @Override
-    public void deserialize(@NotNull final FriendlyByteBuf buf)
+    public void deserialize(@NotNull final RegistryFriendlyByteBuf buf)
     {
         minimumStock.clear();
         final int size = buf.readInt();
         for (int i = 0; i < size; i++)
         {
-            minimumStock.add(new Tuple<>(new ItemStorage(buf.readItem()), buf.readInt()));
+            minimumStock.add(new Tuple<>(new ItemStorage(Utils.deserializeCodecMess(buf)), buf.readInt()));
         }
         reachedLimit = buf.readBoolean();
     }
@@ -51,7 +54,7 @@ public class MinimumStockModuleView extends AbstractBuildingModuleView implement
     @OnlyIn(Dist.CLIENT)
     public BOWindow getWindow()
     {
-        return new MinimumStockModuleWindow(buildingView, this);
+        return new MinimumStockModuleWindow(this);
     }
 
     @Override
@@ -69,12 +72,12 @@ public class MinimumStockModuleView extends AbstractBuildingModuleView implement
     @Override
     public ResourceLocation getIconResourceLocation()
     {
-        return ResourceLocation.fromNamespaceAndPath(Constants.MOD_ID, "textures/gui/modules/stock.png");
+        return new ResourceLocation(Constants.MOD_ID, "textures/gui/modules/stock.png");
     }
 
     @Override
-    public String getDesc()
+    public Component getDesc()
     {
-        return "no.monopixel.slimcolonies.coremod.gui.warehouse.stock";
+        return Component.translatable("no.monopixel.slimcolonies.coremod.gui.warehouse.stock");
     }
 }

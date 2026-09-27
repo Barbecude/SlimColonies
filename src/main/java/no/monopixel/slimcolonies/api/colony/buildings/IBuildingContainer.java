@@ -1,27 +1,24 @@
 package no.monopixel.slimcolonies.api.colony.buildings;
 
 import no.monopixel.slimcolonies.api.tileentities.AbstractTileEntityColonyBuilding;
+import no.monopixel.slimcolonies.api.util.IItemHandlerCapProvider;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.Direction;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraftforge.common.capabilities.Capability;
-import net.minecraftforge.common.capabilities.ICapabilityProvider;
-import net.minecraftforge.common.util.LazyOptional;
 import org.jetbrains.annotations.NotNull;
 
-import javax.annotation.Nonnull;
 import java.util.List;
 
-public interface IBuildingContainer extends ISchematicProvider, ICapabilityProvider
+public interface IBuildingContainer extends ISchematicProvider, IItemHandlerCapProvider
 {
     @Override
-    void deserializeNBT(CompoundTag compound);
+    void deserializeNBT(@NotNull final HolderLookup.Provider provider, CompoundTag compound);
 
     @Override
-    CompoundTag serializeNBT();
+    CompoundTag serializeNBT(@NotNull final HolderLookup.Provider provider);
 
     /**
      * Get the pick up priority of the building.
@@ -74,7 +71,7 @@ public interface IBuildingContainer extends ISchematicProvider, ICapabilityProvi
      * @param pos   of the block
      * @param world world to register it at.
      */
-    
+    @SuppressWarnings("squid:S1172")
     void registerBlockPosition(@NotNull Block block, @NotNull BlockPos pos, @NotNull Level world);
 
     /**
@@ -90,8 +87,4 @@ public interface IBuildingContainer extends ISchematicProvider, ICapabilityProvi
      * @param te The tileentity
      */
     void setTileEntity(AbstractTileEntityColonyBuilding te);
-
-    @Nonnull
-    @Override
-    <T> LazyOptional<T> getCapability(@Nonnull Capability<T> cap, final Direction direction);
 }

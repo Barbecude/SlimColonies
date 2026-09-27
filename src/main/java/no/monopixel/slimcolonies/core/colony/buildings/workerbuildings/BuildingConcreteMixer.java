@@ -1,6 +1,15 @@
 package no.monopixel.slimcolonies.core.colony.buildings.workerbuildings;
 
+import no.monopixel.slimcolonies.api.colony.IColony;
+import no.monopixel.slimcolonies.api.colony.jobs.registry.JobEntry;
+import no.monopixel.slimcolonies.api.colony.requestsystem.token.IToken;
+import no.monopixel.slimcolonies.api.equipment.ModEquipmentTypes;
+import no.monopixel.slimcolonies.api.util.ItemStackUtils;
+import no.monopixel.slimcolonies.api.util.NBTUtils;
+import no.monopixel.slimcolonies.core.colony.buildings.AbstractBuilding;
+import no.monopixel.slimcolonies.core.colony.buildings.modules.AbstractCraftingBuildingModule;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.NbtUtils;
@@ -12,13 +21,7 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.material.Fluids;
-import no.monopixel.slimcolonies.api.colony.IColony;
-import no.monopixel.slimcolonies.api.colony.jobs.registry.JobEntry;
-import no.monopixel.slimcolonies.api.colony.requestsystem.token.IToken;
-import no.monopixel.slimcolonies.api.equipment.ModEquipmentTypes;
-import no.monopixel.slimcolonies.api.util.ItemStackUtils;
-import no.monopixel.slimcolonies.core.colony.buildings.AbstractBuilding;
-import no.monopixel.slimcolonies.core.colony.buildings.modules.AbstractCraftingBuildingModule;
+
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -27,6 +30,7 @@ import java.util.*;
 import static no.monopixel.slimcolonies.api.util.constant.BuildingConstants.CONST_DEFAULT_MAX_BUILDING_LEVEL;
 import static no.monopixel.slimcolonies.api.util.constant.NbtTagConstants.TAG_LEVEL;
 import static no.monopixel.slimcolonies.api.util.constant.NbtTagConstants.TAG_WATER;
+import static no.monopixel.slimcolonies.api.util.constant.EquipmentLevelConstants.TOOL_LEVEL_WOOD_OR_GOLD;
 
 /**
  * Class of the concrete mason building.
@@ -57,7 +61,7 @@ public class BuildingConcreteMixer extends AbstractBuilding
     public BuildingConcreteMixer(final IColony c, final BlockPos l)
     {
         super(c, l);
-        keepX.put(itemStack -> ItemStackUtils.isEquipmentType(itemStack, ModEquipmentTypes.pickaxe.get()), new Tuple<>(1, true));
+        keepX.put(itemStack -> ItemStackUtils.hasEquipmentLevel(itemStack, ModEquipmentTypes.pickaxe.get(), TOOL_LEVEL_WOOD_OR_GOLD, getMaxEquipmentLevel()), new Tuple<>(1, true));
     }
 
     @Override
@@ -80,9 +84,9 @@ public class BuildingConcreteMixer extends AbstractBuilding
     }
 
     @Override
-    public CompoundTag serializeNBT()
+    public CompoundTag serializeNBT(@NotNull final HolderLookup.Provider provider)
     {
-        final CompoundTag compound = super.serializeNBT();
+        final CompoundTag compound = super.serializeNBT(provider);
 
         @NotNull final ListTag waterMap = new ListTag();
         for (@NotNull final Map.Entry<Integer, List<BlockPos>> entry : waterPos.entrySet())
@@ -94,7 +98,7 @@ public class BuildingConcreteMixer extends AbstractBuilding
             @NotNull final ListTag waterList = new ListTag();
             for (@NotNull final BlockPos pos : entry.getValue())
             {
-                waterList.add(NbtUtils.writeBlockPos(pos));
+                waterList.add(NBTUtils.writeBlockPos(pos));
             }
             waterCompound.put(TAG_WATER, waterList);
             waterMap.add(waterCompound);
@@ -104,9 +108,9 @@ public class BuildingConcreteMixer extends AbstractBuilding
     }
 
     @Override
-    public void deserializeNBT(final CompoundTag compound)
+    public void deserializeNBT(@NotNull final HolderLookup.Provider provider, final CompoundTag compound)
     {
-        super.deserializeNBT(compound);
+        super.deserializeNBT(provider, compound);
 
         waterPos.clear();
         final ListTag waterMapList = compound.getList(TAG_WATER, Tag.TAG_COMPOUND);
@@ -115,13 +119,11 @@ public class BuildingConcreteMixer extends AbstractBuilding
             final CompoundTag waterCompound = waterMapList.getCompound(i);
             final int level = waterCompound.getInt(TAG_LEVEL);
 
-            final ListTag waterTagList = waterCompound.getList(TAG_WATER, Tag.TAG_COMPOUND);
+            final ListTag waterTagList = waterCompound.getList(TAG_WATER, Tag.TAG_INT_ARRAY);
             final List<BlockPos> water = new ArrayList<>();
             for (int j = 0; j < waterTagList.size(); ++j)
             {
-                final CompoundTag waterSubCompound = waterTagList.getCompound(j);
-
-                final BlockPos waterPos = NbtUtils.readBlockPos(waterSubCompound);
+                final BlockPos waterPos = NBTUtils.readBlockPos(waterTagList.get(j));
                 if (!water.contains(waterPos))
                 {
                     water.add(waterPos);

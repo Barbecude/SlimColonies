@@ -1,0 +1,16 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "ingredients": [
+    {
+      "item": "slimcolonies:cornmeal"
+    },
+    {
+      "item": "slimcolonies:cornmeal"
+    }
+  ],
+  "result": {
+    "count": 2,
+    "id": "slimcolonies:tortillas"
+  }
+}

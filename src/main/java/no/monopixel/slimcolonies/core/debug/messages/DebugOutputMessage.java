@@ -1,19 +1,23 @@
 package no.monopixel.slimcolonies.core.debug.messages;
 
-import no.monopixel.slimcolonies.api.network.IMessage;
+import com.ldtteam.common.network.AbstractClientPlayMessage;
+import com.ldtteam.common.network.PlayMessageType;
+import no.monopixel.slimcolonies.api.util.Utils;
+import no.monopixel.slimcolonies.api.util.constant.Constants;
 import no.monopixel.slimcolonies.core.debug.gui.DebugWindowCitizen;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.chat.Component;
-import net.minecraftforge.fml.LogicalSide;
-import net.minecraftforge.network.NetworkEvent;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import net.minecraft.network.chat.ComponentSerialization;
+import net.minecraft.world.entity.player.Player;
+import net.neoforged.neoforge.network.handling.IPayloadContext;
 
 /**
  * Message for sending debug text to the client. Used for citizen debug window for now
  */
-public class DebugOutputMessage implements IMessage
+public class DebugOutputMessage extends AbstractClientPlayMessage
 {
+    public static final PlayMessageType<?> TYPE = PlayMessageType.forClient(Constants.MOD_ID, "debug_output", DebugOutputMessage::new);
+
     /**
      * The debug information to be displayed in the output
      */
@@ -24,40 +28,29 @@ public class DebugOutputMessage implements IMessage
      */
     private boolean clear = false;
 
-    public DebugOutputMessage()
-    {
-        super();
-    }
-
     public DebugOutputMessage(final Component message, final boolean clear)
     {
+        super(TYPE);
         this.debugInfo = message;
         this.clear = clear;
     }
 
-    @Override
-    public void fromBytes(@NotNull final FriendlyByteBuf buf)
+    protected DebugOutputMessage(final RegistryFriendlyByteBuf buf, final PlayMessageType<?> type)
     {
-        debugInfo = buf.readComponent();
+        super(buf, TYPE);
+        debugInfo = Utils.deserializeCodecMess(ComponentSerialization.STREAM_CODEC, buf);
         clear = buf.readBoolean();
     }
 
     @Override
-    public void toBytes(@NotNull final FriendlyByteBuf buf)
+    protected void toBytes(final RegistryFriendlyByteBuf buf)
     {
-        buf.writeComponent(debugInfo);
+        Utils.serializeCodecMess(ComponentSerialization.STREAM_CODEC, buf, debugInfo);
         buf.writeBoolean(clear);
     }
 
-    @Nullable
     @Override
-    public LogicalSide getExecutionSide()
-    {
-        return LogicalSide.CLIENT;
-    }
-
-    @Override
-    public void onExecute(final NetworkEvent.Context ctxIn, final boolean isLogicalServer)
+    protected void onExecute(final IPayloadContext iPayloadContext, final Player player)
     {
         if (clear)
         {

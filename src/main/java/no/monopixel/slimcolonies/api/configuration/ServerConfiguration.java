@@ -1,10 +1,14 @@
 package no.monopixel.slimcolonies.api.configuration;
 
-import net.minecraftforge.common.ForgeConfigSpec;
+import com.ldtteam.common.config.AbstractConfiguration;
 import no.monopixel.slimcolonies.api.colony.permissions.Explosions;
 import no.monopixel.slimcolonies.api.util.constant.CitizenConstants;
+import net.neoforged.neoforge.common.ModConfigSpec.*;
 
 import java.util.List;
+import java.util.function.Predicate;
+
+import static no.monopixel.slimcolonies.api.util.constant.Constants.*;
 
 /**
  * Mod server configuration. Loaded serverside, synced on connection.
@@ -15,183 +19,192 @@ public class ServerConfiguration extends AbstractConfiguration
      *  ------------------- ######## Gameplay settings ######## ------------------- *
      *  --------------------------------------------------------------------------- */
 
-    public final ForgeConfigSpec.IntValue     initialCitizenAmount;
-    public final ForgeConfigSpec.BooleanValue allowInfiniteSupplyChests;
-    public final ForgeConfigSpec.BooleanValue allowInfiniteColonies;
-    public final ForgeConfigSpec.BooleanValue allowOtherDimColonies;
-    public final ForgeConfigSpec.IntValue     maxCitizenPerColony;
-    public final ForgeConfigSpec.BooleanValue enableInDevelopmentFeatures;
-    public final ForgeConfigSpec.BooleanValue alwaysRenderNameTag;
-    public final ForgeConfigSpec.IntValue     bonusOreChance;
-    public final ForgeConfigSpec.IntValue     minThLevelToTeleport;
-    public final ForgeConfigSpec.DoubleValue  foodModifier;
-    public final ForgeConfigSpec.IntValue     maxVisitorsPerTavern;
-    public final ForgeConfigSpec.BooleanValue forceLoadColony;
-    public final ForgeConfigSpec.IntValue     loadtime;
-    public final ForgeConfigSpec.IntValue     colonyLoadStrictness;
-    public final ForgeConfigSpec.IntValue     maxTreeSize;
-    public final ForgeConfigSpec.BooleanValue noSupplyPlacementRestrictions;
-    public final ForgeConfigSpec.IntValue     builderScavengingIntervalMinutes;
-    public final ForgeConfigSpec.IntValue     fieldCooldownMinutes;
+    public final IntValue     initialCitizenAmount;
+    public final BooleanValue allowInfiniteSupplyChests;
+    public final BooleanValue allowInfiniteColonies;
+    public final BooleanValue allowOtherDimColonies;
+    public final IntValue     maxCitizenPerColony;
+    public final BooleanValue enableInDevelopmentFeatures;
+    public final BooleanValue alwaysRenderNameTag;
+    public final BooleanValue workersAlwaysWorkInRain;
+    public final IntValue     luckyBlockChance;
+    public final IntValue     minThLevelToTeleport;
+    public final DoubleValue  foodModifier;
+    public final IntValue     diseaseModifier;
+    public final BooleanValue forceLoadColony;
+    public final IntValue     loadtime;
+    public final IntValue     colonyLoadStrictness;
+    public final IntValue     maxTreeSize;
+    public final BooleanValue noSupplyPlacementRestrictions;
+    public final BooleanValue skyRaiders;
 
     /*  --------------------------------------------------------------------------- *
      *  ------------------- ######## Research settings ######## ------------------- *
      *  --------------------------------------------------------------------------- */
-    public final ForgeConfigSpec.BooleanValue                        researchCreativeCompletion;
-    public final ForgeConfigSpec.BooleanValue                        researchDebugLog;
-    public final ForgeConfigSpec.ConfigValue<List<? extends String>> researchResetCost;
+    public final BooleanValue                        researchCreativeCompletion;
+    public final BooleanValue                        researchDebugLog;
+    public final ConfigValue<List<? extends String>> researchResetCost;
 
     /*  --------------------------------------------------------------------------- *
      *  ------------------- ######## Command settings ######## ------------------- *
      *  --------------------------------------------------------------------------- */
 
-    public final ForgeConfigSpec.BooleanValue canPlayerUseColonyTPCommand;
-    public final ForgeConfigSpec.BooleanValue canPlayerUseHomeTPCommand;
-    public final ForgeConfigSpec.BooleanValue canPlayerUseShowColonyInfoCommand;
-    public final ForgeConfigSpec.BooleanValue canPlayerUseKillCitizensCommand;
-    public final ForgeConfigSpec.BooleanValue canPlayerUseModifyCitizensCommand;
-    public final ForgeConfigSpec.BooleanValue canPlayerUseAddOfficerCommand;
-    public final ForgeConfigSpec.BooleanValue canPlayerUseDeleteColonyCommand;
-    public final ForgeConfigSpec.BooleanValue canPlayerUseResetCommand;
+    public final BooleanValue canPlayerUseRTPCommand;
+    public final BooleanValue canPlayerUseColonyTPCommand;
+    public final BooleanValue canPlayerUseAllyTHTeleport;
+    public final BooleanValue canPlayerUseHomeTPCommand;
+    public final BooleanValue canPlayerUseShowColonyInfoCommand;
+    public final BooleanValue canPlayerUseKillCitizensCommand;
+    public final BooleanValue canPlayerUseModifyCitizensCommand;
+    public final BooleanValue canPlayerUseAddOfficerCommand;
+    public final BooleanValue canPlayerUseDeleteColonyCommand;
+    public final BooleanValue canPlayerUseResetCommand;
 
     /*  --------------------------------------------------------------------------- *
      *  ------------------- ######## Claim settings ######## ------------------- *
      *  --------------------------------------------------------------------------- */
 
-    public final ForgeConfigSpec.IntValue maxColonySize;
-    public final ForgeConfigSpec.IntValue minColonyDistance;
-    public final ForgeConfigSpec.IntValue initialColonySize;
-    public final ForgeConfigSpec.IntValue maxDistanceFromWorldSpawn;
-    public final ForgeConfigSpec.IntValue minDistanceFromWorldSpawn;
+    public final IntValue     maxColonySize;
+    public final IntValue     minColonyDistance;
+    public final IntValue     initialColonySize;
+    public final IntValue     maxDistanceFromWorldSpawn;
+    public final IntValue     minDistanceFromWorldSpawn;
 
     /*  ------------------------------------------------------------------------- *
      *  ------------------- ######## Combat Settings ######## ------------------- *
      *  ------------------------------------------------------------------------- */
 
-    public final ForgeConfigSpec.BooleanValue mobAttackCitizens;
-    public final ForgeConfigSpec.DoubleValue  guardDamageMultiplier;
-    public final ForgeConfigSpec.DoubleValue  guardHealthMult;
-    public final ForgeConfigSpec.BooleanValue pvp_mode;
+    public final BooleanValue enableColonyRaids;
+    public final IntValue     raidDifficulty;
+    public final IntValue     maxRaiders;
+    public final BooleanValue raidersbreakblocks;
+    public final IntValue     averageNumberOfNightsBetweenRaids;
+    public final IntValue     minimumNumberOfNightsBetweenRaids;
+    public final BooleanValue raidersbreakdoors;
+    public final BooleanValue mobAttackCitizens;
+    public final DoubleValue  guardDamageMultiplier;
+    public final DoubleValue  guardHealthMult;
+    public final BooleanValue pvp_mode;
 
     /*  ----------------------------------------------------------------------------- *
      *  ------------------- ######## Permission Settings ######## ------------------- *
      *  ----------------------------------------------------------------------------- */
 
-    public final ForgeConfigSpec.BooleanValue          enableColonyProtection;
-    public final ForgeConfigSpec.EnumValue<Explosions> turnOffExplosionsInColonies;
+    public final BooleanValue          enableColonyProtection;
+    public final EnumValue<Explosions> turnOffExplosionsInColonies;
+    public final IntValue              permissionEventMinBypassPermLevel;
 
     /*  -------------------------------------------------------------------------------- *
      *  ------------------- ######## Compatibility Settings ######## ------------------- *
      *  -------------------------------------------------------------------------------- */
 
-    public final ForgeConfigSpec.BooleanValue auditCraftingTags;
-    public final ForgeConfigSpec.BooleanValue debugInventories;
-    public final ForgeConfigSpec.BooleanValue blueprintBuildMode;
+    public final BooleanValue                        auditCraftingTags;
+    public final BooleanValue                        debugInventories;
+    public final BooleanValue                        blueprintBuildMode;
 
     /*  ------------------------------------------------------------------------------ *
      *  ------------------- ######## Pathfinding Settings ######## ------------------- *
      *  ------------------------------------------------------------------------------ */
 
-    public final ForgeConfigSpec.IntValue pathfindingDebugVerbosity;
-    public final ForgeConfigSpec.IntValue pathfindingMaxThreadCount;
-    public final ForgeConfigSpec.IntValue minimumRailsToPath;
+    public final IntValue minimumRailsToPath;
+    public final DoubleValue pathNodeLimitMultiplier;
 
     /*  --------------------------------------------------------------------------------- *
      *  ------------------- ######## Request System Settings ######## ------------------- *
      *  --------------------------------------------------------------------------------- */
 
-    public final ForgeConfigSpec.BooleanValue creativeResolve;
-
-    /*  --------------------------------------------------------------------------------- *
-     *  ------------------- ######## Debugging Settings ######## ------------------- *
-     *  --------------------------------------------------------------------------------- */
-
-    public final ForgeConfigSpec.BooleanValue netherWorkerTakesDamage;
+    public final BooleanValue creativeResolve;
 
     /**
      * Builds server configuration.
      *
      * @param builder config builder
      */
-    protected ServerConfiguration(final ForgeConfigSpec.Builder builder)
+    public ServerConfiguration(final Builder builder)
     {
-        createCategory(builder, "gameplay");
+        super(builder, MOD_ID);
+        final Predicate<Object> stringValidator = s -> s instanceof String;
 
-        initialCitizenAmount = defineInteger(builder, "initialcitizenamount", 4, 1, 10);
-        allowInfiniteSupplyChests = defineBoolean(builder, "allowinfinitesupplychests", false);
-        allowInfiniteColonies = defineBoolean(builder, "allowinfinitecolonies", false);
-        allowOtherDimColonies = defineBoolean(builder, "allowotherdimcolonies", true);
-        maxCitizenPerColony = defineInteger(builder, "maxcitizenpercolony", 250, 30, CitizenConstants.CITIZEN_LIMIT_MAX);
-        enableInDevelopmentFeatures = defineBoolean(builder, "enableindevelopmentfeatures", false);
-        alwaysRenderNameTag = defineBoolean(builder, "alwaysrendernametag", true);
-        bonusOreChance = defineInteger(builder, "bonusorechance", 25, 0, 100);
-        minThLevelToTeleport = defineInteger(builder, "minthleveltoteleport", 3, 0, 5);
-        foodModifier = defineDouble(builder, "foodmodifier", 1.0, 0.1, 100);
-        maxVisitorsPerTavern = defineInteger(builder, "maxvisitorspertavern", 3, 1, 15);
-        forceLoadColony = defineBoolean(builder, "forceloadcolony", true);
-        loadtime = defineInteger(builder, "loadtime", 10, 1, 1440);
-        colonyLoadStrictness = defineInteger(builder, "colonyloadstrictness", 3, 1, 15);
-        maxTreeSize = defineInteger(builder, "maxtreesize", 400, 1, 1000);
-        noSupplyPlacementRestrictions = defineBoolean(builder, "nosupplyplacementrestrictions", false);
-        builderScavengingIntervalMinutes = defineInteger(builder, "builderscavengingintervalminutes", 2, 0, 60);
-        fieldCooldownMinutes = defineInteger(builder, "fieldcooldownminutes", 15, 1, 60);
+        createCategory("gameplay");
 
-        swapToCategory(builder, "research");
-        researchCreativeCompletion = defineBoolean(builder, "researchcreativecompletion", true);
-        researchDebugLog = defineBoolean(builder, "researchdebuglog", false);
-        researchResetCost = defineList(builder, "researchresetcost", List.of("slimcolonies:ancienttome:1"), s -> s instanceof String);
+        initialCitizenAmount = defineInteger("initialcitizenamount", 4, 1, 10);
+        allowInfiniteSupplyChests = defineBoolean("allowinfinitesupplychests", false);
+        allowInfiniteColonies = defineBoolean("allowinfinitecolonies", false);
+        allowOtherDimColonies = defineBoolean("allowotherdimcolonies", true);
+        maxCitizenPerColony = defineInteger("maxcitizenpercolony", 250, 25, CitizenConstants.CITIZEN_LIMIT_MAX);
+        enableInDevelopmentFeatures = defineBoolean("enableindevelopmentfeatures", false);
+        alwaysRenderNameTag = defineBoolean("alwaysrendernametag", true);
+        workersAlwaysWorkInRain = defineBoolean("workersalwaysworkinrain", false);
+        luckyBlockChance = defineInteger("luckyblockchance", 1, 0, 100);
+        minThLevelToTeleport = defineInteger("minthleveltoteleport", 3, 0, 5);
+        foodModifier = defineDouble("foodmodifier", 1.0, 0.1, 100);
+        diseaseModifier = defineInteger("diseasemodifier", 5, 1, 100);
+        forceLoadColony = defineBoolean("forceloadcolony", true);
+        loadtime = defineInteger("loadtime", 20, 1, 1440);
+        colonyLoadStrictness = defineInteger("colonyloadstrictness", 3, 1, 15);
+        maxTreeSize = defineInteger("maxtreesize", 400, 1, 1000);
+        noSupplyPlacementRestrictions = defineBoolean("nosupplyplacementrestrictions", false);
+        skyRaiders = defineBoolean("skyraiders", false);
 
-        swapToCategory(builder, "commands");
+        swapToCategory("research");
+        researchCreativeCompletion = defineBoolean("researchcreativecompletion", true);
+        researchDebugLog = defineBoolean("researchdebuglog", false);
+        researchResetCost = defineList("researchresetcost", () -> "item ID, possibly with data", stringValidator, "slimcolonies:ancienttome:1");
 
-        canPlayerUseColonyTPCommand = defineBoolean(builder, "canplayerusecolonytpcommand", false);
-        canPlayerUseHomeTPCommand = defineBoolean(builder, "canplayerusehometpcommand", true);
-        canPlayerUseShowColonyInfoCommand = defineBoolean(builder, "canplayeruseshowcolonyinfocommand", true);
-        canPlayerUseKillCitizensCommand = defineBoolean(builder, "canplayerusekillcitizenscommand", false);
-        canPlayerUseModifyCitizensCommand = defineBoolean(builder, "canplayerusemodifycitizenscommand", false);
-        canPlayerUseAddOfficerCommand = defineBoolean(builder, "canplayeruseaddofficercommand", true);
-        canPlayerUseDeleteColonyCommand = defineBoolean(builder, "canplayerusedeletecolonycommand", false);
-        canPlayerUseResetCommand = defineBoolean(builder, "canplayeruseresetcommand", false);
+        swapToCategory("commands");
 
-        swapToCategory(builder, "claims");
+        canPlayerUseRTPCommand = defineBoolean("canplayerusertpcommand", false);
+        canPlayerUseColonyTPCommand = defineBoolean("canplayerusecolonytpcommand", false);
+        canPlayerUseAllyTHTeleport = defineBoolean("canplayeruseallytownhallteleport", true);
+        canPlayerUseHomeTPCommand = defineBoolean("canplayerusehometpcommand", false);
+        canPlayerUseShowColonyInfoCommand = defineBoolean("canplayeruseshowcolonyinfocommand", true);
+        canPlayerUseKillCitizensCommand = defineBoolean("canplayerusekillcitizenscommand", false);
+        canPlayerUseModifyCitizensCommand = defineBoolean("canplayerusemodifycitizenscommand", false);
+        canPlayerUseAddOfficerCommand = defineBoolean("canplayeruseaddofficercommand", true);
+        canPlayerUseDeleteColonyCommand = defineBoolean("canplayerusedeletecolonycommand", false);
+        canPlayerUseResetCommand = defineBoolean("canplayeruseresetcommand", false);
 
-        maxColonySize = defineInteger(builder, "maxColonySize", 20, 1, 250);
-        minColonyDistance = defineInteger(builder, "minColonyDistance", 8, 1, 200);
-        initialColonySize = defineInteger(builder, "initialColonySize", 4, 1, 15);
-        maxDistanceFromWorldSpawn = defineInteger(builder, "maxdistancefromworldspawn", 30000, 1000, Integer.MAX_VALUE);
-        minDistanceFromWorldSpawn = defineInteger(builder, "mindistancefromworldspawn", 0, 0, 1000);
+        swapToCategory("claims");
 
-        swapToCategory(builder, "combat");
+        maxColonySize = defineInteger("maxColonySize", 20, 1, 250);
+        minColonyDistance = defineInteger("minColonyDistance", 8, 1, 200);
+        initialColonySize = defineInteger("initialColonySize", 4, 1, 15);
+        maxDistanceFromWorldSpawn = defineInteger("maxdistancefromworldspawn", 30000, 1000, Integer.MAX_VALUE);
+        minDistanceFromWorldSpawn = defineInteger("mindistancefromworldspawn", 0, 0, 1000);
 
-        mobAttackCitizens = defineBoolean(builder, "mobattackcitizens", true);
-        guardDamageMultiplier = defineDouble(builder, "guardDamageMultiplier", 1.0, 0.1, 15.0);
-        guardHealthMult = defineDouble(builder, "guardhealthmult", 1.0, 0.1, 5.0);
-        pvp_mode = defineBoolean(builder, "pvp_mode", false);
+        swapToCategory("combat");
 
-        swapToCategory(builder, "permissions");
+        enableColonyRaids = defineBoolean("dobarbariansspawn", true);
+        raidDifficulty = defineInteger("barbarianhordedifficulty", DEFAULT_BARBARIAN_DIFFICULTY, MIN_BARBARIAN_DIFFICULTY, MAX_BARBARIAN_DIFFICULTY);
+        maxRaiders = defineInteger("maxBarbarianSize", 80, MIN_BARBARIAN_HORDE_SIZE, MAX_BARBARIAN_HORDE_SIZE);
+        raidersbreakblocks = defineBoolean("dobarbariansbreakthroughwalls", true);
+        averageNumberOfNightsBetweenRaids = defineInteger("averagenumberofnightsbetweenraids", 14, 1, 50);
+        minimumNumberOfNightsBetweenRaids = defineInteger("minimumnumberofnightsbetweenraids", 10, 1, 30);
+        mobAttackCitizens = defineBoolean("mobattackcitizens", true);
+        raidersbreakdoors = defineBoolean("shouldraiderbreakdoors", true);
+        guardDamageMultiplier = defineDouble("guardDamageMultiplier", 1.0, 0.1, 15.0);
+        guardHealthMult = defineDouble("guardhealthmult", 1.0, 0.1, 5.0);
+        pvp_mode = defineBoolean("pvp_mode", false);
 
-        enableColonyProtection = defineBoolean(builder, "enablecolonyprotection", true);
-        turnOffExplosionsInColonies = defineEnum(builder, "turnoffexplosionsincolonies", Explosions.DAMAGE_ENTITIES);
+        swapToCategory("permissions");
 
-        swapToCategory(builder, "compatibility");
+        enableColonyProtection = defineBoolean("enablecolonyprotection", true);
+        turnOffExplosionsInColonies = defineEnum("turnoffexplosionsincolonies", Explosions.DAMAGE_ENTITIES);
+        permissionEventMinBypassPermLevel = defineInteger("permissioneventbypassminpermlevel", 2, 0, 4);
 
-        auditCraftingTags = defineBoolean(builder, "auditcraftingtags", false);
-        debugInventories = defineBoolean(builder, "debuginventories", false);
-        blueprintBuildMode = defineBoolean(builder, "blueprintbuildmode", false);
+        swapToCategory("compatibility");
 
-        swapToCategory(builder, "pathfinding");
+        auditCraftingTags = defineBoolean("auditcraftingtags", false);
+        debugInventories = defineBoolean("debuginventories", false);
+        blueprintBuildMode = defineBoolean("blueprintbuildmode", false);
 
-        pathfindingDebugVerbosity = defineInteger(builder, "pathfindingdebugverbosity", 0, 0, 10);
-        minimumRailsToPath = defineInteger(builder, "minimumrailstopath", 8, 5, 100);
-        pathfindingMaxThreadCount = defineInteger(builder, "pathfindingmaxthreadcount", 1, 1, 10);
+        pathNodeLimitMultiplier = defineDouble("pathNodeLimitMultiplier", 1, 1, 4);
+        minimumRailsToPath = defineInteger("minimumrailstopath", 8, 5, 100);
 
-        swapToCategory(builder, "requestSystem");
+        swapToCategory("requestSystem");
 
-        creativeResolve = defineBoolean(builder, "creativeresolve", false);
+        creativeResolve = defineBoolean("creativeresolve", false);
 
-        swapToCategory(builder, "debugging");
-
-        netherWorkerTakesDamage = defineBoolean(builder, "netherworkertakesdamage", true);
-
-        finishCategory(builder);
+        finishCategory();
     }
 }

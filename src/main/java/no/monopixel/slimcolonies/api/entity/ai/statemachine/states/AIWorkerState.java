@@ -259,7 +259,7 @@ public enum AIWorkerState implements IAIState
     /**
      * Delivery required items or tools.
      */
-    DELIVERY(true),
+    DELIVERY(false),
 
     /**
      * Pickup unneeded items from buildings.
@@ -302,7 +302,7 @@ public enum AIWorkerState implements IAIState
     /**
      * smelter smelts ore until its a bar.
      */
-    START_USING_FURNACE(true),
+    FILL_UP_FURNACES(true),
 
     /**
      * Gathering ore from his building.
@@ -313,6 +313,11 @@ public enum AIWorkerState implements IAIState
      * Retrieve the ore from the furnace.
      */
     RETRIEVING_END_PRODUCT_FROM_FURNACE(true),
+
+    /**
+     * Retrieve unrelated product from furnace.
+     */
+    RETRIEVING_UNRELATED_PRODUCT_FROM_FURNACE(true),
 
     /**
      * Retrieve used fuel from the furnace.
@@ -365,6 +370,25 @@ public enum AIWorkerState implements IAIState
      * Feed animals.
      */
     HERDER_FEED(false),
+
+    /*
+### Stablemaster ###
+     */
+
+    /**
+     * Train mounts!
+     */
+    HERDER_TRAIN(true),
+
+    /**
+     * Get mounts ready for combat!
+     */
+    HERDER_READY_FOR_COMBAT(true),
+
+    /**
+     * Bring mounts to the stable!
+     */
+    HERDER_GATHER_MOUNTS(true),
 
     /*
 ### Cowboy ###
@@ -531,9 +555,24 @@ public enum AIWorkerState implements IAIState
     NETHER_LEAVE(true),
 
     /**
+     * Let the nether worker return from the trip.
+     */
+    NETHER_AWAY(true),
+
+    /**
+     * Let the nether worker return from the trip.
+     */
+    NETHER_RETURN(true),
+
+    /**
      * Let the nether worker open the portal to the nether
      */
     NETHER_OPENPORTAL(true),
+
+    /**
+     * Let the nether worker close the portal to the nether
+     */
+    NETHER_CLOSEPORTAL(true),
 
 
             /*

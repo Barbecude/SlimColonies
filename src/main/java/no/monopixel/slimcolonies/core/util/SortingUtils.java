@@ -5,12 +5,13 @@ import no.monopixel.slimcolonies.api.crafting.ExactMatchItemStorage;
 import no.monopixel.slimcolonies.api.inventory.api.CombinedItemHandler;
 import no.monopixel.slimcolonies.api.util.ItemStackUtils;
 import no.monopixel.slimcolonies.api.util.Log;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.util.Tuple;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
-import net.minecraftforge.registries.ForgeRegistries;
-import net.minecraftforge.registries.ForgeRegistry;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -36,9 +37,9 @@ public final class SortingUtils
      *
      * @param inv the item handler to sort.
      */
-    public static void sort(final CombinedItemHandler inv)
+    public static void sort(@NotNull final HolderLookup.Provider provider, final CombinedItemHandler inv)
     {
-        final CompoundTag backup = inv.serializeNBT();
+        final CompoundTag backup = inv.serializeNBT(provider);
         final AtomicInteger runCount = new AtomicInteger(0);
 
         try
@@ -71,8 +72,8 @@ public final class SortingUtils
         }
         catch (Exception e)
         {
-            inv.deserializeNBT(backup);
-            Log.getLogger().warn("SlimColonies warehouse sorting had an error, report it to the mod author.", e);
+            inv.deserializeNBT(provider, backup);
+            Log.getLogger().warn("Minecolonies warehouse sorting had an error, report it to the mod author.", e);
         }
     }
 
@@ -168,7 +169,7 @@ public final class SortingUtils
      */
     private static int getId(final Item item)
     {
-        return ((ForgeRegistry<Item>) ForgeRegistries.ITEMS).getID(item);
+        return BuiltInRegistries.ITEM.getId(item);
     }
 
     /**

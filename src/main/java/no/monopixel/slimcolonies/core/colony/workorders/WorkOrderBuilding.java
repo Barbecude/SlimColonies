@@ -1,5 +1,6 @@
 package no.monopixel.slimcolonies.core.colony.workorders;
 
+import com.ldtteam.structurize.api.RotationMirror;
 import no.monopixel.slimcolonies.api.advancements.AdvancementTriggers;
 import no.monopixel.slimcolonies.api.colony.ICitizenData;
 import no.monopixel.slimcolonies.api.colony.IColony;
@@ -11,7 +12,7 @@ import no.monopixel.slimcolonies.core.entity.ai.workers.util.ConstructionTapeHel
 import no.monopixel.slimcolonies.core.util.AdvancementUtils;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.chat.Component;
 import org.jetbrains.annotations.NotNull;
 
@@ -27,7 +28,7 @@ public class WorkOrderBuilding extends AbstractWorkOrder
     /**
      * Maximum distance a builder can have from the building site.
      */
-    private static final double MAX_DISTANCE_SQ = 500 * 500;
+    private static final double MAX_DISTANCE_SQ = 100 * 100;
 
     /**
      * The custom name of the building.
@@ -69,12 +70,10 @@ public class WorkOrderBuilding extends AbstractWorkOrder
           building.getBuildingType().getTranslationKey(),
           type,
           building.getID(),
-          building.getRotation(),
-          building.getTileEntity() == null ? building.isMirrored() : building.getTileEntity().isMirrored(),
+          building.getTileEntity() == null ? building.getRotationMirror() : building.getTileEntity().getRotationMirror(),
           building.getBuildingLevel(),
           targetLevel);
         wo.setCustomName(building);
-        wo.setColony(building.getColony());
         return wo;
     }
 
@@ -92,12 +91,11 @@ public class WorkOrderBuilding extends AbstractWorkOrder
       String translationKey,
       WorkOrderType workOrderType,
       BlockPos location,
-      int rotation,
-      boolean isMirrored,
+      RotationMirror rotMir,
       int currentLevel,
       int targetLevel)
     {
-        super(packName, path, translationKey, workOrderType, location, rotation, isMirrored, currentLevel, targetLevel);
+        super(packName, path, translationKey, workOrderType, location, rotMir, currentLevel, targetLevel);
     }
 
     public String getCustomName()
@@ -123,7 +121,7 @@ public class WorkOrderBuilding extends AbstractWorkOrder
 
         if (building.hasParent())
         {
-            final IBuilding parentBuilding = building.getColony().getBuildingManager().getBuilding(building.getParent());
+            final IBuilding parentBuilding = building.getColony().getServerBuildingManager().getBuilding(building.getParent());
             if (parentBuilding != null)
             {
                 this.customParentName = parentBuilding.getCustomName();
@@ -137,7 +135,7 @@ public class WorkOrderBuilding extends AbstractWorkOrder
     {
         String customParentName = getCustomParentName();
         String customName = getCustomName();
-        Component buildingComponent = customName.isEmpty() ? Component.translatable(getTranslationKey()) : Component.literal(customName);
+        Component buildingComponent = customName.isEmpty() ? Component.translatableEscape(getTranslationKey()) : Component.literal(customName);
 
         if (parentTranslationKey.isEmpty())
         {
@@ -145,8 +143,8 @@ public class WorkOrderBuilding extends AbstractWorkOrder
         }
         else
         {
-            Component parentComponent = customParentName.isEmpty() ? Component.translatable(parentTranslationKey) : Component.literal(customParentName);
-            return Component.translatable("%s / %s", parentComponent, buildingComponent);
+            Component parentComponent = customParentName.isEmpty() ? Component.translatableEscape(parentTranslationKey) : Component.literal(customParentName);
+            return Component.translatableEscape("%s / %s", parentComponent, buildingComponent);
         }
     }
 
@@ -184,7 +182,7 @@ public class WorkOrderBuilding extends AbstractWorkOrder
     @Override
     public boolean tooFarFromAnyBuilder(final IColony colony, final int level)
     {
-        return colony.getBuildingManager()
+        return colony.getServerBuildingManager()
           .getBuildings()
           .values()
           .stream()
@@ -201,7 +199,7 @@ public class WorkOrderBuilding extends AbstractWorkOrder
     @Override
     public boolean isValid(@NotNull final IColony colony)
     {
-        return super.isValid(colony) && colony.getBuildingManager().getBuilding(getLocation()) != null;
+        return super.isValid(colony) && colony.getServerBuildingManager().getBuilding(getLocation()) != null;
     }
 
     /**
@@ -234,7 +232,7 @@ public class WorkOrderBuilding extends AbstractWorkOrder
     }
 
     @Override
-    public void serializeViewNetworkData(@NotNull FriendlyByteBuf buf)
+    public void serializeViewNetworkData(@NotNull RegistryFriendlyByteBuf buf)
     {
         super.serializeViewNetworkData(buf);
         buf.writeUtf(customName);
@@ -249,11 +247,11 @@ public class WorkOrderBuilding extends AbstractWorkOrder
 
         if (getWorkOrderType() != WorkOrderType.REMOVE)
         {
-            final IBuilding building = colony.getBuildingManager().getBuilding(getLocation());
+            final IBuilding building = colony.getServerBuildingManager().getBuilding(getLocation());
             if (building != null)
             {
                 AdvancementUtils.TriggerAdvancementPlayersForColony(colony,
-                        player -> AdvancementTriggers.COMPLETE_BUILD_REQUEST.trigger(player, building.getBuildingType().getRegistryName().getPath(), this.getTargetLevel()));
+                        player -> AdvancementTriggers.COMPLETE_BUILD_REQUEST.get().trigger(player, building.getSchematicName(), this.getTargetLevel()));
             }
         }
     }
@@ -263,7 +261,7 @@ public class WorkOrderBuilding extends AbstractWorkOrder
     {
         if (!readingFromNbt && colony != null && colony.getWorld() != null)
         {
-            final IBuilding building = colony.getBuildingManager().getBuilding(getLocation());
+            final IBuilding building = colony.getServerBuildingManager().getBuilding(getLocation());
             if (building != null)
             {
                 ConstructionTapeHelper.placeConstructionTape(building.getCorners(), colony);
@@ -274,7 +272,7 @@ public class WorkOrderBuilding extends AbstractWorkOrder
     @Override
     public void onRemoved(final IColony colony)
     {
-        final IBuilding building = colony.getBuildingManager().getBuilding(getLocation());
+        final IBuilding building = colony.getServerBuildingManager().getBuilding(getLocation());
         if (building != null)
         {
             building.markDirty();

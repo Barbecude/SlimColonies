@@ -7,18 +7,6 @@ import com.ldtteam.structurize.placement.StructurePlacer;
 import com.ldtteam.structurize.placement.structure.IStructureHandler;
 import com.ldtteam.structurize.util.BlockUtils;
 import com.ldtteam.structurize.util.BlueprintPositionInfo;
-import net.minecraft.core.BlockPos;
-import net.minecraft.sounds.SoundEvents;
-import net.minecraft.tags.BlockTags;
-import net.minecraft.world.InteractionHand;
-import net.minecraft.world.item.BlockItem;
-import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.level.block.AirBlock;
-import net.minecraft.world.level.block.Block;
-import net.minecraft.world.level.block.Blocks;
-import net.minecraft.world.level.block.entity.BlockEntity;
-import net.minecraft.world.level.block.state.BlockState;
-import net.minecraftforge.common.util.TriPredicate;
 import no.monopixel.slimcolonies.api.blocks.AbstractBlockHut;
 import no.monopixel.slimcolonies.api.blocks.ModBlocks;
 import no.monopixel.slimcolonies.api.colony.ICitizenData;
@@ -44,6 +32,18 @@ import no.monopixel.slimcolonies.core.colony.jobs.AbstractJobStructure;
 import no.monopixel.slimcolonies.core.entity.ai.workers.util.BuildingProgressStage;
 import no.monopixel.slimcolonies.core.entity.ai.workers.util.BuildingStructureHandler;
 import no.monopixel.slimcolonies.core.tileentities.TileEntityDecorationController;
+import net.minecraft.core.BlockPos;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.tags.BlockTags;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.item.BlockItem;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.block.AirBlock;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.state.BlockState;
+import net.neoforged.neoforge.common.util.TriPredicate;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -51,12 +51,14 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 import java.util.function.Predicate;
 
 import static com.ldtteam.structurize.placement.AbstractBlueprintIterator.NULL_POS;
 import static no.monopixel.slimcolonies.api.entity.ai.statemachine.states.AIWorkerState.*;
 import static no.monopixel.slimcolonies.api.research.util.ResearchConstants.BLOCK_PLACE_SPEED;
 import static no.monopixel.slimcolonies.api.util.constant.CitizenConstants.*;
+import static no.monopixel.slimcolonies.api.util.constant.Constants.TICKS_SECOND;
 import static no.monopixel.slimcolonies.core.colony.buildings.workerbuildings.BuildingMiner.FILL_BLOCK;
 import static no.monopixel.slimcolonies.core.entity.ai.workers.AbstractEntityAIStructure.ItemCheckResult.*;
 import static no.monopixel.slimcolonies.core.entity.ai.workers.util.BuildingProgressStage.*;
@@ -110,9 +112,9 @@ public abstract class AbstractEntityAIStructure<J extends AbstractJobStructure<?
         final BlockState worldState = handler.getWorld().getBlockState(worldPos);
 
         return worldState.getBlock() instanceof IBuilderUndestroyable
-            || worldState.getBlock() == Blocks.BEDROCK
-            || (info.getBlockInfo().getState().getBlock() instanceof AbstractBlockHut && handler.getCenterPos().equals(worldPos)
-            && worldState.getBlock() instanceof AbstractBlockHut);
+                 || worldState.getBlock() == Blocks.BEDROCK
+                 || (info.getBlockInfo().getState().getBlock() instanceof AbstractBlockHut && handler.getCenterPos().equals(worldPos)
+                       && worldState.getBlock() instanceof AbstractBlockHut);
     };
 
     /**
@@ -151,36 +153,53 @@ public abstract class AbstractEntityAIStructure<J extends AbstractJobStructure<?
     {
         super(job);
         this.registerTargets(
-            /*
-             * Check if tasks should be executed.
-             */
-            new AIEventTarget(AIBlockingEventType.STATE_BLOCKING, this::checkIfCanceled, IDLE, 1),
-            /*
-             * Select the appropriate State to do next.
-             */
-            new AITarget(LOAD_STRUCTURE, this::loadRequirements, 5),
-            /*
-             * Select the appropriate State to do next.
-             */
-            new AITarget(START_BUILDING, this::startBuilding, 1),
-            /*
-             * Select the appropriate State to do next.
-             */
-            new AITarget(MINE_BLOCK, this::doMining, 10),
-            /*
-             * Check if we have to build something.
-             */
-            new AITarget(IDLE, this::isThereAStructureToBuild, () -> START_BUILDING, 10),
-            /*
-             * Build the structure and foundation of the building.
-             */
-            new AITarget(BUILDING_STEP, this::structureStep, STANDARD_DELAY),
-            /*
-             * Finalize the building and give back control to the ai.
-             */
-            new AITarget(COMPLETE_BUILD, this::completeBuild, STANDARD_DELAY),
-            new AITarget(PICK_UP, this::pickUpMaterial, 5)
+          /*
+           * Check if tasks should be executed.
+           */
+          new AIEventTarget(AIBlockingEventType.STATE_BLOCKING, this::checkIfCanceled, IDLE, 1),
+          /*
+           * Select the appropriate State to do next.
+           */
+          new AITarget(LOAD_STRUCTURE, this::loadRequirements, 5),
+          /*
+           * Select the appropriate State to do next.
+           */
+          new AITarget(START_BUILDING, this::startBuilding, 1),
+          /*
+           * Select the appropriate State to do next.
+           */
+          new AITarget(MINE_BLOCK, this::doMining, 10),
+          /*
+           * Check if we have to build something.
+           */
+          new AITarget(IDLE, START_WORKING, 10),
+          /*
+           * Start working at the building.
+           */
+          new AITarget(START_WORKING, this::startWorkingAtOwnBuilding, TICKS_SECOND),
+          /*
+           * Build the structure and foundation of the building.
+           */
+          new AITarget(BUILDING_STEP, this::structureStep, STANDARD_DELAY),
+          /*
+           * Finalize the building and give back control to the ai.
+           */
+          new AITarget(COMPLETE_BUILD, this::completeBuild, STANDARD_DELAY),
+          new AITarget(PICK_UP, this::pickUpMaterial, 5)
         );
+    }
+
+    /**
+     * Start working at own building. Override for worker specific implementations.
+     * @return next state.
+     */
+    protected IAIState startWorkingAtOwnBuilding()
+    {
+        if (isThereAStructureToBuild())
+        {
+            return START_BUILDING;
+        }
+        return IDLE;
     }
 
     /**
@@ -333,8 +352,8 @@ public abstract class AbstractEntityAIStructure<J extends AbstractJobStructure<?
         }
 
         if ((worldPos != null || blockToMine != null) && !limitReached && (blockToMine == null
-            ? !walkToConstructionSite(worldPos)
-            : !walkToConstructionSite(blockToMine)))
+                                                                             ? !walkToConstructionSite(worldPos)
+                                                                             : !walkToConstructionSite(blockToMine)))
         {
             return getState();
         }
@@ -349,18 +368,18 @@ public abstract class AbstractEntityAIStructure<J extends AbstractJobStructure<?
             case BUILD_SOLID:
                 //structure
                 result = placer.executeStructureStep(world, null, progress, StructurePlacer.Operation.BLOCK_PLACEMENT,
-                    () -> placer.getIterator().increment(this::skipBuilding), false);
+                  () -> placer.getIterator().increment(this::skipBuilding), false);
                 break;
             case WEAK_SOLID:
 
                 // not solid
                 result = placer.executeStructureStep(world,
-                    null,
-                    progress,
-                    StructurePlacer.Operation.BLOCK_PLACEMENT,
-                    () -> placer.getIterator()
-                        .increment(((info, pos, handler) -> !BlockUtils.isWeakSolidBlock(info.getBlockInfo().getState()) || DONT_TOUCH_PREDICATE.test(info, pos, handler))),
-                    false);
+                  null,
+                  progress,
+                  StructurePlacer.Operation.BLOCK_PLACEMENT,
+                  () -> placer.getIterator()
+                          .increment(((info, pos, handler) -> !BlockUtils.isWeakSolidBlock(info.getBlockInfo().getState()) || DONT_TOUCH_PREDICATE.test(info, pos, handler))),
+                  false);
                 break;
             case CLEAR_WATER:
                 //water
@@ -369,15 +388,15 @@ public abstract class AbstractEntityAIStructure<J extends AbstractJobStructure<?
             case CLEAR_NON_SOLIDS:
                 // clear air
                 result = placer.executeStructureStep(world, null, progress, StructurePlacer.Operation.BLOCK_PLACEMENT,
-                    () -> placer.getIterator().decrement((info, pos, handler) ->
-                        !(info.getBlockInfo().getState().getBlock() instanceof AirBlock)
-                            || (handler.getWorld().isEmptyBlock(pos))
-                            || DONT_TOUCH_PREDICATE.test(info, pos, handler)), false);
+                  () -> placer.getIterator().decrement((info, pos, handler) ->
+                                                         !(info.getBlockInfo().getState().getBlock() instanceof AirBlock)
+                                                           || (handler.getWorld().isEmptyBlock(pos))
+                                                           || DONT_TOUCH_PREDICATE.test(info, pos, handler)), false);
                 break;
             case DECORATE:
                 // not solid
                 result = placer.executeStructureStep(world, null, progress, StructurePlacer.Operation.BLOCK_PLACEMENT,
-                    () -> placer.getIterator().increment(this::skipDecorate), false);
+                  () -> placer.getIterator().increment(this::skipDecorate), false);
                 break;
             case SPAWN:
                 if (placer.getHandler().getBluePrint().getEntities().length == 0)
@@ -388,24 +407,24 @@ public abstract class AbstractEntityAIStructure<J extends AbstractJobStructure<?
                 {
                     // entities
                     result = placer.executeStructureStep(world, null, progress, StructurePlacer.Operation.SPAWN_ENTITY,
-                        () -> placer.getIterator().increment((info, pos, handler) -> info.getEntities().length == 0 || DONT_TOUCH_PREDICATE.test(info, pos, handler)), true);
+                      () -> placer.getIterator().increment((info, pos, handler) -> info.getEntities().length == 0 || DONT_TOUCH_PREDICATE.test(info, pos, handler)), true);
                 }
                 break;
             case REMOVE_WATER:
                 //water
                 placer.getIterator().setRemoving();
                 result = placer.executeStructureStep(world, null, progress, StructurePlacer.Operation.WATER_REMOVAL,
-                    () -> placer.getIterator().decrement((info, pos, handler) -> info.getBlockInfo().getState().getFluidState().isEmpty()), false);
+                  () -> placer.getIterator().decrement((info, pos, handler) -> info.getBlockInfo().getState().getFluidState().isEmpty()), false);
                 break;
             case REMOVE:
                 placer.getIterator().setRemoving();
                 result = placer.executeStructureStep(world, null, progress, StructurePlacer.Operation.BLOCK_REMOVAL,
-                    () -> placer.getIterator().decrement(this::skipRemoval), true);
+                  () -> placer.getIterator().decrement(this::skipRemoval), true);
                 break;
             case CLEAR:
             default:
                 result =
-                    placer.executeStructureStep(world, null, progress, StructurePlacer.Operation.BLOCK_REMOVAL, () -> placer.getIterator().decrement(this::skipClearing), false);
+                  placer.executeStructureStep(world, null, progress, StructurePlacer.Operation.BLOCK_REMOVAL, () -> placer.getIterator().decrement(this::skipClearing), false);
                 break;
         }
 
@@ -417,6 +436,7 @@ public abstract class AbstractEntityAIStructure<J extends AbstractJobStructure<?
         final boolean firstIteration = building.getProgress() == null;
         if (result.getBlockResult().getResult() == BlockPlacementResult.Result.FINISHED)
         {
+
             building.nextStage();
             if (!goToNextStage(result))
             {
@@ -537,8 +557,8 @@ public abstract class AbstractEntityAIStructure<J extends AbstractJobStructure<?
     {
         final BlockState blockInfoState = info.getBlockInfo().getState();
         return !BlockUtils.canBlockFloatInAir(blockInfoState)
-            || isDecoItem(blockInfoState.getBlock())
-            || DONT_TOUCH_PREDICATE.test(info, pos, handler);
+                 || isDecoItem(blockInfoState.getBlock())
+                 || DONT_TOUCH_PREDICATE.test(info, pos, handler);
     }
 
     /**
@@ -558,9 +578,9 @@ public abstract class AbstractEntityAIStructure<J extends AbstractJobStructure<?
 
         final BlockState state = handler.getWorld().getBlockState(pos);
         return state.getBlock() instanceof IBuilderUndestroyable
-            || state.getBlock() == Blocks.BEDROCK
-            || state.isAir()
-            || !state.getFluidState().isEmpty();
+                 || state.getBlock() == Blocks.BEDROCK
+                 || state.isAir()
+                 || !state.getFluidState().isEmpty();
     }
 
     /**
@@ -576,9 +596,9 @@ public abstract class AbstractEntityAIStructure<J extends AbstractJobStructure<?
         final BlockState infoBlockState = info.getBlockInfo().getState();
         final Block infoBlock = infoBlockState.getBlock();
         if (infoBlockState.isAir()
-            || infoBlock == com.ldtteam.structurize.blocks.ModBlocks.blockSolidSubstitution.get()
-            || infoBlock == com.ldtteam.structurize.blocks.ModBlocks.blockSubstitution.get()
-            || infoBlock == com.ldtteam.structurize.blocks.ModBlocks.blockFluidSubstitution.get())
+              || infoBlock == com.ldtteam.structurize.blocks.ModBlocks.blockSolidSubstitution.get()
+              || infoBlock == com.ldtteam.structurize.blocks.ModBlocks.blockSubstitution.get()
+              || infoBlock == com.ldtteam.structurize.blocks.ModBlocks.blockFluidSubstitution.get())
         {
             return true;
         }
@@ -624,6 +644,11 @@ public abstract class AbstractEntityAIStructure<J extends AbstractJobStructure<?
             return BUILDING_STEP;
         }
 
+        if (structurePlacer == null)
+        {
+            return IDLE;
+        }
+
         final BlockState worldState = world.getBlockState(blockToMine);
         if (worldState.getBlock() instanceof AirBlock || worldState.getBlock() == Blocks.WATER)
         {
@@ -635,20 +660,26 @@ public abstract class AbstractEntityAIStructure<J extends AbstractJobStructure<?
             return getState();
         }
 
-        if (!mineBlock(blockToMine, null))
+        if (workFrom == null)
+        {
+            return getState();
+        }
+
+        if (!mineBlock(blockToMine, workFrom))
         {
             worker.swing(InteractionHand.MAIN_HAND);
             return getState();
         }
+        worker.decreaseSaturationForContinuousAction();
         return BUILDING_STEP;
     }
 
     /**
-     * Loads the structure given the work order and position.
+     * Loads the structure given the name, rotation and position.
      *
-     * @param workOrder the work order containing structure information.
-     * @param position  the position to set the structure.
-     * @param removal   if this is a removal step.
+     * @param workOrder   the work order.
+     * @param position    the position to set it.
+     * @param removal     if removal step.
      */
     public void loadStructure(@NotNull final IBuilderWorkOrder workOrder, final BlockPos position, final boolean removal)
     {
@@ -658,13 +689,13 @@ public abstract class AbstractEntityAIStructure<J extends AbstractJobStructure<?
             {
                 handleSpecificCancelActions();
                 Log.getLogger()
-                    .warn("Couldn't find structure with name: " + workOrder.getStructurePath() + " in: " + workOrder.getStructurePack() + ". Aborting loading procedure");
+                  .warn("Couldn't find structure with name: " + workOrder.getStructurePath() + " in: " + workOrder.getStructurePack() + ". Aborting loading procedure");
                 this.loadingBlueprint = false;
                 return;
             }
 
             final BuildingStructureHandler<J, B> structure;
-            IBuilding colonyBuilding = worker.getCitizenColonyHandler().getColonyOrRegister().getBuildingManager().getBuilding(position);
+            IBuilding colonyBuilding = worker.getCitizenColonyHandler().getColonyOrRegister().getServerBuildingManager().getBuilding(position);
             final BlockEntity entity = world.getBlockEntity(position);
 
             if (removal)
@@ -675,7 +706,7 @@ public abstract class AbstractEntityAIStructure<J extends AbstractJobStructure<?
                 building.setTotalStages(2);
             }
             else if ((colonyBuilding != null && (colonyBuilding.getBuildingLevel() > 0 || colonyBuilding.hasParent())) ||
-                (entity instanceof TileEntityDecorationController && Utils.getBlueprintLevel(((TileEntityDecorationController) entity).getBlueprintPath()) != -1))
+                       (entity instanceof TileEntityDecorationController && Utils.getBlueprintLevel(((TileEntityDecorationController) entity).getBlueprintPath()) != -1))
             {
                 structure = new BuildingStructureHandler<>(world,
                     workOrder,
@@ -719,9 +750,9 @@ public abstract class AbstractEntityAIStructure<J extends AbstractJobStructure<?
      * @return true if need to request.
      */
     public static <J extends AbstractJobStructure<?, J>, B extends AbstractBuildingStructureBuilder> ItemCheckResult hasListOfResInInvOrRequest(
-        @NotNull final AbstractEntityAIStructure<J, B> placer,
-        final List<ItemStack> itemList,
-        final boolean force)
+      @NotNull final AbstractEntityAIStructure<J, B> placer,
+      final List<ItemStack> itemList,
+      final boolean force)
     {
         final Map<ItemStorage, Integer> requestedMap = new HashMap<>();
         for (final ItemStack stack : itemList)
@@ -743,14 +774,14 @@ public abstract class AbstractEntityAIStructure<J extends AbstractJobStructure<?
         for (final ItemStorage stack : requestedMap.keySet())
         {
             if (!InventoryUtils.hasItemInItemHandler(placer.getInventory(), stack1 -> ItemStackUtils.compareItemStacksIgnoreStackSize(stack.getItemStack(), stack1))
-                && !placer.building.hasResourceInBucket(stack.getItemStack()))
+                  && !placer.building.hasResourceInBucket(stack.getItemStack()))
             {
                 return RECALC;
             }
         }
         // TODO: Why predicate based search when we got our ItemStorages we look for already?
         final List<ItemStack> foundStacks = InventoryUtils.filterItemHandler(placer.getWorker().getInventoryCitizen(),
-            itemStack -> requestedMap.keySet().stream().anyMatch(storage -> ItemStackUtils.compareItemStacksIgnoreStackSize(storage.getItemStack(), itemStack)));
+          itemStack -> requestedMap.keySet().stream().anyMatch(storage -> ItemStackUtils.compareItemStacksIgnoreStackSize(storage.getItemStack(), itemStack)));
 
         final Map<ItemStorage, Integer> localMap = new HashMap<>();
         for (final ItemStack stack : foundStacks)
@@ -785,9 +816,9 @@ public abstract class AbstractEntityAIStructure<J extends AbstractJobStructure<?
         else
         {
             requestedMap.entrySet()
-                .removeIf(entry -> ItemStackUtils.isEmpty(entry.getKey().getItemStack()) || foundStacks.stream()
-                    .anyMatch(target -> ItemStackUtils.compareItemStacksIgnoreStackSize(target,
-                        entry.getKey().getItemStack())));
+              .removeIf(entry -> ItemStackUtils.isEmpty(entry.getKey().getItemStack()) || foundStacks.stream()
+                                                                                            .anyMatch(target -> ItemStackUtils.compareItemStacksIgnoreStackSize(target,
+                                                                                              entry.getKey().getItemStack())));
         }
 
         final ICitizenData citizenData = placer.getWorker().getCitizenData();
@@ -800,10 +831,8 @@ public abstract class AbstractEntityAIStructure<J extends AbstractJobStructure<?
                 return FAIL;
             }
 
-            final List<IRequest<?>> requests =
-                placer.building.getOpenRequestsOfCitizenOrBuilding(citizenId, e -> e.getRequest() instanceof IDeliverable deliverable && deliverable.matches(stack));
-            final List<IRequest<?>> completedRequests =
-                placer.building.getCompletedRequestsOfCitizenOrBuilding(citizenData, e -> e.getRequest() instanceof IDeliverable deliverable && deliverable.matches(stack));
+            final List<IRequest<?>> requests = placer.building.getOpenRequestsOfCitizenOrBuilding(citizenId, e -> e.getRequest() instanceof IDeliverable deliverable && deliverable.matches(stack));
+            final List<IRequest<?>> completedRequests = placer.building.getCompletedRequestsOfCitizenOrBuilding(citizenData, e -> e.getRequest() instanceof IDeliverable deliverable && deliverable.matches(stack));
 
             if (requests.isEmpty() && completedRequests.isEmpty())
             {
@@ -907,9 +936,19 @@ public abstract class AbstractEntityAIStructure<J extends AbstractJobStructure<?
     public static boolean isBlockFree(@Nullable final BlockState block)
     {
         return block == null
-            || BlockUtils.isWater(block)
-            || block.is(BlockTags.LEAVES)
-            || block.getBlock() == ModBlocks.blockDecorationPlaceholder;
+                 || BlockUtils.isWater(block)
+                 || block.is(BlockTags.LEAVES)
+                 || block.getBlock() == ModBlocks.blockDecorationPlaceholder;
+    }
+
+    /**
+     * Let childs overwrite this if necessary.
+     *
+     * @return true if so.
+     */
+    protected boolean isAlreadyCleared()
+    {
+        return false;
     }
 
     /**
@@ -956,16 +995,6 @@ public abstract class AbstractEntityAIStructure<J extends AbstractJobStructure<?
             return false;
         }
         return true;
-    }
-
-    /**
-     * Check if the structure has already been cleared.
-     *
-     * @return true if so.
-     */
-    protected boolean isAlreadyCleared()
-    {
-        return false;
     }
 
     /**
@@ -1053,9 +1082,10 @@ public abstract class AbstractEntityAIStructure<J extends AbstractJobStructure<?
      * Searches a handy block to substitute a non-solid space which should be guaranteed solid.
      *
      * @param ignored the location the block should be at.
+     * @param virtualBlocks blueprint blocks, fnc may return null if virtual block is not available (then use level instead for getting surrounding block states), pos argument is using world coords
      * @return the Block.
      */
-    public BlockState getSolidSubstitution(final BlockPos ignored)
+    public BlockState getSolidSubstitution(final BlockPos ignored, final Function<BlockPos, @Nullable BlockState> virtualBlocks)
     {
         return building.getSetting(FILL_BLOCK).getValue().getBlock().defaultBlockState();
     }

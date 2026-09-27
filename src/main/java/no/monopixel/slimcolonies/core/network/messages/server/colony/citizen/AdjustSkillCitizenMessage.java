@@ -1,15 +1,17 @@
 package no.monopixel.slimcolonies.core.network.messages.server.colony.citizen;
 
+import com.ldtteam.common.network.PlayMessageType;
 import no.monopixel.slimcolonies.api.colony.ICitizenData;
 import no.monopixel.slimcolonies.api.colony.ICitizenDataView;
 import no.monopixel.slimcolonies.api.colony.IColony;
 import no.monopixel.slimcolonies.api.entity.citizen.AbstractEntityCitizen;
 import no.monopixel.slimcolonies.api.entity.citizen.Skill;
 import no.monopixel.slimcolonies.api.util.Log;
+import no.monopixel.slimcolonies.api.util.constant.Constants;
 import no.monopixel.slimcolonies.core.network.messages.server.AbstractColonyServerMessage;
-import net.minecraft.world.entity.player.Player;
-import net.minecraft.network.FriendlyByteBuf;
-import net.minecraftforge.network.NetworkEvent;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.server.level.ServerPlayer;
+import net.neoforged.neoforge.network.handling.IPayloadContext;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Optional;
@@ -19,28 +21,22 @@ import java.util.Optional;
  */
 public class AdjustSkillCitizenMessage extends AbstractColonyServerMessage
 {
+    public static final PlayMessageType<?> TYPE = PlayMessageType.forServer(Constants.MOD_ID, "adjust_skill_citizen", AdjustSkillCitizenMessage::new);
+
     /**
      * The id of the citizen.
      */
-    private int citizenId;
+    private final int citizenId;
 
     /**
      * The skill quantity.
      */
-    private int quantity;
+    private final int quantity;
 
     /**
      * The skill to alter.
      */
-    private Skill skill;
-
-    /**
-     * Empty constructor used when registering the
-     */
-    public AdjustSkillCitizenMessage()
-    {
-        super();
-    }
+    private final Skill skill;
 
     /**
      * Creates a skill alteration message.
@@ -52,30 +48,31 @@ public class AdjustSkillCitizenMessage extends AbstractColonyServerMessage
      */
     public AdjustSkillCitizenMessage(final IColony colony, @NotNull final ICitizenDataView citizenDataView, final int quantity, final Skill skill)
     {
-        super(colony);
+        super(TYPE, colony);
         this.citizenId = citizenDataView.getId();
         this.quantity = quantity;
         this.skill = skill;
     }
 
-    @Override
-    public void fromBytesOverride(@NotNull final FriendlyByteBuf buf)
+    protected AdjustSkillCitizenMessage(final RegistryFriendlyByteBuf buf, final PlayMessageType<?> type)
     {
+        super(buf, type);
         citizenId = buf.readInt();
         quantity = buf.readInt();
         skill = Skill.values()[buf.readInt()];
     }
 
     @Override
-    public void toBytesOverride(@NotNull final FriendlyByteBuf buf)
+    protected void toBytes(@NotNull final RegistryFriendlyByteBuf buf)
     {
+        super.toBytes(buf);
         buf.writeInt(citizenId);
         buf.writeInt(quantity);
         buf.writeInt(skill.ordinal());
     }
 
     @Override
-    protected void onExecute(final NetworkEvent.Context ctxIn, final boolean isLogicalServer, final IColony colony)
+    protected void onExecute(final IPayloadContext ctxIn, final ServerPlayer player, final IColony colony)
     {
         final ICitizenData citizenData = colony.getCitizenManager().getCivilian(citizenId);
         if (citizenData == null)
@@ -88,12 +85,6 @@ public class AdjustSkillCitizenMessage extends AbstractColonyServerMessage
         if (!optionalEntityCitizen.isPresent())
         {
             Log.getLogger().warn("AdjustSkillCitizenMessage entity citizen is null");
-            return;
-        }
-
-        final Player player = ctxIn.getSender();
-        if (player == null)
-        {
             return;
         }
 

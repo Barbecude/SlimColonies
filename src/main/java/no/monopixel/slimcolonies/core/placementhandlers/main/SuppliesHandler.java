@@ -1,11 +1,18 @@
 package no.monopixel.slimcolonies.core.placementhandlers.main;
 
+import com.ldtteam.structurize.api.RotationMirror;
 import com.ldtteam.structurize.blueprints.v1.Blueprint;
 import com.ldtteam.structurize.placement.StructurePlacementUtils;
 import com.ldtteam.structurize.storage.ISurvivalBlueprintHandler;
 import com.ldtteam.structurize.storage.StructurePacks;
-import com.ldtteam.structurize.util.PlacementSettings;
-import com.ldtteam.structurize.util.RotationMirror;
+import no.monopixel.slimcolonies.api.advancements.AdvancementTriggers;
+import no.monopixel.slimcolonies.api.items.ModItems;
+import no.monopixel.slimcolonies.api.items.component.SupplyData;
+import no.monopixel.slimcolonies.api.util.InventoryUtils;
+import no.monopixel.slimcolonies.api.util.ItemStackUtils;
+import no.monopixel.slimcolonies.api.util.MessageUtils;
+import no.monopixel.slimcolonies.api.util.SoundUtils;
+import no.monopixel.slimcolonies.core.MineColonies;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
@@ -14,25 +21,15 @@ import net.minecraft.stats.Stats;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.level.block.Mirror;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.api.distmarker.OnlyIn;
-import net.minecraftforge.items.wrapper.InvWrapper;
-import no.monopixel.slimcolonies.api.advancements.AdvancementTriggers;
-import no.monopixel.slimcolonies.api.items.ModItems;
-import no.monopixel.slimcolonies.api.util.InventoryUtils;
-import no.monopixel.slimcolonies.api.util.ItemStackUtils;
-import no.monopixel.slimcolonies.api.util.MessageUtils;
-import no.monopixel.slimcolonies.api.util.SoundUtils;
-import no.monopixel.slimcolonies.core.SlimColonies;
-
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.api.distmarker.OnlyIn;
+import net.neoforged.neoforge.items.wrapper.InvWrapper;
 import java.util.function.Predicate;
 
 import static no.monopixel.slimcolonies.api.util.constant.Constants.*;
 import static no.monopixel.slimcolonies.api.util.constant.TranslationConstants.*;
 import static no.monopixel.slimcolonies.api.util.constant.translation.ProgressTranslationConstants.PROGRESS_SUPPLY_CHEST_PLACED;
 
-@SuppressWarnings("removal")
 public class SuppliesHandler implements ISurvivalBlueprintHandler
 {
     public static final String ID = MOD_ID + ":supplies";
@@ -47,26 +44,26 @@ public class SuppliesHandler implements ISurvivalBlueprintHandler
     public Component getDisplayName()
     {
         // this should never actually be visible
-        return Component.translatable("no.monopixel.slimcolonies.coremod.supplies.placement");
+        return Component.translatableEscape("no.monopixel.slimcolonies.coremod.supplies.placement");
     }
 
     @Override
     @OnlyIn(Dist.CLIENT)
-    public boolean canHandle(final Blueprint blueprint, final ClientLevel clientLevel, final Player player, final BlockPos blockPos, final PlacementSettings placementSettings)
+    public boolean canHandle(final Blueprint blueprint, final ClientLevel clientLevel, final Player player, final BlockPos blockPos, final RotationMirror rotMir)
     {
         return false;
     }
 
     @Override
     public void handle(
-        final Blueprint blueprint,
-        final String packName,
-        final String blueprintPath,
-        final boolean clientPack,
-        final Level world,
-        final Player playerArg,
-        final BlockPos blockPos,
-        final PlacementSettings placementSettings)
+            final Blueprint blueprint,
+            final String packName,
+            final String blueprintPath,
+            final boolean clientPack,
+            final Level world,
+            final Player playerArg,
+            final BlockPos blockPos,
+            final RotationMirror rotMir)
     {
         if (clientPack || !StructurePacks.hasPack(packName))
         {
@@ -77,10 +74,10 @@ public class SuppliesHandler implements ISurvivalBlueprintHandler
 
         final ServerPlayer player = (ServerPlayer) playerArg;
 
-        blueprint.setRotationMirror(RotationMirror.of(placementSettings.rotation, placementSettings.mirror == Mirror.NONE ? Mirror.NONE : Mirror.FRONT_BACK), world);
+        blueprint.setRotationMirror(rotMir, world);
 
-        if (player.getStats().getValue(Stats.ITEM_USED.get(ModItems.supplyChest)) > 0 && !SlimColonies.getConfig().getServer().allowInfiniteSupplyChests.get()
-            && !isFreeInstantPlacementMH(player) && !player.isCreative())
+        if (player.getStats().getValue(Stats.ITEM_USED.get(ModItems.supplyChest)) > 0 && !MineColonies.getConfig().getServer().allowInfiniteSupplyChests.get()
+                && !isFreeInstantPlacementMH(player) && !player.isCreative())
         {
             MessageUtils.format(WARNING_SUPPLY_CHEST_ALREADY_PLACED).sendTo(player);
             SoundUtils.playErrorSound(player, player.blockPosition());
@@ -99,9 +96,7 @@ public class SuppliesHandler implements ISurvivalBlueprintHandler
 
         if (isFreeInstantPlacementMH(player))
         {
-            searchPredicate =
-                searchPredicate.and(
-                    stack -> stack.hasTag() && stack.getTag().get(PLACEMENT_NBT) != null && stack.getTag().getString(PLACEMENT_NBT).equals(INSTANT_PLACEMENT));
+            searchPredicate = searchPredicate.and(stack -> SupplyData.readFromItemStack(stack).instantPlacement());
         }
 
         final int slot = InventoryUtils.findFirstSlotInItemHandlerNotEmptyWith(new InvWrapper(player.getInventory()), searchPredicate);
@@ -112,13 +107,12 @@ public class SuppliesHandler implements ISurvivalBlueprintHandler
             {
                 MessageUtils.format(PROGRESS_SUPPLY_CHEST_PLACED).sendTo(player);
                 player.awardStat(Stats.ITEM_USED.get(ModItems.supplyChest), 1);
-                AdvancementTriggers.PLACE_SUPPLY.trigger(player);
+                AdvancementTriggers.PLACE_SUPPLY.get().trigger(player);
             }
 
             SoundUtils.playSuccessSound(player, player.blockPosition());
 
-            StructurePlacementUtils.loadAndPlaceStructureWithRotation(player.level, blueprint,
-                blockPos, placementSettings.getRotation(), placementSettings.getMirror() != Mirror.NONE ? Mirror.FRONT_BACK : Mirror.NONE, true, player);
+            StructurePlacementUtils.loadAndPlaceStructureWithRotation(player.level(), blueprint, blockPos, rotMir, true, player);
         }
         else
         {
@@ -135,6 +129,6 @@ public class SuppliesHandler implements ISurvivalBlueprintHandler
     private boolean isFreeInstantPlacementMH(ServerPlayer playerEntity)
     {
         final ItemStack mhItem = playerEntity.getMainHandItem();
-        return !ItemStackUtils.isEmpty(mhItem) && mhItem.getTag() != null && mhItem.getTag().getString(PLACEMENT_NBT).equals(INSTANT_PLACEMENT);
+        return !ItemStackUtils.isEmpty(mhItem) && SupplyData.readFromItemStack(mhItem).instantPlacement();
     }
 }

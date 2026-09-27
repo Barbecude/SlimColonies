@@ -4,6 +4,7 @@ import no.monopixel.slimcolonies.api.crafting.ItemStorage;
 import no.monopixel.slimcolonies.api.util.MessageUtils;
 import no.monopixel.slimcolonies.core.colony.buildings.workerbuildings.BuildingFlorist;
 import net.minecraft.client.Minecraft;
+import net.minecraft.network.chat.Component;
 
 import static no.monopixel.slimcolonies.api.util.constant.BuildingConstants.BUILDING_FLOWER_LIST;
 import static no.monopixel.slimcolonies.api.util.constant.Constants.MAX_BUILDING_LEVEL;
@@ -24,7 +25,10 @@ public class FloristFlowerListModuleView extends ItemListModuleView
      */
     public FloristFlowerListModuleView()
     {
-        super(BUILDING_FLOWER_LIST, FLORIST_FLOWER_DESC, true, (buildingView) -> BuildingFlorist.getPlantablesForBuildingLevel(buildingView.getBuildingLevel()));
+        super(BUILDING_FLOWER_LIST,
+            Component.translatable(FLORIST_FLOWER_DESC),
+            true,
+            (buildingView) -> BuildingFlorist.getPlantablesForBuildingLevel(buildingView.getBuildingLevel()));
     }
 
     @Override

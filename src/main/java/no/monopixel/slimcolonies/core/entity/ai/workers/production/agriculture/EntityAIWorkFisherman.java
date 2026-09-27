@@ -1,23 +1,6 @@
 package no.monopixel.slimcolonies.core.entity.ai.workers.production.agriculture;
 
 import com.ldtteam.structurize.util.BlockUtils;
-import net.minecraft.core.BlockPos;
-import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
-import net.minecraft.server.level.ServerLevel;
-import net.minecraft.sounds.SoundEvents;
-import net.minecraft.sounds.SoundSource;
-import net.minecraft.tags.ItemTags;
-import net.minecraft.world.InteractionHand;
-import net.minecraft.world.entity.ExperienceOrb;
-import net.minecraft.world.entity.item.ItemEntity;
-import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.enchantment.EnchantmentHelper;
-import net.minecraft.world.level.block.Blocks;
-import net.minecraft.world.level.storage.loot.LootParams;
-import net.minecraft.world.level.storage.loot.LootTable;
-import net.minecraft.world.level.storage.loot.parameters.LootContextParamSets;
-import net.minecraft.world.level.storage.loot.parameters.LootContextParams;
 import no.monopixel.slimcolonies.api.colony.interactionhandling.ChatPriority;
 import no.monopixel.slimcolonies.api.entity.ModEntities;
 import no.monopixel.slimcolonies.api.entity.ai.statemachine.AITarget;
@@ -41,6 +24,22 @@ import no.monopixel.slimcolonies.core.entity.pathfinding.pathjobs.PathJobFindWat
 import no.monopixel.slimcolonies.core.entity.pathfinding.pathresults.WaterPathResult;
 import no.monopixel.slimcolonies.core.util.WorkerUtil;
 import no.monopixel.slimcolonies.core.util.citizenutils.CitizenItemUtils;
+import net.minecraft.core.BlockPos;
+import net.minecraft.network.chat.Component;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
+import net.minecraft.tags.ItemTags;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.entity.ExperienceOrb;
+import net.minecraft.world.entity.item.ItemEntity;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.enchantment.EnchantmentHelper;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.storage.loot.LootParams;
+import net.minecraft.world.level.storage.loot.LootTable;
+import net.minecraft.world.level.storage.loot.parameters.LootContextParamSets;
+import net.minecraft.world.level.storage.loot.parameters.LootContextParams;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -48,8 +47,11 @@ import java.util.List;
 
 import static no.monopixel.slimcolonies.api.entity.ai.statemachine.states.AIWorkerState.*;
 import static no.monopixel.slimcolonies.api.util.constant.Constants.TICKS_SECOND;
+import static no.monopixel.slimcolonies.api.util.constant.EquipmentLevelConstants.TOOL_LEVEL_WOOD_OR_GOLD;
+import static no.monopixel.slimcolonies.api.util.constant.StatisticsConstants.FISH_CAUGHT;
 import static no.monopixel.slimcolonies.api.util.constant.TranslationConstants.SUBOPTIMAL_POND;
 import static no.monopixel.slimcolonies.api.util.constant.TranslationConstants.WATER_TOO_FAR;
+import static no.monopixel.slimcolonies.core.colony.buildings.modules.BuildingModules.STATS_MODULE;
 import static no.monopixel.slimcolonies.core.entity.other.NewBobberEntity.XP_PER_CATCH;
 
 /**
@@ -163,13 +165,13 @@ public class EntityAIWorkFisherman extends AbstractEntityAISkill<JobFisherman, B
     {
         super(job);
         super.registerTargets(
-            new AITarget(IDLE, START_WORKING, 1),
-            new AITarget(START_WORKING, this::startWorkingAtOwnBuilding, TICKS_SECOND),
-            new AITarget(PREPARING, this::prepareForFishing, TICKS_SECOND),
-            new AITarget(FISHERMAN_CHECK_WATER, this::tryDifferentAngles, 1),
-            new AITarget(FISHERMAN_SEARCHING_WATER, this::findWater, TICKS_SECOND),
-            new AITarget(FISHERMAN_WALKING_TO_WATER, this::getToWater, TICKS_SECOND),
-            new AITarget(FISHERMAN_START_FISHING, this::doFishing, TICKS_SECOND)
+          new AITarget(IDLE, START_WORKING, 1),
+          new AITarget(START_WORKING, this::startWorkingAtOwnBuilding, TICKS_SECOND),
+          new AITarget(PREPARING, this::prepareForFishing, TICKS_SECOND),
+          new AITarget(FISHERMAN_CHECK_WATER, this::tryDifferentAngles, 1),
+          new AITarget(FISHERMAN_SEARCHING_WATER, this::findWater, TICKS_SECOND),
+          new AITarget(FISHERMAN_WALKING_TO_WATER, this::getToWater, TICKS_SECOND),
+          new AITarget(FISHERMAN_START_FISHING, this::doFishing, TICKS_SECOND)
         );
         worker.setCanPickUpLoot(true);
     }
@@ -262,9 +264,9 @@ public class EntityAIWorkFisherman extends AbstractEntityAISkill<JobFisherman, B
      */
     private boolean hasRodButNotEquipped()
     {
-        return InventoryUtils.hasItemHandlerEquipmentWithLevel(getInventory(), ModEquipmentTypes.fishing_rod.get(), 0, Integer.MAX_VALUE)
-            && worker.getMainHandItem() != null
-            && !ModEquipmentTypes.fishing_rod.get().checkIsEquipment(worker.getMainHandItem());
+        return InventoryUtils.hasItemHandlerEquipmentWithLevel(getInventory(), ModEquipmentTypes.fishing_rod.get(), TOOL_LEVEL_WOOD_OR_GOLD, building.getMaxEquipmentLevel())
+                 && worker.getMainHandItem() != null
+                 && !ModEquipmentTypes.fishing_rod.get().checkIsEquipment(worker.getMainHandItem());
     }
 
     /**
@@ -282,14 +284,14 @@ public class EntityAIWorkFisherman extends AbstractEntityAISkill<JobFisherman, B
         if (!walkToWater())
         {
             return getState();
-        }
-        else
+        } 
+        else 
         {
             /*
              * Upon arrival at the pond the fisherman checks if the pond is suboptimal, complains about it if so,
              * and looks for different water.
              */
-            if (lastPathResult != null && lastPathResult.pondState == PondState.SUBOPTIMAL)
+            if (lastPathResult != null && lastPathResult.pondState == PondState.SUBOPTIMAL) 
             {
                 worker.getCitizenData().triggerInteraction(new PosBasedInteraction(
                     Component.translatable(SUBOPTIMAL_POND, lastPathResult.pond.getX(), lastPathResult.pond.getY(), lastPathResult.pond.getZ()),
@@ -387,11 +389,11 @@ public class EntityAIWorkFisherman extends AbstractEntityAISkill<JobFisherman, B
     {
         @NotNull final BlockPos start = PathfindingUtils.prepareStart(worker);
         final PathJobFindWater job = new PathJobFindWater(CompatibilityUtils.getWorldFromEntity(worker),
-            start,
-            worker.getCitizenColonyHandler().getWorkBuilding().getPosition(),
-            range,
-            ponds,
-            worker);
+          start,
+          worker.getCitizenColonyHandler().getWorkBuilding().getPosition(),
+          range,
+          ponds,
+          worker);
         job.setPathingOptions(worker.getNavigation().getPathingOptions());
         final WaterPathResult waterPathresult = job.getResult();
         waterPathresult.startJob(Pathfinding.getExecutor());
@@ -408,11 +410,11 @@ public class EntityAIWorkFisherman extends AbstractEntityAISkill<JobFisherman, B
         if (job.getPonds().isEmpty())
         {
             if ((pathResult != null && pathResult.failedToReachDestination() && lastPathResult == null) || (lastPathResult != null && lastPathResult.isEmpty
-                && !lastPathResult.isCancelled()))
+                                                                                                              && !lastPathResult.isCancelled()))
             {
                 if (worker.getCitizenData() != null)
                 {
-                    worker.getCitizenData().triggerInteraction(new StandardInteraction(Component.translatable(WATER_TOO_FAR), ChatPriority.IMPORTANT));
+                    worker.getCitizenData().triggerInteraction(new StandardInteraction(Component.translatableEscape(WATER_TOO_FAR), ChatPriority.IMPORTANT));
                 }
             }
 
@@ -549,15 +551,16 @@ public class EntityAIWorkFisherman extends AbstractEntityAISkill<JobFisherman, B
         {
             WorkerUtil.faceBlock(job.getWater().getA(), worker);
             world.playSound(null,
-                this.worker.blockPosition(),
-                SoundEvents.FISHING_BOBBER_THROW,
-                SoundSource.NEUTRAL,
-                0.5F,
-                (float) (0.4D / (this.world.random.nextFloat() * 0.4D + 0.8D)));
-            this.entityFishHook = (NewBobberEntity) ModEntities.FISHHOOK.create(world);
-            this.entityFishHook.setAngler((EntityCitizen) worker,
-                EnchantmentHelper.getFishingLuckBonus(worker.getMainHandItem()),
-                (int) (5 + (getPrimarySkillLevel() / LURE_SPEED_DIVIDER) + EnchantmentHelper.getFishingSpeedBonus(worker.getMainHandItem())));
+              this.worker.blockPosition(),
+              SoundEvents.FISHING_BOBBER_THROW,
+              SoundSource.NEUTRAL,
+              0.5F,
+              (float) (0.4D / (this.world.random.nextFloat() * 0.4D + 0.8D)));
+
+            this.entityFishHook = new NewBobberEntity(ModEntities.FISHHOOK, worker, worker.level(),
+              EnchantmentHelper.getFishingLuckBonus((ServerLevel) worker.level(), worker.getMainHandItem(), worker),
+              (int) (5 + (getPrimarySkillLevel() / LURE_SPEED_DIVIDER) + EnchantmentHelper.getFishingTimeReduction((ServerLevel) worker.level(), worker.getMainHandItem(), worker)));
+
             world.addFreshEntity(this.entityFishHook);
         }
 
@@ -571,8 +574,8 @@ public class EntityAIWorkFisherman extends AbstractEntityAISkill<JobFisherman, B
      */
     private boolean isFishHookStuck()
     {
-        return (!entityFishHook.isInWater() && (entityFishHook.onGround() || entityFishHook.shouldStopFishing())) || !entityFishHook.isAlive()
-            || entityFishHook.caughtEntity != null;
+        return (!entityFishHook.isInWater() && (entityFishHook.onGround() || entityFishHook.shouldStopFishing(worker))) || !entityFishHook.isAlive()
+                 || entityFishHook.getHookedEntity() != null;
     }
 
     /**
@@ -613,9 +616,9 @@ public class EntityAIWorkFisherman extends AbstractEntityAISkill<JobFisherman, B
 
         //Check if Rod is held item if not put it as held item
         if (worker.getMainHandItem() == null || !ItemStackUtils.compareItemStacksIgnoreStackSize(worker.getMainHandItem(),
-            worker.getItemHandlerCitizen().getStackInSlot(rodSlot),
-            false,
-            true))
+          worker.getItemHandlerCitizen().getStackInSlot(rodSlot),
+          false,
+          true))
         {
             equipRod();
             return getState();
@@ -639,7 +642,7 @@ public class EntityAIWorkFisherman extends AbstractEntityAISkill<JobFisherman, B
     private int getRodSlot()
     {
         return InventoryUtils.getFirstSlotOfItemHandlerContainingEquipment(getInventory(), ModEquipmentTypes.fishing_rod.get(),
-            0, Integer.MAX_VALUE);
+          TOOL_LEVEL_WOOD_OR_GOLD, building.getMaxEquipmentLevel());
     }
 
     /**
@@ -677,7 +680,7 @@ public class EntityAIWorkFisherman extends AbstractEntityAISkill<JobFisherman, B
         if (entityFishHook != null)
         {
             worker.swing(worker.getUsedItemHand());
-            final int i = entityFishHook.getDamage();
+            final int i = entityFishHook.retrieve(worker.getMainHandItem());
             generateBonusLoot();
             CitizenItemUtils.damageItemInHand(worker, InteractionHand.MAIN_HAND, i);
             entityFishHook = null;
@@ -690,14 +693,14 @@ public class EntityAIWorkFisherman extends AbstractEntityAISkill<JobFisherman, B
     private void generateBonusLoot()
     {
         final LootParams context = (new LootParams.Builder((ServerLevel) this.world))
-            .withParameter(LootContextParams.ORIGIN, entityFishHook.position())
-            .withParameter(LootContextParams.THIS_ENTITY, entityFishHook)
-            .withParameter(LootContextParams.TOOL, worker.getMainHandItem())
-            .withParameter(LootContextParams.KILLER_ENTITY, worker)
-            .withLuck((float) getPrimarySkillLevel())
-            .create(LootContextParamSets.FISHING);
+                                     .withParameter(LootContextParams.ORIGIN, entityFishHook.position())
+                                     .withParameter(LootContextParams.THIS_ENTITY, entityFishHook)
+                                     .withParameter(LootContextParams.TOOL, worker.getMainHandItem())
+                                     .withParameter(LootContextParams.ATTACKING_ENTITY, worker)
+                                     .withLuck((float) getPrimarySkillLevel())
+                                     .create(LootContextParamSets.FISHING);
         final LootTable bonusLoot =
-            this.world.getServer().getLootData().getLootTable(ModLootTables.FISHERMAN_BONUS.getOrDefault(this.building.getBuildingLevel(), new ResourceLocation("")));
+          this.world.getServer().reloadableRegistries().getLootTable(ModLootTables.FISHERMAN_BONUS.get(this.building.getBuildingLevel()));
         final List<ItemStack> loot = bonusLoot.getRandomItems(context);
 
         for (final ItemStack itemstack : loot)
@@ -709,11 +712,11 @@ public class EntityAIWorkFisherman extends AbstractEntityAISkill<JobFisherman, B
             itementity.noPhysics = true;
             itementity.setDeltaMovement(d0 * 0.1D, d1 * 0.1D + Math.sqrt(Math.sqrt(d0 * d0 + d1 * d1 + d2 * d2)) * 0.08D, d2 * 0.1D);
             this.world.addFreshEntity(itementity);
-            worker.level.addFreshEntity(new ExperienceOrb(worker.level,
-                worker.getX(),
-                worker.getY() + 0.5D,
-                worker.getZ() + 0.5D,
-                XP_PER_CATCH));
+            worker.level().addFreshEntity(new ExperienceOrb(worker.level(),
+              worker.getX(),
+              worker.getY() + 0.5D,
+              worker.getZ() + 0.5D,
+              XP_PER_CATCH));
         }
     }
 

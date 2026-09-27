@@ -1,11 +1,14 @@
 package no.monopixel.slimcolonies.core.network.messages.server.colony.citizen;
 
+import com.ldtteam.common.network.PlayMessageType;
 import no.monopixel.slimcolonies.api.colony.ICitizenData;
 import no.monopixel.slimcolonies.api.colony.IColony;
+import no.monopixel.slimcolonies.api.util.constant.Constants;
 import no.monopixel.slimcolonies.core.colony.buildings.views.AbstractBuildingView;
 import no.monopixel.slimcolonies.core.network.messages.server.AbstractColonyServerMessage;
-import net.minecraft.network.FriendlyByteBuf;
-import net.minecraftforge.network.NetworkEvent;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.server.level.ServerPlayer;
+import net.neoforged.neoforge.network.handling.IPayloadContext;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -13,18 +16,12 @@ import org.jetbrains.annotations.NotNull;
  */
 public class PauseCitizenMessage extends AbstractColonyServerMessage
 {
+    public static final PlayMessageType<?> TYPE = PlayMessageType.forServer(Constants.MOD_ID, "pause_citizen", PauseCitizenMessage::new);
+
     /**
      * The citizen to pause.
      */
-    private int citizenID;
-
-    /**
-     * Empty public constructor.
-     */
-    public PauseCitizenMessage()
-    {
-        super();
-    }
+    private final int citizenID;
 
     /**
      * Creates object for the player to switch pause state of a citizen.
@@ -34,7 +31,7 @@ public class PauseCitizenMessage extends AbstractColonyServerMessage
      */
     public PauseCitizenMessage(@NotNull final AbstractBuildingView building, final int citizenID)
     {
-        super(building.getColony());
+        super(TYPE, building.getColony());
         this.citizenID = citizenID;
     }
 
@@ -43,9 +40,9 @@ public class PauseCitizenMessage extends AbstractColonyServerMessage
      *
      * @param buf the used byteBuffer.
      */
-    @Override
-    public void fromBytesOverride(@NotNull final FriendlyByteBuf buf)
+    protected PauseCitizenMessage(final RegistryFriendlyByteBuf buf, final PlayMessageType<?> type)
     {
+        super(buf, type);
 
         citizenID = buf.readInt();
     }
@@ -56,14 +53,15 @@ public class PauseCitizenMessage extends AbstractColonyServerMessage
      * @param buf the used byteBuffer.
      */
     @Override
-    public void toBytesOverride(@NotNull final FriendlyByteBuf buf)
+    protected void toBytes(@NotNull final RegistryFriendlyByteBuf buf)
     {
+        super.toBytes(buf);
 
         buf.writeInt(citizenID);
     }
 
     @Override
-    protected void onExecute(final NetworkEvent.Context ctxIn, final boolean isLogicalServer, final IColony colony)
+    protected void onExecute(final IPayloadContext ctxIn, final ServerPlayer player, final IColony colony)
     {
         final ICitizenData citizen = colony.getCitizenManager().getCivilian(citizenID);
         citizen.setPaused(!citizen.isPaused());

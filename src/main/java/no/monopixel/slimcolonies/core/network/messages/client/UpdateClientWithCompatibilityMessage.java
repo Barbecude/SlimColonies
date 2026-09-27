@@ -1,77 +1,63 @@
 package no.monopixel.slimcolonies.core.network.messages.client;
 
+import com.ldtteam.common.network.AbstractClientPlayMessage;
+import com.ldtteam.common.network.PlayMessageType;
+import no.monopixel.slimcolonies.api.IMinecoloniesAPI;
+import no.monopixel.slimcolonies.api.util.Log;
+import no.monopixel.slimcolonies.api.util.constant.Constants;
 import io.netty.buffer.Unpooled;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
+import net.minecraft.core.RegistryAccess;
 import net.minecraft.network.FriendlyByteBuf;
-import net.minecraftforge.fml.LogicalSide;
-import net.minecraftforge.network.NetworkEvent;
-import no.monopixel.slimcolonies.api.ISlimColoniesAPI;
-import no.monopixel.slimcolonies.api.network.IMessage;
-import no.monopixel.slimcolonies.api.util.Log;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.world.entity.player.Player;
+import net.neoforged.neoforge.network.handling.IPayloadContext;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 /**
  * Message to update the recipes on the client side.
  */
-public class UpdateClientWithCompatibilityMessage implements IMessage
+public class UpdateClientWithCompatibilityMessage extends AbstractClientPlayMessage
 {
-    private FriendlyByteBuf buffer;
+    public static final PlayMessageType<?> TYPE = PlayMessageType.forClient(Constants.MOD_ID, "update_client_with_compatibility", UpdateClientWithCompatibilityMessage::new, true, false);
 
-    /**
-     * Empty public constructor.
-     */
-    public UpdateClientWithCompatibilityMessage()
-    {
-        super();
-    }
+    private final RegistryFriendlyByteBuf buffer;
 
     /**
      * Message creation.
-     *
-     * @param dummy just pass true to initialize the message for sending.
      */
-    public UpdateClientWithCompatibilityMessage(final boolean dummy)
+    public UpdateClientWithCompatibilityMessage(@NotNull RegistryAccess provider)
     {
-        super();
+        super(TYPE);
+        this.buffer = new RegistryFriendlyByteBuf(new FriendlyByteBuf(Unpooled.buffer()), provider);
+        IMinecoloniesAPI.getInstance().getColonyManager().getCompatibilityManager().serialize(this.buffer);
+    }
 
-        this.buffer = new FriendlyByteBuf(Unpooled.buffer());
-        ISlimColoniesAPI.getInstance().getColonyManager().getCompatibilityManager().serialize(this.buffer);
+    protected UpdateClientWithCompatibilityMessage(final RegistryFriendlyByteBuf buf, final PlayMessageType<?> type)
+    {
+        super(buf, type);
+        this.buffer = new RegistryFriendlyByteBuf(new FriendlyByteBuf(Unpooled.wrappedBuffer(buf.readByteArray())), buf.registryAccess());
     }
 
     @Override
-    public void fromBytes(@NotNull final FriendlyByteBuf buf)
+    protected void toBytes(@NotNull final RegistryFriendlyByteBuf buf)
     {
-        this.buffer = new FriendlyByteBuf(buf.retain());
+        buf.writeByteArray(this.buffer.array());
+        this.buffer.resetWriterIndex();
     }
 
     @Override
-    public void toBytes(@NotNull final FriendlyByteBuf buf)
-    {
-        this.buffer.resetReaderIndex();
-        buf.writeBytes(this.buffer);
-    }
-
-    @Nullable
-    @Override
-    public LogicalSide getExecutionSide()
-    {
-        return LogicalSide.CLIENT;
-    }
-
-    @Override
-    public void onExecute(final NetworkEvent.Context ctxIn, final boolean isLogicalServer)
+    protected void onExecute(final IPayloadContext ctxIn, final Player player)
     {
         final ClientLevel world = Minecraft.getInstance().level;
         try
         {
-            ISlimColoniesAPI.getInstance().getColonyManager().getCompatibilityManager().deserialize(this.buffer, world);
+            IMinecoloniesAPI.getInstance().getColonyManager().getCompatibilityManager().deserialize(this.buffer, world);
         }
         catch (Exception e)
         {
             Log.getLogger().error("Failed to load compatibility manager", e);
         }
-        this.buffer.release();
     }
 }

@@ -15,6 +15,7 @@ import no.monopixel.slimcolonies.api.util.ItemStackUtils;
 import no.monopixel.slimcolonies.core.colony.buildings.AbstractBuildingGuards;
 import no.monopixel.slimcolonies.core.util.AttributeModifierUtils;
 import no.monopixel.slimcolonies.core.util.BuildingUtils;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.EquipmentSlot;
 import org.jetbrains.annotations.NotNull;
 
@@ -36,9 +37,19 @@ public class GuardBuildingModule extends WorkAtHomeBuildingModule implements IBu
 
     public GuardBuildingModule(
       final GuardType type,
+      final boolean canWorkingDuringRain,
       final Function<IBuilding, Integer> sizeLimit)
     {
-        super(type.getJobEntry().get(), type.getPrimarySkill(), type.getSecondarySkill(), sizeLimit);
+        super(type.getJobEntry().get(), type.getPrimarySkill(), type.getSecondarySkill(), canWorkingDuringRain, sizeLimit);
+    }
+
+    public GuardBuildingModule(
+        final GuardType type,
+        final boolean canWorkingDuringRain,
+        final Function<IBuilding, Integer> sizeLimit,
+        final ResourceLocation researchRequirement)
+    {
+        super(type.getJobEntry().get(), type.getPrimarySkill(), type.getSecondarySkill(), canWorkingDuringRain, sizeLimit, researchRequirement);
     }
 
     @Override

@@ -1,7 +1,5 @@
 package no.monopixel.slimcolonies.core.commands;
 
-import com.mojang.brigadier.CommandDispatcher;
-import net.minecraft.commands.CommandSourceStack;
 import no.monopixel.slimcolonies.api.util.constant.Constants;
 import no.monopixel.slimcolonies.core.commands.citizencommands.*;
 import no.monopixel.slimcolonies.core.commands.colonycommands.*;
@@ -10,6 +8,8 @@ import no.monopixel.slimcolonies.core.commands.colonycommands.requestsystem.Comm
 import no.monopixel.slimcolonies.core.commands.generalcommands.*;
 import no.monopixel.slimcolonies.core.commands.killcommands.*;
 import no.monopixel.slimcolonies.core.debug.command.CommandToggleDebug;
+import com.mojang.brigadier.CommandDispatcher;
+import net.minecraft.commands.CommandSourceStack;
 
 /**
  * Entry point to commands.
@@ -33,6 +33,7 @@ public class EntryPoint
             .addNode(new CommandKillCow().build())
             .addNode(new CommandKillMonster().build())
             .addNode(new CommandKillPig().build())
+            .addNode(new CommandKillRaider().build())
             .addNode(new CommandKillSheep().build());
 
         /*
@@ -42,9 +43,12 @@ public class EntryPoint
             .addNode(new CommandAddOfficer().build())
             .addNode(new CommandSetRank().build())
             .addNode(new CommandChangeOwner().build())
+            .addNode(new CommandClaimChunks().build())
             .addNode(new CommandShowClaim().build())
             .addNode(new CommandTeleport().build())
             .addNode(new CommandDeleteColony().build())
+            .addNode(new CommandCanRaiderSpawn().build())
+            .addNode(new CommandRaid().build())
             .addNode(new CommandHomeTeleport().build())
             .addNode(new CommandListColonies().build())
             .addNode(new CommandSetDeletable().build())
@@ -53,6 +57,8 @@ public class EntryPoint
             .addNode(new CommandLoadAllBackups().build())
             .addNode(new CommandColonyInfo().build())
             .addNode(new CommandColonyPrintStats().build())
+            .addNode(new CommandColonyResetStats().build())
+            .addNode(new CommandColonyRaidsInfo().build())
             .addNode(new CommandColonyChunks().build())
             .addNode(new CommandRSReset().build())
             .addNode(new CommandRSResetAll().build())
@@ -77,7 +83,7 @@ public class EntryPoint
         /*
          * Root slimcolonies command tree, all subtrees are added here.
          */
-        final CommandTree minecoloniesRoot = new CommandTree(Constants.MOD_ID)
+        final CommandTree slimcoloniesRoot = new CommandTree(Constants.MOD_ID)
             .addNode(killCommands)
             .addNode(colonyCommands)
             .addNode(new CommandHomeTeleport().build())
@@ -95,7 +101,7 @@ public class EntryPoint
         /*
          * Root slimcolonies alias command tree, all subtrees are added here.
          */
-        final CommandTree minecoloniesRootAlias = new CommandTree("sc")
+        final CommandTree slimcoloniesRootAlias = new CommandTree("mc")
             .addNode(new CommandEntityTrack().build())
             .addNode(killCommands)
             .addNode(colonyCommands)
@@ -112,7 +118,7 @@ public class EntryPoint
             .addNode(new CommandPruneWorld().build());
 
         // Adds all command trees to the dispatcher to register the commands.
-        dispatcher.register(minecoloniesRoot.build());
-        dispatcher.register(minecoloniesRootAlias.build());
+        dispatcher.register(slimcoloniesRoot.build());
+        dispatcher.register(slimcoloniesRootAlias.build());
     }
 }

@@ -1,5 +1,11 @@
 {
   "branch": "slimcolonies:combat",
+  "costs": [
+    {
+      "count": 64,
+      "item": "minecraft:iron_ingot"
+    }
+  ],
   "effects": [
     {
       "id": "slimcolonies:effects/meleearmormultiplier",

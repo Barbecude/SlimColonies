@@ -1,13 +1,16 @@
 package no.monopixel.slimcolonies.core.network.messages.server.colony.building.guard;
 
+import com.ldtteam.common.network.PlayMessageType;
 import no.monopixel.slimcolonies.api.colony.IColony;
 import no.monopixel.slimcolonies.api.colony.buildings.IBuilding;
+import no.monopixel.slimcolonies.api.util.constant.Constants;
 import no.monopixel.slimcolonies.core.colony.buildings.AbstractBuildingGuards;
 import no.monopixel.slimcolonies.core.colony.buildings.workerbuildings.BuildingMiner;
 import no.monopixel.slimcolonies.core.network.messages.server.AbstractBuildingServerMessage;
-import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.core.BlockPos;
-import net.minecraftforge.network.NetworkEvent;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.server.level.ServerPlayer;
+import net.neoforged.neoforge.network.handling.IPayloadContext;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -15,76 +18,55 @@ import org.jetbrains.annotations.NotNull;
  */
 public class GuardSetMinePosMessage extends AbstractBuildingServerMessage<AbstractBuildingGuards>
 {
+    public static final PlayMessageType<?> TYPE = PlayMessageType.forServer(Constants.MOD_ID, "guard_set_mine_pos", GuardSetMinePosMessage::new);
+
     /**
      * the position of the mine (can be null)
      */
     private BlockPos minePos;
-    /**
-     * Indicates whether minePos is a valid position
-     */
-    private Boolean hasMinePos = false;
-
-    /**
-     * Empty standard constructor
-     */
-    public GuardSetMinePosMessage()
-    {
-        super();
-    }
 
     /**
      * Creates an instance of the message to set a new position
      * @param building the building to apply the position change to
      * @param minePos the position of the mine
      */
-    public GuardSetMinePosMessage(@NotNull AbstractBuildingGuards.View building, BlockPos minePos)
+    public GuardSetMinePosMessage(@NotNull final AbstractBuildingGuards.View building, final BlockPos minePos)
     {
-        super(building);
+        super(TYPE, building);
         this.minePos = minePos;
-        this.hasMinePos = true;
     }
 
     /**
      * Creates an instance of the message to clear the position
      * @param building the building to apply the position change to
      */
-    public GuardSetMinePosMessage(@NotNull AbstractBuildingGuards.View building)
+    public GuardSetMinePosMessage(@NotNull final AbstractBuildingGuards.View building)
     {
-        super(building);
+        super(TYPE, building);
+        this.minePos = null;
+    }
+
+    protected GuardSetMinePosMessage(final RegistryFriendlyByteBuf buf, final PlayMessageType<?> type)
+    {
+        super(buf, type);
+        this.minePos = buf.readBoolean() ? buf.readBlockPos() : null;
     }
 
     @Override
-    public void fromBytesOverride(@NotNull final FriendlyByteBuf buf)
+    protected void toBytes(@NotNull final RegistryFriendlyByteBuf buf)
     {
-        this.hasMinePos = buf.readBoolean();
-        if (this.hasMinePos)
-        {
-            this.minePos = buf.readBlockPos();
-        }
-    }
-
-    @Override
-    public void toBytesOverride(@NotNull final FriendlyByteBuf buf)
-    {
-        buf.writeBoolean(this.hasMinePos);
-        if (this.hasMinePos)
+        super.toBytes(buf);
+        buf.writeBoolean(this.minePos != null);
+        if (this.minePos != null)
         {
             buf.writeBlockPos(this.minePos);
         }
     }
 
     @Override
-    public void onExecute(final NetworkEvent.Context ctxIn, final boolean isLogicalServer, final IColony colony, final AbstractBuildingGuards building)
+    protected void onExecute(final IPayloadContext ctxIn, final ServerPlayer player, final IColony colony, final AbstractBuildingGuards building)
     {
-        final IBuilding miner;
-        if (this.minePos == null)
-        {
-            miner = building.getColony().getBuildingManager().getBuilding(building.getMinePos());
-        }
-        else
-        {
-            miner = building.getColony().getBuildingManager().getBuilding(this.minePos);
-        }
+        final IBuilding miner = building.getColony().getServerBuildingManager().getBuilding(minePos == null ? building.getMinePos() : minePos);
         if (miner instanceof BuildingMiner)
         {
             building.setMinePos(this.minePos);

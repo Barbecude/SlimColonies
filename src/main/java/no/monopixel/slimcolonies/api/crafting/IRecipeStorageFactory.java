@@ -4,6 +4,8 @@ import no.monopixel.slimcolonies.api.colony.requestsystem.factory.IFactory;
 import no.monopixel.slimcolonies.api.colony.requestsystem.factory.IFactoryController;
 import no.monopixel.slimcolonies.api.colony.requestsystem.token.IToken;
 import org.apache.commons.lang3.NotImplementedException;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.world.level.storage.loot.LootTable;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -18,3 +20,4 @@ public interface IRecipeStorageFactory extends IFactory<IToken<?>, RecipeStorage
         throw new NotImplementedException();    // use RecipeStorage.builder() instead
     }
 }
+

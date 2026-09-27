@@ -3,13 +3,15 @@ package no.monopixel.slimcolonies.core.colony.buildings.moduleviews;
 import com.ldtteam.blockui.views.BOWindow;
 import no.monopixel.slimcolonies.api.colony.buildings.modules.AbstractBuildingModuleView;
 import no.monopixel.slimcolonies.api.crafting.ItemStorage;
+import no.monopixel.slimcolonies.api.util.Utils;
 import no.monopixel.slimcolonies.api.util.constant.Constants;
 import no.monopixel.slimcolonies.api.util.constant.translation.RequestSystemTranslationConstants;
-import no.monopixel.slimcolonies.core.client.gui.modules.RestaurantMenuModuleWindow;
-import net.minecraft.network.FriendlyByteBuf;
+import no.monopixel.slimcolonies.core.client.gui.modules.building.RestaurantMenuModuleWindow;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.api.distmarker.OnlyIn;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.api.distmarker.OnlyIn;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
@@ -29,13 +31,13 @@ public class RestaurantMenuModuleView extends AbstractBuildingModuleView
     private final List<ItemStorage> menu = new ArrayList<>();
 
     @Override
-    public void deserialize(final @NotNull FriendlyByteBuf buf)
+    public void deserialize(final @NotNull RegistryFriendlyByteBuf buf)
     {
         menu.clear();
         final int size = buf.readInt();
         for (int i = 0; i < size; i++)
         {
-            menu.add(new ItemStorage(buf.readItem()));
+            menu.add(new ItemStorage(Utils.deserializeCodecMess(buf)));
         }
     }
 
@@ -43,7 +45,7 @@ public class RestaurantMenuModuleView extends AbstractBuildingModuleView
     @OnlyIn(Dist.CLIENT)
     public BOWindow getWindow()
     {
-        return new RestaurantMenuModuleWindow(buildingView, this);
+        return new RestaurantMenuModuleWindow(this);
     }
 
     @Override
@@ -53,9 +55,9 @@ public class RestaurantMenuModuleView extends AbstractBuildingModuleView
     }
 
     @Override
-    public String getDesc()
+    public Component getDesc()
     {
-        return RequestSystemTranslationConstants.REQUESTS_TYPE_FOOD;
+        return Component.translatable(RequestSystemTranslationConstants.REQUESTS_TYPE_FOOD);
     }
 
     /**

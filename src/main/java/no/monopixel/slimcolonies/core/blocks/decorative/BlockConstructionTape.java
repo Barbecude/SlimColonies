@@ -1,38 +1,42 @@
 package no.monopixel.slimcolonies.core.blocks.decorative;
 
-import net.minecraft.core.BlockPos;
-import net.minecraft.core.Direction;
-import net.minecraft.core.Direction.Axis;
-import net.minecraft.core.Direction.Plane;
+import no.monopixel.slimcolonies.api.blocks.decorative.AbstractBlockMinecoloniesConstructionTape;
+import no.monopixel.slimcolonies.api.util.constant.Constants;
+import com.mojang.serialization.MapCodec;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.world.entity.item.FallingBlockEntity;
-import net.minecraft.world.item.context.BlockPlaceContext;
-import net.minecraft.world.level.BlockGetter;
-import net.minecraft.world.level.Level;
-import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.SoundType;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.level.block.state.StateDefinition;
+import net.minecraft.world.entity.item.FallingBlockEntity;
 import net.minecraft.world.level.material.Fluid;
 import net.minecraft.world.level.material.Fluids;
+import net.minecraft.world.item.context.BlockPlaceContext;
+import net.minecraft.world.level.block.state.StateDefinition;
+import net.minecraft.core.Direction;
+import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.material.MapColor;
 import net.minecraft.world.level.material.PushReaction;
 import net.minecraft.world.phys.shapes.CollisionContext;
 import net.minecraft.world.phys.shapes.VoxelShape;
-import no.monopixel.slimcolonies.api.blocks.decorative.AbstractBlockSlimColoniesConstructionTape;
-import no.monopixel.slimcolonies.api.util.constant.Constants;
+import net.minecraft.world.level.BlockGetter;
+import net.minecraft.world.level.LevelAccessor;
+import net.minecraft.world.level.Level;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
 
+import net.minecraft.core.Direction.Axis;
+import net.minecraft.core.Direction.Plane;
+
 /**
  * This block is used as a border to show the size of the building. It also shows that the building is in the progress of being built.
  */
-public class BlockConstructionTape extends AbstractBlockSlimColoniesConstructionTape<BlockConstructionTape>
+public class BlockConstructionTape extends AbstractBlockMinecoloniesConstructionTape<BlockConstructionTape>
 {
+    public static final MapCodec<BlockConstructionTape> CODEC = simpleCodec(BlockConstructionTape::new);
+
     /**
      * This blocks name.
      */
@@ -43,32 +47,43 @@ public class BlockConstructionTape extends AbstractBlockSlimColoniesConstruction
      */
     public BlockConstructionTape()
     {
-        super(Properties.of()
-            .mapColor(MapColor.PLANT)
-            .sound(SoundType.WOOD)
-            .replaceable()
-            .pushReaction(PushReaction.DESTROY)
-            .isRedstoneConductor((state, getter, pos) -> false)
-            .forceSolidOff()
-            .strength(0.0f).noCollission().noLootTable());
+        this(Properties.of()
+                .mapColor(MapColor.PLANT)
+                .sound(SoundType.WOOD)
+                .replaceable()
+                .pushReaction(PushReaction.DESTROY)
+                .isRedstoneConductor((state, getter, pos) -> false)
+                .forceSolidOff()
+                .strength(0.0f).noCollission().noLootTable());
+    }
+
+    public BlockConstructionTape(final Properties properties)
+    {
+        super(properties);
 
         this.shapes = makeShapes(2, 2, 16, 0, 16);
 
         this.registerDefaultState(this.defaultBlockState()
-            .setValue(NORTH, false)
-            .setValue(EAST, false)
-            .setValue(SOUTH, false)
-            .setValue(WEST, false)
-            .setValue(FACING, Direction.NORTH)
-            .setValue(WATERLOGGED, false)
-            .setValue(CORNER, false)
+                .setValue(NORTH, false)
+                .setValue(EAST, false)
+                .setValue(SOUTH, false)
+                .setValue(WEST, false)
+                .setValue(FACING, Direction.NORTH)
+                .setValue(WATERLOGGED, false)
+                .setValue(CORNER, false)
         );
+    }
+
+    @Override
+    protected MapCodec<BlockConstructionTape> codec()
+    {
+        return CODEC;
     }
 
     @Override
     public ResourceLocation getRegistryName()
     {
-        return ResourceLocation.fromNamespaceAndPath(Constants.MOD_ID, BLOCK_NAME);
+        return new ResourceLocation(Constants.MOD_ID, BLOCK_NAME);
     }
 
     @NotNull
@@ -86,22 +101,22 @@ public class BlockConstructionTape extends AbstractBlockSlimColoniesConstruction
         Direction[] faces = context.getNearestLookingDirections();
 
         return BlockConstructionTape.getPlacementState(
-            super.getStateForPlacement(context),
-            context.getLevel(),
-            context.getClickedPos(),
-            faces[0].get2DDataValue() >= 0 ? faces[0] : faces[1]
+          super.getStateForPlacement(context),
+          context.getLevel(),
+          context.getClickedPos(),
+          faces[0].get2DDataValue() >= 0 ? faces[0] : faces[1]
         );
     }
 
     @NotNull
     @Override
     public BlockState updateShape(
-        @NotNull final BlockState stateIn,
-        final Direction dir,
-        final BlockState state,
-        final LevelAccessor worldIn,
-        @NotNull final BlockPos currentPos,
-        final BlockPos pos)
+      @NotNull final BlockState stateIn,
+      final Direction dir,
+      final BlockState state,
+      final LevelAccessor worldIn,
+      @NotNull final BlockPos currentPos,
+      final BlockPos pos)
     {
         if (stateIn.getValue(WATERLOGGED))
         {
@@ -109,7 +124,7 @@ public class BlockConstructionTape extends AbstractBlockSlimColoniesConstruction
         }
 
         return BlockConstructionTape.getPlacementState(
-            super.updateShape(stateIn, dir, state, worldIn, currentPos, pos), worldIn, currentPos, stateIn.getValue(FACING)
+          super.updateShape(stateIn, dir, state, worldIn, currentPos, pos), worldIn, currentPos, stateIn.getValue(FACING)
         );
     }
 
@@ -128,12 +143,12 @@ public class BlockConstructionTape extends AbstractBlockSlimColoniesConstruction
         List<Direction> connections = getConnections(world, pos, face, state.getValue(CORNER));
 
         return state
-            .setValue(NORTH, connections.contains(Direction.NORTH))
-            .setValue(EAST, connections.contains(Direction.EAST))
-            .setValue(SOUTH, connections.contains(Direction.SOUTH))
-            .setValue(WEST, connections.contains(Direction.WEST))
-            .setValue(FACING, face)
-            .setValue(WATERLOGGED, fluid == Fluids.WATER);
+                 .setValue(NORTH, connections.contains(Direction.NORTH))
+                 .setValue(EAST, connections.contains(Direction.EAST))
+                 .setValue(SOUTH, connections.contains(Direction.SOUTH))
+                 .setValue(WEST, connections.contains(Direction.WEST))
+                 .setValue(FACING, face)
+                 .setValue(WATERLOGGED, fluid == Fluids.WATER);
     }
 
     public static List<Direction> getConnections(BlockGetter world, BlockPos pos, Direction face, boolean corner)
@@ -240,7 +255,7 @@ public class BlockConstructionTape extends AbstractBlockSlimColoniesConstruction
     public void onLand(final Level worldIn, final BlockPos pos, final BlockState fallingState, final BlockState hitState, final FallingBlockEntity blockEntity)
     {
         worldIn.setBlockAndUpdate(pos, BlockConstructionTape.getPlacementState(
-            fallingState, worldIn, pos, fallingState.getValue(FACING)
+          fallingState, worldIn, pos, fallingState.getValue(FACING)
         ));
     }
 

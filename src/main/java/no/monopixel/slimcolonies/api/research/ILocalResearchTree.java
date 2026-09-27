@@ -1,9 +1,13 @@
 package no.monopixel.slimcolonies.api.research;
 
 import no.monopixel.slimcolonies.api.colony.IColony;
+import no.monopixel.slimcolonies.core.colony.buildings.workerbuildings.BuildingUniversity;
+
+import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Player;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
@@ -65,7 +69,7 @@ public interface ILocalResearchTree
      * @param colony     the colony doing the research
      * @param research   the research.
      */
-    void attemptBeginResearch(final Player player, final IColony colony, final IGlobalResearch research);
+    void attemptBeginResearch(final Player player, final IColony colony, final BuildingUniversity building, final IGlobalResearch research);
 
     /**
      * Reset a research, and optionally undo its effects.  If the research is begun but incomplete, cancel it.
@@ -81,7 +85,7 @@ public interface ILocalResearchTree
      *
      * @param compound the compound.
      */
-    void writeToNBT(final CompoundTag compound);
+    void writeToNBT(@NotNull final HolderLookup.Provider provider, final CompoundTag compound);
 
     /**
      * Read the research tree from NBT.
@@ -89,7 +93,7 @@ public interface ILocalResearchTree
      * @param compound the compound to read it from.
      * @param effects  the effects.
      */
-    void readFromNBT(final CompoundTag compound, final IResearchEffectManager effects);
+    void readFromNBT(@NotNull final HolderLookup.Provider provider, final CompoundTag compound, final IResearchEffectManager effects);
 
     /**
      * Get the list of all finished researches

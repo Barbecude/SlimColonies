@@ -1,24 +1,30 @@
 package no.monopixel.slimcolonies.core.colony.crafting;
 
 import com.google.gson.JsonObject;
+import no.monopixel.slimcolonies.api.IMinecoloniesAPI;
+import no.monopixel.slimcolonies.api.blocks.ModBlocks;
 import no.monopixel.slimcolonies.api.colony.buildings.modules.ICraftingBuildingModule;
 import no.monopixel.slimcolonies.api.colony.buildings.registry.BuildingEntry;
 import no.monopixel.slimcolonies.api.crafting.ItemStorage;
 import no.monopixel.slimcolonies.api.eventbus.events.CustomRecipesReloadedEvent;
 import no.monopixel.slimcolonies.api.loot.ModLootTables;
 import no.monopixel.slimcolonies.api.util.Log;
-import no.monopixel.slimcolonies.core.Network;
+import no.monopixel.slimcolonies.core.blocks.MinecoloniesCropBlock;
 import no.monopixel.slimcolonies.core.colony.buildings.modules.AnimalHerdingModule;
 import io.netty.buffer.Unpooled;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.animal.Animal;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.level.storage.loot.LootDataManager;
-import net.minecraftforge.common.MinecraftForge;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.storage.loot.LootTable;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -56,7 +62,7 @@ public class CustomRecipeManager
     /**
      * The collection of related loot table drops (for informational purposes, not loot gen).
      */
-    private final Map<ResourceLocation, List<LootTableAnalyzer.LootDrop>> lootTables = new HashMap<>();
+    private final Map<ResourceKey<LootTable>, List<LootTableAnalyzer.LootDrop>> lootTables = new HashMap<>();
 
     /**
      * The collection of recipe templates, pending tag loading.
@@ -183,7 +189,7 @@ public class CustomRecipeManager
     public List<CustomRecipe> getRecipeByOutput(final ItemStack itemStack)
     {
         List<CustomRecipe> returnList = new ArrayList<>();
-        for (CustomRecipe recipe : recipeOutputMap.get(itemStack.getItem()))
+        for (CustomRecipe recipe : recipeOutputMap.getOrDefault(itemStack.getItem(), Collections.emptyList()))
         {
             // ItemStacks don't override equals, so have to use the static methods.
             if (ItemStack.matches(recipe.getPrimaryOutput(), itemStack))
@@ -209,7 +215,7 @@ public class CustomRecipeManager
     public List<CustomRecipe> getRecipeByOutput(final ItemStorage itemStorage)
     {
         List<CustomRecipe> returnList = new ArrayList<>();
-        for (CustomRecipe recipe : recipeOutputMap.get(itemStorage.getItem()))
+        for (CustomRecipe recipe : recipeOutputMap.getOrDefault(itemStorage.getItem(), Collections.emptyList()))
         {
             // ItemStorage#equals does the actual comparison work for us, here.
             if (new ItemStorage(recipe.getPrimaryOutput()).equals(itemStorage))
@@ -236,11 +242,11 @@ public class CustomRecipeManager
      * @return The loot drops.
      */
     @NotNull
-    public List<LootTableAnalyzer.LootDrop> getLootDrops(@Nullable final ResourceLocation lootTableId)
+    public List<LootTableAnalyzer.LootDrop> getLootDrops(@Nullable final ResourceKey<LootTable> lootTableId)
     {
-        if (lootTableId == null) return Collections.emptyList();
+        if (lootTableId == null) return new ArrayList<>();
 
-        return lootTables.getOrDefault(lootTableId, Collections.emptyList());
+        return lootTables.getOrDefault(lootTableId, new ArrayList<>());
     }
 
     private void removeRecipes()
@@ -276,13 +282,13 @@ public class CustomRecipeManager
      *
      * Must be called server-side-only after tags have been loaded and before we sync to client.
      */
-    public void resolveTemplates()
+    public void resolveTemplates(@NotNull final HolderLookup.Provider provider)
     {
         for (final Map.Entry<ResourceLocation, JsonObject> templateEntry : recipeTemplates.entrySet())
         {
             try
             {
-                for (final CustomRecipe recipe : CustomRecipe.parseTemplate(templateEntry.getKey(), templateEntry.getValue()))
+                for (final CustomRecipe recipe : CustomRecipe.parseTemplate(provider, templateEntry.getKey(), templateEntry.getValue()))
                 {
                     addRecipe(recipe);
                 }
@@ -298,19 +304,18 @@ public class CustomRecipeManager
 
     /**
      * Analyses and builds an approximate list of possible loot drops from registered recipes.
-     * @param lootTableManager the loot table manager
+     * @param level the world.
      */
-    public void buildLootData(@NotNull final LootDataManager lootTableManager,
-                              @NotNull final Level level)
+    public void buildLootData(@NotNull final Level level)
     {
         final List<Animal> animals = RecipeAnalyzer.createAnimals(level);
 
-        final List<ResourceLocation> lootIds = new ArrayList<>();
+        final List<ResourceKey<LootTable>> lootIds = new ArrayList<>();
         for (final Map<ResourceLocation, CustomRecipe> recipes : recipeMap.values())
         {
             for (final CustomRecipe recipe : recipes.values())
             {
-                final ResourceLocation lootTable = recipe.getLootTable();
+                final ResourceKey<LootTable> lootTable = recipe.getLootTable();
                 if (lootTable != null)
                 {
                     lootIds.add(lootTable);
@@ -318,6 +323,13 @@ public class CustomRecipeManager
             }
         }
 
+        for (final MinecoloniesCropBlock crop : ModBlocks.getCrops())
+        {
+            for (final Block source : crop.getDroppedFrom())
+            {
+                lootIds.add(source.getLootTable());
+            }
+        }
 
         for (final String producerKey : BuildingEntry.getALlModuleProducers().keySet())
         {
@@ -352,7 +364,7 @@ public class CustomRecipeManager
                 .filter(Objects::nonNull)   // just in case
                 .distinct()
                 .collect(Collectors.toConcurrentMap(Function.identity(),
-                        id -> LootTableAnalyzer.toDrops(lootTableManager, id))));
+                        id -> LootTableAnalyzer.toDrops(level.getServer().reloadableRegistries().get(), id))));
     }
 
     /**
@@ -361,9 +373,9 @@ public class CustomRecipeManager
      */
     public void sendCustomRecipeManagerPackets(final ServerPlayer player)
     {
-        final FriendlyByteBuf recipeMgrFriendlyByteBuf = new FriendlyByteBuf(Unpooled.buffer());
+        final RegistryFriendlyByteBuf recipeMgrFriendlyByteBuf = new RegistryFriendlyByteBuf(new FriendlyByteBuf(Unpooled.buffer()), player.level().registryAccess());
         serializeNetworkData(recipeMgrFriendlyByteBuf);
-        Network.getNetwork().sendToPlayer(new CustomRecipeManagerMessage(recipeMgrFriendlyByteBuf), player);
+        new CustomRecipeManagerMessage(recipeMgrFriendlyByteBuf).sendToPlayer(player);
     }
 
     /**
@@ -371,7 +383,7 @@ public class CustomRecipeManager
      * This version sends the full Custom Recipe Manager.
      * @param recipeMgrFriendlyByteBuf packet buffer to encode the data into.
      */
-    private void serializeNetworkData(final FriendlyByteBuf recipeMgrFriendlyByteBuf)
+    private void serializeNetworkData(final RegistryFriendlyByteBuf recipeMgrFriendlyByteBuf)
     {
         recipeMgrFriendlyByteBuf.writeVarInt(recipeMap.size());
         for (Map.Entry<String, Map<ResourceLocation, CustomRecipe>> crafter : recipeMap.entrySet())
@@ -384,9 +396,9 @@ public class CustomRecipeManager
         }
 
         recipeMgrFriendlyByteBuf.writeVarInt(lootTables.size());
-        for (final Map.Entry<ResourceLocation, List<LootTableAnalyzer.LootDrop>> lootEntry : lootTables.entrySet())
+        for (final Map.Entry<ResourceKey<LootTable>, List<LootTableAnalyzer.LootDrop>> lootEntry : lootTables.entrySet())
         {
-            recipeMgrFriendlyByteBuf.writeResourceLocation(lootEntry.getKey());
+            recipeMgrFriendlyByteBuf.writeResourceLocation(lootEntry.getKey().location());
             recipeMgrFriendlyByteBuf.writeVarInt(lootEntry.getValue().size());
             for (final LootTableAnalyzer.LootDrop drop : lootEntry.getValue())
             {
@@ -399,7 +411,7 @@ public class CustomRecipeManager
      * Ingests the custom recipes packet, and applies it to the recipe manager.
      * @param buff packet buffer containing the received data.
      */
-    public void handleCustomRecipeManagerMessage(final FriendlyByteBuf buff)
+    public void handleCustomRecipeManagerMessage(final RegistryFriendlyByteBuf buff)
     {
         reset();
 
@@ -413,7 +425,7 @@ public class CustomRecipeManager
 
         for (int lootNum = buff.readVarInt(); lootNum > 0; --lootNum)
         {
-            final ResourceLocation id = buff.readResourceLocation();
+            final ResourceKey<LootTable> id = ResourceKey.create(Registries.LOOT_TABLE, buff.readResourceLocation());
             int count = buff.readVarInt();
             final List<LootTableAnalyzer.LootDrop> drops = new ArrayList<>(count);
             for (; count > 0; --count)
@@ -425,7 +437,7 @@ public class CustomRecipeManager
 
         try
         {
-            MinecraftForge.EVENT_BUS.post(new CustomRecipesReloadedEvent());
+            IMinecoloniesAPI.getInstance().getEventBus().post(new CustomRecipesReloadedEvent());
         }
         catch (final Exception e)
         {

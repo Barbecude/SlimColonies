@@ -1,12 +1,18 @@
 {
   "branch": "slimcolonies:technology",
+  "costs": [
+    {
+      "count": 64,
+      "item": "minecraft:chorus_fruit"
+    }
+  ],
   "effects": [
     {
       "id": "slimcolonies:effects/knowledgeoftheendunlock",
       "level": 1
     }
   ],
-  "icon": "minecraft:chorus_fruit",
+  "icon": "slimcolonies:chorus_bread",
   "parentResearch": "slimcolonies:technology/theflintstones",
   "requirements": [
     {

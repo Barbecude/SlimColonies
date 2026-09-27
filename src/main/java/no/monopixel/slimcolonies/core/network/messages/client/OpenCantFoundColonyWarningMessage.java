@@ -1,18 +1,25 @@
 package no.monopixel.slimcolonies.core.network.messages.client;
 
-import no.monopixel.slimcolonies.api.network.IMessage;
+import com.ldtteam.common.network.AbstractClientPlayMessage;
+import com.ldtteam.common.network.PlayMessageType;
+import no.monopixel.slimcolonies.api.util.Utils;
+import no.monopixel.slimcolonies.api.util.constant.Constants;
 import no.monopixel.slimcolonies.core.client.gui.townhall.WindowTownHallCantCreateColony;
 import net.minecraft.core.BlockPos;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.ComponentSerialization;
 import net.minecraft.network.chat.MutableComponent;
-import net.minecraftforge.network.NetworkEvent;
+import net.minecraft.world.entity.player.Player;
+import net.neoforged.neoforge.network.handling.IPayloadContext;
 
 /**
  * Message to open the colony founding covenant.
  */
-public class OpenCantFoundColonyWarningMessage implements IMessage
+public class OpenCantFoundColonyWarningMessage  extends AbstractClientPlayMessage
 {
+    public static final PlayMessageType<?> TYPE = PlayMessageType.forClient(Constants.MOD_ID, "open_cant_found_colony_warning", OpenCantFoundColonyWarningMessage::new);
+
     /**
      * Colony pos at which we are trying to place.
      */
@@ -31,38 +38,33 @@ public class OpenCantFoundColonyWarningMessage implements IMessage
     /**
      * Default constructor
      **/
-    public OpenCantFoundColonyWarningMessage()
+    public OpenCantFoundColonyWarningMessage(RegistryFriendlyByteBuf buf, final PlayMessageType<?> type)
     {
-        super();
+        super(type);
+        this.warningMessageTranslationKey = Utils.deserializeCodecMess(ComponentSerialization.STREAM_CODEC, buf);
+        this.townHallPos = buf.readBlockPos();
+        this.displayConfigTooltip = buf.readBoolean();
     }
 
     public OpenCantFoundColonyWarningMessage(final Component warningMessageTranslationKey, final BlockPos townHallPos, final boolean displayConfigTooltip)
     {
-        super();
+        super(TYPE);
         this.warningMessageTranslationKey = warningMessageTranslationKey;
         this.townHallPos = townHallPos;
         this.displayConfigTooltip = displayConfigTooltip;
     }
 
     @Override
-    public void onExecute(NetworkEvent.Context ctxIn, boolean isLogicalServer)
+    protected void onExecute(final IPayloadContext ctxIn, final Player player)
     {
         new WindowTownHallCantCreateColony(townHallPos, (MutableComponent) warningMessageTranslationKey, displayConfigTooltip).open();
     }
 
     @Override
-    public void toBytes(FriendlyByteBuf buf)
+    public void toBytes(RegistryFriendlyByteBuf buf)
     {
-        buf.writeComponent(warningMessageTranslationKey);
+        Utils.serializeCodecMess(ComponentSerialization.STREAM_CODEC, buf, warningMessageTranslationKey);
         buf.writeBlockPos(townHallPos);
         buf.writeBoolean(displayConfigTooltip);
-    }
-
-    @Override
-    public void fromBytes(FriendlyByteBuf buf)
-    {
-        this.warningMessageTranslationKey = buf.readComponent();
-        this.townHallPos = buf.readBlockPos();
-        this.displayConfigTooltip = buf.readBoolean();
     }
 }

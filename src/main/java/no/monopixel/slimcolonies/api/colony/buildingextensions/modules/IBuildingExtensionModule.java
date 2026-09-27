@@ -10,7 +10,7 @@ public interface IBuildingExtensionModule
     /**
      * Get the building extension of the module.
      *
-     * @return the building extension instance.
+     * @return the building extension.
      */
-    IBuildingExtension getBuildingExtension();
+    IBuildingExtension getExtension();
 }

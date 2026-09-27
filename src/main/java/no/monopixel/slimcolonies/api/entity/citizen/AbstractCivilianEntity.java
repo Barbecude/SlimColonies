@@ -1,5 +1,11 @@
 package no.monopixel.slimcolonies.api.entity.citizen;
 
+import no.monopixel.slimcolonies.api.colony.ICivilianData;
+import no.monopixel.slimcolonies.api.entity.other.AbstractFastMinecoloniesEntity;
+import no.monopixel.slimcolonies.api.entity.other.MinecoloniesMinecart;
+import no.monopixel.slimcolonies.core.entity.other.SittingEntity;
+import no.monopixel.slimcolonies.core.entity.other.cavalry.CavalryHorseEntity;
+
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvent;
@@ -10,10 +16,6 @@ import net.minecraft.world.entity.npc.Npc;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
-import no.monopixel.slimcolonies.api.colony.ICivilianData;
-import no.monopixel.slimcolonies.api.entity.other.AbstractFastSlimColoniesEntity;
-import no.monopixel.slimcolonies.api.entity.other.SlimColoniesMinecart;
-import no.monopixel.slimcolonies.core.entity.other.SittingEntity;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -21,7 +23,7 @@ import static no.monopixel.slimcolonies.api.sounds.EventType.GREETING;
 import static no.monopixel.slimcolonies.api.util.SoundUtils.playSoundAtCitizenWith;
 import static no.monopixel.slimcolonies.api.util.constant.Constants.TICKS_SECOND;
 
-public abstract class AbstractCivilianEntity extends AbstractFastSlimColoniesEntity implements Npc
+public abstract class AbstractCivilianEntity extends AbstractFastMinecoloniesEntity implements Npc
 {
     /**
      * Time after which the next player collision is possible
@@ -30,8 +32,7 @@ public abstract class AbstractCivilianEntity extends AbstractFastSlimColoniesEnt
 
     /**
      * Create a new instance.
-     *
-     * @param type    from type.
+     * @param type from type.
      * @param worldIn the world.
      */
     protected AbstractCivilianEntity(final EntityType<? extends PathfinderMob> type, final Level worldIn)
@@ -83,8 +84,8 @@ public abstract class AbstractCivilianEntity extends AbstractFastSlimColoniesEnt
         if (getSleepingPos().isPresent())
         {
             final BlockPos pos = getSleepingPos().get();
-            final BlockState state = level.getBlockState(getSleepingPos().get());
-            return state.getBlock().isBed(state, level, pos, this);
+            final BlockState state = level().getBlockState(getSleepingPos().get());
+            return state.getBlock().isBed(state,level(),pos,this);
         }
 
         return false;
@@ -113,7 +114,7 @@ public abstract class AbstractCivilianEntity extends AbstractFastSlimColoniesEnt
             getNavigation().stop();
             getLookControl().setLookAt(player);
 
-            playSoundAtCitizenWith(level, blockPosition(), GREETING, getCivilianData());
+            playSoundAtCitizenWith(level(), blockPosition(), GREETING, getCivilianData());
         }
     }
 
@@ -154,7 +155,7 @@ public abstract class AbstractCivilianEntity extends AbstractFastSlimColoniesEnt
     @Override
     public boolean startRiding(final @NotNull Entity entity, final boolean force)
     {
-        if (entity instanceof SittingEntity || entity instanceof SlimColoniesMinecart)
+        if (entity instanceof SittingEntity || entity instanceof MinecoloniesMinecart || entity instanceof CavalryHorseEntity)
         {
             return super.startRiding(entity, force);
         }

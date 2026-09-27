@@ -1,5 +1,19 @@
 {
   "branch": "slimcolonies:technology",
+  "costs": [
+    {
+      "count": 1,
+      "item": "minecraft:diamond_axe"
+    },
+    {
+      "count": 1,
+      "item": "minecraft:enchanted_book"
+    },
+    {
+      "count": 1,
+      "item": "minecraft:anvil"
+    }
+  ],
   "effects": [
     {
       "id": "slimcolonies:effects/looting",

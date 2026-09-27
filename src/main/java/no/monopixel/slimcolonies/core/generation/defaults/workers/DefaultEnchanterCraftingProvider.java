@@ -2,18 +2,21 @@ package no.monopixel.slimcolonies.core.generation.defaults.workers;
 
 import no.monopixel.slimcolonies.api.colony.jobs.ModJobs;
 import no.monopixel.slimcolonies.api.crafting.ItemStorage;
+import no.monopixel.slimcolonies.api.enchants.ModEnchants;
 import no.monopixel.slimcolonies.api.items.ModItems;
+import no.monopixel.slimcolonies.api.research.util.ResearchConstants;
 import no.monopixel.slimcolonies.core.generation.CustomRecipeAndLootTableProvider;
-import no.monopixel.slimcolonies.core.generation.CustomRecipeProvider;
+import no.monopixel.slimcolonies.core.generation.CustomRecipeProvider.CustomRecipeBuilder;
 import no.monopixel.slimcolonies.core.generation.SimpleLootTableProvider;
+import net.minecraft.core.Holder;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.data.PackOutput;
-import net.minecraft.data.recipes.FinishedRecipe;
+import net.minecraft.data.loot.LootTableProvider;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.world.item.EnchantedBookItem;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.enchantment.Enchantment;
-import net.minecraft.world.item.enchantment.EnchantmentInstance;
 import net.minecraft.world.item.enchantment.Enchantments;
 import net.minecraft.world.level.storage.loot.LootPool;
 import net.minecraft.world.level.storage.loot.LootTable;
@@ -24,6 +27,7 @@ import org.jetbrains.annotations.NotNull;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 
 import static no.monopixel.slimcolonies.api.util.constant.BuildingConstants.MODULE_CUSTOM;
@@ -37,13 +41,18 @@ public class DefaultEnchanterCraftingProvider extends CustomRecipeAndLootTablePr
     private final String ENCHANTER = ModJobs.ENCHANTER_ID.getPath();
     private static final int MAX_BUILDING_LEVEL = 5;
 
-    private final List<LootTable.Builder> levels;
+    private final List<LootTable.Builder> levels = new ArrayList<>();
+    private HolderLookup.Provider provider;
 
-    public DefaultEnchanterCraftingProvider(@NotNull final PackOutput packOutput)
+    public DefaultEnchanterCraftingProvider(@NotNull final PackOutput packOutput, final CompletableFuture<HolderLookup.Provider> lookupProvider)
     {
-        super(packOutput);
+        super(packOutput, lookupProvider);
+    }
 
-        levels = new ArrayList<>();
+    @Override
+    protected CompletableFuture<HolderLookup.Provider> generate(@NotNull final HolderLookup.Provider provider)
+    {
+        this.provider = provider;
 
         // building level 1
         levels.add(LootTable.lootTable().withPool(LootPool.lootPool()
@@ -51,18 +60,18 @@ public class DefaultEnchanterCraftingProvider extends CustomRecipeAndLootTablePr
                 .add(enchantedBook(Enchantments.BANE_OF_ARTHROPODS, 1).setWeight(50))
                 .add(enchantedBook(Enchantments.BLAST_PROTECTION, 1).setWeight(50))
                 .add(enchantedBook(Enchantments.DEPTH_STRIDER, 1).setWeight(50))
-                .add(enchantedBook(Enchantments.BLOCK_EFFICIENCY, 1).setWeight(50))
-                .add(enchantedBook(Enchantments.FALL_PROTECTION, 1).setWeight(50))
+                .add(enchantedBook(Enchantments.EFFICIENCY, 1).setWeight(50))
+                .add(enchantedBook(Enchantments.FEATHER_FALLING, 1).setWeight(50))
                 .add(enchantedBook(Enchantments.FIRE_ASPECT, 1).setWeight(50))
                 .add(enchantedBook(Enchantments.FIRE_PROTECTION, 1).setWeight(50))
-                .add(enchantedBook(Enchantments.FLAMING_ARROWS, 1).setWeight(50))
+                .add(enchantedBook(Enchantments.FLAME, 1).setWeight(50))
                 .add(enchantedBook(Enchantments.FROST_WALKER, 1).setWeight(50))
                 .add(enchantedBook(Enchantments.KNOCKBACK, 1).setWeight(50))
-                .add(enchantedBook(Enchantments.MOB_LOOTING, 1).setWeight(50))
-                .add(enchantedBook(Enchantments.POWER_ARROWS, 1).setWeight(50))
+                .add(enchantedBook(Enchantments.LOOTING, 1).setWeight(50))
+                .add(enchantedBook(Enchantments.POWER, 1).setWeight(50))
                 .add(enchantedBook(Enchantments.PROJECTILE_PROTECTION, 1).setWeight(50))
-                .add(enchantedBook(Enchantments.ALL_DAMAGE_PROTECTION, 1).setWeight(50))
-                .add(enchantedBook(Enchantments.PUNCH_ARROWS, 1).setWeight(50))
+                .add(enchantedBook(Enchantments.PROTECTION, 1).setWeight(50))
+                .add(enchantedBook(Enchantments.PUNCH, 1).setWeight(50))
                 .add(enchantedBook(Enchantments.QUICK_CHARGE, 1).setWeight(50))
                 .add(enchantedBook(Enchantments.RESPIRATION, 1).setWeight(50))
                 .add(enchantedBook(Enchantments.SHARPNESS, 1).setWeight(50))
@@ -78,18 +87,18 @@ public class DefaultEnchanterCraftingProvider extends CustomRecipeAndLootTablePr
                 .add(enchantedBook(Enchantments.BANE_OF_ARTHROPODS, 1).setWeight(50))
                 .add(enchantedBook(Enchantments.BLAST_PROTECTION, 1).setWeight(50))
                 .add(enchantedBook(Enchantments.DEPTH_STRIDER, 1).setWeight(50))
-                .add(enchantedBook(Enchantments.BLOCK_EFFICIENCY, 1).setWeight(50))
-                .add(enchantedBook(Enchantments.FALL_PROTECTION, 1).setWeight(50))
+                .add(enchantedBook(Enchantments.EFFICIENCY, 1).setWeight(50))
+                .add(enchantedBook(Enchantments.PROTECTION, 1).setWeight(50))
                 .add(enchantedBook(Enchantments.FIRE_ASPECT, 1).setWeight(50))
                 .add(enchantedBook(Enchantments.FIRE_PROTECTION, 1).setWeight(50))
-                .add(enchantedBook(Enchantments.FLAMING_ARROWS, 1).setWeight(50))
+                .add(enchantedBook(Enchantments.FLAME, 1).setWeight(50))
                 .add(enchantedBook(Enchantments.FROST_WALKER, 1).setWeight(50))
                 .add(enchantedBook(Enchantments.KNOCKBACK, 1).setWeight(50))
-                .add(enchantedBook(Enchantments.MOB_LOOTING, 1).setWeight(50))
-                .add(enchantedBook(Enchantments.POWER_ARROWS, 1).setWeight(50))
+                .add(enchantedBook(Enchantments.LOOTING, 1).setWeight(50))
+                .add(enchantedBook(Enchantments.POWER, 1).setWeight(50))
                 .add(enchantedBook(Enchantments.PROJECTILE_PROTECTION, 1).setWeight(50))
-                .add(enchantedBook(Enchantments.ALL_DAMAGE_PROTECTION, 1).setWeight(50))
-                .add(enchantedBook(Enchantments.PUNCH_ARROWS, 1).setWeight(50))
+                .add(enchantedBook(Enchantments.PROTECTION, 1).setWeight(50))
+                .add(enchantedBook(Enchantments.PUNCH, 1).setWeight(50))
                 .add(enchantedBook(Enchantments.QUICK_CHARGE, 1).setWeight(50))
                 .add(enchantedBook(Enchantments.RESPIRATION, 1).setWeight(50))
                 .add(enchantedBook(Enchantments.SHARPNESS, 1).setWeight(50))
@@ -101,18 +110,18 @@ public class DefaultEnchanterCraftingProvider extends CustomRecipeAndLootTablePr
                 .add(enchantedBook(Enchantments.BANE_OF_ARTHROPODS, 2).setWeight(25))
                 .add(enchantedBook(Enchantments.BLAST_PROTECTION, 2).setWeight(25))
                 .add(enchantedBook(Enchantments.DEPTH_STRIDER, 2).setWeight(25))
-                .add(enchantedBook(Enchantments.BLOCK_EFFICIENCY, 2).setWeight(25))
-                .add(enchantedBook(Enchantments.FALL_PROTECTION, 2).setWeight(25))
+                .add(enchantedBook(Enchantments.EFFICIENCY, 2).setWeight(25))
+                .add(enchantedBook(Enchantments.FEATHER_FALLING, 2).setWeight(25))
                 .add(enchantedBook(Enchantments.FIRE_ASPECT, 2).setWeight(25))
                 .add(enchantedBook(Enchantments.FIRE_PROTECTION, 2).setWeight(25))
-                .add(enchantedBook(Enchantments.FLAMING_ARROWS, 1).setWeight(25))
+                .add(enchantedBook(Enchantments.FLAME, 1).setWeight(25))
                 .add(enchantedBook(Enchantments.FROST_WALKER, 2).setWeight(25))
                 .add(enchantedBook(Enchantments.KNOCKBACK, 2).setWeight(25))
-                .add(enchantedBook(Enchantments.MOB_LOOTING, 2).setWeight(25))
-                .add(enchantedBook(Enchantments.POWER_ARROWS, 2).setWeight(25))
+                .add(enchantedBook(Enchantments.LOOTING, 2).setWeight(25))
+                .add(enchantedBook(Enchantments.POWER, 2).setWeight(25))
                 .add(enchantedBook(Enchantments.PROJECTILE_PROTECTION, 2).setWeight(25))
-                .add(enchantedBook(Enchantments.ALL_DAMAGE_PROTECTION, 2).setWeight(25))
-                .add(enchantedBook(Enchantments.PUNCH_ARROWS, 2).setWeight(25))
+                .add(enchantedBook(Enchantments.PROTECTION, 2).setWeight(25))
+                .add(enchantedBook(Enchantments.PUNCH, 2).setWeight(25))
                 .add(enchantedBook(Enchantments.QUICK_CHARGE, 2).setWeight(25))
                 .add(enchantedBook(Enchantments.RESPIRATION, 2).setWeight(25))
                 .add(enchantedBook(Enchantments.SHARPNESS, 2).setWeight(25))
@@ -128,18 +137,18 @@ public class DefaultEnchanterCraftingProvider extends CustomRecipeAndLootTablePr
                 .add(enchantedBook(Enchantments.BANE_OF_ARTHROPODS, 1).setWeight(50))
                 .add(enchantedBook(Enchantments.BLAST_PROTECTION, 1).setWeight(50))
                 .add(enchantedBook(Enchantments.DEPTH_STRIDER, 1).setWeight(50))
-                .add(enchantedBook(Enchantments.BLOCK_EFFICIENCY, 1).setWeight(50))
-                .add(enchantedBook(Enchantments.FALL_PROTECTION, 1).setWeight(50))
+                .add(enchantedBook(Enchantments.EFFICIENCY, 1).setWeight(50))
+                .add(enchantedBook(Enchantments.FEATHER_FALLING, 1).setWeight(50))
                 .add(enchantedBook(Enchantments.FIRE_ASPECT, 1).setWeight(50))
                 .add(enchantedBook(Enchantments.FIRE_PROTECTION, 1).setWeight(50))
-                .add(enchantedBook(Enchantments.FLAMING_ARROWS, 1).setWeight(50))
+                .add(enchantedBook(Enchantments.FLAME, 1).setWeight(50))
                 .add(enchantedBook(Enchantments.FROST_WALKER, 1).setWeight(50))
                 .add(enchantedBook(Enchantments.KNOCKBACK, 1).setWeight(50))
-                .add(enchantedBook(Enchantments.MOB_LOOTING, 1).setWeight(50))
-                .add(enchantedBook(Enchantments.POWER_ARROWS, 1).setWeight(50))
+                .add(enchantedBook(Enchantments.LOOTING, 1).setWeight(50))
+                .add(enchantedBook(Enchantments.POWER, 1).setWeight(50))
                 .add(enchantedBook(Enchantments.PROJECTILE_PROTECTION, 1).setWeight(50))
-                .add(enchantedBook(Enchantments.ALL_DAMAGE_PROTECTION, 1).setWeight(50))
-                .add(enchantedBook(Enchantments.PUNCH_ARROWS, 1).setWeight(50))
+                .add(enchantedBook(Enchantments.PROTECTION, 1).setWeight(50))
+                .add(enchantedBook(Enchantments.PUNCH, 1).setWeight(50))
                 .add(enchantedBook(Enchantments.QUICK_CHARGE, 1).setWeight(50))
                 .add(enchantedBook(Enchantments.RESPIRATION, 1).setWeight(50))
                 .add(enchantedBook(Enchantments.SHARPNESS, 1).setWeight(50))
@@ -151,18 +160,18 @@ public class DefaultEnchanterCraftingProvider extends CustomRecipeAndLootTablePr
                 .add(enchantedBook(Enchantments.BANE_OF_ARTHROPODS, 2).setWeight(25))
                 .add(enchantedBook(Enchantments.BLAST_PROTECTION, 2).setWeight(25))
                 .add(enchantedBook(Enchantments.DEPTH_STRIDER, 2).setWeight(25))
-                .add(enchantedBook(Enchantments.BLOCK_EFFICIENCY, 2).setWeight(25))
-                .add(enchantedBook(Enchantments.FALL_PROTECTION, 2).setWeight(25))
+                .add(enchantedBook(Enchantments.EFFICIENCY, 2).setWeight(25))
+                .add(enchantedBook(Enchantments.FEATHER_FALLING, 2).setWeight(25))
                 .add(enchantedBook(Enchantments.FIRE_ASPECT, 2).setWeight(25))
                 .add(enchantedBook(Enchantments.FIRE_PROTECTION, 2).setWeight(25))
-                .add(enchantedBook(Enchantments.FLAMING_ARROWS, 1).setWeight(25))
+                .add(enchantedBook(Enchantments.FLAME, 1).setWeight(25))
                 .add(enchantedBook(Enchantments.FROST_WALKER, 2).setWeight(25))
                 .add(enchantedBook(Enchantments.KNOCKBACK, 2).setWeight(25))
-                .add(enchantedBook(Enchantments.MOB_LOOTING, 2).setWeight(25))
-                .add(enchantedBook(Enchantments.POWER_ARROWS, 2).setWeight(25))
+                .add(enchantedBook(Enchantments.LOOTING, 2).setWeight(25))
+                .add(enchantedBook(Enchantments.POWER, 2).setWeight(25))
                 .add(enchantedBook(Enchantments.PROJECTILE_PROTECTION, 2).setWeight(25))
-                .add(enchantedBook(Enchantments.ALL_DAMAGE_PROTECTION, 2).setWeight(25))
-                .add(enchantedBook(Enchantments.PUNCH_ARROWS, 2).setWeight(25))
+                .add(enchantedBook(Enchantments.PROTECTION, 2).setWeight(25))
+                .add(enchantedBook(Enchantments.PUNCH, 2).setWeight(25))
                 .add(enchantedBook(Enchantments.QUICK_CHARGE, 2).setWeight(25))
                 .add(enchantedBook(Enchantments.RESPIRATION, 2).setWeight(25))
                 .add(enchantedBook(Enchantments.SHARPNESS, 2).setWeight(25))
@@ -174,25 +183,26 @@ public class DefaultEnchanterCraftingProvider extends CustomRecipeAndLootTablePr
                 .add(enchantedBook(Enchantments.BANE_OF_ARTHROPODS, 3).setWeight(15))
                 .add(enchantedBook(Enchantments.BLAST_PROTECTION, 3).setWeight(15))
                 .add(enchantedBook(Enchantments.DEPTH_STRIDER, 3).setWeight(15))
-                .add(enchantedBook(Enchantments.BLOCK_EFFICIENCY, 3).setWeight(15))
-                .add(enchantedBook(Enchantments.FALL_PROTECTION, 3).setWeight(15))
+                .add(enchantedBook(Enchantments.EFFICIENCY, 3).setWeight(15))
+                .add(enchantedBook(Enchantments.FEATHER_FALLING, 3).setWeight(15))
                 .add(enchantedBook(Enchantments.FIRE_ASPECT, 2).setWeight(15))
                 .add(enchantedBook(Enchantments.FIRE_PROTECTION, 3).setWeight(15))
-                .add(enchantedBook(Enchantments.FLAMING_ARROWS, 1).setWeight(15))
+                .add(enchantedBook(Enchantments.FLAME, 1).setWeight(15))
                 .add(enchantedBook(Enchantments.FROST_WALKER, 2).setWeight(15))
                 .add(enchantedBook(Enchantments.KNOCKBACK, 2).setWeight(15))
-                .add(enchantedBook(Enchantments.MOB_LOOTING, 3).setWeight(15))
-                .add(enchantedBook(Enchantments.POWER_ARROWS, 3).setWeight(15))
+                .add(enchantedBook(Enchantments.LOOTING, 3).setWeight(15))
+                .add(enchantedBook(Enchantments.POWER, 3).setWeight(15))
                 .add(enchantedBook(Enchantments.PROJECTILE_PROTECTION, 3).setWeight(15))
-                .add(enchantedBook(Enchantments.ALL_DAMAGE_PROTECTION, 3).setWeight(15))
-                .add(enchantedBook(Enchantments.PUNCH_ARROWS, 2).setWeight(15))
+                .add(enchantedBook(Enchantments.PROTECTION, 3).setWeight(15))
+                .add(enchantedBook(Enchantments.PUNCH, 2).setWeight(15))
                 .add(enchantedBook(Enchantments.QUICK_CHARGE, 3).setWeight(15))
                 .add(enchantedBook(Enchantments.RESPIRATION, 3).setWeight(15))
                 .add(enchantedBook(Enchantments.SHARPNESS, 3).setWeight(15))
                 .add(enchantedBook(Enchantments.SMITE, 3).setWeight(15))
                 .add(enchantedBook(Enchantments.SWEEPING_EDGE, 3).setWeight(15))
                 .add(enchantedBook(Enchantments.UNBREAKING, 3).setWeight(15))
-                .add(enchantedBook(Enchantments.BLOCK_FORTUNE, 1).setWeight(1))
+                .add(enchantedBook(Enchantments.FORTUNE, 1).setWeight(1))
+                .add(enchantedBook(ModEnchants.raiderDamage, 1).setWeight(15))
         ));
 
         // building level 4
@@ -203,18 +213,18 @@ public class DefaultEnchanterCraftingProvider extends CustomRecipeAndLootTablePr
                 .add(enchantedBook(Enchantments.BANE_OF_ARTHROPODS, 2).setWeight(25))
                 .add(enchantedBook(Enchantments.BLAST_PROTECTION, 2).setWeight(25))
                 .add(enchantedBook(Enchantments.DEPTH_STRIDER, 2).setWeight(25))
-                .add(enchantedBook(Enchantments.BLOCK_EFFICIENCY, 2).setWeight(25))
-                .add(enchantedBook(Enchantments.FALL_PROTECTION, 2).setWeight(25))
+                .add(enchantedBook(Enchantments.EFFICIENCY, 2).setWeight(25))
+                .add(enchantedBook(Enchantments.FEATHER_FALLING, 2).setWeight(25))
                 .add(enchantedBook(Enchantments.FIRE_ASPECT, 2).setWeight(25))
                 .add(enchantedBook(Enchantments.FIRE_PROTECTION, 2).setWeight(25))
-                .add(enchantedBook(Enchantments.FLAMING_ARROWS, 1).setWeight(25))
+                .add(enchantedBook(Enchantments.FLAME, 1).setWeight(25))
                 .add(enchantedBook(Enchantments.FROST_WALKER, 2).setWeight(25))
                 .add(enchantedBook(Enchantments.KNOCKBACK, 2).setWeight(25))
-                .add(enchantedBook(Enchantments.MOB_LOOTING, 2).setWeight(25))
-                .add(enchantedBook(Enchantments.POWER_ARROWS, 2).setWeight(25))
+                .add(enchantedBook(Enchantments.LOOTING, 2).setWeight(25))
+                .add(enchantedBook(Enchantments.POWER, 2).setWeight(25))
                 .add(enchantedBook(Enchantments.PROJECTILE_PROTECTION, 2).setWeight(25))
-                .add(enchantedBook(Enchantments.ALL_DAMAGE_PROTECTION, 2).setWeight(25))
-                .add(enchantedBook(Enchantments.PUNCH_ARROWS, 2).setWeight(25))
+                .add(enchantedBook(Enchantments.PROTECTION, 2).setWeight(25))
+                .add(enchantedBook(Enchantments.PUNCH, 2).setWeight(25))
                 .add(enchantedBook(Enchantments.QUICK_CHARGE, 2).setWeight(25))
                 .add(enchantedBook(Enchantments.RESPIRATION, 2).setWeight(25))
                 .add(enchantedBook(Enchantments.SHARPNESS, 2).setWeight(25))
@@ -226,49 +236,50 @@ public class DefaultEnchanterCraftingProvider extends CustomRecipeAndLootTablePr
                 .add(enchantedBook(Enchantments.BANE_OF_ARTHROPODS, 3).setWeight(15))
                 .add(enchantedBook(Enchantments.BLAST_PROTECTION, 3).setWeight(15))
                 .add(enchantedBook(Enchantments.DEPTH_STRIDER, 3).setWeight(15))
-                .add(enchantedBook(Enchantments.BLOCK_EFFICIENCY, 3).setWeight(15))
-                .add(enchantedBook(Enchantments.FALL_PROTECTION, 3).setWeight(15))
+                .add(enchantedBook(Enchantments.EFFICIENCY, 3).setWeight(15))
+                .add(enchantedBook(Enchantments.FEATHER_FALLING, 3).setWeight(15))
                 .add(enchantedBook(Enchantments.FIRE_ASPECT, 2).setWeight(15))
                 .add(enchantedBook(Enchantments.FIRE_PROTECTION, 3).setWeight(15))
-                .add(enchantedBook(Enchantments.FLAMING_ARROWS, 1).setWeight(15))
+                .add(enchantedBook(Enchantments.FLAME, 1).setWeight(15))
                 .add(enchantedBook(Enchantments.FROST_WALKER, 2).setWeight(15))
                 .add(enchantedBook(Enchantments.KNOCKBACK, 2).setWeight(15))
-                .add(enchantedBook(Enchantments.MOB_LOOTING, 3).setWeight(15))
-                .add(enchantedBook(Enchantments.POWER_ARROWS, 3).setWeight(15))
+                .add(enchantedBook(Enchantments.LOOTING, 3).setWeight(15))
+                .add(enchantedBook(Enchantments.POWER, 3).setWeight(15))
                 .add(enchantedBook(Enchantments.PROJECTILE_PROTECTION, 3).setWeight(15))
-                .add(enchantedBook(Enchantments.ALL_DAMAGE_PROTECTION, 3).setWeight(15))
-                .add(enchantedBook(Enchantments.PUNCH_ARROWS, 2).setWeight(15))
+                .add(enchantedBook(Enchantments.PROTECTION, 3).setWeight(15))
+                .add(enchantedBook(Enchantments.PUNCH, 2).setWeight(15))
                 .add(enchantedBook(Enchantments.RESPIRATION, 3).setWeight(15))
                 .add(enchantedBook(Enchantments.QUICK_CHARGE, 3).setWeight(15))
                 .add(enchantedBook(Enchantments.SHARPNESS, 3).setWeight(15))
                 .add(enchantedBook(Enchantments.SMITE, 3).setWeight(15))
                 .add(enchantedBook(Enchantments.SWEEPING_EDGE, 3).setWeight(15))
                 .add(enchantedBook(Enchantments.UNBREAKING, 3).setWeight(15))
-                .add(enchantedBook(Enchantments.BLOCK_FORTUNE, 1).setWeight(1))
+                .add(enchantedBook(Enchantments.FORTUNE, 1).setWeight(1))
+                .add(enchantedBook(ModEnchants.raiderDamage, 1).setWeight(15))
                 // plus new level 4 enchants
                 .add(enchantedBook(Enchantments.AQUA_AFFINITY, 1).setWeight(5))
                 .add(enchantedBook(Enchantments.BANE_OF_ARTHROPODS, 4).setWeight(5))
                 .add(enchantedBook(Enchantments.BLAST_PROTECTION, 4).setWeight(5))
                 .add(enchantedBook(Enchantments.DEPTH_STRIDER, 3).setWeight(5))
-                .add(enchantedBook(Enchantments.BLOCK_EFFICIENCY, 4).setWeight(5))
-                .add(enchantedBook(Enchantments.FALL_PROTECTION, 4).setWeight(5))
+                .add(enchantedBook(Enchantments.EFFICIENCY, 4).setWeight(5))
+                .add(enchantedBook(Enchantments.FEATHER_FALLING, 4).setWeight(5))
                 .add(enchantedBook(Enchantments.FIRE_ASPECT, 2).setWeight(5))
                 .add(enchantedBook(Enchantments.FIRE_PROTECTION, 4).setWeight(5))
-                .add(enchantedBook(Enchantments.FLAMING_ARROWS, 1).setWeight(5))
+                .add(enchantedBook(Enchantments.FLAME, 1).setWeight(5))
                 .add(enchantedBook(Enchantments.FROST_WALKER, 2).setWeight(5))
-                .add(enchantedBook(Enchantments.INFINITY_ARROWS, 1).setWeight(5))
+                .add(enchantedBook(Enchantments.INFINITY, 1).setWeight(5))
                 .add(enchantedBook(Enchantments.KNOCKBACK, 2).setWeight(5))
-                .add(enchantedBook(Enchantments.MOB_LOOTING, 3).setWeight(5))
-                .add(enchantedBook(Enchantments.POWER_ARROWS, 4).setWeight(5))
+                .add(enchantedBook(Enchantments.LOOTING, 3).setWeight(5))
+                .add(enchantedBook(Enchantments.POWER, 4).setWeight(5))
                 .add(enchantedBook(Enchantments.PROJECTILE_PROTECTION, 4).setWeight(5))
-                .add(enchantedBook(Enchantments.PUNCH_ARROWS, 2).setWeight(5))
+                .add(enchantedBook(Enchantments.PUNCH, 2).setWeight(5))
                 .add(enchantedBook(Enchantments.QUICK_CHARGE, 3).setWeight(5))
                 .add(enchantedBook(Enchantments.RESPIRATION, 3).setWeight(5))
                 .add(enchantedBook(Enchantments.SHARPNESS, 4).setWeight(5))
                 .add(enchantedBook(Enchantments.SMITE, 4).setWeight(5))
                 .add(enchantedBook(Enchantments.SWEEPING_EDGE, 3).setWeight(5))
                 .add(enchantedBook(Enchantments.UNBREAKING, 3).setWeight(5))
-                .add(enchantedBook(Enchantments.BLOCK_FORTUNE, 2).setWeight(1))
+                .add(enchantedBook(Enchantments.FORTUNE, 2).setWeight(1))
         ));
 
         // building level 5
@@ -279,69 +290,70 @@ public class DefaultEnchanterCraftingProvider extends CustomRecipeAndLootTablePr
                 .add(enchantedBook(Enchantments.BANE_OF_ARTHROPODS, 3).setWeight(15))
                 .add(enchantedBook(Enchantments.BLAST_PROTECTION, 3).setWeight(15))
                 .add(enchantedBook(Enchantments.DEPTH_STRIDER, 3).setWeight(15))
-                .add(enchantedBook(Enchantments.BLOCK_EFFICIENCY, 3).setWeight(15))
-                .add(enchantedBook(Enchantments.FALL_PROTECTION, 3).setWeight(15))
+                .add(enchantedBook(Enchantments.EFFICIENCY, 3).setWeight(15))
+                .add(enchantedBook(Enchantments.FEATHER_FALLING, 3).setWeight(15))
                 .add(enchantedBook(Enchantments.FIRE_ASPECT, 2).setWeight(15))
                 .add(enchantedBook(Enchantments.FIRE_PROTECTION, 3).setWeight(15))
-                .add(enchantedBook(Enchantments.FLAMING_ARROWS, 1).setWeight(15))
+                .add(enchantedBook(Enchantments.FLAME, 1).setWeight(15))
                 .add(enchantedBook(Enchantments.FROST_WALKER, 2).setWeight(15))
                 .add(enchantedBook(Enchantments.KNOCKBACK, 2).setWeight(15))
-                .add(enchantedBook(Enchantments.MOB_LOOTING, 3).setWeight(15))
-                .add(enchantedBook(Enchantments.POWER_ARROWS, 3).setWeight(15))
+                .add(enchantedBook(Enchantments.LOOTING, 3).setWeight(15))
+                .add(enchantedBook(Enchantments.POWER, 3).setWeight(15))
                 .add(enchantedBook(Enchantments.PROJECTILE_PROTECTION, 3).setWeight(15))
-                .add(enchantedBook(Enchantments.ALL_DAMAGE_PROTECTION, 3).setWeight(15))
-                .add(enchantedBook(Enchantments.PUNCH_ARROWS, 2).setWeight(15))
+                .add(enchantedBook(Enchantments.PROTECTION, 3).setWeight(15))
+                .add(enchantedBook(Enchantments.PUNCH, 2).setWeight(15))
                 .add(enchantedBook(Enchantments.QUICK_CHARGE, 3).setWeight(15))
                 .add(enchantedBook(Enchantments.RESPIRATION, 3).setWeight(15))
                 .add(enchantedBook(Enchantments.SHARPNESS, 3).setWeight(15))
                 .add(enchantedBook(Enchantments.SMITE, 3).setWeight(15))
                 .add(enchantedBook(Enchantments.SWEEPING_EDGE, 3).setWeight(15))
                 .add(enchantedBook(Enchantments.UNBREAKING, 3).setWeight(15))
-                .add(enchantedBook(Enchantments.BLOCK_FORTUNE, 1).setWeight(1))
+                .add(enchantedBook(ModEnchants.raiderDamage, 1).setWeight(15))
+                .add(enchantedBook(Enchantments.FORTUNE, 1).setWeight(1))
                 // plus level 4 enchants
                 .add(enchantedBook(Enchantments.AQUA_AFFINITY, 1).setWeight(5))
                 .add(enchantedBook(Enchantments.BANE_OF_ARTHROPODS, 4).setWeight(5))
                 .add(enchantedBook(Enchantments.BLAST_PROTECTION, 4).setWeight(5))
                 .add(enchantedBook(Enchantments.DEPTH_STRIDER, 3).setWeight(5))
-                .add(enchantedBook(Enchantments.BLOCK_EFFICIENCY, 4).setWeight(5))
-                .add(enchantedBook(Enchantments.FALL_PROTECTION, 4).setWeight(5))
+                .add(enchantedBook(Enchantments.EFFICIENCY, 4).setWeight(5))
+                .add(enchantedBook(Enchantments.FEATHER_FALLING, 4).setWeight(5))
                 .add(enchantedBook(Enchantments.FIRE_ASPECT, 2).setWeight(5))
                 .add(enchantedBook(Enchantments.FIRE_PROTECTION, 4).setWeight(5))
-                .add(enchantedBook(Enchantments.FLAMING_ARROWS, 1).setWeight(5))
+                .add(enchantedBook(Enchantments.FLAME, 1).setWeight(5))
                 .add(enchantedBook(Enchantments.FROST_WALKER, 2).setWeight(5))
-                .add(enchantedBook(Enchantments.INFINITY_ARROWS, 1).setWeight(5))
+                .add(enchantedBook(Enchantments.INFINITY, 1).setWeight(5))
                 .add(enchantedBook(Enchantments.KNOCKBACK, 2).setWeight(5))
-                .add(enchantedBook(Enchantments.MOB_LOOTING, 3).setWeight(5))
-                .add(enchantedBook(Enchantments.POWER_ARROWS, 4).setWeight(5))
+                .add(enchantedBook(Enchantments.LOOTING, 3).setWeight(5))
+                .add(enchantedBook(Enchantments.POWER, 4).setWeight(5))
                 .add(enchantedBook(Enchantments.PROJECTILE_PROTECTION, 4).setWeight(5))
-                .add(enchantedBook(Enchantments.PUNCH_ARROWS, 2).setWeight(5))
+                .add(enchantedBook(Enchantments.PUNCH, 2).setWeight(5))
                 .add(enchantedBook(Enchantments.QUICK_CHARGE, 3).setWeight(5))
                 .add(enchantedBook(Enchantments.RESPIRATION, 3).setWeight(5))
                 .add(enchantedBook(Enchantments.SHARPNESS, 4).setWeight(5))
                 .add(enchantedBook(Enchantments.SMITE, 4).setWeight(5))
                 .add(enchantedBook(Enchantments.SWEEPING_EDGE, 3).setWeight(5))
                 .add(enchantedBook(Enchantments.UNBREAKING, 3).setWeight(5))
-                .add(enchantedBook(Enchantments.BLOCK_FORTUNE, 2).setWeight(1))
+                .add(enchantedBook(Enchantments.FORTUNE, 2).setWeight(1))
                 // plus new level 5 enchants
                 .add(enchantedBook(Enchantments.AQUA_AFFINITY, 1).setWeight(1))
                 .add(enchantedBook(Enchantments.BANE_OF_ARTHROPODS, 5).setWeight(1))
                 .add(enchantedBook(Enchantments.BLAST_PROTECTION, 4).setWeight(1))
                 .add(enchantedBook(Enchantments.DEPTH_STRIDER, 3).setWeight(1))
-                .add(enchantedBook(Enchantments.BLOCK_EFFICIENCY, 5).setWeight(1))
-                .add(enchantedBook(Enchantments.FALL_PROTECTION, 4).setWeight(1))
+                .add(enchantedBook(Enchantments.EFFICIENCY, 5).setWeight(1))
+                .add(enchantedBook(Enchantments.FEATHER_FALLING, 4).setWeight(1))
                 .add(enchantedBook(Enchantments.FIRE_ASPECT, 2).setWeight(1))
                 .add(enchantedBook(Enchantments.FIRE_PROTECTION, 4).setWeight(1))
-                .add(enchantedBook(Enchantments.FLAMING_ARROWS, 1).setWeight(1))
+                .add(enchantedBook(Enchantments.FLAME, 1).setWeight(1))
                 .add(enchantedBook(Enchantments.FROST_WALKER, 2).setWeight(1))
-                .add(enchantedBook(Enchantments.INFINITY_ARROWS, 1).setWeight(1))
+                .add(enchantedBook(Enchantments.INFINITY, 1).setWeight(1))
                 .add(enchantedBook(Enchantments.KNOCKBACK, 2).setWeight(1))
-                .add(enchantedBook(Enchantments.MOB_LOOTING, 3).setWeight(1))
+                .add(enchantedBook(Enchantments.LOOTING, 3).setWeight(1))
                 .add(enchantedBook(Enchantments.MENDING, 1).setWeight(1))
                 .add(enchantedBook(Enchantments.MULTISHOT, 1).setWeight(1))
-                .add(enchantedBook(Enchantments.POWER_ARROWS, 5).setWeight(1))
+                .add(enchantedBook(Enchantments.POWER, 5).setWeight(1))
                 .add(enchantedBook(Enchantments.PROJECTILE_PROTECTION, 4).setWeight(1))
-                .add(enchantedBook(Enchantments.ALL_DAMAGE_PROTECTION, 4).setWeight(1))
-                .add(enchantedBook(Enchantments.PUNCH_ARROWS, 2).setWeight(1))
+                .add(enchantedBook(Enchantments.PROTECTION, 4).setWeight(1))
+                .add(enchantedBook(Enchantments.PUNCH, 2).setWeight(1))
                 .add(enchantedBook(Enchantments.QUICK_CHARGE, 3).setWeight(1))
                 .add(enchantedBook(Enchantments.RESPIRATION, 3).setWeight(1))
                 .add(enchantedBook(Enchantments.SHARPNESS, 5).setWeight(1))
@@ -349,19 +361,19 @@ public class DefaultEnchanterCraftingProvider extends CustomRecipeAndLootTablePr
                 .add(enchantedBook(Enchantments.SMITE, 5).setWeight(1))
                 .add(enchantedBook(Enchantments.SWEEPING_EDGE, 3).setWeight(1))
                 .add(enchantedBook(Enchantments.UNBREAKING, 3).setWeight(1))
-                .add(enchantedBook(Enchantments.BLOCK_FORTUNE, 3).setWeight(1))
+                .add(enchantedBook(Enchantments.FORTUNE, 3).setWeight(1))
+                .add(enchantedBook(ModEnchants.raiderDamage, 2).setWeight(1))
         ));
+
+        return CompletableFuture.completedFuture(provider);
     }
 
     @NotNull
-    private LootPoolSingletonContainer.Builder<?> enchantedBook(final Enchantment enchantment, final int level)
+    private LootPoolSingletonContainer.Builder<?> enchantedBook(final ResourceKey<Enchantment> key, final int level)
     {
-        if (enchantment.getMaxLevel() < level)
-        {
-            throw new IllegalArgumentException("The enchantment level " + level + " is too big for: " + enchantment.getDescriptionId());
-        }
+        final Holder<Enchantment> enchantment = provider.holderOrThrow(key);
         final ItemStack stack = new ItemStack(Items.ENCHANTED_BOOK);
-        EnchantedBookItem.addEnchantment(stack, new EnchantmentInstance(enchantment, level));
+        stack.enchant(enchantment, level);
         return SimpleLootTableProvider.itemStack(stack);
     }
 
@@ -373,14 +385,14 @@ public class DefaultEnchanterCraftingProvider extends CustomRecipeAndLootTablePr
     }
 
     @Override
-    protected void registerRecipes(@NotNull final Consumer<FinishedRecipe> consumer)
+    protected void registerRecipes(@NotNull final Consumer<CustomRecipeBuilder> consumer)
     {
         final List<ItemStorage> tome = Collections.singletonList(new ItemStorage(
                 new ItemStack(ModItems.ancientTome), true, true));
 
         for (int buildingLevel = 1; buildingLevel <= MAX_BUILDING_LEVEL; ++buildingLevel)
         {
-            CustomRecipeProvider.CustomRecipeBuilder.create(ENCHANTER, MODULE_CUSTOM, "tome" + buildingLevel)
+            recipe(ENCHANTER, MODULE_CUSTOM, "tome" + buildingLevel)
                     .minBuildingLevel(buildingLevel)
                     .maxBuildingLevel(buildingLevel)
                     .inputs(tome)
@@ -389,20 +401,54 @@ public class DefaultEnchanterCraftingProvider extends CustomRecipeAndLootTablePr
                     .build(consumer);
         }
 
+        recipe(ENCHANTER, MODULE_CUSTOM, "scroll_tp")
+                .inputs(List.of(new ItemStorage(new ItemStack(Items.PAPER, 3)),
+                        new ItemStorage(new ItemStack(Items.COMPASS)),
+                        new ItemStorage(new ItemStack(com.ldtteam.structurize.items.ModItems.buildTool.get()))))
+                .result(new ItemStack(ModItems.scrollColonyTP, 3))
+                .showTooltip(true)
+                .build(consumer);
 
+        recipe(ENCHANTER, MODULE_CUSTOM, "scroll_area_tp")
+                .inputs(List.of(new ItemStorage(new ItemStack(ModItems.scrollColonyTP, 3))))
+                .result(new ItemStack(ModItems.scrollColonyAreaTP))
+                .minBuildingLevel(2)
+                .showTooltip(true)
+                .build(consumer);
 
+        recipe(ENCHANTER, MODULE_CUSTOM, "scroll_guard_help")
+                .inputs(List.of(new ItemStorage(new ItemStack(ModItems.scrollColonyTP)),
+                        new ItemStorage(new ItemStack(Items.LAPIS_LAZULI, 5)),
+                        new ItemStorage(new ItemStack(Items.ENDER_PEARL)),
+                        new ItemStorage(new ItemStack(Items.PAPER))))
+                .result(new ItemStack(ModItems.scrollGuardHelp, 2))
+                .minBuildingLevel(3)
+                .minResearchId(ResearchConstants.MORE_SCROLLS)
+                .showTooltip(true)
+                .build(consumer);
+
+        recipe(ENCHANTER, MODULE_CUSTOM, "scroll_highlight")
+                .inputs(List.of(new ItemStorage(new ItemStack(ModItems.scrollColonyTP, 3)),
+                        new ItemStorage(new ItemStack(Items.GLOWSTONE_DUST, 6)),
+                        new ItemStorage(new ItemStack(Items.PAPER, 2))))
+                .result(new ItemStack(ModItems.scrollHighLight, 5))
+                .minBuildingLevel(3)
+                .minResearchId(ResearchConstants.MORE_SCROLLS)
+                .showTooltip(true)
+                .build(consumer);
     }
 
+    @NotNull
     @Override
-    protected void registerTables(@NotNull final SimpleLootTableProvider.LootTableRegistrar registrar)
+    protected List<LootTableProvider.SubProviderEntry> registerTables()
     {
-        for (int i = 0; i < levels.size(); i++)
+        return List.of(new LootTableProvider.SubProviderEntry(provider -> builder ->
         {
-            final int buildingLevel = i + 1;
-            final LootTable.Builder lootTable = levels.get(i);
-
-            registrar.register(new ResourceLocation(MOD_ID, "recipes/" + ENCHANTER + buildingLevel),
-                    LootContextParamSets.ALL_PARAMS, lootTable);
-        }
+            for (int i = 0; i < levels.size(); i++)
+            {
+                final int buildingLevel = i + 1;
+                builder.accept(table(new ResourceLocation(MOD_ID, "recipes/" + ENCHANTER + buildingLevel)), levels.get(i));
+            }
+        }, LootContextParamSets.ALL_PARAMS));
     }
 }

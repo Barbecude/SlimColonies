@@ -5,41 +5,41 @@ import com.ldtteam.structurize.blueprints.v1.Blueprint;
 import com.ldtteam.structurize.blueprints.v1.BlueprintTagUtils;
 import com.ldtteam.structurize.placement.handlers.placement.PlacementError;
 import com.ldtteam.structurize.util.BlockUtils;
-import net.minecraft.core.BlockPos;
-import net.minecraft.world.InteractionHand;
-import net.minecraft.world.InteractionResult;
-import net.minecraft.world.InteractionResultHolder;
-import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.item.Item;
-import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.context.UseOnContext;
-import net.minecraft.world.level.Level;
-import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.level.material.Fluids;
 import no.monopixel.slimcolonies.api.colony.IColony;
 import no.monopixel.slimcolonies.api.colony.IColonyManager;
 import no.monopixel.slimcolonies.api.colony.permissions.Action;
 import no.monopixel.slimcolonies.api.items.ISupplyItem;
+import no.monopixel.slimcolonies.api.items.component.SupplyData;
 import no.monopixel.slimcolonies.api.util.MessageUtils;
 import no.monopixel.slimcolonies.api.util.WorldUtil;
-import no.monopixel.slimcolonies.core.SlimColonies;
+import no.monopixel.slimcolonies.core.MineColonies;
 import no.monopixel.slimcolonies.core.client.gui.WindowSupplies;
 import no.monopixel.slimcolonies.core.client.gui.WindowSupplyStory;
 import no.monopixel.slimcolonies.core.entity.pathfinding.PathfindingUtils;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.material.Fluids;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.context.UseOnContext;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.level.Level;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
 
-import static no.monopixel.slimcolonies.api.util.constant.NbtTagConstants.TAG_RANDOM_KEY;
-import static no.monopixel.slimcolonies.api.util.constant.NbtTagConstants.TAG_SAW_STORY;
 import static no.monopixel.slimcolonies.api.util.constant.TranslationConstants.CANT_PLACE_COLONY_IN_OTHER_DIM;
+
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResult;
+import net.minecraft.world.InteractionResultHolder;
 
 /**
  * Class to handle the placement of the supplychest and with it the supplyship.
  */
-public class ItemSupplyChestDeployer extends AbstractItemSlimColonies implements ISupplyItem
+public class ItemSupplyChestDeployer extends AbstractItemMinecolonies implements ISupplyItem
 {
     /**
      * StructureIterator name and location.
@@ -75,14 +75,15 @@ public class ItemSupplyChestDeployer extends AbstractItemSlimColonies implements
     @Override
     public InteractionResult useOn(final UseOnContext ctx)
     {
-        if (!ctx.getItemInHand().getOrCreateTag().contains(TAG_RANDOM_KEY))
+        final SupplyData currentComponent = SupplyData.readFromItemStack(ctx.getItemInHand());
+        if (!currentComponent.hasRandomKey())
         {
-            ctx.getItemInHand().getTag().putLong(TAG_RANDOM_KEY, ctx.getClickedPos().asLong());
+            currentComponent.withRandomKey(ctx.getClickedPos().asLong()).writeToItemStack(ctx.getItemInHand());
         }
 
         if (ctx.getLevel().isClientSide)
         {
-            if (!SlimColonies.getConfig().getServer().allowOtherDimColonies.get() && !WorldUtil.isOverworldType(ctx.getLevel()))
+            if (!MineColonies.getConfig().getServer().allowOtherDimColonies.get() && !WorldUtil.isOverworldType(ctx.getLevel()))
             {
                 return InteractionResult.FAIL;
             }
@@ -97,14 +98,15 @@ public class ItemSupplyChestDeployer extends AbstractItemSlimColonies implements
     public InteractionResultHolder<ItemStack> use(final Level worldIn, final Player playerIn, final InteractionHand hand)
     {
         final ItemStack stack = playerIn.getItemInHand(hand);
-        if (!stack.getOrCreateTag().contains(TAG_RANDOM_KEY))
+        final SupplyData currentComponent = SupplyData.readFromItemStack(stack);
+        if (currentComponent.hasRandomKey())
         {
-            stack.getTag().putLong(TAG_RANDOM_KEY, playerIn.blockPosition().asLong());
+            currentComponent.withRandomKey(playerIn.blockPosition().asLong()).writeToItemStack(stack);
         }
 
         if (worldIn.isClientSide)
         {
-            if (!SlimColonies.getConfig().getServer().allowOtherDimColonies.get() && !WorldUtil.isOverworldType(worldIn))
+            if (!MineColonies.getConfig().getServer().allowOtherDimColonies.get() && !WorldUtil.isOverworldType(worldIn))
             {
                 MessageUtils.format(CANT_PLACE_COLONY_IN_OTHER_DIM).sendTo(playerIn);
                 return new InteractionResultHolder<>(InteractionResult.FAIL, stack);
@@ -125,11 +127,11 @@ public class ItemSupplyChestDeployer extends AbstractItemSlimColonies implements
     private void placeSupplyShip(Level world, @Nullable final BlockPos pos, final InteractionHand hand, final ItemStack itemInHand)
     {
         final String name = WorldUtil.isNetherType(world)
-            ? SUPPLY_SHIP_STRUCTURE_NAME_NETHER
-            : SUPPLY_SHIP_STRUCTURE_NAME;
+                              ? SUPPLY_SHIP_STRUCTURE_NAME_NETHER
+                              : SUPPLY_SHIP_STRUCTURE_NAME;
 
-
-        if (!itemInHand.getOrCreateTag().contains(TAG_SAW_STORY))
+        final SupplyData currentComponent = SupplyData.readFromItemStack(itemInHand);
+        if (!currentComponent.sawStory())
         {
             new WindowSupplyStory(pos, name, itemInHand, hand).open();
             return;
@@ -155,10 +157,10 @@ public class ItemSupplyChestDeployer extends AbstractItemSlimColonies implements
      * @return true if so.
      */
     public static boolean canShipBePlaced(
-        @NotNull final Level world, @NotNull final BlockPos pos, final Blueprint ship, @NotNull final List<PlacementError> placementErrorList, final
-        Player placer)
+            @NotNull final Level world, @NotNull final BlockPos pos, final Blueprint ship, @NotNull final List<PlacementError> placementErrorList, final
+    Player placer)
     {
-        if (SlimColonies.getConfig().getServer().noSupplyPlacementRestrictions.get())
+        if (MineColonies.getConfig().getServer().noSupplyPlacementRestrictions.get())
         {
             return true;
         }
@@ -178,7 +180,7 @@ public class ItemSupplyChestDeployer extends AbstractItemSlimColonies implements
                 for (int y = 0; y <= Math.min(waterLevel + SCAN_HEIGHT, ship.getSizeY() - 1); y++)
                 {
                     final BlockPos worldPos = new BlockPos(zeroPos.getX() + x, zeroPos.getY() + y, zeroPos.getZ() + z);
-                    final BlockState state = ship.getBlockState(new BlockPos(x, y, z));
+                    final BlockState state = ship.getBlockState(new BlockPos(x,y,z));
 
                     if (y < waterLevel)
                     {
@@ -192,7 +194,7 @@ public class ItemSupplyChestDeployer extends AbstractItemSlimColonies implements
             }
         }
 
-        if (needsAirAbove.size() > sizeX * sizeZ * SUPPLY_TOLERANCE_FRACTION || needsWaterList.size() > sizeX * sizeZ * SUPPLY_TOLERANCE_FRACTION)
+        if (needsAirAbove.size() > sizeX*sizeZ*SUPPLY_TOLERANCE_FRACTION || needsWaterList.size() > sizeX*sizeZ*SUPPLY_TOLERANCE_FRACTION)
         {
             placementErrorList.addAll(needsAirAbove);
             placementErrorList.addAll(needsWaterList);
@@ -211,12 +213,7 @@ public class ItemSupplyChestDeployer extends AbstractItemSlimColonies implements
      * @param placer             the player placing the supply camp.
      * @param state              blueprint block at pos.
      */
-    private static void checkFluidAndNotInColony(
-        final Level world,
-        final BlockPos pos,
-        @NotNull final List<PlacementError> placementErrorList,
-        final Player placer,
-        final BlockState state)
+    private static void checkFluidAndNotInColony(final Level world, final BlockPos pos, @NotNull final List<PlacementError> placementErrorList, final Player placer, final BlockState state)
     {
         final boolean isOverworld = WorldUtil.isOverworldType(world);
         final boolean isWater = PathfindingUtils.isWater(world, pos);

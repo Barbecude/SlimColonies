@@ -1,21 +1,24 @@
 package no.monopixel.slimcolonies.core.debug.messages;
 
+import com.ldtteam.common.network.PlayMessageType;
 import no.monopixel.slimcolonies.api.colony.ICitizenData;
 import no.monopixel.slimcolonies.api.colony.ICitizenDataView;
 import no.monopixel.slimcolonies.api.colony.IColony;
+import no.monopixel.slimcolonies.api.util.constant.Constants;
 import no.monopixel.slimcolonies.core.debug.DebugPlayerManager;
 import no.monopixel.slimcolonies.core.entity.pathfinding.PathfindingUtils;
 import no.monopixel.slimcolonies.core.network.messages.server.AbstractColonyServerMessage;
-import net.minecraft.network.FriendlyByteBuf;
-import net.minecraft.world.entity.player.Player;
-import net.minecraftforge.network.NetworkEvent;
-import org.jetbrains.annotations.NotNull;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.server.level.ServerPlayer;
+import net.neoforged.neoforge.network.handling.IPayloadContext;
 
 /**
  * Message to toggle pathfinding debug for a specific citizen
  */
 public class DebugEnablePathfindingMessage extends AbstractColonyServerMessage
 {
+    public static final PlayMessageType<?> TYPE = PlayMessageType.forServer(Constants.MOD_ID, "debug_togglepathfinding", DebugEnablePathfindingMessage::new);
+
     /**
      * Citizen id
      */
@@ -26,36 +29,31 @@ public class DebugEnablePathfindingMessage extends AbstractColonyServerMessage
      */
     private boolean enable = false;
 
-    public DebugEnablePathfindingMessage()
-    {
-        super();
-    }
-
     public DebugEnablePathfindingMessage(final ICitizenDataView citizen, final boolean enable)
     {
-        super(citizen.getColony());
+        super(TYPE, citizen.getColony());
         this.id = citizen.getId();
         this.enable = enable;
     }
 
-    @Override
-    public void fromBytesOverride(@NotNull final FriendlyByteBuf buf)
+    protected DebugEnablePathfindingMessage(final RegistryFriendlyByteBuf buf, final PlayMessageType<?> type)
     {
+        super(buf, type);
         this.id = buf.readInt();
-        enable = buf.readBoolean();
+        this.enable = buf.readBoolean();
     }
 
     @Override
-    public void toBytesOverride(@NotNull final FriendlyByteBuf buf)
+    protected void toBytes(final RegistryFriendlyByteBuf buf)
     {
+        super.toBytes(buf);
         buf.writeInt(id);
         buf.writeBoolean(enable);
     }
 
     @Override
-    public void onExecute(final NetworkEvent.Context ctxIn, final boolean isLogicalServer, final IColony colony)
+    protected void onExecute(final IPayloadContext ctxIn, final ServerPlayer player, final IColony colony)
     {
-        final Player player = ctxIn.getSender();
         if (player == null || !DebugPlayerManager.hasDebugEnabled(player))
         {
             return;

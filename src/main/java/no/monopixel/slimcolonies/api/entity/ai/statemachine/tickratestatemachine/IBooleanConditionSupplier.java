@@ -3,7 +3,9 @@ package no.monopixel.slimcolonies.api.entity.ai.statemachine.tickratestatemachin
 import java.io.Serializable;
 
 /**
- * Serializable version of a boolean supplier for AI transitions, used for name generation
+ * Serializeable version of a boolean supplier for AI transitions, used for name generation
+ *
+ * @param <T>
  */
 @FunctionalInterface
 public interface IBooleanConditionSupplier extends Serializable

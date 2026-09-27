@@ -7,8 +7,9 @@ import no.monopixel.slimcolonies.api.colony.requestsystem.factory.IFactoryContro
 import no.monopixel.slimcolonies.api.util.constant.NbtTagConstants;
 import no.monopixel.slimcolonies.api.util.constant.SerializationIdentifierConstants;
 import no.monopixel.slimcolonies.api.util.constant.TypeConstants;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import org.jetbrains.annotations.NotNull;
 
 public class IntegerFactory implements IFactory<FactoryVoidInput, Integer>
@@ -37,7 +38,7 @@ public class IntegerFactory implements IFactory<FactoryVoidInput, Integer>
 
     @NotNull
     @Override
-    public CompoundTag serialize(@NotNull final IFactoryController controller, @NotNull final Integer integer)
+    public CompoundTag serialize(@NotNull final HolderLookup.Provider provider, @NotNull final IFactoryController controller, @NotNull final Integer integer)
     {
         CompoundTag compound = new CompoundTag();
 
@@ -48,19 +49,19 @@ public class IntegerFactory implements IFactory<FactoryVoidInput, Integer>
 
     @NotNull
     @Override
-    public Integer deserialize(@NotNull final IFactoryController controller, @NotNull final CompoundTag nbt)
+    public Integer deserialize(@NotNull final HolderLookup.Provider provider, @NotNull final IFactoryController controller, @NotNull final CompoundTag nbt)
     {
         return nbt.getInt(NbtTagConstants.TAG_VALUE);
     }
 
     @Override
-    public void serialize(IFactoryController controller, Integer input, FriendlyByteBuf packetBuffer)
+    public void serialize(IFactoryController controller, Integer input, RegistryFriendlyByteBuf packetBuffer)
     {
         packetBuffer.writeInt(input);
     }
 
     @Override
-    public Integer deserialize(IFactoryController controller, FriendlyByteBuf buffer) throws Throwable
+    public Integer deserialize(IFactoryController controller, RegistryFriendlyByteBuf buffer) throws Throwable
     {
         return buffer.readInt();
     }

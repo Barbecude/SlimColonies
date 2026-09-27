@@ -1,58 +1,50 @@
 package no.monopixel.slimcolonies.core.network.messages.client.colony;
 
+import com.ldtteam.common.network.AbstractClientPlayMessage;
+import com.ldtteam.common.network.PlayMessageType;
 import no.monopixel.slimcolonies.api.colony.IColonyManager;
-import no.monopixel.slimcolonies.api.network.IMessage;
+import no.monopixel.slimcolonies.api.util.constant.Constants;
 import net.minecraft.core.registries.Registries;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
-import net.minecraftforge.fml.LogicalSide;
-import net.minecraftforge.network.NetworkEvent;
-import org.jetbrains.annotations.Nullable;
+import net.neoforged.neoforge.network.handling.IPayloadContext;
 
 /**
  * Message for removing a view on the client, used for cleaning up after deletion
  */
-public class ColonyViewRemoveMessage implements IMessage
+public class ColonyViewRemoveMessage extends AbstractClientPlayMessage
 {
-    private int id;
-    private ResourceKey<Level> dimension;
+    public static final PlayMessageType<?> TYPE = PlayMessageType.forClient(Constants.MOD_ID, "colony_view_remove", ColonyViewRemoveMessage::new);
 
-    public ColonyViewRemoveMessage()
-    {
-        super();
-    }
+    private final int id;
+    private final ResourceKey<Level> dimension;
 
     public ColonyViewRemoveMessage(final int id, final ResourceKey<Level> dimension)
     {
+        super(TYPE);
         this.id = id;
         this.dimension = dimension;
     }
 
     @Override
-    public void toBytes(final FriendlyByteBuf buf)
+    protected void toBytes(final RegistryFriendlyByteBuf buf)
     {
         buf.writeInt(id);
         buf.writeUtf(dimension.location().toString());
     }
 
-    @Override
-    public void fromBytes(final FriendlyByteBuf buf)
+    protected ColonyViewRemoveMessage(final RegistryFriendlyByteBuf buf, final PlayMessageType<?> type)
     {
+        super(buf, type);
         id = buf.readInt();
-        dimension = ResourceKey.create(Registries.DIMENSION, new ResourceLocation(buf.readUtf(32767)));
-    }
-
-    @Nullable
-    @Override
-    public LogicalSide getExecutionSide()
-    {
-        return LogicalSide.CLIENT;
+        dimension = ResourceKey.create(Registries.DIMENSION, ResourceLocation.parse(buf.readUtf(32767)));
     }
 
     @Override
-    public void onExecute(final NetworkEvent.Context ctxIn, final boolean isLogicalServer)
+    protected void onExecute(final IPayloadContext ctxIn, final Player player)
     {
         IColonyManager.getInstance().removeColonyView(id, dimension);
     }

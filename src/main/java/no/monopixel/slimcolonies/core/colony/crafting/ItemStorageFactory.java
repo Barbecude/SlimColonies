@@ -5,11 +5,13 @@ import no.monopixel.slimcolonies.api.colony.requestsystem.factory.FactoryVoidInp
 import no.monopixel.slimcolonies.api.colony.requestsystem.factory.IFactoryController;
 import no.monopixel.slimcolonies.api.crafting.IItemStorageFactory;
 import no.monopixel.slimcolonies.api.crafting.ItemStorage;
+import no.monopixel.slimcolonies.api.util.Utils;
 import no.monopixel.slimcolonies.api.util.constant.SerializationIdentifierConstants;
 import no.monopixel.slimcolonies.api.util.constant.TypeConstants;
-import net.minecraft.world.item.ItemStack;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.world.item.ItemStack;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -55,20 +57,15 @@ public class ItemStorageFactory implements IItemStorageFactory
     @Override
     public ItemStorage getNewInstance(@NotNull final ItemStack stack, final int size, final boolean ignoreDamage, final boolean ignoreNBT)
     {
-        ItemStorage newItem = new ItemStorage(stack, ignoreDamage, ignoreNBT);
-        newItem.setAmount(size);
-        return newItem;
-
+        return new ItemStorage(stack, size, ignoreDamage, ignoreNBT);
     }
 
     @NotNull
     @Override
-    public CompoundTag serialize(@NotNull final IFactoryController controller, @NotNull final ItemStorage storage)
+    public CompoundTag serialize(@NotNull final HolderLookup.Provider provider, @NotNull final IFactoryController controller, @NotNull final ItemStorage storage)
     {
         final CompoundTag compound = new CompoundTag();
-        @NotNull CompoundTag stackTag = new CompoundTag();
-        storage.getItemStack().save(stackTag);
-        compound.put(TAG_STACK, stackTag);
+        compound.put(TAG_STACK, storage.getItemStack().saveOptional(provider));
         compound.putInt(TAG_SIZE, storage.getAmount());
         compound.putBoolean(TAG_SHOULDIGNOREDAMAGE, storage.ignoreDamageValue());
         compound.putBoolean(TAG_SHOULDIGNORENBT , storage.ignoreNBT());
@@ -77,9 +74,10 @@ public class ItemStorageFactory implements IItemStorageFactory
 
     @NotNull
     @Override
-    public ItemStorage deserialize(@NotNull final IFactoryController controller, @NotNull final CompoundTag nbt)
+    public ItemStorage deserialize(@NotNull final HolderLookup.Provider provider, @NotNull final IFactoryController controller, @NotNull final CompoundTag nbt)
     {
-        final ItemStack stack = ItemStack.of(nbt.getCompound(TAG_STACK));
+        final ItemStack stack = ItemStack.parseOptional(provider, nbt.getCompound(TAG_STACK));
+        stack.setCount(1);  // fix old data
         final int size = nbt.getInt(TAG_SIZE);
         final boolean ignoreNBT = nbt.getBoolean(TAG_SHOULDIGNORENBT);
         final boolean ignoreDamage = nbt.getBoolean(TAG_SHOULDIGNOREDAMAGE);
@@ -87,18 +85,29 @@ public class ItemStorageFactory implements IItemStorageFactory
     }
 
     @Override
-    public void serialize(IFactoryController controller, ItemStorage input, FriendlyByteBuf packetBuffer)
+    public void serialize(IFactoryController controller, ItemStorage input, RegistryFriendlyByteBuf packetBuffer)
     {
-        packetBuffer.writeItem(input.getItemStack());
+        // Backup functionality.
+        int writerIndex = packetBuffer.writerIndex();
+        try
+        {
+            Utils.serializeCodecMess(packetBuffer, input.getItemStack());
+        }
+        catch (final Exception ex)
+        {
+            packetBuffer.writerIndex(writerIndex);
+            Utils.serializeCodecMess(packetBuffer, ItemStack.EMPTY);
+        }
+
         packetBuffer.writeVarInt(input.getAmount());
         packetBuffer.writeBoolean(input.ignoreDamageValue());
         packetBuffer.writeBoolean(input.ignoreNBT());
     }
 
     @Override
-    public ItemStorage deserialize(IFactoryController controller, FriendlyByteBuf buffer) throws Throwable
+    public ItemStorage deserialize(IFactoryController controller, RegistryFriendlyByteBuf buffer) throws Throwable
     {
-        final ItemStack stack = buffer.readItem();
+        final ItemStack stack = Utils.deserializeCodecMess(buffer);
         final int size = buffer.readVarInt();
         final boolean ignoreDamage = buffer.readBoolean();
         final boolean ignoreNBT = buffer.readBoolean();

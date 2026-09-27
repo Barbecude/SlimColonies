@@ -1,23 +1,20 @@
 package no.monopixel.slimcolonies.core.datalistener;
 
 import com.google.gson.*;
+import no.monopixel.slimcolonies.api.IMinecoloniesAPI;
+import no.monopixel.slimcolonies.api.MinecoloniesAPIProxy;
+import no.monopixel.slimcolonies.api.research.*;
+import no.monopixel.slimcolonies.api.util.Log;
+import no.monopixel.slimcolonies.api.util.Utils;
+import no.monopixel.slimcolonies.core.research.*;
+import no.monopixel.slimcolonies.core.util.GsonHelper;
 import net.minecraft.network.chat.contents.TranslatableContents;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.packs.resources.ResourceManager;
 import net.minecraft.server.packs.resources.SimpleJsonResourceReloadListener;
 import net.minecraft.util.Tuple;
 import net.minecraft.util.profiling.ProfilerFiller;
-import no.monopixel.slimcolonies.api.ISlimColoniesAPI;
-import no.monopixel.slimcolonies.api.SlimColoniesAPIProxy;
-import no.monopixel.slimcolonies.api.research.IGlobalResearchTree;
-import no.monopixel.slimcolonies.api.research.IResearchRequirement;
-import no.monopixel.slimcolonies.api.research.ModResearchRequirements;
-import no.monopixel.slimcolonies.api.util.Log;
-import no.monopixel.slimcolonies.core.research.GlobalResearch;
-import no.monopixel.slimcolonies.core.research.GlobalResearchBranch;
-import no.monopixel.slimcolonies.core.research.GlobalResearchEffect;
-import no.monopixel.slimcolonies.core.research.ResearchEffectCategory;
-import no.monopixel.slimcolonies.core.util.GsonHelper;
+import net.neoforged.neoforge.common.crafting.SizedIngredient;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -38,9 +35,9 @@ public class ResearchListener extends SimpleJsonResourceReloadListener
      * Generator functions for default parsed values.
      */
     private static final Function<ResourceLocation, String> DEFAULT_RESEARCH_NAME          =
-        (effectId) -> String.format("no.monopixel.%s.research.%s.name", effectId.getNamespace(), effectId.getPath().replaceAll("[ /]", "."));
+        (effectId) -> String.format("com.%s.research.%s.name", effectId.getNamespace(), effectId.getPath().replaceAll("[ /]", "."));
     private static final Function<ResourceLocation, String> DEFAULT_RESEARCH_EFFECT_NAME   =
-        (effectId) -> String.format("no.monopixel.%s.research.%s.description", effectId.getNamespace(), effectId.getPath().replaceAll("[ /]", "."));
+        (effectId) -> String.format("com.%s.research.%s.description", effectId.getNamespace(), effectId.getPath().replaceAll("[ /]", "."));
     private static final Supplier<JsonArray>                DEFAULT_RESEARCH_EFFECT_LEVELS = () -> {
         final JsonArray defaultArray = new JsonArray();
         defaultArray.add(1);
@@ -144,7 +141,6 @@ public class ResearchListener extends SimpleJsonResourceReloadListener
      * The property name for the list of requirement objects.
      */
     private static final String RESEARCH_REQUIREMENTS_PROP = "requirements";
-    ;
 
     /**
      * The property name for the list of cost objects.
@@ -234,11 +230,7 @@ public class ResearchListener extends SimpleJsonResourceReloadListener
      * @param removeBranches   a collection of research branches to remove, including all component researches, if present.
      * @return a map containing the ResearchIds and the GlobalResearches each ID corresponds to.
      */
-    private Map<ResourceLocation, GlobalResearch> parseResearches(
-        final Map<ResourceLocation, JsonElement> object,
-        final Map<ResourceLocation, ResearchEffectCategory> effectCategories,
-        final Collection<ResourceLocation> removeResearches,
-        final Collection<ResourceLocation> removeBranches)
+    private Map<ResourceLocation, GlobalResearch> parseResearches(final Map<ResourceLocation, JsonElement> object, final Map<ResourceLocation, ResearchEffectCategory> effectCategories, final Collection<ResourceLocation> removeResearches, final Collection<ResourceLocation> removeBranches)
     {
         final Map<ResourceLocation, GlobalResearch> researchMap = new HashMap<>();
         for (final Map.Entry<ResourceLocation, JsonElement> entry : object.entrySet())
@@ -256,7 +248,7 @@ public class ResearchListener extends SimpleJsonResourceReloadListener
             // Cancel removed individual researches first, to save parsing time.
             if (removeResearches.contains(researchId))
             {
-                if (SlimColoniesAPIProxy.getInstance().getConfig().getServer().researchDebugLog.get())
+                if (MinecoloniesAPIProxy.getInstance().getConfig().getServer().researchDebugLog.get())
                 {
                     Log.getLogger().info("{} was removed by data pack.", researchId);
                 }
@@ -272,9 +264,9 @@ public class ResearchListener extends SimpleJsonResourceReloadListener
                 continue;
             }
             // Now that we've confirmed a branch exists at all, cancel the add if it's from a removed branch.
-            else if (removeBranches.contains(new ResourceLocation(researchJson.get(RESEARCH_BRANCH_PROP).getAsString())))
+            else if (removeBranches.contains(ResourceLocation.parse(researchJson.get(RESEARCH_BRANCH_PROP).getAsString())))
             {
-                if (SlimColoniesAPIProxy.getInstance().getConfig().getServer().researchDebugLog.get())
+                if (MinecoloniesAPIProxy.getInstance().getConfig().getServer().researchDebugLog.get())
                 {
                     Log.getLogger().info("{} was removed, as its branch had been removed by data pack.", researchId);
                 }
@@ -295,13 +287,15 @@ public class ResearchListener extends SimpleJsonResourceReloadListener
 
             final List<IResearchRequirement> requirements =
                 parseResearchRequirements(researchId, GsonHelper.getAsJsonArray(researchJson, RESEARCH_REQUIREMENTS_PROP, new JsonArray()));
-            // Research no longer requires item costs - only parse requirements
+            final List<SizedIngredient> costs = parseResearchCosts(researchId,
+                GsonHelper.getAsJsonArray(researchJson, RESEARCH_COSTS_PROP, new JsonArray()),
+                GsonHelper.getAsJsonArray(researchJson, RESEARCH_REQUIREMENTS_PROP, new JsonArray()));
             final List<GlobalResearchEffect> effects =
                 parseResearchEffects(researchId, GsonHelper.getAsJsonArray(researchJson, RESEARCH_EFFECTS_PROP, new JsonArray()), effectCategories);
 
             final GlobalResearch research = new GlobalResearch(researchId, parent, branch, name, subtitle, depth, sortOrder, onlyChild, hidden, autostart, instant, immutable);
-            // Skip adding costs - only add requirements and effects
             requirements.forEach(research::addRequirement);
+            costs.forEach(research::addCost);
             effects.forEach(research::addEffect);
 
             researchMap.put(researchId, research);
@@ -313,29 +307,28 @@ public class ResearchListener extends SimpleJsonResourceReloadListener
      * Parses a JSON object for research requirements.
      *
      * @param researchId a json object to retrieve the ID from.
-     * @param jsonArray  the array of requirements.
+     * @param jsonRequirements  the array of requirements.
      */
-    private List<IResearchRequirement> parseResearchRequirements(final ResourceLocation researchId, final JsonArray jsonArray)
+    private List<IResearchRequirement> parseResearchRequirements(final ResourceLocation researchId, final JsonArray jsonRequirements)
     {
-        // Research no longer has costs - removed cost parsing
         final List<IResearchRequirement> requirements = new ArrayList<>();
-        for (int index = 0; index < jsonArray.size(); index++)
+        for (int index = 0; index < jsonRequirements.size(); index++)
         {
-            final JsonObject requirementJson = jsonArray.get(index).getAsJsonObject();
+            final JsonObject jsonRequirement = jsonRequirements.get(index).getAsJsonObject();
 
-            final ResourceLocation type = GsonHelper.getAsResourceLocation(requirementJson, RESEARCH_REQUIREMENT_TYPE_PROP, null);
+            final ResourceLocation type = GsonHelper.getAsResourceLocation(jsonRequirement, RESEARCH_REQUIREMENT_TYPE_PROP, null);
             if (type == null)
             {
                 Log.getLogger().warn("Research '{}' requirement #{} is missing the required '{}' property.", researchId, index, RESEARCH_REQUIREMENT_TYPE_PROP);
                 continue;
             }
 
-            final ModResearchRequirements.ResearchRequirementEntry researchRequirementEntry = ISlimColoniesAPI.getInstance().getResearchRequirementRegistry().getValue(type);
-            if (researchRequirementEntry != null)
+            final Optional<ModResearchRequirements.ResearchRequirementEntry> researchRequirementEntry = IMinecoloniesAPI.getInstance().getResearchRequirementRegistry().getOptional(type);
+            if (researchRequirementEntry.isPresent())
             {
                 try
                 {
-                    requirements.add(researchRequirementEntry.readFromJson(requirementJson));
+                    requirements.add(researchRequirementEntry.get().readFromJson(jsonRequirement));
                 }
                 catch (Exception ex)
                 {
@@ -344,15 +337,40 @@ public class ResearchListener extends SimpleJsonResourceReloadListener
                 continue;
             }
 
-            // Skip cost entries - research no longer requires item costs
-            // Cost registry has been removed - skip any cost-type entries
-
             Log.getLogger().warn("Research '{}' requirement #{} is invalid, type '{}' does not exist.", researchId, index, type);
         }
         return requirements;
     }
 
-    // parseResearchCosts method removed - research no longer has item costs
+    /**
+     * Parses a JSON object for research costs.
+     *
+     * @param researchId       a json object to retrieve the ID from.
+     * @param jsonCosts        the array of requirements.
+     * @param jsonRequirements the array of requirements.
+     */
+    private List<SizedIngredient> parseResearchCosts(final ResourceLocation researchId, final JsonArray jsonCosts, final JsonArray jsonRequirements)
+    {
+        final List<SizedIngredient> costs = new ArrayList<>();
+        for (int index = 0; index < jsonCosts.size(); index++)
+        {
+            final JsonElement jsonCost = jsonCosts.get(index);
+            costs.add(Utils.deserializeCodecMessFromJson(SizedIngredient.FLAT_CODEC, getRegistryLookup(), jsonCost));
+        }
+
+        // TODO: 1.22 remove the json requirements array as a potential input here, costs should move to a separate list to get them mixed out with requirements
+        for (int index = 0; index < jsonRequirements.size(); index++)
+        {
+            final JsonObject jsonRequirement = jsonRequirements.get(index).getAsJsonObject();
+            if (jsonRequirement.has("items"))
+            {
+                Log.getLogger().warn("Research '{}' requirement #{} is deprecated. Cost requirements should be put in the 'costs' array.", researchId, index);
+                costs.add(Utils.deserializeCodecMessFromJson(SizedIngredient.FLAT_CODEC, getRegistryLookup(), jsonRequirement.get("items")));
+            }
+        }
+
+        return costs;
+    }
 
     /**
      * Parses a JSON object for research effects IDs and their levels.
@@ -396,7 +414,7 @@ public class ResearchListener extends SimpleJsonResourceReloadListener
                 if (iterator.hasNext())
                 {
                     final Map.Entry<String, JsonElement> next = researchEffectElement.getAsJsonObject().entrySet().iterator().next();
-                    effectId = new ResourceLocation(next.getKey());
+                    effectId = ResourceLocation.parse(next.getKey());
                     if (!GsonHelper.isNumberValue(next.getValue()))
                     {
                         Log.getLogger().warn("Research '{}' effect #{} value is not a number.", researchId, index);
@@ -435,9 +453,10 @@ public class ResearchListener extends SimpleJsonResourceReloadListener
     /**
      * Parses out a researches map for elements containing Remove properties, and applies those removals to the researchMap
      *
-     * @param object A Map containing the resource location of each json file, and the element within that json file.
-     * @return A Tuple containing resource locations of Researches (A) and Branches (B) to remove from the global research tree.
+     * @param object        A Map containing the resource location of each json file, and the element within that json file.
+     * @return              A Tuple containing resource locations of Researches (A) and Branches (B) to remove from the global research tree.
      */
+    // TODO: 1.22 remove "remove" property from researches, as datapacks can be removed natively already by providing an empty file instead
     private Tuple<Collection<ResourceLocation>, Collection<ResourceLocation>> parseRemoveResearches(final Map<ResourceLocation, JsonElement> object)
     {
         final Collection<ResourceLocation> removeResearches = new HashSet<>();
@@ -458,7 +477,7 @@ public class ResearchListener extends SimpleJsonResourceReloadListener
                         {
                             if (remove.isJsonPrimitive() && remove.getAsJsonPrimitive().isString())
                             {
-                                removeBranches.add(new ResourceLocation(remove.getAsString()));
+                                removeBranches.add(ResourceLocation.parse(remove.getAsString()));
                             }
                         }
                     }
@@ -469,7 +488,7 @@ public class ResearchListener extends SimpleJsonResourceReloadListener
                     // The json for such a removal can have an arbitrary filename, and the remove property points to the specific json to remove.
                     else if (researchJson.get(RESEARCH_REMOVE_PROP).isJsonPrimitive() && researchJson.get(RESEARCH_REMOVE_PROP).getAsJsonPrimitive().isString())
                     {
-                        removeBranches.add(new ResourceLocation(researchJson.get(RESEARCH_REMOVE_PROP).getAsJsonPrimitive().getAsString()));
+                        removeBranches.add(ResourceLocation.parse(researchJson.get(RESEARCH_REMOVE_PROP).getAsJsonPrimitive().getAsString()));
                     }
                     // Lastly, accept just boolean true, for the simple case of removing this particular branch and all component researches.
                     else if (researchJson.get(RESEARCH_REMOVE_PROP).isJsonPrimitive() && researchJson.get(RESEARCH_REMOVE_PROP).getAsJsonPrimitive().isBoolean()
@@ -488,14 +507,14 @@ public class ResearchListener extends SimpleJsonResourceReloadListener
                     {
                         if (remove.isJsonPrimitive() && remove.getAsJsonPrimitive().isString())
                         {
-                            removeResearches.add(new ResourceLocation(remove.getAsString()));
+                            removeResearches.add(ResourceLocation.parse(remove.getAsString()));
                         }
                     }
                 }
                 // Removing individual researches by name.
                 else if (researchJson.get(RESEARCH_REMOVE_PROP).isJsonPrimitive() && researchJson.get(RESEARCH_REMOVE_PROP).getAsJsonPrimitive().isString())
                 {
-                    removeResearches.add(new ResourceLocation(researchJson.get(RESEARCH_REMOVE_PROP).getAsString()));
+                    removeResearches.add(ResourceLocation.parse(researchJson.get(RESEARCH_REMOVE_PROP).getAsString()));
                 }
                 // Removes with a boolean true, but are not branch removes.
                 else if (researchJson.get(RESEARCH_REMOVE_PROP).isJsonPrimitive() && researchJson.get(RESEARCH_REMOVE_PROP).getAsJsonPrimitive().isBoolean()
@@ -517,12 +536,12 @@ public class ResearchListener extends SimpleJsonResourceReloadListener
     /**
      * Parses out a GlobalResearch map to apply parent/child relationships between researches, and to graft and warn about inconsistent relationships.
      *
-     * @param researchMap A Map of ResearchIDs to GlobalResearches to turn into a GlobalResearchTree.
-     * @return An IGlobalResearchTree containing the validated researches.
+     * @param researchMap   A Map of ResearchIDs to GlobalResearches to turn into a GlobalResearchTree.
+     * @return              An IGlobalResearchTree containing the validated researches.
      */
     private IGlobalResearchTree calcResearchTree(final Map<ResourceLocation, GlobalResearch> researchMap)
     {
-        final IGlobalResearchTree researchTree = SlimColoniesAPIProxy.getInstance().getGlobalResearchTree();
+        final IGlobalResearchTree researchTree =  MinecoloniesAPIProxy.getInstance().getGlobalResearchTree();
         // The research tree should be reset on world unload, but certain events and disconnects break that.  Do it here, too.
         researchTree.reset();
 
@@ -584,16 +603,15 @@ public class ResearchListener extends SimpleJsonResourceReloadListener
 
     /**
      * Parses out any research branch-specific settings from a Json object, and applies them to a Global Research Tree.
-     *
-     * @param object       The source json object.
-     * @param researchTree The research tree to apply parsed branch-specific settings onto, if any.
+     * @param object         The source json object.
+     * @param researchTree   The research tree to apply parsed branch-specific settings onto, if any.
      */
     private void parseResearchBranches(final Map<ResourceLocation, JsonElement> object, IGlobalResearchTree researchTree)
     {
         // We don't need check branches that don't have loaded researches, but we do want to create these properties for all branches.
         for (final ResourceLocation branchId : researchTree.getBranches())
         {
-            if (object.containsKey(branchId))
+            if(object.containsKey(branchId))
             {
                 researchTree.addBranchData(branchId, new GlobalResearchBranch(branchId, object.get(branchId).getAsJsonObject()));
             }

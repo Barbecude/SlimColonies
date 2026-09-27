@@ -1,6 +1,9 @@
 package no.monopixel.slimcolonies.api.loot;
 
+import net.minecraft.core.registries.Registries;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.level.storage.loot.LootTable;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -13,26 +16,26 @@ import static no.monopixel.slimcolonies.api.util.constant.Constants.MAX_BUILDING
 public final class ModLootTables
 {
     /** Fisherman primary loot table */
-    public static final ResourceLocation FISHING = FISHERMAN_ID;
+    public static final ResourceKey<LootTable> FISHING = ResourceKey.create(Registries.LOOT_TABLE, FISHERMAN_ID);
 
     /** Fisherman secondary fish table */
-    public static final ResourceLocation FISHING_FISH = new ResourceLocation(FISHING + "/fish");
+    public static final ResourceKey<LootTable> FISHING_FISH = ResourceKey.create(Registries.LOOT_TABLE, ResourceLocation.parse(FISHERMAN_ID + "/fish"));
 
     /** Fisherman secondary junk table */
-    public static final ResourceLocation FISHING_JUNK = new ResourceLocation(FISHING + "/junk");
+    public static final ResourceKey<LootTable> FISHING_JUNK = ResourceKey.create(Registries.LOOT_TABLE, ResourceLocation.parse(FISHERMAN_ID + "/junk"));
 
     /** Fisherman secondary treasure table */
-    public static final ResourceLocation FISHING_TREASURE = new ResourceLocation(FISHING + "/treasure");
+    public static final ResourceKey<LootTable> FISHING_TREASURE = ResourceKey.create(Registries.LOOT_TABLE, ResourceLocation.parse(FISHERMAN_ID + "/treasure"));
 
     /** Ids for the fisherman bonus loot tables */
-    public static final Map<Integer, ResourceLocation> FISHERMAN_BONUS = createFishermanBonusMap();
+    public static final Map<Integer, ResourceKey<LootTable>> FISHERMAN_BONUS = createFishermanBonusMap();
 
-    private static Map<Integer, ResourceLocation> createFishermanBonusMap()
+    private static Map<Integer, ResourceKey<LootTable>> createFishermanBonusMap()
     {
-        final Map<Integer, ResourceLocation> map = new HashMap<>();
+        final Map<Integer, ResourceKey<LootTable>> map = new HashMap<>();
         for (int level = 1; level <= MAX_BUILDING_LEVEL; ++level)
         {
-            map.put(level, new ResourceLocation(FISHING + "/bonus" + level));
+            map.put(level, ResourceKey.create(Registries.LOOT_TABLE, ResourceLocation.parse(FISHERMAN_ID + "/bonus" + level)));
         }
         return Collections.unmodifiableMap(map);
     }

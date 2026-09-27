@@ -1,44 +1,41 @@
 package no.monopixel.slimcolonies.core.network.messages.client;
 
+import com.ldtteam.common.network.AbstractClientPlayMessage;
+import com.ldtteam.common.network.PlayMessageType;
 import com.ldtteam.structurize.storage.StructurePacks;
 import com.ldtteam.structurize.storage.rendering.RenderingCache;
-import no.monopixel.slimcolonies.api.network.IMessage;
 import no.monopixel.slimcolonies.api.util.Log;
+import no.monopixel.slimcolonies.api.util.constant.Constants;
 import io.netty.buffer.ByteBufInputStream;
 import io.netty.buffer.ByteBufOutputStream;
 import net.minecraft.client.Minecraft;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.NbtAccounter;
 import net.minecraft.nbt.NbtIo;
 import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.chat.Component;
-import net.minecraftforge.fml.LogicalSide;
-import net.minecraftforge.network.NetworkEvent;
-import org.jetbrains.annotations.Nullable;
+import net.minecraft.world.entity.player.Player;
+import net.neoforged.neoforge.network.handling.IPayloadContext;
 
 import java.io.IOException;
 import java.util.Locale;
 
-import static com.ldtteam.structurize.api.util.constant.Constants.BLUEPRINT_FOLDER;
-import static com.ldtteam.structurize.api.util.constant.Constants.SCANS_FOLDER;
+import static com.ldtteam.structurize.api.constants.Constants.BLUEPRINT_FOLDER;
+import static com.ldtteam.structurize.api.constants.Constants.SCANS_FOLDER;
 
 /**
  * Handles sendScanMessages.
  */
-public class SaveStructureNBTMessage implements IMessage
+public class SaveStructureNBTMessage extends AbstractClientPlayMessage
 {
+    public static final PlayMessageType<?> TYPE = PlayMessageType.forClient(Constants.MOD_ID, "save_structure_nbt", SaveStructureNBTMessage::new);
+
     private static final String TAG_MILLIS    = "millies";
     public static final  String TAG_SCHEMATIC = "schematic";
 
-    private CompoundTag compoundNBT;
-    private String      fileName;
-
-    /**
-     * Send a scan compound to the client.
-     */
-    public SaveStructureNBTMessage()
-    {
-        super();
-    }
+    private final CompoundTag compoundNBT;
+    private final String      fileName;
 
     /**
      * Send a scan compound to the client.
@@ -48,19 +45,22 @@ public class SaveStructureNBTMessage implements IMessage
      */
     public SaveStructureNBTMessage(final CompoundTag CompoundNBT, final String fileName)
     {
+        super(TYPE);
         this.fileName = fileName;
         this.compoundNBT = CompoundNBT;
     }
 
-    @Override
-    public void fromBytes(final FriendlyByteBuf buf)
+    protected SaveStructureNBTMessage(final RegistryFriendlyByteBuf buf, final PlayMessageType<?> type)
     {
-        final FriendlyByteBuf buffer = new FriendlyByteBuf(buf);
+        super(buf, type);
+        final RegistryFriendlyByteBuf buffer = new RegistryFriendlyByteBuf(new FriendlyByteBuf(buf), buf.registryAccess());
+        CompoundTag compoundNBT = null;
+        String fileName = null;
         try (ByteBufInputStream stream = new ByteBufInputStream(buffer))
         {
-            final CompoundTag wrapperCompound = NbtIo.readCompressed(stream);
-            this.compoundNBT = wrapperCompound.getCompound(TAG_SCHEMATIC);
-            this.fileName = wrapperCompound.getString(TAG_MILLIS);
+            final CompoundTag wrapperCompound = NbtIo.readCompressed(stream, NbtAccounter.unlimitedHeap());
+            compoundNBT = wrapperCompound.getCompound(TAG_SCHEMATIC);
+            fileName = wrapperCompound.getString(TAG_MILLIS);
         }
         catch (final RuntimeException e)
         {
@@ -70,16 +70,18 @@ public class SaveStructureNBTMessage implements IMessage
         {
             Log.getLogger().info("Problem at retrieving structure on server.", e);
         }
+        this.compoundNBT = compoundNBT;
+        this.fileName = fileName;
     }
 
     @Override
-    public void toBytes(final FriendlyByteBuf buf)
+    protected void toBytes(final RegistryFriendlyByteBuf buf)
     {
         final CompoundTag wrapperCompound = new CompoundTag();
         wrapperCompound.putString(TAG_MILLIS, fileName);
         wrapperCompound.put(TAG_SCHEMATIC, compoundNBT);
 
-        final FriendlyByteBuf buffer = new FriendlyByteBuf(buf);
+        final RegistryFriendlyByteBuf buffer = new RegistryFriendlyByteBuf(new FriendlyByteBuf(buf), buf.registryAccess());
         try (ByteBufOutputStream stream = new ByteBufOutputStream(buffer))
         {
             NbtIo.writeCompressed(wrapperCompound, stream);
@@ -90,15 +92,8 @@ public class SaveStructureNBTMessage implements IMessage
         }
     }
 
-    @Nullable
     @Override
-    public LogicalSide getExecutionSide()
-    {
-        return LogicalSide.CLIENT;
-    }
-
-    @Override
-    public void onExecute(final NetworkEvent.Context ctxIn, final boolean isLogicalServer)
+    protected void onExecute(final IPayloadContext ctxIn, final Player player)
     {
         if (compoundNBT != null)
         {
@@ -107,8 +102,8 @@ public class SaveStructureNBTMessage implements IMessage
               StructurePacks.storeBlueprint(packName, compoundNBT, Minecraft.getInstance().gameDirectory.toPath()
                                                                   .resolve(BLUEPRINT_FOLDER)
                                                                   .resolve(Minecraft.getInstance().getUser().getName().toLowerCase(Locale.US))
-                                                                  .resolve(SCANS_FOLDER).resolve(fileName)));
-            Minecraft.getInstance().player.displayClientMessage(Component.translatable("Scan successfully saved as %s", fileName), false);
+                                                                  .resolve(SCANS_FOLDER).resolve(fileName), player.registryAccess()));
+            player.displayClientMessage(Component.translatableEscape("Scan successfully saved as %s", fileName), false);
         }
     }
 }

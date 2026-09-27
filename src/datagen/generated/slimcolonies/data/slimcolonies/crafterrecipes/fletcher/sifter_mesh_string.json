@@ -3,11 +3,13 @@
   "crafter": "fletcher_crafting",
   "inputs": [
     {
-      "item": "minecraft:string"
+      "id": "minecraft:string"
     }
   ],
   "intermediate": "minecraft:air",
   "research-id": "slimcolonies:effects/sifterstringunlock",
-  "result": "slimcolonies:sifter_mesh_string",
+  "result": {
+    "id": "slimcolonies:sifter_mesh_string"
+  },
   "show-tooltip": true
 }

@@ -13,11 +13,12 @@ import net.minecraft.server.packs.resources.SimpleJsonResourceReloadListener;
 import net.minecraft.tags.TagKey;
 import net.minecraft.util.profiling.ProfilerFiller;
 import net.minecraft.world.level.biome.Biome;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.client.event.RegisterClientReloadListenersEvent;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.fml.common.Mod;
-import net.minecraftforge.server.ServerLifecycleHooks;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.fml.common.EventBusSubscriber;
+import net.neoforged.fml.common.Mod;
+import net.neoforged.neoforge.client.event.RegisterClientReloadListenersEvent;
+import net.neoforged.neoforge.server.ServerLifecycleHooks;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
@@ -25,12 +26,12 @@ import java.util.function.Predicate;
 
 import static no.monopixel.slimcolonies.api.util.constant.Constants.MOD_ID;
 import static no.monopixel.slimcolonies.core.generation.DataGeneratorConstants.COLONY_STORIES_DIR;
-import static net.minecraftforge.fml.common.Mod.EventBusSubscriber.Bus.MOD;
+import static net.neoforged.fml.common.EventBusSubscriber.Bus.MOD;
 
 /**
  * Loads and listens to colony story changes.
  */
-@Mod.EventBusSubscriber(value = Dist.CLIENT, modid = Constants.MOD_ID, bus = MOD)
+@EventBusSubscriber(value = Dist.CLIENT, modid = Constants.MOD_ID, bus = MOD)
 public class ColonyStoryListener extends SimpleJsonResourceReloadListener
 {
     /**
@@ -41,19 +42,19 @@ public class ColonyStoryListener extends SimpleJsonResourceReloadListener
     /**
      * Names for abandoned colonies.
      */
-    public static final ResourceLocation ABANDONED_COLONY_NAME = ResourceLocation.fromNamespaceAndPath(MOD_ID, "abandoned_name");
+    public static final ResourceLocation ABANDONED_COLONY_NAME = new ResourceLocation(MOD_ID, "abandoned_name");
     /**
      * Stories for abandoned colonies.
      */
-    public static final ResourceLocation ABANDONED_COLONY_STORY = ResourceLocation.fromNamespaceAndPath(MOD_ID, "abandoned");
+    public static final ResourceLocation ABANDONED_COLONY_STORY = new ResourceLocation(MOD_ID, "abandoned");
     /**
      * Stories for supply camps.
      */
-    public static final ResourceLocation SUPPLY_CAMP_STORY = ResourceLocation.fromNamespaceAndPath(MOD_ID, "camp");
+    public static final ResourceLocation SUPPLY_CAMP_STORY = new ResourceLocation(MOD_ID, "camp");
     /**
      * Stories for supply ships.
      */
-    public static final ResourceLocation SUPPLY_SHIP_STORY = ResourceLocation.fromNamespaceAndPath(MOD_ID, "ship");
+    public static final ResourceLocation SUPPLY_SHIP_STORY = new ResourceLocation(MOD_ID, "ship");
 
     /**
      * List of story and lore elements loaded from data.
@@ -126,7 +127,7 @@ public class ColonyStoryListener extends SimpleJsonResourceReloadListener
 
     private void parseStory(final JsonObject json)
     {
-        final ResourceLocation type = new ResourceLocation(Objects.requireNonNullElse(json.get("type"), new JsonPrimitive("")).getAsString());
+        final ResourceLocation type = ResourceLocation.parse(Objects.requireNonNullElse(json.get("type"), new JsonPrimitive("")).getAsString());
         if (type.equals(ABANDONED_COLONY_NAME))
         {
             abandonedColonyNames.addAll(parseStoryText(json));
@@ -220,7 +221,7 @@ public class ColonyStoryListener extends SimpleJsonResourceReloadListener
         {
             if (value.startsWith("#"))
             {
-                final TagKey<Biome> tagKey = TagKey.create(Registries.BIOME, new ResourceLocation(value.substring(1)));
+                final TagKey<Biome> tagKey = TagKey.create(Registries.BIOME, ResourceLocation.parse(value.substring(1)));
                 return new BiomeFilter(b -> b.is(tagKey));
             }
             else

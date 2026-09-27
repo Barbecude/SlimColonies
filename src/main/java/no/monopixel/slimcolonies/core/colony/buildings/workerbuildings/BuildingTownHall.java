@@ -2,27 +2,20 @@ package no.monopixel.slimcolonies.core.colony.buildings.workerbuildings;
 
 import com.google.common.collect.ImmutableList;
 import com.ldtteam.blockui.views.BOWindow;
-import net.minecraft.core.BlockPos;
-import net.minecraft.nbt.CompoundTag;
-import net.minecraft.network.FriendlyByteBuf;
-import net.minecraft.resources.ResourceLocation;
-import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.Items;
-import net.minecraft.world.item.MapItem;
-import net.minecraft.world.level.Level;
-import net.minecraft.world.level.saveddata.maps.MapItemSavedData;
-import no.monopixel.slimcolonies.api.SlimColoniesAPIProxy;
+import no.monopixel.slimcolonies.api.MinecoloniesAPIProxy;
 import no.monopixel.slimcolonies.api.colony.IColony;
 import no.monopixel.slimcolonies.api.colony.IColonyView;
 import no.monopixel.slimcolonies.api.colony.buildings.modules.IBuildingModule;
 import no.monopixel.slimcolonies.api.colony.buildings.modules.settings.ISettingKey;
 import no.monopixel.slimcolonies.api.colony.buildings.workerbuildings.ITownHall;
 import no.monopixel.slimcolonies.api.colony.buildings.workerbuildings.ITownHallView;
+import no.monopixel.slimcolonies.api.colony.buildings.workerbuildings.ITownHallView.MapEntry;
 import no.monopixel.slimcolonies.api.colony.colonyEvents.descriptions.IColonyEventDescription;
 import no.monopixel.slimcolonies.api.colony.colonyEvents.registry.ColonyEventDescriptionTypeRegistryEntry;
 import no.monopixel.slimcolonies.api.colony.permissions.PermissionEvent;
 import no.monopixel.slimcolonies.api.util.InventoryUtils;
 import no.monopixel.slimcolonies.api.util.Log;
+import no.monopixel.slimcolonies.core.MineColonies;
 import no.monopixel.slimcolonies.core.client.gui.townhall.WindowMainPage;
 import no.monopixel.slimcolonies.core.colony.Colony;
 import no.monopixel.slimcolonies.core.colony.buildings.AbstractBuilding;
@@ -30,6 +23,16 @@ import no.monopixel.slimcolonies.core.colony.buildings.modules.BuildingModules;
 import no.monopixel.slimcolonies.core.colony.buildings.modules.settings.BoolSetting;
 import no.monopixel.slimcolonies.core.colony.buildings.modules.settings.SettingKey;
 import no.monopixel.slimcolonies.core.colony.buildings.views.AbstractBuildingView;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.item.MapItem;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.saveddata.maps.MapId;
+import net.minecraft.world.level.saveddata.maps.MapItemSavedData;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
@@ -60,26 +63,26 @@ public class BuildingTownHall extends AbstractBuilding implements ITownHall
     /**
      * Citizen spawning.
      */
-    public static final ISettingKey<BoolSetting> MOVE_IN              = new SettingKey<>(BoolSetting.class, ResourceLocation.fromNamespaceAndPath(MOD_ID, "kidspawn"));
+    public static final ISettingKey<BoolSetting> MOVE_IN              = new SettingKey<>(BoolSetting.class, new ResourceLocation(MOD_ID, "kidspawn"));
     /**
      * Enter leave messages.
      */
-    public static final ISettingKey<BoolSetting> ENTER_LEAVE_MESSAGES = new SettingKey<>(BoolSetting.class, ResourceLocation.fromNamespaceAndPath(MOD_ID, "enterleave"));
+    public static final ISettingKey<BoolSetting> ENTER_LEAVE_MESSAGES = new SettingKey<>(BoolSetting.class, new ResourceLocation(MOD_ID, "enterleave"));
 
     /**
      * Automatic hiring mode.
      */
-    public static final ISettingKey<BoolSetting> AUTO_HIRING_MODE = new SettingKey<>(BoolSetting.class, ResourceLocation.fromNamespaceAndPath(MOD_ID, "autohiring"));
+    public static final ISettingKey<BoolSetting> AUTO_HIRING_MODE = new SettingKey<>(BoolSetting.class, new ResourceLocation(MOD_ID, "autohiring"));
 
     /**
      * AUtomatic housing mode.
      */
-    public static final ISettingKey<BoolSetting> AUTO_HOUSING_MODE = new SettingKey<>(BoolSetting.class, ResourceLocation.fromNamespaceAndPath(MOD_ID, "autohousing"));
+    public static final ISettingKey<BoolSetting> AUTO_HOUSING_MODE = new SettingKey<>(BoolSetting.class, new ResourceLocation(MOD_ID, "autohousing"));
 
     /**
      * Constructgion tape setting.
      */
-    public static final ISettingKey<BoolSetting> CONSTRUCTION_TAPE = new SettingKey<>(BoolSetting.class, ResourceLocation.fromNamespaceAndPath(MOD_ID, "tape"));
+    public static final ISettingKey<BoolSetting> CONSTRUCTION_TAPE = new SettingKey<>(BoolSetting.class, new ResourceLocation(MOD_ID, "tape"));
 
     /**
      * Instantiates the building.
@@ -106,12 +109,6 @@ public class BuildingTownHall extends AbstractBuilding implements ITownHall
     }
 
     @Override
-    public int getClaimRadius(final int newLevel)
-    {
-        return 4;
-    }
-
-    @Override
     public void addPermissionEvent(final PermissionEvent event)
     {
         if (!permissionEvents.contains(event))
@@ -126,19 +123,6 @@ public class BuildingTownHall extends AbstractBuilding implements ITownHall
     }
 
     @Override
-    public void registerModule(@NotNull final IBuildingModule module)
-    {
-        if (module.getProducer() == BuildingModules.TOWNHALL_SETTINGS)
-        {
-            super.registerModule(((Colony) colony).getSettings());
-        }
-        else
-        {
-            super.registerModule(module);
-        }
-    }
-
-    @Override
     public void removePermissionEvents(@NotNull final UUID id)
     {
         if (permissionEvents.removeIf(e -> id.equals(e.getId())))
@@ -148,17 +132,24 @@ public class BuildingTownHall extends AbstractBuilding implements ITownHall
     }
 
     @Override
-    public void serializeToView(@NotNull final FriendlyByteBuf buf, final boolean fullSync)
+    public void serializeToView(@NotNull final RegistryFriendlyByteBuf buf, final boolean fullSync)
     {
         super.serializeToView(buf, fullSync);
 
+        buf.writeBoolean(MineColonies.getConfig().getServer().canPlayerUseAllyTHTeleport.get());
         buf.writeInt(permissionEvents.size());
         for (final PermissionEvent event : permissionEvents)
         {
             event.serialize(buf);
         }
 
-        colony.getEventDescriptionManager().serialize(buf);
+        List<IColonyEventDescription> colonyEvents = colony.getEventDescriptionManager().getEventDescriptions();
+        buf.writeInt(colonyEvents.size());
+        for (final IColonyEventDescription event : colonyEvents)
+        {
+            buf.writeUtf(event.getEventTypeId().getPath());
+            event.serialize(buf);
+        }
 
         final List<ItemStack> maps = new ArrayList<>();
         for (final ItemStack stack : InventoryUtils.getBuildingInventory(this))
@@ -171,15 +162,16 @@ public class BuildingTownHall extends AbstractBuilding implements ITownHall
 
         final Level level = colony.getWorld();
 
-        final List<MapItemSavedData> mapDataList = new ArrayList<>();
+        final List<MapEntry> mapDataList = new ArrayList<>();
         for (final ItemStack stack : maps)
         {
             try
             {
+                final MapId mapId = stack.get(DataComponents.MAP_ID);
                 final MapItemSavedData mapData = MapItem.getSavedData(stack, level);
-                if (mapData != null)
+                if (mapData != null && mapData.scale == 0)
                 {
-                    mapDataList.add(mapData);
+                    mapDataList.add(new MapEntry(mapId, mapData));
                 }
             }
             catch (final Exception ex)
@@ -189,12 +181,38 @@ public class BuildingTownHall extends AbstractBuilding implements ITownHall
         }
 
         buf.writeInt(mapDataList.size());
-        for (final MapItemSavedData mapData : mapDataList)
+        for (final MapEntry mapData : mapDataList)
         {
-            buf.writeNbt(mapData.save(new CompoundTag()));
+            MapEntry.STREAM_CODEC.encode(buf, mapData);
         }
     }
 
+    @Override
+    public int getClaimRadius(final int newLevel)
+    {
+        switch (newLevel)
+        {
+            case 0:
+                return 0;
+            case 1:
+            case 2:
+                return 1;
+            case 3:
+                return 2;
+            case 4:
+                return 3;
+            case 5:
+                return 5;
+            default:
+                return 0;
+        }
+    }
+
+    @Override
+    public boolean canBeGathered()
+    {
+        return false;
+    }
 
     /**
      * ClientSide representation of the building.
@@ -212,9 +230,14 @@ public class BuildingTownHall extends AbstractBuilding implements ITownHall
         private ImmutableList<IColonyEventDescription> colonyEvents = ImmutableList.of();
 
         /**
+         * If the player is allowed to do townHall teleport.
+         */
+        private boolean canPlayerUseTP = false;
+
+        /**
          * List of mapdata.
          */
-        private List<MapItemSavedData> mapDataList = new ArrayList<>();
+        private List<MapEntry> mapDataList = new ArrayList<>();
 
         /**
          * Instantiates the view of the building.
@@ -235,10 +258,11 @@ public class BuildingTownHall extends AbstractBuilding implements ITownHall
         }
 
         @Override
-        public void deserialize(@NotNull final FriendlyByteBuf buf)
+        public void deserialize(@NotNull final RegistryFriendlyByteBuf buf)
         {
             super.deserialize(buf);
 
+            canPlayerUseTP = buf.readBoolean();
             final int permissionEventsSize = buf.readInt();
             permissionEvents.clear();
             for (int i = 0; i < permissionEventsSize; i++)
@@ -250,9 +274,9 @@ public class BuildingTownHall extends AbstractBuilding implements ITownHall
             final int colonyEventsSize = buf.readInt();
             for (int i = 0; i < colonyEventsSize; i++)
             {
-                final ResourceLocation eventTypeID = ResourceLocation.fromNamespaceAndPath(MOD_ID, buf.readUtf());
+                final ResourceLocation eventTypeID = new ResourceLocation(MOD_ID, buf.readUtf());
 
-                final ColonyEventDescriptionTypeRegistryEntry registryEntry = SlimColoniesAPIProxy.getInstance().getColonyEventDescriptionRegistry().getValue(eventTypeID);
+                final ColonyEventDescriptionTypeRegistryEntry registryEntry = MinecoloniesAPIProxy.getInstance().getColonyEventDescriptionRegistry().get(eventTypeID);
                 if (registryEntry == null)
                 {
                     Log.getLogger().warn("Event is missing registryEntry!:" + eventTypeID.getPath());
@@ -268,8 +292,7 @@ public class BuildingTownHall extends AbstractBuilding implements ITownHall
             mapDataList.clear();
             for (int i = 0; i < size; i++)
             {
-                final MapItemSavedData mapData = MapItemSavedData.load(buf.readNbt());
-                mapDataList.add(mapData);
+                mapDataList.add(MapEntry.STREAM_CODEC.decode(buf));
             }
         }
 
@@ -285,12 +308,14 @@ public class BuildingTownHall extends AbstractBuilding implements ITownHall
             return colonyEvents;
         }
 
-        /**
-         * Getter for the mapdata.
-         *
-         * @return the original list.
-         */
-        public List<MapItemSavedData> getMapDataList()
+        @Override
+        public boolean canPlayerUseTP()
+        {
+            return canPlayerUseTP;
+        }
+
+        @Override
+        public List<MapEntry> getMapDataList()
         {
             return mapDataList;
         }

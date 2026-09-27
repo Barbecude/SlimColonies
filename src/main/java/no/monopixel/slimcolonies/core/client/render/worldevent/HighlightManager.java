@@ -3,7 +3,9 @@ package no.monopixel.slimcolonies.core.client.render.worldevent;
 import no.monopixel.slimcolonies.core.client.render.worldevent.highlightmanager.IHighlightRenderData;
 
 import java.time.Duration;
-import java.util.*;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
 
 public class HighlightManager
 {

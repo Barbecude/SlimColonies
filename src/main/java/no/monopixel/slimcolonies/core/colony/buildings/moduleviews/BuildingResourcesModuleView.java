@@ -2,14 +2,16 @@ package no.monopixel.slimcolonies.core.colony.buildings.moduleviews;
 
 import com.ldtteam.blockui.views.BOWindow;
 import no.monopixel.slimcolonies.api.colony.buildings.modules.AbstractBuildingModuleView;
+import no.monopixel.slimcolonies.api.util.Utils;
 import no.monopixel.slimcolonies.api.util.constant.Constants;
-import no.monopixel.slimcolonies.core.client.gui.modules.WindowBuilderResModule;
+import no.monopixel.slimcolonies.core.client.gui.modules.building.WindowBuilderResModule;
 import no.monopixel.slimcolonies.core.colony.buildings.utils.BuildingBuilderResource;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.api.distmarker.OnlyIn;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.api.distmarker.OnlyIn;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Collections;
@@ -40,18 +42,18 @@ public class BuildingResourcesModuleView extends AbstractBuildingModuleView
     private int totalStages    = 1;
 
     @Override
-    public void deserialize(@NotNull final FriendlyByteBuf buf)
+    public void deserialize(@NotNull final RegistryFriendlyByteBuf buf)
     {
         final int size = buf.readInt();
         resources.clear();
 
         for (int i = 0; i < size; i++)
         {
-            final ItemStack itemStack = buf.readItem();
+            final ItemStack itemStack = Utils.deserializeCodecMess(buf);;
             final int amountAvailable = buf.readInt();
             final int amountNeeded = buf.readInt();
             final BuildingBuilderResource resource = new BuildingBuilderResource(itemStack, amountNeeded, amountAvailable);
-            final int hashCode = itemStack.hasTag() ? itemStack.getTag().hashCode() : 0;
+            final int hashCode = itemStack.getComponentsPatch().hashCode();
             final String key = itemStack.getDescriptionId() + "-" + hashCode;
             resources.put(key, resource);
         }
@@ -103,7 +105,6 @@ public class BuildingResourcesModuleView extends AbstractBuildingModuleView
 
     /**
      * Get the current stage status.
-     *
      * @return the stage.
      */
     public int getCurrentStage()
@@ -113,7 +114,6 @@ public class BuildingResourcesModuleView extends AbstractBuildingModuleView
 
     /**
      * Get the total number of stages,
-     *
      * @return all stages.
      */
     public int getTotalStages()
@@ -125,18 +125,18 @@ public class BuildingResourcesModuleView extends AbstractBuildingModuleView
     @Override
     public BOWindow getWindow()
     {
-        return new WindowBuilderResModule(Constants.MOD_ID + ":gui/layouthuts/layoutbuilderres.xml", buildingView, this);
+        return new WindowBuilderResModule(this);
     }
 
     @Override
     public ResourceLocation getIconResourceLocation()
     {
-        return ResourceLocation.fromNamespaceAndPath(Constants.MOD_ID, "textures/gui/modules/inventory.png");
+        return new ResourceLocation(Constants.MOD_ID, "textures/gui/modules/inventory.png");
     }
 
     @Override
-    public String getDesc()
+    public Component getDesc()
     {
-        return "no.monopixel.slimcolonies.coremod.gui.workerhuts.resourcelist";
+        return Component.translatableEscape("no.monopixel.slimcolonies.coremod.gui.workerhuts.resourcelist");
     }
 }

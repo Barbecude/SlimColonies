@@ -13,10 +13,12 @@ import no.monopixel.slimcolonies.api.util.NBTUtils;
 import no.monopixel.slimcolonies.api.util.constant.NbtTagConstants;
 import no.monopixel.slimcolonies.api.util.constant.SerializationIdentifierConstants;
 import no.monopixel.slimcolonies.api.util.constant.TypeConstants;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.util.Tuple;
 
 import org.jetbrains.annotations.NotNull;
 
@@ -94,15 +96,15 @@ public class StandardDataStoreManager implements IDataStoreManager
 
         @NotNull
         @Override
-        public CompoundTag serialize(@NotNull final IFactoryController controller, @NotNull final StandardDataStoreManager standardDataStoreManager)
+        public CompoundTag serialize(@NotNull final HolderLookup.Provider provider, @NotNull final IFactoryController controller, @NotNull final StandardDataStoreManager standardDataStoreManager)
         {
             final CompoundTag compound = new CompoundTag();
 
             compound.put(NbtTagConstants.TAG_LIST, standardDataStoreManager.storeMap.keySet().stream().map(iToken -> {
                 final CompoundTag entryCompound = new CompoundTag();
 
-                entryCompound.put(NbtTagConstants.TAG_TOKEN, controller.serialize(iToken));
-                entryCompound.put(NbtTagConstants.TAG_VALUE, controller.serialize(standardDataStoreManager.storeMap.get(iToken)));
+                entryCompound.put(NbtTagConstants.TAG_TOKEN, controller.serializeTag(provider, iToken));
+                entryCompound.put(NbtTagConstants.TAG_VALUE, controller.serializeTag(provider, standardDataStoreManager.storeMap.get(iToken)));
 
                 return entryCompound;
             }).collect(NBTUtils.toListNBT()));
@@ -112,7 +114,7 @@ public class StandardDataStoreManager implements IDataStoreManager
 
         @NotNull
         @Override
-        public StandardDataStoreManager deserialize(@NotNull final IFactoryController controller, @NotNull final CompoundTag nbt) throws Throwable
+        public StandardDataStoreManager deserialize(@NotNull final HolderLookup.Provider provider, @NotNull final IFactoryController controller, @NotNull final CompoundTag nbt) throws Throwable
         {
             final Map<IToken<?>, IDataStore> storeMap = new HashMap<>();
             final ListTag list = nbt.getList(NbtTagConstants.TAG_LIST, Tag.TAG_COMPOUND);
@@ -121,8 +123,8 @@ public class StandardDataStoreManager implements IDataStoreManager
                 final CompoundTag tag = list.getCompound(i);
                 try
                 {
-                    final IToken<?> token = controller.deserialize(tag.getCompound(NbtTagConstants.TAG_TOKEN));
-                    final IDataStore store = controller.deserialize(tag.getCompound(NbtTagConstants.TAG_VALUE));
+                    final IToken<?> token = controller.deserializeTag(provider, tag.getCompound(NbtTagConstants.TAG_TOKEN));
+                    final IDataStore store = controller.deserializeTag(provider, tag.getCompound(NbtTagConstants.TAG_VALUE));
                     storeMap.put(token, store);
                 }
                 catch (final Exception ex)
@@ -135,7 +137,7 @@ public class StandardDataStoreManager implements IDataStoreManager
         }
 
         @Override
-        public void serialize(IFactoryController controller, StandardDataStoreManager input, FriendlyByteBuf packetBuffer)
+        public void serialize(IFactoryController controller, StandardDataStoreManager input, RegistryFriendlyByteBuf packetBuffer)
         {
             packetBuffer.writeInt(input.storeMap.size());
             input.storeMap.forEach((key, value) -> {
@@ -145,7 +147,7 @@ public class StandardDataStoreManager implements IDataStoreManager
         }
 
         @Override
-        public StandardDataStoreManager deserialize(IFactoryController controller, FriendlyByteBuf buffer)
+        public StandardDataStoreManager deserialize(IFactoryController controller, RegistryFriendlyByteBuf buffer)
         {
             final Map<IToken<?>, IDataStore> storeMap = new HashMap<>();
             final int storeSize = buffer.readInt();

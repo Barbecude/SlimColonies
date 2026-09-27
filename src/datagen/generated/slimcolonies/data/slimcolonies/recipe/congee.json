@@ -1,0 +1,22 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "ingredients": [
+    {
+      "item": "slimcolonies:cabbage"
+    },
+    {
+      "item": "slimcolonies:garlic"
+    },
+    {
+      "item": "minecraft:bowl"
+    },
+    {
+      "item": "slimcolonies:cooked_rice"
+    }
+  ],
+  "result": {
+    "count": 1,
+    "id": "slimcolonies:congee"
+  }
+}

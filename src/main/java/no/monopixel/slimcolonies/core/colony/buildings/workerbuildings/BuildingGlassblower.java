@@ -8,7 +8,6 @@ import no.monopixel.slimcolonies.api.util.CraftingUtils;
 import no.monopixel.slimcolonies.api.util.OptionalPredicate;
 import no.monopixel.slimcolonies.core.colony.buildings.AbstractBuilding;
 import no.monopixel.slimcolonies.core.colony.buildings.modules.AbstractCraftingBuildingModule;
-import no.monopixel.slimcolonies.core.colony.buildings.modules.AbstractDOCraftingBuildingModule;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.item.ItemStack;
 import org.jetbrains.annotations.NotNull;
@@ -113,7 +112,7 @@ public class BuildingGlassblower extends AbstractBuilding
         }
     }
 
-    public static class DOCraftingModule extends AbstractDOCraftingBuildingModule
+    public static class DOCraftingModule extends AbstractCraftingBuildingModule.Domum
     {
         /**
          * Create a new module.

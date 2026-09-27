@@ -1,26 +1,33 @@
 package no.monopixel.slimcolonies.core.client.render;
 
-import com.mojang.blaze3d.vertex.PoseStack;
-import com.mojang.blaze3d.vertex.VertexConsumer;
-import com.mojang.math.Axis;
-import net.minecraft.client.renderer.MultiBufferSource;
-import net.minecraft.client.renderer.RenderType;
-import net.minecraft.client.renderer.blockentity.BlockEntityRenderer;
-import net.minecraft.client.renderer.blockentity.BlockEntityRendererProvider;
-import net.minecraft.client.renderer.texture.TextureAtlas;
-import net.minecraft.client.resources.model.Material;
-import net.minecraft.core.Direction;
-import net.minecraft.resources.ResourceLocation;
-import net.minecraft.world.level.block.state.properties.DoubleBlockHalf;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.api.distmarker.OnlyIn;
-import no.monopixel.slimcolonies.api.blocks.huts.AbstractBlockSlimColoniesDefault;
+import no.monopixel.slimcolonies.api.blocks.huts.AbstractBlockMinecoloniesDefault;
 import no.monopixel.slimcolonies.api.tileentities.AbstractTileEntityScarecrow;
 import no.monopixel.slimcolonies.api.tileentities.ScareCrowType;
 import no.monopixel.slimcolonies.api.util.constant.Constants;
 import no.monopixel.slimcolonies.core.blocks.BlockScarecrow;
 import no.monopixel.slimcolonies.core.client.model.ScarecrowModel;
 import no.monopixel.slimcolonies.core.event.ClientRegistryHandler;
+import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.blaze3d.vertex.VertexConsumer;
+import com.mojang.math.Axis;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.renderer.LightTexture;
+import net.minecraft.client.renderer.MultiBufferSource;
+import net.minecraft.client.renderer.RenderType;
+import net.minecraft.client.renderer.blockentity.BlockEntityRenderer;
+import net.minecraft.client.renderer.blockentity.BlockEntityRendererProvider;
+import net.minecraft.client.renderer.texture.OverlayTexture;
+import net.minecraft.client.resources.model.Material;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.inventory.InventoryMenu;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.LightLayer;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.state.properties.DoubleBlockHalf;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.api.distmarker.OnlyIn;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -71,11 +78,11 @@ public class TileEntityScarecrowRenderer implements BlockEntityRenderer<Abstract
     private ScarecrowModel model;
 
     public static final Material SCARECROW_A;
-    public static final Material SCARECROW_B;
+    public static final Material       SCARECROW_B;
     static
     {
-        SCARECROW_A = new Material(TextureAtlas.LOCATION_BLOCKS, ResourceLocation.fromNamespaceAndPath(Constants.MOD_ID, "block/blockscarecrowpumpkin"));
-        SCARECROW_B = new Material(TextureAtlas.LOCATION_BLOCKS, ResourceLocation.fromNamespaceAndPath(Constants.MOD_ID, "block/blockscarecrownormal"));
+        SCARECROW_A = new Material(InventoryMenu.BLOCK_ATLAS, new ResourceLocation(Constants.MOD_ID, "block/blockscarecrowpumpkin"));
+        SCARECROW_B = new Material(InventoryMenu.BLOCK_ATLAS, new ResourceLocation(Constants.MOD_ID, "block/blockscarecrownormal"));
     }
     /**
      * The public constructor for the renderer.
@@ -90,12 +97,12 @@ public class TileEntityScarecrowRenderer implements BlockEntityRenderer<Abstract
 
     @Override
     public void render(
-        final AbstractTileEntityScarecrow te,
-        final float partialTicks,
-        final PoseStack matrixStack,
-        @NotNull final MultiBufferSource iRenderTypeBuffer,
-        final int lightA,
-        final int lightB)
+      final AbstractTileEntityScarecrow te,
+      final float partialTicks,
+      final PoseStack matrixStack,
+      @NotNull final MultiBufferSource iRenderTypeBuffer,
+      final int lightA,
+      final int lightB)
     {
         if (te.getBlockState().getValue(BlockScarecrow.HALF) == DoubleBlockHalf.UPPER)
         {
@@ -110,7 +117,7 @@ public class TileEntityScarecrowRenderer implements BlockEntityRenderer<Abstract
         //In the case of worldLags tileEntities may sometimes disappear.
         if (te.getLevel().getBlockState(te.getBlockPos()).getBlock() instanceof BlockScarecrow)
         {
-            final Direction facing = te.getLevel().getBlockState(te.getBlockPos()).getValue(AbstractBlockSlimColoniesDefault.FACING);
+            final Direction facing = te.getLevel().getBlockState(te.getBlockPos()).getValue(AbstractBlockMinecoloniesDefault.FACING);
             switch (facing)
             {
                 case EAST:
@@ -128,7 +135,37 @@ public class TileEntityScarecrowRenderer implements BlockEntityRenderer<Abstract
         }
 
         final VertexConsumer vertexConsumer = getMaterial(te).buffer(iRenderTypeBuffer, RenderType::entitySolid);
-        this.model.renderToBuffer(matrixStack, vertexConsumer, lightA, lightB, 1.0F, 1.0F, 1.0F, 1.0F);
+        this.model.renderToBuffer(matrixStack, vertexConsumer, lightA, lightB, -1);
+
+        if (te.getBlockState().getValue(BlockScarecrow.LANTERN))
+        {
+            renderLantern(matrixStack, iRenderTypeBuffer, te.getBlockPos(), te.getLevel());
+        }
+
+        matrixStack.popPose();
+    }
+
+    private static void renderLantern(final PoseStack matrixStack, final MultiBufferSource buffer, final BlockPos pos, final Level level)
+    {
+        matrixStack.pushPose();
+
+        matrixStack.mulPose(Axis.ZP.rotationDegrees(180f));
+        matrixStack.translate(0.6f, -0.6f, -0.375f);
+
+        matrixStack.scale(0.75f, 0.65f, 0.75f);
+
+        final int blockLight = level.getBrightness(LightLayer.BLOCK, pos);
+        final int skyLight = level.getBrightness(LightLayer.SKY, pos);
+
+        Minecraft.getInstance()
+            .getBlockRenderer()
+            .renderSingleBlock(
+                Blocks.LANTERN.defaultBlockState(),
+                matrixStack,
+                buffer,
+                LightTexture.pack(blockLight, skyLight),
+                OverlayTexture.NO_OVERLAY);
+
         matrixStack.popPose();
     }
 

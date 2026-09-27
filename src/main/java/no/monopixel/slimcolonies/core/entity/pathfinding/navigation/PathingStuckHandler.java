@@ -1,6 +1,16 @@
 package no.monopixel.slimcolonies.core.entity.pathfinding.navigation;
 
 import com.ldtteam.structurize.util.BlockUtils;
+import no.monopixel.slimcolonies.api.entity.ai.workers.util.IBuilderUndestroyable;
+import no.monopixel.slimcolonies.api.entity.pathfinding.IMinecoloniesNavigator;
+import no.monopixel.slimcolonies.api.entity.pathfinding.IStuckHandler;
+import no.monopixel.slimcolonies.api.entity.pathfinding.IStuckHandlerEntity;
+import no.monopixel.slimcolonies.api.items.ModTags;
+import no.monopixel.slimcolonies.api.util.BlockPosUtil;
+import no.monopixel.slimcolonies.api.util.DamageSourceKeys;
+import no.monopixel.slimcolonies.api.util.Log;
+import no.monopixel.slimcolonies.api.util.constant.ColonyConstants;
+import no.monopixel.slimcolonies.core.entity.pathfinding.SurfaceType;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.entity.Mob;
@@ -12,17 +22,7 @@ import net.minecraft.world.level.block.LadderBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.pathfinder.Node;
 import net.minecraft.world.phys.Vec3;
-import net.minecraftforge.fml.loading.FMLEnvironment;
-import no.monopixel.slimcolonies.api.entity.ai.workers.util.IBuilderUndestroyable;
-import no.monopixel.slimcolonies.api.entity.pathfinding.IMinecoloniesNavigator;
-import no.monopixel.slimcolonies.api.entity.pathfinding.IStuckHandler;
-import no.monopixel.slimcolonies.api.entity.pathfinding.IStuckHandlerEntity;
-import no.monopixel.slimcolonies.api.items.ModTags;
-import no.monopixel.slimcolonies.api.util.BlockPosUtil;
-import no.monopixel.slimcolonies.api.util.DamageSourceKeys;
-import no.monopixel.slimcolonies.api.util.Log;
-import no.monopixel.slimcolonies.api.util.constant.ColonyConstants;
-import no.monopixel.slimcolonies.core.entity.pathfinding.SurfaceType;
+import net.neoforged.fml.loading.FMLEnvironment;
 
 import java.util.Objects;
 import java.util.Random;
@@ -51,6 +51,11 @@ public class PathingStuckHandler<NAV extends PathNavigation & IMinecoloniesNavig
     private static final int TICKS_PER_BLOCK = 7;
 
     /**
+     * Initial stucklevel
+     */
+    private static final int STARTING_STUCK_LEVEL = -5;
+
+    /**
      * Amount of path steps allowed to teleport on stuck, 0 = disabled
      */
     private int teleportRange = 0;
@@ -63,7 +68,7 @@ public class PathingStuckHandler<NAV extends PathNavigation & IMinecoloniesNavig
     /**
      * The current stucklevel, determines actions taken
      */
-    private int stuckLevel = 0;
+    private int stuckLevel = STARTING_STUCK_LEVEL;
 
     /**
      * Global timeout counter, used to determine when we're completly stuck
@@ -119,9 +124,9 @@ public class PathingStuckHandler<NAV extends PathNavigation & IMinecoloniesNavig
     private int     progressedNodes = 0;
 
     /**
-     * Delay before taking unstuck actions in ticks, default 60 seconds
+     * Delay before taking unstuck actions in ticks, default 5 seconds
      */
-    private int delayBeforeActions       = 10 * 20;
+    private int delayBeforeActions = 5 * 20;
     private int delayToNextUnstuckAction = delayBeforeActions;
 
     /**
@@ -230,30 +235,18 @@ public class PathingStuckHandler<NAV extends PathNavigation & IMinecoloniesNavig
                 // Stuck when we have a path, but are not progressing on it
                 tryUnstuck(navigator);
             }
-            else
+            else if (lastPathIndex != -1)
             {
-                if (lastPathIndex != -1)
+                // Delay next action when the entity is moving
+                delayToNextUnstuckAction = Math.max(delayToNextUnstuckAction, 100);
+
+                if ((stuckLevel == 0 || (prevDestination != null && prevDestination != BlockPos.ZERO && navigator.getPath().getTarget().distSqr(prevDestination) < 25)))
                 {
-                    if (lastPathIndex != navigator.getPath().getNextNodeIndex())
+                    progressedNodes = navigator.getPath().getNextNodeIndex() > lastPathIndex ? progressedNodes + 1 : progressedNodes;
+                    if (progressedNodes > 5 && (navigator.getPath().getEndNode() == null || !moveAwayStartPos.equals(navigator.getPath().getEndNode().asBlockPos())))
                     {
-                        // Delay next action when the entity is moving
-                        delayToNextUnstuckAction = Math.max(delayToNextUnstuckAction, 100);
-                    }
-                    else if (lastPathIndex < 2 && navigator.getPath().getNodeCount() > 2)
-                    {
-                        // Skip ahead on the node index, incase the starting position is bad
-                        navigator.getPath().setNextNodeIndex(2);
-                    }
-
-                    if ((stuckLevel == 0 || (prevDestination != null && prevDestination != BlockPos.ZERO && navigator.getPath().getTarget().distSqr(prevDestination) < 25)))
-                    {
-                        progressedNodes = navigator.getPath().getNextNodeIndex() > lastPathIndex ? progressedNodes + 1 : progressedNodes - 1;
-
-                        if (progressedNodes > 5 && (navigator.getPath().getEndNode() == null || !moveAwayStartPos.equals(navigator.getPath().getEndNode().asBlockPos())))
-                        {
-                            // Not stuck when progressing
-                            resetStuckTimers();
-                        }
+                        // Not stuck when progressing
+                        resetStuckTimers();
                     }
                 }
             }
@@ -341,6 +334,23 @@ public class PathingStuckHandler<NAV extends PathNavigation & IMinecoloniesNavig
         }
         delayToNextUnstuckAction = 50;
 
+        if (stuckLevel < 0)
+        {
+            if (navigator.getPath() != null && !navigator.isDone() && navigator.getPath().getNextNodeIndex() < navigator.getPath().getNodeCount() - 1)
+            {
+                // Skip ahead on the node index in hopes that the potentially different direction helps us unstuck
+                navigator.getPath().setNextNodeIndex(navigator.getPath().getNextNodeIndex() + 1);
+                delayToNextUnstuckAction = 30;
+                stuckLevel++;
+            }
+            else
+            {
+                stuckLevel = 0;
+            }
+
+            return;
+        }
+
         // Clear path
         if (stuckLevel == 0)
         {
@@ -358,9 +368,9 @@ public class PathingStuckHandler<NAV extends PathNavigation & IMinecoloniesNavig
         if (rand.nextDouble() < chanceToByPassMovingAway ||
             (lastStuckLevel == 1 || ((lastStuckLevel >= 3 && lastStuckLevel <= 8) && !(canBreakBlocks || canBuildLeafBridges || canPlaceLadders) && rand.nextBoolean())))
         {
-            if (navigator.getPath() != null)
+            if (navigator.getPath() != null && navigator.getPath().getNextNodeIndex() > 0)
             {
-                moveAwayStartPos = navigator.getPath().getNodePos(navigator.getPath().getNextNodeIndex());
+                moveAwayStartPos = navigator.getPath().getNodePos(navigator.getPath().getNextNodeIndex() - 1);
             }
             else
             {
@@ -369,7 +379,7 @@ public class PathingStuckHandler<NAV extends PathNavigation & IMinecoloniesNavig
 
             final int range = ColonyConstants.rand.nextInt(20) + 20;
             navigator.setPauseTicks(0);
-            ((SlimColoniesAdvancedPathNavigate) navigator).walkTowards(navigator.getOurEntity().blockPosition().relative(movingAwayDir, 40), range, 1.0f);
+            ((MinecoloniesAdvancedPathNavigate) navigator).walkTowards(navigator.getOurEntity().blockPosition().relative(movingAwayDir, 40), range, 1.0f);
             movingAwayDir = movingAwayDir.getClockWise();
             navigator.setPauseTicks(range * TICKS_PER_BLOCK);
             delayToNextUnstuckAction = (int) (range * TICKS_PER_BLOCK * 1.5);
@@ -435,7 +445,7 @@ public class PathingStuckHandler<NAV extends PathNavigation & IMinecoloniesNavig
         delayToNextUnstuckAction = delayBeforeActions;
         lastPathIndex = -1;
         progressedNodes = 0;
-        stuckLevel = 0;
+        stuckLevel = STARTING_STUCK_LEVEL;
         moveAwayStartPos = BlockPos.ZERO;
     }
 
@@ -502,7 +512,7 @@ public class PathingStuckHandler<NAV extends PathNavigation & IMinecoloniesNavig
      */
     private void placeLadders(final NAV navigator)
     {
-        final Level world = navigator.getOurEntity().level;
+        final Level world = navigator.getOurEntity().level();
         final Mob entity = navigator.getOurEntity();
 
         BlockPos entityPos = entity.blockPosition();
@@ -599,7 +609,7 @@ public class PathingStuckHandler<NAV extends PathNavigation & IMinecoloniesNavig
             for (final Direction dir : HORIZONTAL_DIRS)
             {
                 final BlockState toPlace = Blocks.LADDER.defaultBlockState().setValue(LadderBlock.FACING, dir.getOpposite());
-                if (BlockUtils.isAnySolid(world.getBlockState(pos.relative(dir))) && Blocks.LADDER.canSurvive(toPlace, world, pos))
+                if (BlockUtils.isAnySolid(world.getBlockState(pos.relative(dir))) && toPlace.canSurvive(world, pos))
                 {
                     world.setBlockAndUpdate(pos, toPlace);
                     break;

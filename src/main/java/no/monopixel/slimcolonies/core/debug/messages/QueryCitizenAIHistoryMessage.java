@@ -1,56 +1,53 @@
 package no.monopixel.slimcolonies.core.debug.messages;
 
+import com.ldtteam.common.network.PlayMessageType;
 import no.monopixel.slimcolonies.api.colony.ICitizenData;
 import no.monopixel.slimcolonies.api.colony.ICitizenDataView;
 import no.monopixel.slimcolonies.api.colony.IColony;
-import no.monopixel.slimcolonies.core.Network;
+import no.monopixel.slimcolonies.api.util.constant.Constants;
 import no.monopixel.slimcolonies.core.debug.DebugPlayerManager;
 import no.monopixel.slimcolonies.core.entity.citizen.EntityCitizen;
 import no.monopixel.slimcolonies.core.network.messages.server.AbstractColonyServerMessage;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
-import net.minecraft.world.entity.player.Player;
-import net.minecraftforge.network.NetworkEvent;
-import org.jetbrains.annotations.NotNull;
+import net.minecraft.server.level.ServerPlayer;
+import net.neoforged.neoforge.network.handling.IPayloadContext;
 
 /**
  * Message to query ai history from the server
  */
 public class QueryCitizenAIHistoryMessage extends AbstractColonyServerMessage
 {
+    public static final PlayMessageType<?> TYPE = PlayMessageType.forServer(Constants.MOD_ID, "debug_aihistory", QueryCitizenAIHistoryMessage::new);
+
     /**
      * Citizen id
      */
     private int id;
 
-    public QueryCitizenAIHistoryMessage()
-    {
-        super();
-    }
-
     public QueryCitizenAIHistoryMessage(final ICitizenDataView citizen)
     {
-        super(citizen.getColony());
+        super(TYPE, citizen.getColony());
         this.id = citizen.getId();
     }
 
-    @Override
-    public void fromBytesOverride(@NotNull final FriendlyByteBuf buf)
+    protected QueryCitizenAIHistoryMessage(final RegistryFriendlyByteBuf buf, final PlayMessageType<?> type)
     {
+        super(buf, type);
         this.id = buf.readInt();
     }
 
     @Override
-    public void toBytesOverride(@NotNull final FriendlyByteBuf buf)
+    protected void toBytes(final RegistryFriendlyByteBuf buf)
     {
+        super.toBytes(buf);
         buf.writeInt(id);
     }
 
     @Override
-    public void onExecute(final NetworkEvent.Context ctxIn, final boolean isLogicalServer, final IColony colony)
+    protected void onExecute(final IPayloadContext ctxIn, final ServerPlayer player, final IColony colony)
     {
-        final Player player = ctxIn.getSender();
         if (player == null || !DebugPlayerManager.hasDebugEnabled(player))
         {
             return;
@@ -71,7 +68,7 @@ public class QueryCitizenAIHistoryMessage extends AbstractColonyServerMessage
                 message.append(Component.literal("Job AI: ").append(entityCitizen.getCitizenJobHandler().getWorkAI().getStateAI().getHistory()));
             }
 
-            Network.getNetwork().sendToPlayer(new DebugOutputMessage(message, true), ctxIn.getSender());
+            new DebugOutputMessage(message, true).sendToPlayer(player);
         }
     }
 }

@@ -5,7 +5,7 @@ import no.monopixel.slimcolonies.api.entity.ai.statemachine.states.IAIState;
 import no.monopixel.slimcolonies.api.equipment.ModEquipmentTypes;
 import no.monopixel.slimcolonies.api.equipment.registry.EquipmentTypeEntry;
 import no.monopixel.slimcolonies.api.util.InventoryUtils;
-import no.monopixel.slimcolonies.core.Network;
+import no.monopixel.slimcolonies.api.util.Utils;
 import no.monopixel.slimcolonies.core.colony.buildings.workerbuildings.BuildingShepherd;
 import no.monopixel.slimcolonies.core.colony.jobs.JobShepherd;
 import no.monopixel.slimcolonies.core.util.citizenutils.CitizenItemUtils;
@@ -129,7 +129,7 @@ public class EntityAIWorkShepherd extends AbstractEntityAIHerder<JobShepherd, Bu
                 return getState();
             }
 
-            int enchantmentLevel = worker.getMainHandItem().getEnchantmentLevel(Enchantments.BLOCK_FORTUNE);
+            int enchantmentLevel = worker.getMainHandItem().getEnchantmentLevel(Utils.getRegistryValue(Enchantments.FORTUNE, world));
             enchantmentLevel *= Math.max(1.0, (getPrimarySkillLevel() / 5.0));
 
             worker.swing(InteractionHand.MAIN_HAND);
@@ -147,7 +147,7 @@ public class EntityAIWorkShepherd extends AbstractEntityAIHerder<JobShepherd, Bu
             }
 
             sheep.playSound(SoundEvents.SHEEP_SHEAR, 1.0F, 1.0F);
-            Network.getNetwork().sendToTrackingEntity(new LocalizedParticleEffectMessage(new ItemStack(ITEM_BY_DYE.get(sheep.getColor())), sheep.getOnPos().above()), worker);
+            new LocalizedParticleEffectMessage(new ItemStack(ITEM_BY_DYE.get(sheep.getColor())), sheep.getOnPos().above()).sendToTrackingEntity(worker);
             dyeSheepChance(sheep);
 
             CitizenItemUtils.damageItemInHand(worker, InteractionHand.MAIN_HAND, 1);

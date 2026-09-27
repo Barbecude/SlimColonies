@@ -7,13 +7,14 @@ import no.monopixel.slimcolonies.api.quests.IQuestInstance;
 import no.monopixel.slimcolonies.api.quests.IQuestObjectiveTemplate;
 import no.monopixel.slimcolonies.core.colony.Colony;
 import no.monopixel.slimcolonies.core.event.QuestObjectiveEventHandler;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.Style;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.block.Block;
-import net.minecraftforge.registries.ForgeRegistries;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
@@ -47,7 +48,7 @@ public class BreakBlockObjectiveTemplate extends DialogueObjectiveTemplateTempla
      * @param target       the target citizen.
      * @param blocksToMine the number of blocks to mine.
      * @param blockToMine  the block to mine.
-     * @param rewards      the rewards this unlocks.
+     * @param rewards the rewards this unlocks.
      */
     public BreakBlockObjectiveTemplate(final int target, final int blocksToMine, final Block blockToMine, final int nextObjective, final List<Integer> rewards)
     {
@@ -60,26 +61,25 @@ public class BreakBlockObjectiveTemplate extends DialogueObjectiveTemplateTempla
     @NotNull
     private static DialogueElement buildDialogueTree(final Block blockToMine)
     {
-        final Component text = Component.translatable("no.monopixel.slimcolonies.coremod.questobjectives.breakblock", blockToMine.getName());
-        final AnswerElement answer1 = new AnswerElement(Component.translatable("no.monopixel.slimcolonies.coremod.questobjectives.answer.later"),
-            new IQuestDialogueAnswer.CloseUIDialogueAnswer());
-        final AnswerElement answer2 = new AnswerElement(Component.translatable("no.monopixel.slimcolonies.coremod.questobjectives.answer.cancel"),
-            new IQuestDialogueAnswer.QuestCancellationDialogueAnswer());
+        final Component text = Component.translatableEscape("no.monopixel.slimcolonies.coremod.questobjectives.breakblock", blockToMine.getName());
+        final AnswerElement answer1 = new AnswerElement(Component.translatableEscape("no.monopixel.slimcolonies.coremod.questobjectives.answer.later"),
+                new IQuestDialogueAnswer.CloseUIDialogueAnswer());
+        final AnswerElement answer2 = new AnswerElement(Component.translatableEscape("no.monopixel.slimcolonies.coremod.questobjectives.answer.cancel"),
+                new IQuestDialogueAnswer.QuestCancellationDialogueAnswer());
         return new DialogueElement(text, List.of(answer1, answer2));
     }
 
     /**
      * Parse the mine block objective from json.
-     *
      * @param jsonObject the json to parse it from.
      * @return a new objective object.
      */
-    public static IQuestObjectiveTemplate createObjective(final JsonObject jsonObject)
+    public static IQuestObjectiveTemplate createObjective(@NotNull final HolderLookup.Provider provider, final JsonObject jsonObject)
     {
         JsonObject details = jsonObject.getAsJsonObject(DETAILS_KEY);
         final int target = details.get(TARGET_KEY).getAsInt();
         final int quantity = details.get(QUANTITY_KEY).getAsInt();
-        final Block block = ForgeRegistries.BLOCKS.getHolder(new ResourceLocation(details.get(BLOCK_KEY).getAsString())).get().get();
+        final Block block = BuiltInRegistries.BLOCK.get(ResourceLocation.parse(details.get(BLOCK_KEY).getAsString()));
         final int nextObj = details.has(NEXT_OBJ_KEY) ? details.get(NEXT_OBJ_KEY).getAsInt() : -1;
 
         return new BreakBlockObjectiveTemplate(target, quantity, block, nextObj, parseRewards(jsonObject));
@@ -102,10 +102,10 @@ public class BreakBlockObjectiveTemplate extends DialogueObjectiveTemplateTempla
     {
         if (quest.getCurrentObjectiveInstance() instanceof BlockMiningProgressInstance progress)
         {
-            return Component.translatable("no.monopixel.slimcolonies.coremod.questobjectives.breakblock.progress",
-                progress.currentProgress,
-                blocksToMine,
-                blockToMine.getName().setStyle(style));
+            return Component.translatableEscape("no.monopixel.slimcolonies.coremod.questobjectives.breakblock.progress",
+              progress.currentProgress,
+              blocksToMine,
+              blockToMine.getName().setStyle(style));
         }
         return Component.empty();
     }
@@ -124,7 +124,6 @@ public class BreakBlockObjectiveTemplate extends DialogueObjectiveTemplateTempla
 
     /**
      * Cleanup the listener of this objective,
-     *
      * @param colonyQuest the listener.
      */
     private void cleanupListener(final IQuestInstance colonyQuest)
@@ -190,7 +189,7 @@ public class BreakBlockObjectiveTemplate extends DialogueObjectiveTemplateTempla
         }
 
         @Override
-        public CompoundTag serializeNBT()
+        public CompoundTag serializeNBT(@NotNull final HolderLookup.Provider provider)
         {
             final CompoundTag compoundTag = new CompoundTag();
             compoundTag.putInt(TAG_QUANTITY, currentProgress);
@@ -204,7 +203,7 @@ public class BreakBlockObjectiveTemplate extends DialogueObjectiveTemplateTempla
         }
 
         @Override
-        public void deserializeNBT(final CompoundTag nbt)
+        public void deserializeNBT(@NotNull final HolderLookup.Provider provider, final CompoundTag nbt)
         {
             this.currentProgress = nbt.getInt(TAG_QUANTITY);
         }

@@ -1,5 +1,11 @@
 {
   "branch": "slimcolonies:technology",
+  "costs": [
+    {
+      "count": 1024,
+      "item": "minecraft:iron_ingot"
+    }
+  ],
   "effects": [
     {
       "id": "slimcolonies:effects/blockplacespeedmultiplier",

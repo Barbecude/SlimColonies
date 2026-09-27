@@ -1,16 +1,21 @@
 package no.monopixel.slimcolonies.core.network.messages.client;
 
-import no.monopixel.slimcolonies.api.network.IMessage;
+import com.ldtteam.common.network.AbstractClientPlayMessage;
+import com.ldtteam.common.network.PlayMessageType;
+import no.monopixel.slimcolonies.api.util.constant.Constants;
 import no.monopixel.slimcolonies.core.client.gui.townhall.WindowTownHallColonyManage;
 import net.minecraft.core.BlockPos;
-import net.minecraft.network.FriendlyByteBuf;
-import net.minecraftforge.network.NetworkEvent;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.world.entity.player.Player;
+import net.neoforged.neoforge.network.handling.IPayloadContext;
 
 /**
  * Message to open the colony founding covenant.
  */
-public class OpenColonyFoundingCovenantMessage implements IMessage
+public class OpenColonyFoundingCovenantMessage  extends AbstractClientPlayMessage
 {
+    public static final PlayMessageType<?> TYPE = PlayMessageType.forClient(Constants.MOD_ID, "open_colony_founding_covenant", OpenColonyFoundingCovenantMessage::new);
+
     /**
      * Info on the closest colony.
      */
@@ -21,38 +26,33 @@ public class OpenColonyFoundingCovenantMessage implements IMessage
     /**
      * Default constructor
      **/
-    public OpenColonyFoundingCovenantMessage()
+    public OpenColonyFoundingCovenantMessage(RegistryFriendlyByteBuf buf, final PlayMessageType<?> type)
     {
-        super();
+        super(type);
+        this.closestName = buf.readUtf(32767);
+        this.closestDistance = buf.readInt();
+        this.townHallPos = buf.readBlockPos();
     }
 
     public OpenColonyFoundingCovenantMessage(final String closestName, final int closestDistance, final BlockPos townHallPos)
     {
-        super();
+        super(TYPE);
         this.closestName = closestName;
         this.closestDistance = closestDistance;
         this.townHallPos = townHallPos;
     }
 
     @Override
-    public void onExecute(NetworkEvent.Context ctxIn, boolean isLogicalServer)
+    protected void onExecute(final IPayloadContext ctxIn, final Player player)
     {
         new WindowTownHallColonyManage(townHallPos, closestName, closestDistance, "", false).open();
     }
 
     @Override
-    public void toBytes(FriendlyByteBuf buf)
+    public void toBytes(RegistryFriendlyByteBuf buf)
     {
         buf.writeUtf(closestName);
         buf.writeInt(closestDistance);
         buf.writeBlockPos(townHallPos);
-    }
-
-    @Override
-    public void fromBytes(FriendlyByteBuf buf)
-    {
-        this.closestName = buf.readUtf(32767);
-        this.closestDistance = buf.readInt();
-        this.townHallPos = buf.readBlockPos();
     }
 }

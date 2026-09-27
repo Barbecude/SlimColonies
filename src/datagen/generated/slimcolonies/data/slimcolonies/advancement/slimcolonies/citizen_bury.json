@@ -1,0 +1,26 @@
+{
+  "parent": "slimcolonies:slimcolonies/build_tavern",
+  "criteria": {
+    "buried": {
+      "trigger": "slimcolonies:citizen_bury"
+    }
+  },
+  "display": {
+    "description": {
+      "translate": "advancements.slimcolonies.citizen.bury.description"
+    },
+    "icon": {
+      "count": 1,
+      "id": "slimcolonies:blockhutgraveyard"
+    },
+    "title": {
+      "translate": "advancements.slimcolonies.citizen.bury.title"
+    }
+  },
+  "requirements": [
+    [
+      "buried"
+    ]
+  ],
+  "sends_telemetry_event": true
+}

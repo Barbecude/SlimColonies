@@ -2,16 +2,16 @@ package no.monopixel.slimcolonies.core.colony;
 
 import no.monopixel.slimcolonies.api.colony.IColonyView;
 import no.monopixel.slimcolonies.api.colony.IVisitorViewData;
+import no.monopixel.slimcolonies.api.util.Utils;
 import com.mojang.authlib.GameProfile;
-import com.mojang.authlib.minecraft.MinecraftProfileTexture;
+import com.mojang.authlib.yggdrasil.ProfileResult;
 import net.minecraft.Util;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.resources.DefaultPlayerSkin;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.item.ItemStack;
 import org.jetbrains.annotations.NotNull;
-
-import java.util.Map;
 
 /**
  * View data for visitors
@@ -19,9 +19,19 @@ import java.util.Map;
 public class VisitorDataView extends CitizenDataView implements IVisitorViewData
 {
     /**
+     * The recruitment costs
+     */
+    private ItemStack recruitmentCosts;
+
+    /**
      * Cached player info for custom texture.
      */
     private volatile ResourceLocation cachedTexture;
+
+    /**
+     * Session profile cache for a given special visitor.
+     */
+    private GameProfile cachedProfile = null;
 
     /**
      * Create a CitizenData given an ID. Used as a super-constructor or during loading.
@@ -35,9 +45,17 @@ public class VisitorDataView extends CitizenDataView implements IVisitorViewData
     }
 
     @Override
-    public void deserialize(@NotNull final FriendlyByteBuf buf)
+    public void deserialize(@NotNull final RegistryFriendlyByteBuf buf)
     {
         super.deserialize(buf);
+        recruitmentCosts = Utils.deserializeCodecMess(buf);
+        recruitmentCosts.setCount(buf.readInt());
+    }
+
+    @Override
+    public ItemStack getRecruitCost()
+    {
+        return recruitmentCosts;
     }
 
     @Override
@@ -47,21 +65,31 @@ public class VisitorDataView extends CitizenDataView implements IVisitorViewData
         {
             return null;
         }
-        if (cachedTexture == null)
+
+        if (cachedProfile == null)
         {
-            cachedTexture = DefaultPlayerSkin.getDefaultSkin(textureUUID);
             Util.backgroundExecutor().execute(() ->
             {
-                Minecraft minecraft = Minecraft.getInstance();
-                final GameProfile profile = new GameProfile(textureUUID, "mcoltexturequery");
-                minecraft.getMinecraftSessionService().fillProfileProperties(profile, true);
-                Map<MinecraftProfileTexture.Type, MinecraftProfileTexture> map = minecraft.getSkinManager().getInsecureSkinInformation(profile);
-                if (!map.isEmpty())
+                if (cachedProfile == null)
                 {
-                    cachedTexture = minecraft.getSkinManager().registerTexture(map.get(MinecraftProfileTexture.Type.SKIN), MinecraftProfileTexture.Type.SKIN);
+                    final ProfileResult profile = Minecraft.getInstance().getMinecraftSessionService().fetchProfile(textureUUID, true);
+                    if (profile != null)
+                    {
+                        cachedProfile = profile.profile();
+                    }
                 }
             });
         }
-        return cachedTexture;
+
+        if (cachedProfile != null && cachedTexture == null)
+        {
+            final ResourceLocation texture = Minecraft.getInstance().getSkinManager().getInsecureSkin(cachedProfile).texture();
+            if (texture != DefaultPlayerSkin.get(textureUUID).texture())
+            {
+                cachedTexture = texture;
+            }
+        }
+
+        return cachedTexture == null ? DefaultPlayerSkin.get(textureUUID).texture() : cachedTexture;
     }
 }

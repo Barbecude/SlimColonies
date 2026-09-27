@@ -1,0 +1,30 @@
+package no.monopixel.slimcolonies.api.colony.colonyEvents;
+
+import no.monopixel.slimcolonies.api.util.Tuple;
+import net.minecraft.core.BlockPos;
+
+import java.util.List;
+
+/**
+ * Used by events which do spawn a structure in the world
+ */
+public interface IColonyStructureSpawnEvent extends IColonyEvent
+{
+    /**
+     * Returns the list of used schematics and their positions. The string should be the full path to the schematic file.
+     *
+     * @return list of schematics
+     */
+    List<Tuple<String, BlockPos>> getSchematicSpawns();
+
+    /**
+     * Get the ship description for the schematic
+     */
+    String getShipDesc();
+
+    /**
+     * Set the max raider count.
+     * @param maxRaiderCount the count.
+     */
+    void setMaxRaiderCount(int maxRaiderCount);
+}

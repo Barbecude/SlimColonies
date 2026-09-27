@@ -1,71 +1,61 @@
 package no.monopixel.slimcolonies.core.network.messages.server;
 
+import com.ldtteam.common.network.AbstractServerPlayMessage;
+import com.ldtteam.common.network.PlayMessageType;
 import no.monopixel.slimcolonies.api.colony.IColonyManager;
-import no.monopixel.slimcolonies.api.network.IMessage;
 import no.monopixel.slimcolonies.api.util.InventoryUtils;
 import no.monopixel.slimcolonies.api.util.MessageUtils;
+import no.monopixel.slimcolonies.api.util.constant.Constants;
 import no.monopixel.slimcolonies.core.colony.Colony;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
-import net.minecraftforge.fml.LogicalSide;
-import net.minecraftforge.network.NetworkEvent;
-import org.jetbrains.annotations.Nullable;
+import net.neoforged.neoforge.items.wrapper.InvWrapper;
+import net.neoforged.neoforge.network.handling.IPayloadContext;
 
 import static no.monopixel.slimcolonies.api.util.constant.TranslationConstants.WARNING_BUILDING_PICKUP_PLAYER_INVENTORY_FULL;
 
 /**
  * Pickup the town hall block.
  */
-public class PickupBlockMessage implements IMessage
+public class PickupBlockMessage extends AbstractServerPlayMessage
 {
+    public static final PlayMessageType<?> TYPE = PlayMessageType.forServer(Constants.MOD_ID, "pickup_block", PickupBlockMessage::new);
+
     /**
      * Position the player wants to found the colony at.
      */
     BlockPos pos;
 
-    public PickupBlockMessage()
+    public PickupBlockMessage(final RegistryFriendlyByteBuf buf, final PlayMessageType<?> type)
     {
-        super();
+        super(type);
+        pos = buf.readBlockPos();
     }
 
     public PickupBlockMessage(final BlockPos pos)
     {
+        super(TYPE);
         this.pos = pos;
     }
 
     @Override
-    public void toBytes(final FriendlyByteBuf buf)
+    public void toBytes(final RegistryFriendlyByteBuf buf)
     {
         buf.writeBlockPos(pos);
     }
 
     @Override
-    public void fromBytes(final FriendlyByteBuf buf)
+    protected void onExecute(final IPayloadContext ctxIn, final ServerPlayer sender)
     {
-        pos = buf.readBlockPos();
-    }
-
-    @Nullable
-    @Override
-    public LogicalSide getExecutionSide()
-    {
-        return LogicalSide.SERVER;
-    }
-
-    @Override
-    public void onExecute(final NetworkEvent.Context ctxIn, final boolean isLogicalServer)
-    {
-        final ServerPlayer sender = ctxIn.getSender();
-        final Level world = ctxIn.getSender().level;
-
         if (sender == null)
         {
             return;
         }
+        final Level world = sender.level();
 
         if (IColonyManager.getInstance().getColonyByPosFromWorld(world, pos) instanceof Colony)
         {
@@ -73,9 +63,7 @@ public class PickupBlockMessage implements IMessage
         }
 
         final ItemStack stack = new ItemStack(world.getBlockState(pos).getBlock(), 1);
-        final CompoundTag compoundNBT = new CompoundTag();
-        stack.setTag(compoundNBT);
-        if (InventoryUtils.addItemStackToProvider(sender, stack))
+        if (InventoryUtils.addItemStackToItemHandler(new InvWrapper(sender.getInventory()), stack))
         {
             world.destroyBlock(pos, false);
         }

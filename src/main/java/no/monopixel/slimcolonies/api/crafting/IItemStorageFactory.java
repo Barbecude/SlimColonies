@@ -60,3 +60,4 @@ public interface IItemStorageFactory extends IFactory<FactoryVoidInput, ItemStor
     @NotNull
     ItemStorage getNewInstance(@NotNull final ItemStack stack, final int size, final boolean ignoreDamage, final boolean ignoreNBT);
 }
+

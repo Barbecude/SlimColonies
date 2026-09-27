@@ -1,0 +1,247 @@
+{
+  "values": {
+    "slimcolonies:apple_pie": {
+      "chance": 1.0
+    },
+    "slimcolonies:baked_salmon": {
+      "chance": 1.0
+    },
+    "slimcolonies:bell_pepper": {
+      "chance": 0.5
+    },
+    "slimcolonies:borscht": {
+      "chance": 1.0
+    },
+    "slimcolonies:butternut_squash": {
+      "chance": 0.5
+    },
+    "slimcolonies:cabbage": {
+      "chance": 0.5
+    },
+    "slimcolonies:cabochis": {
+      "chance": 1.0
+    },
+    "slimcolonies:cheddar_cheese": {
+      "chance": 1.0
+    },
+    "slimcolonies:cheese_pizza": {
+      "chance": 1.0
+    },
+    "slimcolonies:cheese_ravioli": {
+      "chance": 1.0
+    },
+    "slimcolonies:chicken_broth": {
+      "chance": 1.0
+    },
+    "slimcolonies:chickpea": {
+      "chance": 0.5
+    },
+    "slimcolonies:chorus_bread": {
+      "chance": 0.8333333
+    },
+    "slimcolonies:composted_dirt": {
+      "chance": 1.0
+    },
+    "slimcolonies:congee": {
+      "chance": 1.0
+    },
+    "slimcolonies:cooked_rice": {
+      "chance": 1.0
+    },
+    "slimcolonies:corn": {
+      "chance": 0.5
+    },
+    "slimcolonies:corn_chowder": {
+      "chance": 1.0
+    },
+    "slimcolonies:durum": {
+      "chance": 0.5
+    },
+    "slimcolonies:eggdrop_soup": {
+      "chance": 1.0
+    },
+    "slimcolonies:eggplant": {
+      "chance": 0.5
+    },
+    "slimcolonies:eggplant_dolma": {
+      "chance": 1.0
+    },
+    "slimcolonies:feta_cheese": {
+      "chance": 1.0
+    },
+    "slimcolonies:fish_dinner": {
+      "chance": 1.0
+    },
+    "slimcolonies:fish_n_chips": {
+      "chance": 1.0
+    },
+    "slimcolonies:flatbread": {
+      "chance": 1.0
+    },
+    "slimcolonies:fried_rice": {
+      "chance": 1.0
+    },
+    "slimcolonies:garlic": {
+      "chance": 0.5
+    },
+    "slimcolonies:golden_bread": {
+      "chance": 0.8333333
+    },
+    "slimcolonies:hand_pie": {
+      "chance": 1.0
+    },
+    "slimcolonies:kebab": {
+      "chance": 1.0
+    },
+    "slimcolonies:kimchi": {
+      "chance": 1.0
+    },
+    "slimcolonies:lamb_stew": {
+      "chance": 1.0
+    },
+    "slimcolonies:lembas_scone": {
+      "chance": 1.0
+    },
+    "slimcolonies:manchet_bread": {
+      "chance": 1.0
+    },
+    "slimcolonies:meat_ravioli": {
+      "chance": 1.0
+    },
+    "slimcolonies:milky_bread": {
+      "chance": 0.8333333
+    },
+    "slimcolonies:mint": {
+      "chance": 0.5
+    },
+    "slimcolonies:mint_jelly": {
+      "chance": 1.0
+    },
+    "slimcolonies:mint_tea": {
+      "chance": 1.0
+    },
+    "slimcolonies:mintchoco_cheesecake": {
+      "chance": 1.0
+    },
+    "slimcolonies:mistletoe": {
+      "chance": 0.5
+    },
+    "slimcolonies:muffin": {
+      "chance": 1.0
+    },
+    "slimcolonies:mushroom_pizza": {
+      "chance": 1.0
+    },
+    "slimcolonies:mutton_dinner": {
+      "chance": 1.0
+    },
+    "slimcolonies:nether_pepper": {
+      "chance": 0.5
+    },
+    "slimcolonies:onion": {
+      "chance": 0.5
+    },
+    "slimcolonies:pasta_plain": {
+      "chance": 1.0
+    },
+    "slimcolonies:pasta_tomato": {
+      "chance": 1.0
+    },
+    "slimcolonies:pea_soup": {
+      "chance": 1.0
+    },
+    "slimcolonies:peas": {
+      "chance": 0.5
+    },
+    "slimcolonies:pepper_hummus": {
+      "chance": 1.0
+    },
+    "slimcolonies:pierogi": {
+      "chance": 1.0
+    },
+    "slimcolonies:pita_hummus": {
+      "chance": 1.0
+    },
+    "slimcolonies:plain_cheesecake": {
+      "chance": 1.0
+    },
+    "slimcolonies:polenta": {
+      "chance": 1.0
+    },
+    "slimcolonies:potato_soup": {
+      "chance": 1.0
+    },
+    "slimcolonies:pottage": {
+      "chance": 1.0
+    },
+    "slimcolonies:ramen": {
+      "chance": 1.0
+    },
+    "slimcolonies:rice": {
+      "chance": 0.5
+    },
+    "slimcolonies:rice_ball": {
+      "chance": 1.0
+    },
+    "slimcolonies:schnitzel": {
+      "chance": 1.0
+    },
+    "slimcolonies:soybean": {
+      "chance": 0.5
+    },
+    "slimcolonies:spicy_eggplant": {
+      "chance": 1.0
+    },
+    "slimcolonies:spicy_grilled_chicken": {
+      "chance": 1.0
+    },
+    "slimcolonies:squash_soup": {
+      "chance": 1.0
+    },
+    "slimcolonies:steak_dinner": {
+      "chance": 1.0
+    },
+    "slimcolonies:stew_trencher": {
+      "chance": 1.0
+    },
+    "slimcolonies:stuffed_pepper": {
+      "chance": 1.0
+    },
+    "slimcolonies:stuffed_pita": {
+      "chance": 1.0
+    },
+    "slimcolonies:sugary_bread": {
+      "chance": 1.0
+    },
+    "slimcolonies:sushi_roll": {
+      "chance": 1.0
+    },
+    "slimcolonies:tacos": {
+      "chance": 1.0
+    },
+    "slimcolonies:tofu": {
+      "chance": 1.0
+    },
+    "slimcolonies:tomato": {
+      "chance": 0.5
+    },
+    "slimcolonies:tortillas": {
+      "chance": 1.0
+    },
+    "slimcolonies:veggie_quiche": {
+      "chance": 1.0
+    },
+    "slimcolonies:veggie_ravioli": {
+      "chance": 1.0
+    },
+    "slimcolonies:veggie_soup": {
+      "chance": 1.0
+    },
+    "slimcolonies:yogurt": {
+      "chance": 1.0
+    },
+    "slimcolonies:yogurt_with_berries": {
+      "chance": 1.0
+    }
+  }
+}

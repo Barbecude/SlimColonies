@@ -14,9 +14,9 @@ import no.monopixel.slimcolonies.api.colony.requestsystem.resolver.retrying.IRet
 import no.monopixel.slimcolonies.api.colony.requestsystem.token.IToken;
 import no.monopixel.slimcolonies.api.tileentities.ITickable;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.world.item.ItemStack;
-import net.minecraftforge.common.util.INBTSerializable;
+import net.neoforged.neoforge.common.util.INBTSerializable;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -231,18 +231,18 @@ public interface IRequestManager extends INBTSerializable<CompoundTag>, ITickabl
     void log(final String message);
 
     /**
-     * serialize this request manager to the give {@link FriendlyByteBuf}
+     * serialize this request manager to the give {@link RegistryFriendlyByteBuf}
      *
      * @param controller the controller.
-     * @param buffer     the {@link FriendlyByteBuf} to serialize to.
+     * @param buffer     the {@link RegistryFriendlyByteBuf} to serialize to.
      */
-    void serialize(final IFactoryController controller, final FriendlyByteBuf buffer);
+    void serialize(final IFactoryController controller, final RegistryFriendlyByteBuf buffer);
 
     /**
-     * deserialize this request manager from the give {@link FriendlyByteBuf}
+     * deserialize this request manager from the give {@link RegistryFriendlyByteBuf}
      *
      * @param controller the controller.
-     * @param buffer     the {@link FriendlyByteBuf} to deserialize from.
+     * @param buffer     the {@link RegistryFriendlyByteBuf} to deserialize from.
      */
-    void deserialize(final IFactoryController controller, final FriendlyByteBuf buffer);
+    void deserialize(final IFactoryController controller, final RegistryFriendlyByteBuf buffer);
 }

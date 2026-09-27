@@ -1,13 +1,13 @@
 package no.monopixel.slimcolonies.core.colony.interactionhandling.registry;
 
-import net.minecraftforge.registries.IForgeRegistry;
-import no.monopixel.slimcolonies.api.ISlimColoniesAPI;
+import no.monopixel.slimcolonies.api.IMinecoloniesAPI;
 import no.monopixel.slimcolonies.api.colony.interactionhandling.registry.InteractionResponseHandlerEntry;
+import net.minecraft.core.Registry;
 
 public interface IInteractionResponseHandlerRegistry
 {
-    static IForgeRegistry<InteractionResponseHandlerEntry> getInstance()
+    static Registry<InteractionResponseHandlerEntry> getInstance()
     {
-        return ISlimColoniesAPI.getInstance().getInteractionResponseHandlerRegistry();
+        return IMinecoloniesAPI.getInstance().getInteractionResponseHandlerRegistry();
     }
 }

@@ -1,0 +1,68 @@
+modLoader="javafml"
+loaderVersion="${fml_range}"
+license="GPL3"
+issueTrackerURL="https://github.com/haggbart/SlimColonies/issues"
+
+[[mods]]
+modId="slimcolonies"
+version="${version}"
+displayName="SlimColonies (Indonesian Custom Edition)"
+displayURL="https://monopixel.no"
+logoFile="slimcolonies.png"
+credits="Thanks to the original MineColonies & SlimColonies teams!"
+authors="Zevaldo, monopixel, LDT Team"
+description='''
+SlimColonies untuk NeoForge 1.21.1 - Edisi Kustom Bahasa Indonesia dengan Nama NPC Nusantara, Alur Cerita Kustom, dan Sistem Raid Entity Mod Lain!
+'''
+
+[[accessTransformers]]
+file="META-INF/accesstransformer.cfg"
+
+[[dependencies.slimcolonies]]
+    modId="neoforge"
+    type="required"
+    versionRange="[${forgeMinVersion}, )"
+    ordering="NONE"
+    side="BOTH"
+[[dependencies.slimcolonies]]
+    modId="minecraft"
+    type="required"
+    versionRange="${minecraft_range}"
+    ordering="NONE"
+    side="BOTH"
+[[dependencies.slimcolonies]]
+    modId="structurize"
+    type="required"
+    versionRange="[${structurize_version}, )"
+    ordering="AFTER"
+    side="BOTH"
+[[dependencies.slimcolonies]]
+    modId="blockui"
+    type="required"
+    versionRange="[${blockUI_version}, )"
+    ordering="AFTER"
+    side="BOTH"
+[[dependencies.slimcolonies]]
+    modId="jei"
+    type="optional"
+    versionRange="[${jei_version},)"
+    ordering="NONE"
+    side="BOTH"
+[[dependencies.slimcolonies]]
+    modId="domum_ornamentum"
+    type="required"
+    versionRange="[${domumOrnamentumVersion}, )"
+    ordering="AFTER"
+    side="BOTH"
+[[dependencies.slimcolonies]]
+    modId="journeymap"
+    type="optional"
+    versionRange="[${jmapVersion},)"
+    ordering="NONE"
+    side="BOTH"
+[[dependencies.slimcolonies]]
+    modId="dynamictrees"
+    type="optional"
+    versionRange="[${dynamicTreesVersion},)"
+    ordering="NONE"
+    side="BOTH"

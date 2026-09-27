@@ -1,0 +1,38 @@
+{
+  "parent": "slimcolonies:slimcolonies/start_builder",
+  "criteria": {
+    "click_gui_button_fulfill": {
+      "conditions": {
+        "button_id": "fulfill",
+        "window_resource_location": "slimcolonies:gui/citizen/requests.xml"
+      },
+      "trigger": "slimcolonies:click_gui_button"
+    },
+    "click_request_button_fulfill": {
+      "conditions": {
+        "button_id": "fulfill",
+        "window_resource_location": "slimcolonies:gui/windowrequestdetail.xml"
+      },
+      "trigger": "slimcolonies:click_gui_button"
+    }
+  },
+  "display": {
+    "description": {
+      "translate": "advancements.slimcolonies.click_gui_button_fulfill.description"
+    },
+    "icon": {
+      "count": 1,
+      "id": "slimcolonies:resourcescroll"
+    },
+    "title": {
+      "translate": "advancements.slimcolonies.click_gui_button_fulfill.title"
+    }
+  },
+  "requirements": [
+    [
+      "click_gui_button_fulfill",
+      "click_request_button_fulfill"
+    ]
+  ],
+  "sends_telemetry_event": true
+}

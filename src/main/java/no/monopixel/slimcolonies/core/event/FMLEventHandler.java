@@ -1,17 +1,19 @@
 package no.monopixel.slimcolonies.core.event;
 
-import net.minecraft.server.level.ServerPlayer;
-import net.minecraftforge.event.AddReloadListenerEvent;
-import net.minecraftforge.event.TickEvent;
-import net.minecraftforge.event.entity.player.PlayerEvent;
-import net.minecraftforge.event.server.ServerAboutToStartEvent;
-import net.minecraftforge.event.server.ServerStartedEvent;
-import net.minecraftforge.event.server.ServerStoppingEvent;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
 import no.monopixel.slimcolonies.api.colony.IColonyManager;
 import no.monopixel.slimcolonies.core.datalistener.*;
 import no.monopixel.slimcolonies.core.entity.pathfinding.Pathfinding;
 import no.monopixel.slimcolonies.core.util.BackUpHelper;
+import net.minecraft.server.level.ServerPlayer;
+import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.neoforge.client.event.ClientTickEvent;
+import net.neoforged.neoforge.event.AddReloadListenerEvent;
+import net.neoforged.neoforge.event.entity.player.PlayerEvent;
+import net.neoforged.neoforge.event.server.ServerAboutToStartEvent;
+import net.neoforged.neoforge.event.server.ServerStartedEvent;
+import net.neoforged.neoforge.event.server.ServerStoppingEvent;
+import net.neoforged.neoforge.event.tick.LevelTickEvent;
+import net.neoforged.neoforge.event.tick.ServerTickEvent;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -20,13 +22,14 @@ import org.jetbrains.annotations.NotNull;
 public class FMLEventHandler
 {
     @SubscribeEvent
-    public static void onServerTick(final TickEvent.ServerTickEvent event)
+    public static void onServerTick(final ServerTickEvent.Pre event)
     {
         IColonyManager.getInstance().onServerTick(event);
+        DataPackSyncEventHandler.ServerEvents.load(event.getServer());
     }
 
     @SubscribeEvent
-    public static void onClientTick(final TickEvent.ClientTickEvent event)
+    public static void onClientTick(final ClientTickEvent.Pre event)
     {
         IColonyManager.getInstance().onClientTick(event);
     }
@@ -37,7 +40,7 @@ public class FMLEventHandler
         if (event.getEntity() instanceof ServerPlayer)
         {
             // This automatically reloads the owner of the colony if failed.
-            IColonyManager.getInstance().getIColonyByOwner(event.getEntity().level, event.getEntity());
+            IColonyManager.getInstance().getIColonyByOwner(event.getEntity().level(), event.getEntity());
             //ColonyManager.syncAllColoniesAchievements();
         }
     }
@@ -51,11 +54,20 @@ public class FMLEventHandler
         event.addListener(new CitizenNameListener());
         event.addListener(new QuestJsonListener());
         event.addListener(new ItemNbtListener());
-        event.addListener(new StudyItemListener());
+        event.addListener(StudyItemListener.INSTANCE);
+        event.addListener(new DiseasesListener());
+        event.addListener(new RecruitmentItemsListener());
+        event.addListener(new CustomRaidConfigListener());
     }
 
     @SubscribeEvent
-    public static void onWorldTick(final TickEvent.LevelTickEvent event)
+    public static void onServerStarted(@NotNull final ServerStartedEvent event)
+    {
+        BackUpHelper.loadMissingColonies();
+    }
+
+    @SubscribeEvent
+    public static void onWorldTick(final LevelTickEvent.Pre event)
     {
         IColonyManager.getInstance().onWorldTick(event);
     }
@@ -70,11 +82,6 @@ public class FMLEventHandler
     public static void onServerStopped(@NotNull final ServerStoppingEvent event)
     {
         Pathfinding.shutdown();
-    }
-
-    @SubscribeEvent
-    public static void onServerStarted(@NotNull final ServerStartedEvent event)
-    {
-        BackUpHelper.loadMissingColonies();
+        DataPackSyncEventHandler.ServerEvents.reset();
     }
 }

@@ -1,26 +1,28 @@
 package no.monopixel.slimcolonies.core.network.messages.client;
 
-import no.monopixel.slimcolonies.api.network.IMessage;
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.multiplayer.ClientLevel;
-import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.UseAnim;
-import net.minecraft.network.FriendlyByteBuf;
+import com.ldtteam.common.network.AbstractClientPlayMessage;
+import com.ldtteam.common.network.PlayMessageType;
+import no.monopixel.slimcolonies.api.util.Utils;
+import no.monopixel.slimcolonies.api.util.constant.Constants;
 import net.minecraft.core.particles.ItemParticleOption;
 import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.UseAnim;
 import net.minecraft.world.phys.Vec3;
-import net.minecraftforge.fml.LogicalSide;
-import net.minecraftforge.network.NetworkEvent;
+import net.neoforged.neoforge.network.handling.IPayloadContext;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 import java.util.Random;
 
 /**
  * Handles spawning item particle effects close to an entity.
  */
-public class ItemParticleEffectMessage implements IMessage
+public class ItemParticleEffectMessage extends AbstractClientPlayMessage
 {
+    public static final PlayMessageType<?> TYPE = PlayMessageType.forClient(Constants.MOD_ID, "item_particle_effect", ItemParticleEffectMessage::new);
+
     /**
      * Random obj.
      */
@@ -29,37 +31,29 @@ public class ItemParticleEffectMessage implements IMessage
     /**
      * The itemStack for the particles.
      */
-    private ItemStack stack;
+    private final ItemStack stack;
 
     /**
      * The entity rotation pitch.
      */
-    private double rotationPitch;
+    private final double rotationPitch;
 
     /**
      * The entity rotation yaw.
      */
-    private double rotationYaw;
+    private final double rotationYaw;
 
     /**
      * The entity eye height.
      */
-    private double eyeHeight;
+    private final double eyeHeight;
 
     /**
      * The entity position.
      */
-    private double posX;
-    private double posY;
-    private double posZ;
-
-    /**
-     * Empty constructor used when registering the
-     */
-    public ItemParticleEffectMessage()
-    {
-        super();
-    }
+    private final double posX;
+    private final double posY;
+    private final double posZ;
 
     /**
      * Constructor to trigger an item particle message for eating.
@@ -81,6 +75,7 @@ public class ItemParticleEffectMessage implements IMessage
       final double rotationYaw,
       final double eyeHeight)
     {
+        super(TYPE);
         this.stack = stack;
         this.posX = posX;
         this.posY = posY;
@@ -90,10 +85,10 @@ public class ItemParticleEffectMessage implements IMessage
         this.eyeHeight = eyeHeight;
     }
 
-    @Override
-    public void fromBytes(@NotNull final FriendlyByteBuf buf)
+    protected ItemParticleEffectMessage(final RegistryFriendlyByteBuf buf, final PlayMessageType<?> type)
     {
-        stack = buf.readItem();
+        super(buf, type);
+        stack = Utils.deserializeCodecMess(ItemStack.STREAM_CODEC, buf);
         posX = buf.readDouble();
         posY = buf.readDouble();
         posZ = buf.readDouble();
@@ -103,9 +98,9 @@ public class ItemParticleEffectMessage implements IMessage
     }
 
     @Override
-    public void toBytes(@NotNull final FriendlyByteBuf buf)
+    protected void toBytes(@NotNull final RegistryFriendlyByteBuf buf)
     {
-        buf.writeItem(stack);
+        Utils.serializeCodecMess(ItemStack.STREAM_CODEC, buf, stack);
         buf.writeDouble(posX);
         buf.writeDouble(posY);
         buf.writeDouble(posZ);
@@ -114,19 +109,10 @@ public class ItemParticleEffectMessage implements IMessage
         buf.writeDouble(eyeHeight);
     }
 
-    @Nullable
     @Override
-    public LogicalSide getExecutionSide()
+    protected void onExecute(final IPayloadContext ctxIn, final Player player)
     {
-        return LogicalSide.CLIENT;
-    }
-
-    @Override
-    public void onExecute(final NetworkEvent.Context ctxIn, final boolean isLogicalServer)
-    {
-        final ClientLevel world = Minecraft.getInstance().level;
-        final ItemStack localStack = stack;
-        if (localStack.getUseAnimation() == UseAnim.EAT)
+        if (stack.getUseAnimation() == UseAnim.EAT)
         {
             for (int i = 0; i < 5; ++i)
             {
@@ -138,7 +124,7 @@ public class ItemParticleEffectMessage implements IMessage
                 randomOffset = randomOffset.xRot((float) (-rotationPitch * 0.017453292F));
                 randomOffset = randomOffset.yRot((float) (-rotationYaw * 0.017453292F));
                 randomOffset = randomOffset.add(posX, posY + eyeHeight, posZ);
-                world.addParticle(new ItemParticleOption(ParticleTypes.ITEM, localStack),
+                player.level().addParticle(new ItemParticleOption(ParticleTypes.ITEM, stack),
                   randomOffset.x,
                   randomOffset.y,
                   randomOffset.z,

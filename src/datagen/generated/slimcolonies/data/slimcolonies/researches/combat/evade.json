@@ -1,5 +1,11 @@
 {
   "branch": "slimcolonies:combat",
+  "costs": [
+    {
+      "count": 16,
+      "item": "minecraft:emerald"
+    }
+  ],
   "effects": [
     {
       "id": "slimcolonies:effects/fleeingspeedaddition",

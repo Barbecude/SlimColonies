@@ -10,13 +10,11 @@ import no.monopixel.slimcolonies.api.crafting.IRecipeStorage;
 import no.monopixel.slimcolonies.api.crafting.ItemStorage;
 import no.monopixel.slimcolonies.api.entity.ai.statemachine.AITarget;
 import no.monopixel.slimcolonies.api.entity.ai.statemachine.states.IAIState;
-import no.monopixel.slimcolonies.api.items.ModTags;
 import no.monopixel.slimcolonies.api.util.InventoryUtils;
 import no.monopixel.slimcolonies.api.util.ItemStackUtils;
 import no.monopixel.slimcolonies.api.util.SoundUtils;
 import no.monopixel.slimcolonies.api.util.StatsUtil;
 import no.monopixel.slimcolonies.api.util.constant.translation.RequestSystemTranslationConstants;
-import no.monopixel.slimcolonies.core.Network;
 import no.monopixel.slimcolonies.core.colony.buildings.modules.BuildingModules;
 import no.monopixel.slimcolonies.core.colony.buildings.modules.FurnaceUserModule;
 import no.monopixel.slimcolonies.core.colony.buildings.modules.ItemListModule;
@@ -32,7 +30,7 @@ import net.minecraft.sounds.SoundEvents;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.entity.FurnaceBlockEntity;
-import net.minecraftforge.items.wrapper.InvWrapper;
+import net.neoforged.neoforge.items.wrapper.InvWrapper;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
@@ -105,14 +103,13 @@ public class EntityAIWorkSmelter extends AbstractEntityAIUsesFurnace<JobSmelter,
         }
         else
         {
+            worker.decreaseSaturationForContinuousAction();
             StatsUtil.trackStatByName(building, ORES_BROKEN, statsName, quantity);
             worker.getCitizenExperienceHandler().addExperience(0.2);
         }
 
-        Network.getNetwork()
-          .sendToTrackingEntity(new LocalizedParticleEffectMessage(inputItem, building.getID()), worker);
-        Network.getNetwork()
-          .sendToTrackingEntity(new LocalizedParticleEffectMessage(inputItem, building.getID().below()), worker);
+        new LocalizedParticleEffectMessage(inputItem, building.getID()).sendToTrackingEntity(worker);
+        new LocalizedParticleEffectMessage(inputItem, building.getID().below()).sendToTrackingEntity(worker);
 
         worker.setItemInHand(InteractionHand.MAIN_HAND, inputItem);
         worker.swing(InteractionHand.MAIN_HAND);
@@ -148,7 +145,7 @@ public class EntityAIWorkSmelter extends AbstractEntityAIUsesFurnace<JobSmelter,
     @Override
     protected IRequestable getSmeltAbleClass()
     {
-        return new SmeltableOre(STACKSIZE * building.getFirstModuleOccurance(FurnaceUserModule.class).getFurnaces().size());
+        return new SmeltableOre(STACKSIZE * building.getFirstModuleOccurance(FurnaceUserModule.class).getFurnaces().size(), building.getSetting(BuildingSmeltery.MIN).getValue());
     }
 
     @Override
@@ -199,8 +196,9 @@ public class EntityAIWorkSmelter extends AbstractEntityAIUsesFurnace<JobSmelter,
     @Override
     public void requestSmeltable()
     {
-        if (!building.hasWorkerOpenRequestsOfType(worker.getCitizenData().getId(), TypeToken.of(getSmeltAbleClass().getClass())) &&
-              !building.hasWorkerOpenRequestsFiltered(worker.getCitizenData().getId(),
+        if (InventoryUtils.hasBuildingEnoughElseCount(building, s -> new SmeltableOre(1).matches(s), 1) <= 0
+            && !building.hasWorkerOpenRequestsOfType(worker.getCitizenData().getId(), TypeToken.of(getSmeltAbleClass().getClass()))
+            && !building.hasWorkerOpenRequestsFiltered(worker.getCitizenData().getId(),
                 req -> req.getShortDisplayString().getSiblings().contains(Component.translatable(RequestSystemTranslationConstants.REQUESTS_TYPE_SMELTABLE_ORE))))
         {
             final List<ItemStorage> allowedItems = building.getModuleMatching(ItemListModule.class, m -> m.getId().equals(ORE_LIST)).getList();
@@ -220,7 +218,7 @@ public class EntityAIWorkSmelter extends AbstractEntityAIUsesFurnace<JobSmelter,
                     if (worker.getCitizenData() != null)
                     {
                         worker.getCitizenData()
-                          .triggerInteraction(new StandardInteraction(Component.translatable(FURNACE_USER_NO_ORE), ChatPriority.BLOCKING));
+                          .triggerInteraction(new StandardInteraction(Component.translatableEscape(FURNACE_USER_NO_ORE), ChatPriority.BLOCKING));
                     }
                 }
                 else
@@ -229,7 +227,8 @@ public class EntityAIWorkSmelter extends AbstractEntityAIUsesFurnace<JobSmelter,
                       .createRequestAsync(new StackList(requests,
                         RequestSystemTranslationConstants.REQUESTS_TYPE_SMELTABLE_ORE,
                         STACKSIZE * building.getFirstModuleOccurance(FurnaceUserModule.class).getFurnaces().size(),
-                        1));
+                        1,
+                        building.getSetting(BuildingSmeltery.MIN).getValue()));
                 }
             }
         }

@@ -9,28 +9,32 @@ import com.ldtteam.domumornamentum.block.types.TrapdoorType;
 import com.ldtteam.domumornamentum.block.vanilla.DoorBlock;
 import com.ldtteam.domumornamentum.block.vanilla.TrapdoorBlock;
 import com.ldtteam.domumornamentum.util.BlockUtils;
-import com.ldtteam.structurize.api.util.ItemStackUtils;
-import com.ldtteam.structurize.api.util.constant.Constants;
 import com.ldtteam.structurize.placement.IPlacementContext;
 import com.ldtteam.structurize.placement.handlers.placement.IPlacementHandler;
 import com.ldtteam.structurize.placement.structure.IStructureHandler;
 import com.ldtteam.structurize.util.InventoryUtils;
 import no.monopixel.slimcolonies.api.blocks.ModBlocks;
+import no.monopixel.slimcolonies.api.util.ItemStackUtils;
 import no.monopixel.slimcolonies.api.util.Log;
 import no.monopixel.slimcolonies.api.util.WorldUtil;
+import no.monopixel.slimcolonies.api.util.constant.Constants;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.core.component.DataComponents;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.util.Tuple;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.component.BlockItemStateProperties;
 import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.FenceBlock;
+import net.minecraft.world.level.block.FenceGateBlock;
 import net.minecraft.world.level.block.IronBarsBlock;
 import net.minecraft.world.level.block.WallBlock;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.properties.Property;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.NotNull;
@@ -40,9 +44,9 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import static com.ldtteam.structurize.placement.handlers.placement.DoBlockPlacementHandler.compareBEData;
 import static com.ldtteam.structurize.placement.handlers.placement.PlacementHandlers.handleTileEntityPlacement;
 
-@SuppressWarnings("removal")
 public class DoBlockPlacementHandler implements IPlacementHandler
 {
     @Override
@@ -53,15 +57,17 @@ public class DoBlockPlacementHandler implements IPlacementHandler
 
     @Override
     public ActionProcessingResult handle(
-        @NotNull final Level world,
-        @NotNull final BlockPos pos,
-        @NotNull final BlockState blockState,
-        @Nullable final CompoundTag tileEntityData,
-        @NotNull final IPlacementContext placementContext)
+      @NotNull final Level world,
+      @NotNull final BlockPos pos,
+      @NotNull final BlockState blockState,
+      @Nullable final CompoundTag tileEntityData,
+      @NotNull final IPlacementContext placementContext)
     {
         BlockState placementState = blockState;
-        if (blockState.getBlock() instanceof WallBlock || blockState.getBlock() instanceof FenceBlock || blockState.getBlock() instanceof PillarBlock
-            || blockState.getBlock() instanceof IronBarsBlock)
+        if (blockState.getBlock() instanceof WallBlock
+            || blockState.getBlock() instanceof FenceBlock
+            || blockState.getBlock() instanceof IronBarsBlock
+            || blockState.getBlock() instanceof PillarBlock)
         {
             try
             {
@@ -82,21 +88,6 @@ public class DoBlockPlacementHandler implements IPlacementHandler
         if (world.getBlockState(pos).equals(placementState))
         {
             world.removeBlock(pos, false);
-            WorldUtil.setBlockState(world, pos, placementState, Constants.UPDATE_FLAG);
-            if (tileEntityData != null)
-            {
-                try
-                {
-                    handleTileEntityPlacement(tileEntityData, world, pos, placementContext.getRotationMirror());
-                    placementState.getBlock().setPlacedBy(world, pos, placementState, null, placementState.getBlock().getCloneItemStack(placementState,
-                        new BlockHitResult(new Vec3(0, 0, 0), Direction.NORTH, pos, false), world, pos, null));
-                }
-                catch (final Exception ex)
-                {
-                    Log.getLogger().warn("Unable to place TileEntity");
-                }
-            }
-            return ActionProcessingResult.PASS;
         }
 
         if (!WorldUtil.setBlockState(world, pos, placementState, Constants.UPDATE_FLAG))
@@ -109,8 +100,8 @@ public class DoBlockPlacementHandler implements IPlacementHandler
             try
             {
                 handleTileEntityPlacement(tileEntityData, world, pos, placementContext.getRotationMirror());
-                blockState.getBlock().setPlacedBy(world, pos, placementState, null, placementState.getBlock().getCloneItemStack(placementState,
-                    new BlockHitResult(new Vec3(0, 0, 0), Direction.NORTH, pos, false), world, pos, null));
+                placementState.getBlock().setPlacedBy(world, pos, placementState, null, placementState.getBlock().getCloneItemStack(placementState,
+                  new BlockHitResult(new Vec3(0,0,0), Direction.NORTH, pos, false), world, pos, null));
             }
             catch (final Exception ex)
             {
@@ -123,66 +114,107 @@ public class DoBlockPlacementHandler implements IPlacementHandler
 
     @Override
     public List<ItemStack> getRequiredItems(
-        @NotNull final Level world,
-        @NotNull final BlockPos pos,
-        @NotNull final BlockState blockState,
-        @Nullable final CompoundTag tileEntityData,
-        @NotNull final IPlacementContext placementContext)
+      @NotNull final Level world,
+      @NotNull final BlockPos pos,
+      @NotNull final BlockState blockState,
+      @Nullable final CompoundTag tileEntityData,
+      @NotNull final IPlacementContext placementContext)
     {
         final List<ItemStack> itemList = new ArrayList<>();
         if (tileEntityData != null)
         {
             BlockPos blockpos = new BlockPos(tileEntityData.getInt("x"), tileEntityData.getInt("y"), tileEntityData.getInt("z"));
-            final BlockEntity tileEntity = BlockEntity.loadStatic(blockpos, blockState, tileEntityData);
+            final BlockEntity tileEntity = BlockEntity.loadStatic(blockpos, blockState, tileEntityData, world.registryAccess());
             if (tileEntity == null)
             {
                 return Collections.emptyList();
             }
-            itemList.add(getCorrectDOItem(BlockUtils.getMaterializedItemStack(null, tileEntity), blockState, !placementContext.fancyPlacement()));
+
+            final Property<?> property;
+            if (blockState.getBlock() instanceof DoorBlock)
+            {
+                property = DoorBlock.TYPE;
+            }
+            else if (blockState.getBlock() instanceof FancyDoorBlock)
+            {
+                property = FancyDoorBlock.TYPE;
+            }
+            else if (blockState.getBlock() instanceof TrapdoorBlock)
+            {
+                property = TrapdoorBlock.TYPE;
+            }
+            else if (blockState.getBlock() instanceof FancyTrapdoorBlock)
+            {
+                property = FancyTrapdoorBlock.TYPE;
+            }
+            else if (blockState.getBlock() instanceof PanelBlock)
+            {
+                property = PanelBlock.TYPE;
+            }
+            else if (blockState.getBlock() instanceof AbstractPostBlock<?>)
+            {
+                property = AbstractPostBlock.TYPE;
+            }
+            else
+            {
+                property = null;
+            }
+            itemList.add(getCorrectDOItem(property == null ? BlockUtils.getMaterializedItemStack(tileEntity, world.registryAccess()) : BlockUtils.getMaterializedItemStack(tileEntity, world.registryAccess(), property), blockState, !placementContext.fancyPlacement()));
         }
         itemList.removeIf(ItemStackUtils::isEmpty);
         return itemList;
     }
 
+    @Override
+    public boolean doesWorldStateMatchBlueprintState(final BlockState worldState, final BlockState blueprintState, final Tuple<BlockEntity, CompoundTag> blockEntityData, final @NotNull IPlacementContext structureHandler)
+    {
+        if (blueprintState.getBlock() == worldState.getBlock()
+            && (blueprintState.getBlock() instanceof WallBlock
+            || blueprintState.getBlock() instanceof FenceBlock
+            || blueprintState.getBlock() instanceof IronBarsBlock
+            || blueprintState.getBlock() instanceof FenceGateBlock)
+            && compareBEData(blockEntityData))
+        {
+            return true;
+        }
+
+        return worldState.equals(blueprintState) && compareBEData(blockEntityData);
+    }
+
     /**
      * Calculate the correct DO item.
      * Considering type and, for the builder we do want the generic type to be used here.
-     *
-     * @param item       the item to output.
+     * @param item the item to output.
      * @param blockState the blockstate in the world.
      * @return the adjusted item.
      */
     public static ItemStack getCorrectDOItem(final ItemStack item, final BlockState blockState, final boolean complete)
     {
-        if (blockState.getBlock() instanceof DoorBlock)
+        final BlockItemStateProperties properties = item.getOrDefault(DataComponents.BLOCK_STATE, BlockItemStateProperties.EMPTY);
+        if (blockState.getBlock() instanceof TrapdoorBlock)
         {
-            item.getOrCreateTag().putString("type", blockState.getValue(DoorBlock.TYPE).toString().toUpperCase());
-        }
-        else if (blockState.getBlock() instanceof FancyDoorBlock)
-        {
-            item.getOrCreateTag().putString("type", blockState.getValue(FancyDoorBlock.TYPE).toString().toUpperCase());
-        }
-        else if (blockState.getBlock() instanceof TrapdoorBlock)
-        {
-            item.getOrCreateTag().putString("type", complete ? blockState.getValue(TrapdoorBlock.TYPE).toString().toUpperCase() : TrapdoorType.FULL.toString().toUpperCase());
+            item.update(DataComponents.BLOCK_STATE, BlockItemStateProperties.EMPTY, props -> props.with(TrapdoorBlock.TYPE, complete ? blockState.getValue(TrapdoorBlock.TYPE) : TrapdoorType.FULL));
         }
         else if (blockState.getBlock() instanceof FancyTrapdoorBlock)
         {
-            item.getOrCreateTag()
-                .putString("type", complete ? blockState.getValue(FancyTrapdoorBlock.TYPE).toString().toUpperCase() : FancyTrapdoorType.FULL.toString().toUpperCase());
+            item.update(DataComponents.BLOCK_STATE, BlockItemStateProperties.EMPTY, props -> props.with(FancyTrapdoorBlock.TYPE, complete ? blockState.getValue(FancyTrapdoorBlock.TYPE) : FancyTrapdoorType.FULL));
         }
         else if (blockState.getBlock() instanceof PanelBlock)
         {
-            item.getOrCreateTag().putString("type", complete ? blockState.getValue(PanelBlock.TYPE).toString().toUpperCase() : TrapdoorType.FULL.toString().toUpperCase());
+            item.update(DataComponents.BLOCK_STATE, BlockItemStateProperties.EMPTY, props -> props.with(PanelBlock.TYPE, complete ? blockState.getValue(PanelBlock.TYPE) : TrapdoorType.FULL));
         }
         else if (blockState.getBlock() instanceof AbstractPostBlock<?>)
         {
-            item.getOrCreateTag().putString("type", complete ? blockState.getValue(PostBlock.TYPE).toString().toUpperCase() : PostType.PLAIN.toString().toUpperCase());
+            item.update(DataComponents.BLOCK_STATE, BlockItemStateProperties.EMPTY, props -> props.with(PostBlock.TYPE, complete ? blockState.getValue(PostBlock.TYPE) : PostType.PLAIN));
         }
-        else if ((blockState.getBlock() instanceof TimberFrameBlock || blockState.getBlock() instanceof DynamicTimberFrameBlock) && !complete)
+        else if (blockState.getBlock() instanceof TimberFrameBlock || blockState.getBlock() instanceof DynamicTimberFrameBlock)
         {
+            if (complete)
+            {
+                return item;
+            }
             final ItemStack tempItem = new ItemStack(com.ldtteam.domumornamentum.block.ModBlocks.getInstance().getTimberFrames().get(2));
-            tempItem.setTag(item.getTag());
+            tempItem.applyComponents(item.getComponents());
             return tempItem;
         }
         return item;
@@ -190,9 +222,9 @@ public class DoBlockPlacementHandler implements IPlacementHandler
 
     @Override
     public void handleRemoval(
-        final IStructureHandler handler,
-        final Level world,
-        final BlockPos pos)
+            final IStructureHandler handler,
+            final Level world,
+            final BlockPos pos)
     {
         if (!handler.isCreative())
         {
@@ -204,11 +236,5 @@ public class DoBlockPlacementHandler implements IPlacementHandler
             }
         }
         world.removeBlock(pos, false);
-    }
-
-    @Override
-    public boolean doesWorldStateMatchBlueprintState(final BlockState worldState, final BlockState blueprintState, @Nullable final Tuple<BlockEntity, CompoundTag> blockEntityData, @NotNull final IPlacementContext placementContext)
-    {
-        return worldState.equals(blueprintState);
     }
 }

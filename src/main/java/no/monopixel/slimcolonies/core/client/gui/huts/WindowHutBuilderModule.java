@@ -1,15 +1,15 @@
 package no.monopixel.slimcolonies.core.client.gui.huts;
 
-import net.minecraft.advancements.Advancement;
-import net.minecraft.advancements.AdvancementProgress;
-import net.minecraft.client.Minecraft;
-import net.minecraft.resources.ResourceLocation;
 import no.monopixel.slimcolonies.api.util.constant.Constants;
 import no.monopixel.slimcolonies.core.client.gui.AbstractWindowWorkerModuleBuilding;
 import no.monopixel.slimcolonies.core.client.gui.WindowHutGuide;
 import no.monopixel.slimcolonies.core.colony.buildings.workerbuildings.BuildingBuilder;
+import net.minecraft.advancements.AdvancementHolder;
+import net.minecraft.advancements.AdvancementProgress;
+import net.minecraft.client.Minecraft;
+import net.minecraft.resources.ResourceLocation;
 
-import static no.monopixel.slimcolonies.api.util.constant.WindowConstants.HUT_BUILDER_RESOURCE_SUFFIX;
+import static no.monopixel.slimcolonies.api.util.constant.WindowConstants.*;
 
 /**
  * BOWindow for the builder hut.
@@ -20,7 +20,7 @@ public class WindowHutBuilderModule extends AbstractWindowWorkerModuleBuilding<B
      * The advancement location.
      */
 
-    private static final ResourceLocation GUIDE_ADVANCEMENT = ResourceLocation.fromNamespaceAndPath(Constants.MOD_ID, "slimcolonies/check_out_guide");
+    private static final ResourceLocation GUIDE_ADVANCEMENT = new ResourceLocation(Constants.MOD_ID, "slimcolonies/check_out_guide");
 
     /**
      * If the guide should be attempted to be opened.
@@ -45,7 +45,7 @@ public class WindowHutBuilderModule extends AbstractWindowWorkerModuleBuilding<B
      */
     public WindowHutBuilderModule(final BuildingBuilder.View building, final boolean needGuide)
     {
-        super(building, Constants.MOD_ID + HUT_BUILDER_RESOURCE_SUFFIX);
+        super(building, new ResourceLocation(Constants.MOD_ID, "gui/windowhutworkerplaceholder.xml"));
         this.needGuide = needGuide;
     }
 
@@ -54,11 +54,11 @@ public class WindowHutBuilderModule extends AbstractWindowWorkerModuleBuilding<B
     {
         if (needGuide)
         {
-            final Advancement ad = Minecraft.getInstance().player.connection.getAdvancements().getAdvancements().get(GUIDE_ADVANCEMENT);
+            final AdvancementHolder ad = Minecraft.getInstance().player.connection.getAdvancements().get(GUIDE_ADVANCEMENT);
             if (ad == null || !Minecraft.getInstance().player.connection.getAdvancements().progress.getOrDefault(ad, new AdvancementProgress()).isDone())
             {
                 close();
-                new WindowHutGuide(building).open();
+                new WindowHutGuide(buildingView).open();
                 return;
             }
         }

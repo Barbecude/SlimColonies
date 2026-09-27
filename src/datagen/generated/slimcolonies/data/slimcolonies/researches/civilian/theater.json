@@ -1,0 +1,19 @@
+{
+  "branch": "slimcolonies:civilian",
+  "costs": [
+    {
+      "count": 16,
+      "item": "minecraft:enchanted_golden_apple"
+    }
+  ],
+  "effects": [
+    {
+      "id": "slimcolonies:effects/happinessmultiplier",
+      "level": 5
+    }
+  ],
+  "icon": "slimcolonies:textures/icons/research/happy5.png",
+  "parentResearch": "slimcolonies:civilian/opera",
+  "researchLevel": 6,
+  "subtitle": "no.monopixel.slimcolonies.research.civilian.theater.subtitle"
+}

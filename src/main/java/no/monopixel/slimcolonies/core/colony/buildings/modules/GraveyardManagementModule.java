@@ -1,13 +1,6 @@
 package no.monopixel.slimcolonies.core.colony.buildings.modules;
 
-import net.minecraft.core.BlockPos;
-import net.minecraft.core.Direction;
-import net.minecraft.nbt.CompoundTag;
-import net.minecraft.nbt.ListTag;
-import net.minecraft.nbt.StringTag;
-import net.minecraft.network.FriendlyByteBuf;
-import net.minecraft.world.level.block.entity.BlockEntity;
-import no.monopixel.slimcolonies.api.blocks.AbstractBlockSlimColoniesNamedGrave;
+import no.monopixel.slimcolonies.api.blocks.AbstractBlockMinecoloniesNamedGrave;
 import no.monopixel.slimcolonies.api.blocks.ModBlocks;
 import no.monopixel.slimcolonies.api.colony.GraveData;
 import no.monopixel.slimcolonies.api.colony.IColony;
@@ -16,10 +9,18 @@ import no.monopixel.slimcolonies.api.colony.buildings.modules.IBuildingEventsMod
 import no.monopixel.slimcolonies.api.colony.buildings.modules.IBuildingModule;
 import no.monopixel.slimcolonies.api.colony.buildings.modules.IPersistentModule;
 import no.monopixel.slimcolonies.api.entity.citizen.AbstractEntityCitizen;
-import no.monopixel.slimcolonies.api.util.Tuple;
-import no.monopixel.slimcolonies.api.util.WorldUtil;
 import no.monopixel.slimcolonies.core.tileentities.TileEntityGrave;
 import no.monopixel.slimcolonies.core.tileentities.TileEntityNamedGrave;
+import no.monopixel.slimcolonies.api.util.Tuple;
+import no.monopixel.slimcolonies.api.util.WorldUtil;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.ListTag;
+import net.minecraft.nbt.StringTag;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.world.level.block.entity.BlockEntity;
 import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -57,7 +58,7 @@ public class GraveyardManagementModule extends AbstractBuildingModule implements
     private GraveData lastGraveData;
 
     @Override
-    public void deserializeNBT(final CompoundTag compound)
+    public void deserializeNBT(@NotNull final HolderLookup.Provider provider, final CompoundTag compound)
     {
         restingCitizen.clear();
         if (compound.contains(TAG_RIP_CITIZEN_LIST))
@@ -75,14 +76,11 @@ public class GraveyardManagementModule extends AbstractBuildingModule implements
             lastGraveData = new GraveData();
             lastGraveData.read(compound.getCompound(TAG_GRAVE_DATA));
         }
-        else
-        {
-            lastGraveData = null;
-        }
+        else lastGraveData = null;
     }
 
     @Override
-    public void serializeNBT(final CompoundTag compound)
+    public void serializeNBT(@NotNull final HolderLookup.Provider provider, CompoundTag compound)
     {
         @NotNull final ListTag ripCitizen = new ListTag();
         for (@NotNull final String citizenName : restingCitizen)
@@ -91,14 +89,14 @@ public class GraveyardManagementModule extends AbstractBuildingModule implements
         }
         compound.put(TAG_RIP_CITIZEN_LIST, ripCitizen);
 
-        if (lastGraveData != null)
+        if(lastGraveData != null)
         {
             compound.put(TAG_GRAVE_DATA, lastGraveData.write());
         }
     }
 
     @Override
-    public void serializeToView(@NotNull final FriendlyByteBuf buf)
+    public void serializeToView(@NotNull final RegistryFriendlyByteBuf buf)
     {
         final IColony colony = building.getColony();
         final List<BlockPos> graves = new ArrayList<>(colony.getGraveManager().getGraves().keySet());
@@ -133,7 +131,6 @@ public class GraveyardManagementModule extends AbstractBuildingModule implements
 
     /**
      * Setter for the last grave data.
-     *
      * @param graveData the last grave the worker has dug.
      */
     public void setLastGraveData(final GraveData graveData)
@@ -144,7 +141,6 @@ public class GraveyardManagementModule extends AbstractBuildingModule implements
 
     /**
      * Get for the last grave.
-     *
      * @return the last grave the worker has dug.
      */
     public GraveData getLastGraveData()
@@ -154,7 +150,6 @@ public class GraveyardManagementModule extends AbstractBuildingModule implements
 
     /**
      * Check if one of the citizens in the list is resting.
-     *
      * @param citizens the citizens to check.
      * @return true if so.
      */
@@ -175,24 +170,24 @@ public class GraveyardManagementModule extends AbstractBuildingModule implements
      */
     public void buryCitizenHere(final Tuple<BlockPos, Direction> positionAndDirection, final AbstractEntityCitizen worker)
     {
-        if (lastGraveData != null && !restingCitizen.contains(lastGraveData.getCitizenName()))
+        if(lastGraveData != null && !restingCitizen.contains(lastGraveData.getCitizenName()))
         {
             final IColony colony = building.getColony();
             Direction facing = positionAndDirection.getB();
-            if (facing == Direction.UP || facing == Direction.DOWN)
+            if(facing == Direction.UP || facing == Direction.DOWN)
             {
                 facing = Direction.NORTH; //prevent setting an invalid HorizontalDirection
             }
 
             colony.getWorld().destroyBlock(positionAndDirection.getA(), true, worker);
             colony.getWorld().setBlockAndUpdate(positionAndDirection.getA(),
-                ModBlocks.blockNamedGrave.defaultBlockState().setValue(AbstractBlockSlimColoniesNamedGrave.FACING, facing));
+                    ModBlocks.blockNamedGrave.defaultBlockState().setValue(AbstractBlockMinecoloniesNamedGrave.FACING, facing));
 
             BlockEntity tileEntity = colony.getWorld().getBlockEntity(positionAndDirection.getA());
             if (tileEntity instanceof TileEntityNamedGrave)
             {
                 final String firstName = StringUtils.split(lastGraveData.getCitizenName())[0];
-                final String lastName = lastGraveData.getCitizenName().replaceFirst(firstName, "");
+                final String lastName = lastGraveData.getCitizenName().replaceFirst(firstName,"");
 
                 final ArrayList<String> lines = new ArrayList<>();
                 lines.add(firstName);

@@ -2,9 +2,9 @@ package no.monopixel.slimcolonies.api.quests;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import no.monopixel.slimcolonies.api.IMinecoloniesAPI;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
-import no.monopixel.slimcolonies.api.ISlimColoniesAPI;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
@@ -21,10 +21,10 @@ public interface IDialogueObjectiveTemplate extends IQuestObjectiveTemplate
 
     /**
      * Getter for the dialogue tree.
-     *
      * @return the tree.
      */
     DialogueElement getDialogueTree();
+
 
     /**
      * A dialogue element in the dialogue objective.
@@ -43,8 +43,7 @@ public interface IDialogueObjectiveTemplate extends IQuestObjectiveTemplate
 
         /**
          * Create a new dialogue element.
-         *
-         * @param text    the participant.
+         * @param text the participant.
          * @param answers the player answers.
          */
         public DialogueElement(final Component text, final List<AnswerElement> answers)
@@ -55,13 +54,12 @@ public interface IDialogueObjectiveTemplate extends IQuestObjectiveTemplate
 
         /**
          * Parse the element from json.
-         *
          * @param jsonObject the json to parse it from.
          * @return a new element.
          */
         public static DialogueElement parse(final JsonObject jsonObject)
         {
-            final Component text = Component.translatable(jsonObject.get(TEXT_ID).getAsString());
+            final Component text = Component.translatableEscape(jsonObject.get(TEXT_ID).getAsString());
             final List<AnswerElement> answerElementList = new ArrayList<>();
             for (final JsonElement answerOption : jsonObject.getAsJsonArray(OPTIONS_ID))
             {
@@ -72,7 +70,6 @@ public interface IDialogueObjectiveTemplate extends IQuestObjectiveTemplate
 
         /**
          * Getter for the element text.
-         *
          * @return the text.
          */
         public Component getText()
@@ -82,7 +79,6 @@ public interface IDialogueObjectiveTemplate extends IQuestObjectiveTemplate
 
         /**
          * Get all the response options.
-         *
          * @return the response option.
          */
         public List<Component> getOptions()
@@ -92,7 +88,6 @@ public interface IDialogueObjectiveTemplate extends IQuestObjectiveTemplate
 
         /**
          * Get the matching answer result.
-         *
          * @param responseId the triggered response to match.
          * @return the next answer.
          */
@@ -120,8 +115,7 @@ public interface IDialogueObjectiveTemplate extends IQuestObjectiveTemplate
 
         /**
          * Create a new answer element.
-         *
-         * @param text         the text for the player.
+         * @param text the text for the player.
          * @param answerResult the result from the choice.
          */
         public AnswerElement(final Component text, final IQuestDialogueAnswer answerResult)
@@ -132,15 +126,13 @@ public interface IDialogueObjectiveTemplate extends IQuestObjectiveTemplate
 
         /**
          * Parse the answer element from json.
-         *
          * @param jsonObject the json obj.
          * @return the answer element.
          */
         public static AnswerElement parse(final JsonObject jsonObject)
         {
             final JsonObject resultObj = jsonObject.getAsJsonObject(RESULT_ID);
-            return new AnswerElement(Component.translatable(jsonObject.get(ANSWER_ID).getAsString()),
-                ISlimColoniesAPI.getInstance().getQuestDialogueAnswerRegistry().getValue(new ResourceLocation(resultObj.get(TYPE_ID).getAsString())).produce(resultObj));
+            return new AnswerElement(Component.translatableEscape(jsonObject.get(ANSWER_ID).getAsString()), IMinecoloniesAPI.getInstance().getQuestDialogueAnswerRegistry().get(ResourceLocation.parse(resultObj.get(TYPE_ID).getAsString())).produce(resultObj));
         }
     }
 }

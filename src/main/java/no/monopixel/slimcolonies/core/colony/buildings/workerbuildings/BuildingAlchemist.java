@@ -1,6 +1,18 @@
 package no.monopixel.slimcolonies.core.colony.buildings.workerbuildings;
 
+import no.monopixel.slimcolonies.api.colony.IColony;
+import no.monopixel.slimcolonies.api.colony.jobs.registry.JobEntry;
+import no.monopixel.slimcolonies.api.crafting.GenericRecipe;
+import no.monopixel.slimcolonies.api.crafting.IGenericRecipe;
+import no.monopixel.slimcolonies.api.crafting.registry.CraftingType;
+import no.monopixel.slimcolonies.api.equipment.ModEquipmentTypes;
+import no.monopixel.slimcolonies.api.items.ModItems;
+import no.monopixel.slimcolonies.api.util.ItemStackUtils;
+import no.monopixel.slimcolonies.api.util.NBTUtils;
+import no.monopixel.slimcolonies.core.colony.buildings.AbstractBuilding;
+import no.monopixel.slimcolonies.core.colony.buildings.modules.AbstractCraftingBuildingModule;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.NbtUtils;
@@ -10,15 +22,6 @@ import net.minecraft.world.item.Items;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
-import no.monopixel.slimcolonies.api.colony.IColony;
-import no.monopixel.slimcolonies.api.colony.jobs.registry.JobEntry;
-import no.monopixel.slimcolonies.api.crafting.GenericRecipe;
-import no.monopixel.slimcolonies.api.crafting.IGenericRecipe;
-import no.monopixel.slimcolonies.api.crafting.registry.CraftingType;
-import no.monopixel.slimcolonies.api.equipment.ModEquipmentTypes;
-import no.monopixel.slimcolonies.api.util.ItemStackUtils;
-import no.monopixel.slimcolonies.core.colony.buildings.AbstractBuilding;
-import no.monopixel.slimcolonies.core.colony.buildings.modules.AbstractCraftingBuildingModule;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
@@ -27,6 +30,7 @@ import java.util.List;
 import java.util.Set;
 
 import static no.monopixel.slimcolonies.api.util.constant.BuildingConstants.CONST_DEFAULT_MAX_BUILDING_LEVEL;
+import static no.monopixel.slimcolonies.api.util.constant.EquipmentLevelConstants.TOOL_LEVEL_WOOD_OR_GOLD;
 import static no.monopixel.slimcolonies.api.util.constant.NbtTagConstants.*;
 
 /**
@@ -63,9 +67,9 @@ public class BuildingAlchemist extends AbstractBuilding
     public BuildingAlchemist(final IColony c, final BlockPos l)
     {
         super(c, l);
-        keepX.put(itemStack -> ItemStackUtils.isEquipmentType(itemStack, ModEquipmentTypes.shears.get()), new Tuple<>(1, true));
-        keepX.put(itemStack -> itemStack.getItem() == Items.NETHER_WART, new Tuple<>(16, false));
-        keepX.put(itemStack -> ItemStackUtils.isEquipmentType(itemStack, ModEquipmentTypes.axe.get()), new Tuple<>(1, true));
+        keepX.put(itemStack -> ItemStackUtils.hasEquipmentLevel(itemStack, ModEquipmentTypes.shears.get(), TOOL_LEVEL_WOOD_OR_GOLD, getMaxEquipmentLevel()), new Tuple<>(1, true));
+        keepX.put(itemStack ->  itemStack.getItem() == Items.NETHER_WART, new Tuple<>(16, false));
+        keepX.put(itemStack -> ItemStackUtils.hasEquipmentLevel(itemStack, ModEquipmentTypes.axe.get(), TOOL_LEVEL_WOOD_OR_GOLD, getMaxEquipmentLevel()), new Tuple<>(1, true));
     }
 
     @NotNull
@@ -100,56 +104,50 @@ public class BuildingAlchemist extends AbstractBuilding
     }
 
     @Override
-    public void deserializeNBT(final CompoundTag compound)
+    public void deserializeNBT(@NotNull final HolderLookup.Provider provider, final CompoundTag compound)
     {
-        super.deserializeNBT(compound);
-        final ListTag sandPos = compound.getList(TAG_PLANTGROUND, CompoundTag.TAG_COMPOUND);
+        super.deserializeNBT(provider, compound);
+        final ListTag sandPos = compound.getList(TAG_PLANTGROUND, CompoundTag.TAG_INT_ARRAY);
         for (int i = 0; i < sandPos.size(); ++i)
         {
-            soulsand.add(NbtUtils.readBlockPos(sandPos.getCompound(i).getCompound(TAG_POS)));
+            soulsand.add(NBTUtils.readBlockPos(sandPos.get(i)));
         }
 
-        final ListTag leavesPos = compound.getList(TAG_LEAVES, CompoundTag.TAG_COMPOUND);
+        final ListTag leavesPos = compound.getList(TAG_LEAVES, CompoundTag.TAG_INT_ARRAY);
         for (int i = 0; i < leavesPos.size(); ++i)
         {
-            leaves.add(NbtUtils.readBlockPos(leavesPos.getCompound(i).getCompound(TAG_POS)));
+            leaves.add(NBTUtils.readBlockPos(leavesPos.get(i)));
         }
 
-        final ListTag brewingStandPos = compound.getList(TAG_BREWING_STAND, CompoundTag.TAG_COMPOUND);
+        final ListTag brewingStandPos = compound.getList(TAG_BREWING_STAND, CompoundTag.TAG_INT_ARRAY);
         for (int i = 0; i < brewingStandPos.size(); ++i)
         {
-            brewingStands.add(NbtUtils.readBlockPos(brewingStandPos.getCompound(i).getCompound(TAG_POS)));
+            brewingStands.add(NBTUtils.readBlockPos(brewingStandPos.get(i)));
         }
     }
 
     @Override
-    public CompoundTag serializeNBT()
+    public CompoundTag serializeNBT(@NotNull final HolderLookup.Provider provider)
     {
-        final CompoundTag compound = super.serializeNBT();
+        final CompoundTag compound = super.serializeNBT(provider);
         @NotNull final ListTag sandCompoundList = new ListTag();
         for (@NotNull final BlockPos entry : soulsand)
         {
-            @NotNull final CompoundTag sandCompound = new CompoundTag();
-            sandCompound.put(TAG_POS, NbtUtils.writeBlockPos(entry));
-            sandCompoundList.add(sandCompound);
+            sandCompoundList.add(NBTUtils.writeBlockPos(entry));
         }
         compound.put(TAG_PLANTGROUND, sandCompoundList);
 
         @NotNull final ListTag leavesCompoundList = new ListTag();
         for (@NotNull final BlockPos entry : leaves)
         {
-            @NotNull final CompoundTag leaveCompound = new CompoundTag();
-            leaveCompound.put(TAG_POS, NbtUtils.writeBlockPos(entry));
-            leavesCompoundList.add(leaveCompound);
+            leavesCompoundList.add(NBTUtils.writeBlockPos(entry));
         }
         compound.put(TAG_LEAVES, leavesCompoundList);
 
         @NotNull final ListTag brewingStandCompoundList = new ListTag();
         for (@NotNull final BlockPos entry : brewingStands)
         {
-            @NotNull final CompoundTag brewingStandCompound = new CompoundTag();
-            brewingStandCompound.put(TAG_POS, NbtUtils.writeBlockPos(entry));
-            brewingStandCompoundList.add(brewingStandCompound);
+            brewingStandCompoundList.add(NBTUtils.writeBlockPos(entry));
         }
         compound.put(TAG_BREWING_STAND, brewingStandCompoundList);
 
@@ -188,7 +186,6 @@ public class BuildingAlchemist extends AbstractBuilding
 
     /**
      * Remove a vanished brewing stand.
-     *
      * @param pos the position of it.
      */
     public void removeBrewingStand(final BlockPos pos)
@@ -198,7 +195,6 @@ public class BuildingAlchemist extends AbstractBuilding
 
     /**
      * Remove soil position.
-     *
      * @param pos the position of it.
      */
     public void removeSoilPosition(final BlockPos pos)
@@ -208,7 +204,6 @@ public class BuildingAlchemist extends AbstractBuilding
 
     /**
      * Remove leaf position.
-     *
      * @param pos the position of it.
      */
     public void removeLeafPosition(final BlockPos pos)
@@ -245,11 +240,9 @@ public class BuildingAlchemist extends AbstractBuilding
         public boolean isRecipeCompatible(@NotNull final IGenericRecipe recipe)
         {
             if (!super.isRecipeCompatible(recipe))
-            {
                 return false;
-            }
 
-            return false; // Magic potion recipe removed with druid system
+            return recipe.getPrimaryOutput().getItem() == ModItems.magicpotion;
         }
 
         @Override
@@ -263,12 +256,19 @@ public class BuildingAlchemist extends AbstractBuilding
         {
             final List<IGenericRecipe> recipes = new ArrayList<>(super.getAdditionalRecipesForDisplayPurposesOnly(world));
 
+            // growing mistletoe
+            recipes.add(GenericRecipe.builder()
+                    .withOutput(ModItems.mistletoe)
+                    .withIntermediate(Blocks.OAK_LEAVES)
+                    .withRequiredTool(ModEquipmentTypes.shears.get())
+                    .build());
+
             // growing netherwart
             recipes.add(GenericRecipe.builder()
-                .withOutput(Items.NETHER_WART, 4)
-                .withInputs(List.of(List.of(Items.NETHER_WART.getDefaultInstance())))
-                .withIntermediate(Blocks.SOUL_SAND)
-                .build());
+                    .withOutput(Items.NETHER_WART, 4)
+                    .withInputs(List.of(List.of(Items.NETHER_WART.getDefaultInstance())))
+                    .withIntermediate(Blocks.SOUL_SAND)
+                    .build());
 
             return recipes;
         }

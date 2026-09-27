@@ -1,5 +1,6 @@
 package no.monopixel.slimcolonies.core.network.messages.server.colony.building.worker;
 
+import com.ldtteam.common.network.PlayMessageType;
 import no.monopixel.slimcolonies.api.advancements.AdvancementTriggers;
 import no.monopixel.slimcolonies.api.colony.IColony;
 import no.monopixel.slimcolonies.api.colony.IColonyManager;
@@ -12,16 +13,17 @@ import no.monopixel.slimcolonies.api.crafting.ItemStorage;
 import no.monopixel.slimcolonies.api.crafting.RecipeStorage;
 import no.monopixel.slimcolonies.api.util.MessageUtils;
 import no.monopixel.slimcolonies.api.util.SoundUtils;
+import no.monopixel.slimcolonies.api.util.constant.Constants;
 import no.monopixel.slimcolonies.core.colony.buildings.modules.AbstractCraftingBuildingModule;
 import no.monopixel.slimcolonies.core.network.messages.server.AbstractBuildingServerMessage;
 import no.monopixel.slimcolonies.core.util.AdvancementUtils;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.chat.Component;
-import net.minecraft.world.entity.player.Player;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
-import net.minecraftforge.network.NetworkEvent;
+import net.neoforged.neoforge.network.handling.IPayloadContext;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
@@ -34,28 +36,22 @@ import static no.monopixel.slimcolonies.api.util.constant.TranslationConstants.U
  */
 public class AddRemoveRecipeMessage extends AbstractBuildingServerMessage<IBuilding>
 {
+    public static final PlayMessageType<?> TYPE = PlayMessageType.forServer(Constants.MOD_ID, "add_remove_recipe", AddRemoveRecipeMessage::new);
+
     /**
      * Toggle the recipe allocation to remove or add.
      */
-    private boolean remove;
+    private final boolean remove;
 
     /**
      * The RecipeStorage to add/remove.
      */
-    private IRecipeStorage storage;
+    private final IRecipeStorage storage;
 
     /**
      * Type of the owning module.
      */
-    private int id;
-
-    /**
-     * Empty default constructor.
-     */
-    public AddRemoveRecipeMessage()
-    {
-        super();
-    }
+    private final int id;
 
     /**
      * Create a message to add or remove recipes.
@@ -67,7 +63,7 @@ public class AddRemoveRecipeMessage extends AbstractBuildingServerMessage<IBuild
      */
     public AddRemoveRecipeMessage(final IBuildingView building, final boolean remove, final IRecipeStorage storage, final int id)
     {
-        super(building);
+        super(TYPE, building);
         this.remove = remove;
         this.storage = storage;
         this.id = id;
@@ -86,7 +82,7 @@ public class AddRemoveRecipeMessage extends AbstractBuildingServerMessage<IBuild
      */
     public AddRemoveRecipeMessage(final IBuildingView building, final List<ItemStorage> input, final int gridSize, final ItemStack primaryOutput, final List<ItemStack> additionalOutputs, final boolean remove, final int id)
     {
-        super(building);
+        super(TYPE, building);
         this.remove = remove;
         this.storage = RecipeStorage.builder()
                 .withInputs(input)
@@ -111,7 +107,7 @@ public class AddRemoveRecipeMessage extends AbstractBuildingServerMessage<IBuild
      */
     public AddRemoveRecipeMessage(final IBuildingView building, final List<ItemStorage> input, final int gridSize, final ItemStack primaryOutput, final boolean remove, final Block intermediary, final int id)
     {
-        super(building);
+        super(TYPE, building);
         this.remove = remove;
         if (gridSize == 1)
         {
@@ -122,6 +118,10 @@ public class AddRemoveRecipeMessage extends AbstractBuildingServerMessage<IBuild
                     .withIntermediate(intermediary)
                     .build();
         }
+        else
+        {
+            throw new UnsupportedOperationException("Not used now, implement it later if needed..");
+        }
         this.id = id;
     }
 
@@ -130,9 +130,9 @@ public class AddRemoveRecipeMessage extends AbstractBuildingServerMessage<IBuild
      *
      * @param buf the used byteBuffer.
      */
-    @Override
-    public void fromBytesOverride(@NotNull final FriendlyByteBuf buf)
+    protected AddRemoveRecipeMessage(final RegistryFriendlyByteBuf buf, final PlayMessageType<?> type)
     {
+        super(buf, type);
         storage = StandardFactoryController.getInstance().deserialize(buf);
         remove = buf.readBoolean();
         this.id = buf.readInt();
@@ -144,28 +144,22 @@ public class AddRemoveRecipeMessage extends AbstractBuildingServerMessage<IBuild
      * @param buf the used byteBuffer.
      */
     @Override
-    public void toBytesOverride(@NotNull final FriendlyByteBuf buf)
+    protected void toBytes(@NotNull final RegistryFriendlyByteBuf buf)
     {
+        super.toBytes(buf);
         StandardFactoryController.getInstance().serialize(buf, storage);
         buf.writeBoolean(remove);
         buf.writeInt(id);
     }
 
     @Override
-    public void onExecute(final NetworkEvent.Context ctxIn, final boolean isLogicalServer, final IColony colony, final IBuilding building)
+    protected void onExecute(final IPayloadContext ctxIn, final ServerPlayer player, final IColony colony, final IBuilding building)
     {
-        final Player player = ctxIn.getSender();
-        if (player == null)
+        if (!(building.getModule(id) instanceof final AbstractCraftingBuildingModule module))
         {
             return;
         }
 
-        if (!(building.getModule(id) instanceof AbstractCraftingBuildingModule))
-        {
-            return;
-        }
-
-        final AbstractCraftingBuildingModule module = (AbstractCraftingBuildingModule) building.getModule(id);
         if (remove)
         {
             module.removeRecipe(storage.getToken());
@@ -177,12 +171,12 @@ public class AddRemoveRecipeMessage extends AbstractBuildingServerMessage<IBuild
             if (!module.addRecipe(token))
             {
                 SoundUtils.playErrorSound(player, player.blockPosition());
-                MessageUtils.format(UNABLE_TO_ADD_RECIPE_MESSAGE, Component.translatable(building.getBuildingDisplayName())).sendTo(player);
+                MessageUtils.format(UNABLE_TO_ADD_RECIPE_MESSAGE, Component.translatableEscape(building.getBuildingDisplayName())).sendTo(player);
             }
             else
             {
                 SoundUtils.playSuccessSound(player, player.blockPosition());
-                AdvancementUtils.TriggerAdvancementPlayersForColony(colony, playerMP -> AdvancementTriggers.BUILDING_ADD_RECIPE.trigger(playerMP, this.storage));
+                AdvancementUtils.TriggerAdvancementPlayersForColony(colony, playerMP -> AdvancementTriggers.BUILDING_ADD_RECIPE.get().trigger(playerMP, this.storage));
                 MessageUtils.format(MESSAGE_RECIPE_SAVED).sendTo(player);
             }
         }

@@ -9,9 +9,11 @@ import no.monopixel.slimcolonies.api.crafting.IRecipeStorage;
 import no.monopixel.slimcolonies.api.crafting.registry.CraftingType;
 import no.monopixel.slimcolonies.api.entity.citizen.AbstractEntityCitizen;
 import no.monopixel.slimcolonies.api.util.OptionalPredicate;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.storage.loot.LootTable;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -178,7 +180,7 @@ public interface ICraftingBuildingModule extends IBuildingModule
 
     /**
      * Get tool to use during fulFillRecipe
-     *
+     * 
      * @param worker the worker to query for tool
      */
     ItemStack getCraftingTool(final AbstractEntityCitizen worker);
@@ -186,7 +188,7 @@ public interface ICraftingBuildingModule extends IBuildingModule
 
     /**
      * Get luck to use during fulFillRecipe
-     *
+     * 
      * @param worker the worker to calculate luck for
      */
     float getCraftingLuck(final AbstractEntityCitizen worker);
@@ -249,7 +251,7 @@ public interface ICraftingBuildingModule extends IBuildingModule
      * @return The list of loot table ids
      */
     @NotNull
-    default List<ResourceLocation> getAdditionalLootTables()
+    default List<ResourceKey<LootTable>> getAdditionalLootTables()
     {
         return Collections.emptyList();
     }

@@ -1,5 +1,11 @@
 {
   "branch": "slimcolonies:civilian",
+  "costs": [
+    {
+      "count": 32,
+      "item": "minecraft:golden_carrot"
+    }
+  ],
   "effects": [
     {
       "id": "slimcolonies:effects/regenerationmultiplier",

@@ -1,0 +1,30 @@
+{
+  "parent": "slimcolonies:slimcolonies/place_townhall",
+  "criteria": {
+    "builder_request": {
+      "conditions": {
+        "hut_name": "builder",
+        "level": 1
+      },
+      "trigger": "slimcolonies:create_build_request"
+    }
+  },
+  "display": {
+    "description": {
+      "translate": "advancements.slimcolonies.create_build_request_1_builder.description"
+    },
+    "icon": {
+      "count": 1,
+      "id": "slimcolonies:blockconstructiontape"
+    },
+    "title": {
+      "translate": "advancements.slimcolonies.create_build_request_1_builder.title"
+    }
+  },
+  "requirements": [
+    [
+      "builder_request"
+    ]
+  ],
+  "sends_telemetry_event": true
+}

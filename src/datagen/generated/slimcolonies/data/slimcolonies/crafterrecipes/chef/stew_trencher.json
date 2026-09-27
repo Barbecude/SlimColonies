@@ -1,0 +1,25 @@
+{
+  "type": "recipe",
+  "crafter": "chef_crafting",
+  "inputs": [
+    {
+      "id": "slimcolonies:manchet_bread"
+    },
+    {
+      "id": "slimcolonies:tomato"
+    },
+    {
+      "id": "slimcolonies:cabbage"
+    },
+    {
+      "count": 2,
+      "id": "slimcolonies:onion"
+    }
+  ],
+  "intermediate": "minecraft:air",
+  "min-building-level": 4,
+  "result": {
+    "id": "slimcolonies:stew_trencher"
+  },
+  "show-tooltip": true
+}

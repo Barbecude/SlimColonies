@@ -165,7 +165,7 @@ public abstract class AbstractCraftingProductionResolver<C extends AbstractCraft
             {
                 final ItemStack craftingHelperStack = ingredient.getItemStack().copy();
                 final ItemStack container = ingredient.getItemStack().getCraftingRemainingItem();
-                //if recipe secondary produces craftinghelperstack, don't add it by count, add it once. If it's in the tools list, check to see if we need it first.
+                //if recipe secondary produces craftinghelperstack, don't add it by count, add it once. If it's in the tools list, check to see if we need it first. 
                 if(!storage.getSecondaryOutputs().isEmpty() && ItemStackUtils.compareItemStackListIgnoreStackSize(storage.getSecondaryOutputs(), craftingHelperStack, false, true))
                 {
                     materialRequests.add(createNewRequestForStack(manager, craftingHelperStack, ingredient.getAmount(), ingredient.getAmount(), false));
@@ -178,7 +178,7 @@ public abstract class AbstractCraftingProductionResolver<C extends AbstractCraft
                 else if (!ItemStackUtils.isEmpty(container) && ItemStackUtils.compareItemStacksIgnoreStackSize(container, craftingHelperStack, false, true))
                 {
                     materialRequests.add(createNewRequestForStack(manager, craftingHelperStack, ingredient.getAmount(), ingredient.getAmount(), false));
-                }
+                } 
                 else
                 {
                     materialRequests.add(createNewRequestForStack(manager, craftingHelperStack, ingredient.getAmount() * count, ingredient.getAmount() * minCount, true ));

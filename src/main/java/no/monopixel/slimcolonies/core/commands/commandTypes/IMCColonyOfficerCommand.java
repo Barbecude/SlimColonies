@@ -1,15 +1,12 @@
 package no.monopixel.slimcolonies.core.commands.commandTypes;
 
 import no.monopixel.slimcolonies.api.colony.IColony;
-import no.monopixel.slimcolonies.api.colony.IColonyManager;
-import no.monopixel.slimcolonies.api.util.MessageUtils;
-import com.mojang.brigadier.arguments.IntegerArgumentType;
+import no.monopixel.slimcolonies.core.commands.arguments.ColonyIdArgument;
 import com.mojang.brigadier.context.CommandContext;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
 
-import static no.monopixel.slimcolonies.api.util.constant.translation.CommandTranslationConstants.COMMAND_COLONY_ID_NOT_FOUND;
 import static no.monopixel.slimcolonies.core.commands.CommandArgumentNames.COLONYID_ARG;
 
 /**
@@ -35,12 +32,9 @@ public interface IMCColonyOfficerCommand extends IMCCommand
             return false;
         }
 
-        // Colony
-        final int colonyID = IntegerArgumentType.getInteger(context, COLONYID_ARG);
-        final IColony colony = IColonyManager.getInstance().getColonyByDimension(colonyID, context.getSource().getLevel().dimension());
+        final IColony colony = ColonyIdArgument.tryGetColony(context, COLONYID_ARG, true);
         if (colony == null)
         {
-            MessageUtils.format(COMMAND_COLONY_ID_NOT_FOUND, colonyID).sendTo((Player) sender);
             return false;
         }
 

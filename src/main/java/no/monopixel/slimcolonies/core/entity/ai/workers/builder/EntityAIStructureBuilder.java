@@ -1,29 +1,15 @@
 package no.monopixel.slimcolonies.core.entity.ai.workers.builder;
 
 import com.ldtteam.structurize.placement.StructurePlacer;
-import net.minecraft.ChatFormatting;
-import net.minecraft.core.BlockPos;
-import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.HoverEvent;
-import net.minecraft.network.chat.MutableComponent;
-import net.minecraft.world.entity.Entity;
-import net.minecraft.world.entity.monster.Monster;
-import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.level.block.Block;
-import net.minecraft.world.level.block.state.BlockState;
 import no.monopixel.slimcolonies.api.colony.IColonyManager;
 import no.monopixel.slimcolonies.api.colony.buildings.IBuilding;
-import no.monopixel.slimcolonies.api.colony.requestsystem.request.IRequest;
-import no.monopixel.slimcolonies.api.colony.requestsystem.requestable.IDeliverable;
-import no.monopixel.slimcolonies.api.colony.requestsystem.requestable.Tool;
 import no.monopixel.slimcolonies.api.colony.workorders.IWorkOrder;
 import no.monopixel.slimcolonies.api.colony.workorders.WorkOrderType;
-import no.monopixel.slimcolonies.api.equipment.registry.EquipmentTypeEntry;
-import no.monopixel.slimcolonies.api.util.constant.Constants;
-import no.monopixel.slimcolonies.api.entity.ai.statemachine.AITarget;
 import no.monopixel.slimcolonies.api.entity.ai.statemachine.states.IAIState;
-import no.monopixel.slimcolonies.api.util.*;
-import no.monopixel.slimcolonies.core.SlimColonies;
+import no.monopixel.slimcolonies.api.util.BlockPosUtil;
+import no.monopixel.slimcolonies.api.util.MessageUtils;
+import no.monopixel.slimcolonies.api.util.Tuple;
+import no.monopixel.slimcolonies.api.util.WorldUtil;
 import no.monopixel.slimcolonies.core.colony.buildings.modules.settings.BuilderModeSetting;
 import no.monopixel.slimcolonies.core.colony.buildings.workerbuildings.BuildingBuilder;
 import no.monopixel.slimcolonies.core.colony.jobs.JobBuilder;
@@ -31,18 +17,22 @@ import no.monopixel.slimcolonies.core.colony.workorders.WorkOrderBuilding;
 import no.monopixel.slimcolonies.core.entity.ai.workers.AbstractEntityAIStructureWithWorkOrder;
 import no.monopixel.slimcolonies.core.entity.ai.workers.util.BuildingProgressStage;
 import no.monopixel.slimcolonies.core.entity.ai.workers.util.BuildingStructureHandler;
-import no.monopixel.slimcolonies.core.entity.pathfinding.navigation.SlimColoniesAdvancedPathNavigate;
+import no.monopixel.slimcolonies.core.entity.pathfinding.navigation.MinecoloniesAdvancedPathNavigate;
 import no.monopixel.slimcolonies.core.entity.pathfinding.pathjobs.PathJobMoveCloseToXNearY;
 import no.monopixel.slimcolonies.core.entity.pathfinding.pathresults.PathResult;
+import net.minecraft.ChatFormatting;
+import net.minecraft.core.BlockPos;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.HoverEvent;
+import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.monster.Monster;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.state.BlockState;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import static no.monopixel.slimcolonies.api.entity.ai.statemachine.states.AIWorkerState.*;
-import static no.monopixel.slimcolonies.api.util.constant.Constants.TICKS_SECOND;
-import static no.monopixel.slimcolonies.api.util.constant.StatisticsConstants.ITEMS_SCAVENGED;
-import static no.monopixel.slimcolonies.api.util.constant.TranslationConstants.COREMOD_ENTITY_BUILDER_MANUAL_SUFFIX;
+import static no.monopixel.slimcolonies.api.util.constant.TranslationConstants.COM_MINECOLONIES_COREMOD_ENTITY_BUILDER_MANUAL_SUFFIX;
 
 /**
  * AI class for the builder. Manages building and repairing buildings.
@@ -65,20 +55,9 @@ public class EntityAIStructureBuilder extends AbstractEntityAIStructureWithWorkO
     private static final int LEVEL_TO_PURGE_MOBS = 4;
 
     /**
-     * Building level at which tool scavenging becomes unrestricted.
-     * Below this, max scavengeable tool tier equals the building level.
-     */
-    private static final int SCAVENGE_UNRESTRICTED_LEVEL = Constants.MAX_BUILDING_LEVEL;
-
-    /**
      * Current goto path
      */
     PathResult gotoPath = null;
-
-    /**
-     * Timestamp of the last scavenge check (in game ticks).
-     */
-    private long lastScavengeCheck = 0;
 
     /**
      * Initialize the builder and add all his tasks.
@@ -88,222 +67,7 @@ public class EntityAIStructureBuilder extends AbstractEntityAIStructureWithWorkO
     public EntityAIStructureBuilder(@NotNull final JobBuilder job)
     {
         super(job);
-        super.registerTargets(
-            new AITarget(IDLE, START_WORKING, 10),
-            new AITarget(START_WORKING, this::checkForWorkOrder, this::startWorkingAtOwnBuilding, TICKS_SECOND)
-        );
         worker.setCanPickUpLoot(true);
-    }
-
-    /**
-     * Override to add scavenging behavior while waiting for requests.
-     *
-     * @return NEEDS_ITEM state.
-     */
-    @Override
-    @NotNull
-    protected IAIState waitForRequests()
-    {
-        final IAIState result = super.waitForRequests();
-
-        // Check if scavenging is enabled
-        final int intervalMinutes = SlimColonies.getConfig().getServer().builderScavengingIntervalMinutes.get();
-        if (intervalMinutes == 0)
-        {
-            return result;
-        }
-
-        // Convert minutes to ticks with ±20% randomization
-        // 1 minute = 60 seconds * 20 ticks/second = 1200 ticks
-        final int baseTicks = intervalMinutes * 60 * 20;
-        final double randomFactor = 0.8 + (worker.getRandom().nextDouble() * 0.4); // 0.8 to 1.2
-        final long intervalTicks = (long) (baseTicks * randomFactor);
-
-        final long currentTime = world.getGameTime();
-        if (currentTime - lastScavengeCheck >= intervalTicks)
-        {
-            lastScavengeCheck = currentTime;
-            final boolean scavengedSomething = tryScavengeForRequests();
-
-            if (scavengedSomething && !building.hasOpenSyncRequest(worker.getCitizenData()))
-            {
-                return START_BUILDING;
-            }
-        }
-
-        return result;
-    }
-
-    /**
-     * Attempt to scavenge items for the builder's smallest request.
-     * Builders can "find" small amounts (1-5 items) of needed materials while idle.
-     *
-     * @return true if items were scavenged, false otherwise
-     */
-    private boolean tryScavengeForRequests()
-    {
-        if (worker == null || worker.getCitizenData() == null || building == null)
-        {
-            return false;
-        }
-
-        if (!building.hasOpenSyncRequest(worker.getCitizenData()))
-        {
-            return false;
-        }
-
-        final int maxScavengeTier = getMaxScavengeTier(building.getBuildingLevel());
-
-        final List<IRequest<?>> allRequests = building.getOpenRequestsOfCitizenOrBuilding(
-            worker.getCitizenData().getId(),
-            request -> request.getRequest() instanceof IDeliverable
-        );
-
-        if (allRequests.isEmpty())
-        {
-            return false;
-        }
-
-        final var playerResolver = building.getColony().getRequestManager().getPlayerResolver();
-        final var retryingResolver = building.getColony().getRequestManager().getRetryingRequestResolver();
-
-        final List<IRequest<?>> requestsWeNeed = new ArrayList<>();
-        for (final IRequest<?> request : allRequests)
-        {
-            try
-            {
-                final var assignedResolver = building.getColony().getRequestManager().getResolverForRequest(request.getId());
-                if (assignedResolver != playerResolver && assignedResolver != retryingResolver)
-                {
-                    continue;
-                }
-            }
-            catch (IllegalArgumentException e)
-            {
-                continue;
-            }
-
-            final IDeliverable deliverable = (IDeliverable) request.getRequest();
-            final List<ItemStack> displayStacks = request.getDisplayStacks();
-
-            if (displayStacks.isEmpty())
-            {
-                continue;
-            }
-
-            // Tier-cap tool scavenging based on building level
-            if (deliverable instanceof Tool tool)
-            {
-                final EquipmentTypeEntry equipType = tool.getEquipmentType();
-                final boolean hasAllowedTool = displayStacks.stream()
-                    .anyMatch(stack -> equipType.getMiningLevel(stack) <= maxScavengeTier);
-
-                if (!hasAllowedTool)
-                {
-                    continue;
-                }
-            }
-
-            final ItemStack stackToCheck = displayStacks.get(0);
-            final int currentCount = InventoryUtils.getItemCountInItemHandler(
-                worker.getCitizenData().getInventory(),
-                stack -> ItemStackUtils.compareItemStacksIgnoreStackSize(stack, stackToCheck)
-            );
-
-            final int stillNeeded = deliverable.getCount() - currentCount;
-
-            if (stillNeeded > 0)
-            {
-                requestsWeNeed.add(request);
-            }
-        }
-
-        if (requestsWeNeed.isEmpty())
-        {
-            return false;
-        }
-
-        requestsWeNeed.sort((a, b) -> {
-            final IDeliverable delivA = (IDeliverable) a.getRequest();
-            final IDeliverable delivB = (IDeliverable) b.getRequest();
-            return Integer.compare(delivA.getCount(), delivB.getCount());
-        });
-
-        final IRequest<?> smallestRequest = requestsWeNeed.get(0);
-        final IDeliverable deliverable = (IDeliverable) smallestRequest.getRequest();
-        final List<ItemStack> displayStacks = smallestRequest.getDisplayStacks();
-
-        // For tool requests, pick a random tool within the allowed tier
-        ItemStack stackToCheck;
-        if (deliverable instanceof Tool tool)
-        {
-            final EquipmentTypeEntry equipType = tool.getEquipmentType();
-            final List<ItemStack> allowedTools = displayStacks.stream()
-                .filter(stack -> equipType.getMiningLevel(stack) <= maxScavengeTier)
-                .toList();
-
-            if (allowedTools.isEmpty())
-            {
-                Log.getLogger().warn("Scavenge tier filter passed but no allowed tool found — this should not happen");
-                stackToCheck = displayStacks.get(0);
-            }
-            else
-            {
-                stackToCheck = allowedTools.get(worker.getRandom().nextInt(allowedTools.size()));
-            }
-        }
-        else
-        {
-            stackToCheck = displayStacks.get(0);
-        }
-
-        final int currentCount = InventoryUtils.getItemCountInItemHandler(
-            worker.getCitizenData().getInventory(),
-            stack -> ItemStackUtils.compareItemStacksIgnoreStackSize(stack, stackToCheck)
-        );
-        final int stillNeeded = deliverable.getCount() - currentCount;
-
-        final int randomAmount = 1 + worker.getRandom().nextInt(5);
-        final int scavengeAmount = Math.min(stillNeeded, randomAmount);
-
-        final ItemStack stackToGive = stackToCheck.copy();
-        stackToGive.setCount(scavengeAmount);
-
-        final ItemStack remainingStack = InventoryUtils.addItemStackToItemHandlerWithResult(
-            worker.getCitizenData().getInventory(),
-            stackToGive
-        );
-
-        if (ItemStackUtils.isEmpty(remainingStack) || remainingStack.getCount() < scavengeAmount)
-        {
-            final int actuallyScavenged = scavengeAmount - (ItemStackUtils.isEmpty(remainingStack) ? 0 : remainingStack.getCount());
-            final int newTotalCount = currentCount + actuallyScavenged;
-
-            StatsUtil.trackStatByStack(building, ITEMS_SCAVENGED, stackToGive, actuallyScavenged);
-
-            // Use overruleRequest with partial stack to let the request system handle partial fulfillment
-            final ItemStack partialStack = stackToCheck.copy();
-            partialStack.setCount(actuallyScavenged);
-            building.getColony().getRequestManager().overruleRequest(smallestRequest.getId(), partialStack);
-
-            Log.getLogger().info(
-                "[{}] Scavenged {}x {} ({}/{} needed)",
-                worker.getName().getString(),
-                actuallyScavenged,
-                stackToGive.getHoverName().getString(),
-                newTotalCount,
-                deliverable.getCount()
-            );
-
-            return true;
-        }
-
-        return false;
-    }
-
-    private static int getMaxScavengeTier(final int buildingLevel)
-    {
-        return buildingLevel >= SCAVENGE_UNRESTRICTED_LEVEL ? Integer.MAX_VALUE : buildingLevel;
     }
 
     @Override
@@ -348,10 +112,10 @@ public class EntityAIStructureBuilder extends AbstractEntityAIStructureWithWorkO
             return false;
         }
 
-        final IBuilding buildingAtLocation = job.getColony().getBuildingManager().getBuilding(wo.getLocation());
-        if (buildingAtLocation == null && wo instanceof WorkOrderBuilding && wo.getWorkOrderType() != WorkOrderType.REMOVE)
+        final IBuilding building = job.getColony().getServerBuildingManager().getBuilding(wo.getLocation());
+        if (building == null && wo instanceof WorkOrderBuilding && wo.getWorkOrderType() != WorkOrderType.REMOVE)
         {
-            building.complete(worker.getCitizenData());
+            this.building.complete(worker.getCitizenData());
             return false;
         }
 
@@ -376,13 +140,24 @@ public class EntityAIStructureBuilder extends AbstractEntityAIStructureWithWorkO
         return !checkForWorkOrder();
     }
 
-    private IAIState startWorkingAtOwnBuilding()
+    @Override
+    protected IAIState startWorkingAtOwnBuilding()
     {
         if (!walkToBuilding())
         {
             return getState();
         }
-        return LOAD_STRUCTURE;
+
+        if (checkForWorkOrder())
+        {
+            final IAIState state = super.startWorkingAtOwnBuilding();
+            if (state == IDLE)
+            {
+                return LOAD_STRUCTURE;
+            }
+            return state;
+        }
+        return IDLE;
     }
 
     /**
@@ -393,10 +168,10 @@ public class EntityAIStructureBuilder extends AbstractEntityAIStructureWithWorkO
         if (building.getBuildingLevel() >= LEVEL_TO_PURGE_MOBS && building.getWorkOrder() != null && building.getWorkOrder().getWorkOrderType() == WorkOrderType.BUILD)
         {
             final BlockPos buildingPos = building.getWorkOrder().getLocation();
-            final IBuilding buildingAtLocation = worker.getCitizenColonyHandler().getColonyOrRegister().getBuildingManager().getBuilding(buildingPos);
-            if (buildingAtLocation != null)
+            final IBuilding building = worker.getCitizenColonyHandler().getColonyOrRegister().getServerBuildingManager().getBuilding(buildingPos);
+            if (building != null)
             {
-                WorldUtil.getEntitiesWithinBuilding(world, Monster.class, buildingAtLocation, null).forEach(e -> e.remove(Entity.RemovalReason.DISCARDED));
+                WorldUtil.getEntitiesWithinBuilding(world, Monster.class, building, null).forEach(e -> e.remove(Entity.RemovalReason.DISCARDED));
             }
         }
     }
@@ -418,6 +193,18 @@ public class EntityAIStructureBuilder extends AbstractEntityAIStructureWithWorkO
     }
 
     @Override
+    public IAIState afterRequestPickUp()
+    {
+        return INVENTORY_FULL;
+    }
+
+    @Override
+    public IAIState afterDump()
+    {
+        return PICK_UP;
+    }
+
+    @Override
     public boolean walkToConstructionSite(final BlockPos currentBlock)
     {
         if (workFrom != null && workFrom.getX() == currentBlock.getX() && workFrom.getZ() == currentBlock.getZ() && workFrom.getY() >= currentBlock.getY())
@@ -435,8 +222,8 @@ public class EntityAIStructureBuilder extends AbstractEntityAIStructureWithWorkO
                     building.getWorkOrder().getLocation(),
                     4,
                     worker);
-                gotoPath = ((SlimColoniesAdvancedPathNavigate) worker.getNavigation()).setPathJob(pathJob, currentBlock, 1.0, false);
-                pathJob.getPathingOptions().dropCost = 200;
+                gotoPath = ((MinecoloniesAdvancedPathNavigate) worker.getNavigation()).setPathJob(pathJob, currentBlock, 1.0, false);
+                pathJob.getPathingOptions().canDrop = false;
                 pathJob.extraNodes = 0;
             }
             else if (gotoPath.isDone())
@@ -450,6 +237,7 @@ public class EntityAIStructureBuilder extends AbstractEntityAIStructureWithWorkO
 
             if (prevBlockPosition != null)
             {
+                // This is good for building, and bad for mining, this is why mining should validate workFrom.
                 return BlockPosUtil.dist(prevBlockPosition, currentBlock) <= 10;
             }
             return false;
@@ -458,7 +246,7 @@ public class EntityAIStructureBuilder extends AbstractEntityAIStructureWithWorkO
         if (!walkToSafePos(workFrom))
         {
             // Something might have changed, new wall and we can't reach the position anymore. Reset workfrom if stuck.
-            if (worker.getNavigation() instanceof SlimColoniesAdvancedPathNavigate pathNavigate && pathNavigate.getStuckHandler().getStuckLevel() > 0)
+            if (worker.getNavigation() instanceof MinecoloniesAdvancedPathNavigate pathNavigate && pathNavigate.isStuck())
             {
                 workFrom = null;
             }
@@ -523,7 +311,7 @@ public class EntityAIStructureBuilder extends AbstractEntityAIStructureWithWorkO
             }
         }
 
-        final MutableComponent message = Component.translatable(
+        final MutableComponent message = Component.translatableEscape(
                 wo.getWorkOrderType().getCompletionMessageID(),
                 wo.getDisplayName(),
                 BlockPosUtil.calcDirection(building.getColony().getCenter(), position).getLongText())
@@ -538,7 +326,7 @@ public class EntityAIStructureBuilder extends AbstractEntityAIStructureWithWorkO
 
         if (showManualSuffix)
         {
-            message.append(Component.translatable(COREMOD_ENTITY_BUILDER_MANUAL_SUFFIX));
+            message.append(Component.translatableEscape(COM_MINECOLONIES_COREMOD_ENTITY_BUILDER_MANUAL_SUFFIX));
         }
 
         MessageUtils.forCitizen(worker, message).sendTo(worker.getCitizenColonyHandler().getColonyOrRegister().getImportantMessageEntityPlayers());

@@ -1,5 +1,11 @@
 {
   "branch": "slimcolonies:civilian",
+  "costs": [
+    {
+      "count": 1,
+      "item": "minecraft:heart_of_the_sea"
+    }
+  ],
   "effects": [
     {
       "id": "slimcolonies:effects/air",

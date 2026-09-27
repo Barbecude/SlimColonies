@@ -1,10 +1,6 @@
 package no.monopixel.slimcolonies.core.network.messages.server.colony.citizen;
 
-import net.minecraft.network.FriendlyByteBuf;
-import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.item.ItemStack;
-import net.minecraftforge.items.wrapper.InvWrapper;
-import net.minecraftforge.network.NetworkEvent;
+import com.ldtteam.common.network.PlayMessageType;
 import no.monopixel.slimcolonies.api.colony.ICitizenData;
 import no.monopixel.slimcolonies.api.colony.ICitizenDataView;
 import no.monopixel.slimcolonies.api.colony.IColony;
@@ -13,8 +9,15 @@ import no.monopixel.slimcolonies.api.entity.citizen.AbstractEntityCitizen;
 import no.monopixel.slimcolonies.api.util.InventoryUtils;
 import no.monopixel.slimcolonies.api.util.ItemStackUtils;
 import no.monopixel.slimcolonies.api.util.Log;
-import no.monopixel.slimcolonies.core.SlimColonies;
+import no.monopixel.slimcolonies.api.util.Utils;
+import no.monopixel.slimcolonies.api.util.constant.Constants;
+import no.monopixel.slimcolonies.core.MineColonies;
 import no.monopixel.slimcolonies.core.network.messages.server.AbstractColonyServerMessage;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.item.ItemStack;
+import net.neoforged.neoforge.items.wrapper.InvWrapper;
+import net.neoforged.neoforge.network.handling.IPayloadContext;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
@@ -27,28 +30,22 @@ import java.util.Optional;
  */
 public class TransferItemsToCitizenRequestMessage extends AbstractColonyServerMessage
 {
+    public static final PlayMessageType<?> TYPE = PlayMessageType.forServer(Constants.MOD_ID, "transfer_items_to_citizen_request", TransferItemsToCitizenRequestMessage::new);
+
     /**
      * The id of the building.
      */
-    private int citizenId;
+    private final int citizenId;
 
     /**
      * How many item need to be transfer from the player inventory to the building chest.
      */
-    private ItemStack itemStack;
+    private final ItemStack itemStack;
 
     /**
      * How many item need to be transfer from the player inventory to the building chest.
      */
-    private int quantity;
-
-    /**
-     * Empty constructor used when registering the
-     */
-    public TransferItemsToCitizenRequestMessage()
-    {
-        super();
-    }
+    private final int quantity;
 
     /**
      * Creates a Transfer Items request
@@ -60,30 +57,31 @@ public class TransferItemsToCitizenRequestMessage extends AbstractColonyServerMe
      */
     public TransferItemsToCitizenRequestMessage(final IColony colony, @NotNull final ICitizenDataView citizenDataView, final ItemStack itemStack, final int quantity)
     {
-        super(colony);
+        super(TYPE, colony);
         this.citizenId = citizenDataView.getId();
         this.itemStack = itemStack;
         this.quantity = quantity;
     }
 
-    @Override
-    public void fromBytesOverride(@NotNull final FriendlyByteBuf buf)
+    protected TransferItemsToCitizenRequestMessage(final RegistryFriendlyByteBuf buf, final PlayMessageType<?> type)
     {
+        super(buf, type);
         citizenId = buf.readInt();
-        itemStack = buf.readItem();
+        itemStack = Utils.deserializeCodecMess(buf);
         quantity = buf.readInt();
     }
 
     @Override
-    public void toBytesOverride(@NotNull final FriendlyByteBuf buf)
+    protected void toBytes(@NotNull final RegistryFriendlyByteBuf buf)
     {
+        super.toBytes(buf);
         buf.writeInt(citizenId);
-        buf.writeItem(itemStack);
+        Utils.serializeCodecMess(buf, itemStack);
         buf.writeInt(quantity);
     }
 
     @Override
-    protected void onExecute(final NetworkEvent.Context ctxIn, final boolean isLogicalServer, final IColony colony)
+    protected void onExecute(final IPayloadContext ctxIn, final ServerPlayer player, final IColony colony)
     {
         final ICitizenData citizenData = colony.getCitizenManager().getCivilian(citizenId);
         if (citizenData == null)
@@ -96,12 +94,6 @@ public class TransferItemsToCitizenRequestMessage extends AbstractColonyServerMe
         if (!optionalEntityCitizen.isPresent())
         {
             Log.getLogger().warn("TransferItemsRequestMessage entity citizen is null");
-            return;
-        }
-
-        final Player player = ctxIn.getSender();
-        if (player == null)
-        {
             return;
         }
 
@@ -122,7 +114,7 @@ public class TransferItemsToCitizenRequestMessage extends AbstractColonyServerMe
         else
         {
             amountToTake = Math.min(quantity,
-                InventoryUtils.getItemCountInItemHandler(new InvWrapper(player.getInventory()), stack -> ItemStackUtils.compareItemStacksIgnoreStackSize(stack, itemStack)));
+              InventoryUtils.getItemCountInItemHandler(new InvWrapper(player.getInventory()), stack -> ItemStackUtils.compareItemStacksIgnoreStackSize(stack, itemStack)));
         }
 
         final List<ItemStack> itemsToPut = new ArrayList<>();
@@ -130,8 +122,8 @@ public class TransferItemsToCitizenRequestMessage extends AbstractColonyServerMe
 
         while (tempAmount > 0)
         {
-            int count = Math.min(itemStack.getMaxStackSize(), tempAmount);
-            ItemStack stack = itemStack.copy();
+            final int count = Math.min(itemStack.getMaxStackSize(), tempAmount);
+            final ItemStack stack = itemStack.copy();
             stack.setCount(count);
             itemsToPut.add(stack);
             tempAmount -= count;
@@ -139,7 +131,7 @@ public class TransferItemsToCitizenRequestMessage extends AbstractColonyServerMe
 
         final AbstractEntityCitizen citizen = optionalEntityCitizen.get();
 
-        if (!isCreative && SlimColonies.getConfig().getServer().debugInventories.get())
+        if (!isCreative && MineColonies.getConfig().getServer().debugInventories.get())
         {
             previousContent = InventoryUtils.getAllItemsForProviders(citizen.getInventoryCitizen(), new InvWrapper(player.getInventory()));
         }
@@ -162,14 +154,13 @@ public class TransferItemsToCitizenRequestMessage extends AbstractColonyServerMe
             while (amountToRemoveFromPlayer > 0)
             {
                 final int slot =
-                    InventoryUtils.findFirstSlotInItemHandlerWith(new InvWrapper(player.getInventory()),
-                        stack -> ItemStackUtils.compareItemStacksIgnoreStackSize(stack, itemStack));
+                  InventoryUtils.findFirstSlotInItemHandlerWith(new InvWrapper(player.getInventory()), stack -> ItemStackUtils.compareItemStacksIgnoreStackSize(stack, itemStack));
                 final ItemStack itemsTaken = player.getInventory().removeItem(slot, amountToRemoveFromPlayer);
                 amountToRemoveFromPlayer -= ItemStackUtils.getSize(itemsTaken);
             }
         }
 
-        if (!isCreative && previousContent != null && SlimColonies.getConfig().getServer().debugInventories.get())
+        if (!isCreative && previousContent != null && MineColonies.getConfig().getServer().debugInventories.get())
         {
             InventoryUtils.doStorageSetsMatch(previousContent, InventoryUtils.getAllItemsForProviders(citizen.getInventoryCitizen(), new InvWrapper(player.getInventory())), true);
         }

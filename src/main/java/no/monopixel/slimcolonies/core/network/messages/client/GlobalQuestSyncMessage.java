@@ -1,73 +1,55 @@
 package no.monopixel.slimcolonies.core.network.messages.client;
 
-import no.monopixel.slimcolonies.api.network.IMessage;
+import com.ldtteam.common.network.AbstractClientPlayMessage;
+import com.ldtteam.common.network.PlayMessageType;
+import no.monopixel.slimcolonies.api.util.constant.Constants;
 import no.monopixel.slimcolonies.core.datalistener.QuestJsonListener;
-import net.minecraft.client.Minecraft;
+import io.netty.buffer.Unpooled;
 import net.minecraft.network.FriendlyByteBuf;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.api.distmarker.OnlyIn;
-import net.minecraftforge.fml.LogicalSide;
-import net.minecraftforge.network.NetworkEvent;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.world.entity.player.Player;
+import net.neoforged.neoforge.network.handling.IPayloadContext;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 /**
  * The message used to synchronize global quest data from a server to a remote client.
  */
-public class GlobalQuestSyncMessage implements IMessage
+public class GlobalQuestSyncMessage extends AbstractClientPlayMessage
 {
+    public static final PlayMessageType<?> TYPE = PlayMessageType.forClient(Constants.MOD_ID, "global_quest_sync", GlobalQuestSyncMessage::new, true, false);
 
     /**
      * The buffer with the data.
      */
-    private FriendlyByteBuf questBuffer;
-
-    /**
-     * Empty constructor used when registering the message
-     */
-    public GlobalQuestSyncMessage()
-    {
-        super();
-    }
+    private final RegistryFriendlyByteBuf questBuffer;
 
     /**
      * Add or Update QuestData on the client.
      *
      * @param buf the bytebuffer.
      */
-    public GlobalQuestSyncMessage(final FriendlyByteBuf buf)
+    public GlobalQuestSyncMessage(final RegistryFriendlyByteBuf buf)
     {
-        this.questBuffer = new FriendlyByteBuf(buf.copy());
+        super(TYPE);
+        this.questBuffer = new RegistryFriendlyByteBuf(new FriendlyByteBuf(buf.copy()), buf.registryAccess());
+    }
+
+    protected GlobalQuestSyncMessage(final RegistryFriendlyByteBuf buf, final PlayMessageType<?> type)
+    {
+        super(buf, type);
+        questBuffer = new RegistryFriendlyByteBuf(new FriendlyByteBuf(Unpooled.wrappedBuffer(buf.readByteArray())), buf.registryAccess());
     }
 
     @Override
-    public void fromBytes(@NotNull final FriendlyByteBuf buf)
-    {
-        questBuffer = new FriendlyByteBuf(buf.retain());
-    }
-
-    @Override
-    public void toBytes(@NotNull final FriendlyByteBuf buf)
+    protected void toBytes(@NotNull final RegistryFriendlyByteBuf buf)
     {
         questBuffer.resetReaderIndex();
-        buf.writeBytes(questBuffer);
+        buf.writeByteArray(questBuffer.array());
     }
 
-    @Nullable
     @Override
-    public LogicalSide getExecutionSide()
+    protected void onExecute(final IPayloadContext ctxIn, final Player player)
     {
-        return LogicalSide.CLIENT;
-    }
-
-    @OnlyIn(Dist.CLIENT)
-    @Override
-    public void onExecute(final NetworkEvent.Context ctxIn, final boolean isLogicalServer)
-    {
-        if (Minecraft.getInstance().level != null)
-        {
-            QuestJsonListener.readGlobalQuestPackets(questBuffer);
-        }
-        questBuffer.release();
+        QuestJsonListener.readGlobalQuestPackets(questBuffer);
     }
 }

@@ -1,21 +1,31 @@
 package no.monopixel.slimcolonies.api.colony;
 
-import net.minecraft.core.BlockPos;
-import net.minecraft.nbt.CompoundTag;
-import net.minecraft.network.FriendlyByteBuf;
-import net.minecraft.resources.ResourceKey;
-import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.level.Level;
-import net.minecraftforge.event.TickEvent;
-import no.monopixel.slimcolonies.api.ISlimColoniesAPI;
+import no.monopixel.slimcolonies.api.IMinecoloniesAPI;
 import no.monopixel.slimcolonies.api.colony.buildings.IBuilding;
 import no.monopixel.slimcolonies.api.colony.buildings.views.IBuildingView;
+import no.monopixel.slimcolonies.api.colony.claim.ChunkClaimData;
+import no.monopixel.slimcolonies.api.colony.claim.IChunkClaimData;
 import no.monopixel.slimcolonies.api.compatibility.ICompatibilityManager;
 import no.monopixel.slimcolonies.api.crafting.IRecipeManager;
+import no.monopixel.slimcolonies.core.colony.Colony;
+import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.level.ChunkPos;
+import net.minecraft.world.level.Level;
+import net.neoforged.neoforge.client.event.ClientTickEvent;
+import net.neoforged.neoforge.event.tick.LevelTickEvent;
+import net.neoforged.neoforge.event.tick.ServerTickEvent;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 public interface IColonyManager
@@ -23,7 +33,7 @@ public interface IColonyManager
 
     static IColonyManager getInstance()
     {
-        return ISlimColoniesAPI.getInstance().getColonyManager();
+        return IMinecoloniesAPI.getInstance().getColonyManager();
     }
 
     /**
@@ -37,7 +47,7 @@ public interface IColonyManager
      * @return the created colony instance.
      */
     @Nullable
-    IColony createColony(@NotNull Level w, BlockPos pos, @NotNull Player player, @NotNull String colonyName, @NotNull String pack);
+    IColony createColony(@NotNull ServerLevel w, BlockPos pos, @NotNull Player player, @NotNull String colonyName, @NotNull String pack);
 
     /**
      * Delete the colony in a world.
@@ -46,7 +56,7 @@ public interface IColonyManager
      * @param canDestroy if can destroy the buildings.
      * @param world      the world.
      */
-    void deleteColonyByWorld(int id, boolean canDestroy, Level world);
+    void deleteColonyByWorld(int id, boolean canDestroy, ServerLevel world);
 
     /**
      * Delete the colony by dimension.
@@ -158,6 +168,15 @@ public interface IColonyManager
     IBuildingView getBuildingView(final ResourceKey<Level> dimension, BlockPos pos);
 
     /**
+     * Get all colonies in this world.  (Side neutral; on clients it returns the subset of views known to the player.)
+     *
+     * @param w World.
+     * @return a list of colonies.
+     */
+    @NotNull
+    List<IColony> getIColonies(@NotNull Level w);
+
+    /**
      * Side neutral method to get colony. On clients it returns the view. On servers it returns the colony itself.
      *
      * @param w   World.
@@ -166,6 +185,15 @@ public interface IColonyManager
      */
     @Nullable
     IColony getIColony(@NotNull Level w, @NotNull BlockPos pos);
+
+    /**
+     * Get all colony views in this world known to the current player.
+     *
+     * @param w World.
+     * @return a list of colony views.
+     */
+    @NotNull
+    List<IColonyView> getColonyViews(@NotNull Level w);
 
     /**
      * Gets the colony view aat the given position
@@ -240,35 +268,35 @@ public interface IColonyManager
     /**
      * On server tick, tick every Colony. NOTE: Review this for performance.
      *
-     * @param event {@link net.minecraftforge.event.TickEvent.ServerTickEvent}
+     * @param event {@link net.neoforged.neoforge.event.tick.ServerTickEvent}
      */
-    void onServerTick(@NotNull TickEvent.ServerTickEvent event);
+    void onServerTick(@NotNull ServerTickEvent.Pre event);
 
     /**
      * Write colonies to NBT data for saving.
      *
      * @param compound NBT-Tag.
      */
-    void write(@NotNull CompoundTag compound);
+    void write(final HolderLookup.Provider provider, @NotNull CompoundTag compound);
 
     /**
      * Read Colonies from saved NBT data.
      *
      * @param compound NBT Tag.
      */
-    void read(@NotNull CompoundTag compound);
+    void read(final HolderLookup.Provider provider, @NotNull CompoundTag compound);
 
     /**
      * On Client tick, clears views when player left.
      *
-     * @param event {@link TickEvent.ClientTickEvent}.
+     * @param event {@link net.neoforged.neoforge.client.event.ClientTickEvent}.
      */
-    void onClientTick(@NotNull TickEvent.ClientTickEvent event);
+    void onClientTick(@NotNull ClientTickEvent.Pre event);
 
     /**
      * On world tick, tick every Colony in that world. NOTE: Review this for performance.
      */
-    void onWorldTick(@NotNull TickEvent.LevelTickEvent event);
+    void onWorldTick(@NotNull LevelTickEvent.Pre event);
 
     /**
      * When a world is loaded, Colonies in that world need to grab the reference to the World. Additionally, when loading the first world, load the manager data.
@@ -276,11 +304,6 @@ public interface IColonyManager
      * @param world World.
      */
     void onWorldLoad(@NotNull Level world);
-
-    /**
-     * Sets the cap for this world to loaded
-     */
-    void setCapLoaded();
 
     /**
      * When a world unloads, all colonies in that world are informed. Additionally, when the last world is unloaded, delete all colonies.
@@ -293,12 +316,11 @@ public interface IColonyManager
      * Sends view message to the right view.
      *
      * @param colonyId          ID of the colony.
-     * @param colonyData        {@link FriendlyByteBuf} with colony data.
+     * @param colonyData        {@link RegistryFriendlyByteBuf} with colony data.
      * @param isNewSubscription whether this is a new subscription or not.
      * @param dim               the dimension.
-     * @param world             the world it is in.
      */
-    void handleColonyViewMessage(int colonyId, @NotNull FriendlyByteBuf colonyData, @NotNull Level world, boolean isNewSubscription, ResourceKey<Level> dim);
+    void handleColonyViewMessage(int colonyId, @NotNull RegistryFriendlyByteBuf colonyData, boolean isNewSubscription, ResourceKey<Level> dim);
 
     /**
      * Get IColonyView by ID.
@@ -310,35 +332,35 @@ public interface IColonyManager
     IColonyView getColonyView(int id, final ResourceKey<Level> dimension);
 
     /**
-     * Returns result of {@link IColonyView#handlePermissionsViewMessage(FriendlyByteBuf)} if {@link #getColonyView(int, ResourceKey)}. gives a not-null result. If {@link #getColonyView(int,
+     * Returns result of {@link IColonyView#handlePermissionsViewMessage(RegistryFriendlyByteBuf)} if {@link #getColonyView(int, ResourceKey)}. gives a not-null result. If {@link #getColonyView(int,
      * ResourceKey)} is null, returns null.
      *
      * @param colonyID ID of the colony.
-     * @param data     {@link FriendlyByteBuf} with colony data.
+     * @param data     {@link RegistryFriendlyByteBuf} with colony data.
      * @param dim      the dimension.
      */
-    void handlePermissionsViewMessage(int colonyID, @NotNull FriendlyByteBuf data, ResourceKey<Level> dim);
+    void handlePermissionsViewMessage(int colonyID, @NotNull RegistryFriendlyByteBuf data, ResourceKey<Level> dim);
 
     /**
-     * Returns result of {@link IColonyView#handleColonyViewCitizensMessage(int, FriendlyByteBuf)} if {@link #getColonyView(int, ResourceKey)} gives a not-null result. If {@link
+     * Returns result of {@link IColonyView#handleColonyViewCitizensMessage(int, RegistryFriendlyByteBuf)} if {@link #getColonyView(int, ResourceKey)} gives a not-null result. If {@link
      * #getColonyView(int, ResourceKey)} is null, returns null.
      *
      * @param colonyId  ID of the colony.
      * @param citizenId ID of the citizen.
-     * @param buf       {@link FriendlyByteBuf} with colony data.
+     * @param buf       {@link RegistryFriendlyByteBuf} with colony data.
      * @param dim       the dimension.
      */
-    void handleColonyViewCitizensMessage(int colonyId, int citizenId, FriendlyByteBuf buf, ResourceKey<Level> dim);
+    void handleColonyViewCitizensMessage(int colonyId, int citizenId, RegistryFriendlyByteBuf buf, ResourceKey<Level> dim);
 
     /**
-     * Returns result of {@link IColonyView#handleColonyViewWorkOrderMessage(FriendlyByteBuf)} (int, ByteBuf)} if {@link #getColonyView(int, ResourceKey)} gives a not-null result. If {@link
+     * Returns result of {@link IColonyView#handleColonyViewWorkOrderMessage(RegistryFriendlyByteBuf)} (int, ByteBuf)} if {@link #getColonyView(int, ResourceKey)} gives a not-null result. If {@link
      * #getColonyView(int, ResourceKey)} is null, returns null.
      *
      * @param colonyId ID of the colony.
-     * @param buf      {@link FriendlyByteBuf} with colony data.
+     * @param buf      {@link RegistryFriendlyByteBuf} with colony data.
      * @param dim      the dimension.
      */
-    void handleColonyViewWorkOrderMessage(int colonyId, FriendlyByteBuf buf, ResourceKey<Level> dim);
+    void handleColonyViewWorkOrderMessage(int colonyId, RegistryFriendlyByteBuf buf, ResourceKey<Level> dim);
 
     /**
      * Returns result of {@link IColonyView#handleColonyViewRemoveCitizenMessage(int)} if {@link #getColonyView(int, ResourceKey)} gives a not-null result. If {@link #getColonyView(int,
@@ -351,15 +373,15 @@ public interface IColonyManager
     void handleColonyViewRemoveCitizenMessage(int colonyId, int citizenId, ResourceKey<Level> dim);
 
     /**
-     * Returns result of {@link IColonyView#handleColonyBuildingViewMessage(BlockPos, FriendlyByteBuf)} if {@link #getColonyView(int, ResourceKey)} gives a not-null result. If {@link
+     * Returns result of {@link IColonyView#handleColonyBuildingViewMessage(BlockPos, RegistryFriendlyByteBuf)} if {@link #getColonyView(int, ResourceKey)} gives a not-null result. If {@link
      * #getColonyView(int, ResourceKey)} is null, returns null.
      *
      * @param colonyId   ID of the colony.
      * @param buildingId ID of the building.
-     * @param buf        {@link FriendlyByteBuf} with colony data.
+     * @param buf        {@link RegistryFriendlyByteBuf} with colony data.
      * @param dim        the dimension.
      */
-    void handleColonyBuildingViewMessage(int colonyId, BlockPos buildingId, @NotNull FriendlyByteBuf buf, ResourceKey<Level> dim);
+    void handleColonyBuildingViewMessage(int colonyId, BlockPos buildingId, @NotNull RegistryFriendlyByteBuf buf, ResourceKey<Level> dim);
 
     /**
      * Returns result of {@link IColonyView#handleColonyViewRemoveBuildingMessage(BlockPos)} if {@link #getColonyView(int, ResourceKey)} gives a not-null result. If {@link
@@ -432,8 +454,44 @@ public interface IColonyManager
 
     /**
      * Open the new reactivation window.
-     *
      * @param pos the pos to open it at.
      */
     void openReactivationWindow(final BlockPos pos);
+
+    /**
+     * Adds colony directly to cap. Use only during loading!
+     *
+     * @param colony loaded colony
+     */
+    void addColonyDirect(IColony colony, ServerLevel world);
+
+    /**
+     * Add claim data of a colony.
+     * @param colony the colony from which to add the claim data.
+     * @param claimData the claim data to add.
+     */
+    void addClaimData(IColony colony, Long2ObjectMap<ChunkClaimData> claimData);
+
+    /**
+     * Get the claim data for the whole dimension.
+     * @param dimension the dim.
+     * @return the claim data.
+     */
+    Map<ChunkPos, IChunkClaimData> getClaimData(final ResourceKey<Level> dimension);
+
+    /**
+     * Get the claim data for a dimension and pos.
+     * @param dimension the dim.
+     * @param pos the pos.
+     * @return the claim data.
+     */
+    IChunkClaimData getClaimData(ResourceKey<Level> dimension, ChunkPos pos);
+
+    /**
+     * New chunk to track claim of.
+     * @param colony the colony claiming it.
+     * @param pos the chunk pos.
+     * @param chunkClaimData the claim data to track.
+     */
+    void addNewChunk(Colony colony, ChunkPos pos, ChunkClaimData chunkClaimData);
 }

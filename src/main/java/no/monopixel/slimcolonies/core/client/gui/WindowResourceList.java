@@ -15,15 +15,15 @@ import no.monopixel.slimcolonies.api.colony.workorders.IWorkOrderView;
 import no.monopixel.slimcolonies.api.util.InventoryUtils;
 import no.monopixel.slimcolonies.api.util.ItemStackUtils;
 import no.monopixel.slimcolonies.api.util.constant.Constants;
-import no.monopixel.slimcolonies.core.Network;
 import no.monopixel.slimcolonies.core.colony.buildings.moduleviews.BuildingResourcesModuleView;
 import no.monopixel.slimcolonies.core.colony.buildings.utils.BuildingBuilderResource;
 import no.monopixel.slimcolonies.core.colony.buildings.workerbuildings.BuildingBuilder;
 import no.monopixel.slimcolonies.core.network.messages.server.colony.building.MarkBuildingDirtyMessage;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.item.ItemStack;
-import net.minecraftforge.items.wrapper.InvWrapper;
+import net.neoforged.neoforge.items.wrapper.InvWrapper;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
@@ -32,7 +32,7 @@ import java.util.List;
 import java.util.Map;
 
 import static no.monopixel.slimcolonies.api.util.constant.WindowConstants.*;
-import static no.monopixel.slimcolonies.core.client.gui.modules.WindowBuilderResModule.*;
+import static no.monopixel.slimcolonies.core.client.gui.modules.building.WindowBuilderResModule.*;
 import static no.monopixel.slimcolonies.core.colony.buildings.utils.BuildingBuilderResource.RessourceAvailability.*;
 
 /**
@@ -65,7 +65,7 @@ public class WindowResourceList extends AbstractWindowSkeleton
      */
     public WindowResourceList(final @NotNull BuildingBuilder.View builderView, @NotNull final Map<String, Integer> warehouseSnapshot)
     {
-        super(Constants.MOD_ID + RESOURCE_SCROLL_RESOURCE_SUFFIX);
+        super(new ResourceLocation(Constants.MOD_ID, "gui/windowresourcescroll.xml"));
 
         this.builder = builderView;
         this.warehouseSnapshot = warehouseSnapshot;
@@ -101,8 +101,8 @@ public class WindowResourceList extends AbstractWindowSkeleton
             else
             {
                 amountToSet =
-                    InventoryUtils.getItemCountInItemHandler(new InvWrapper(inventory),
-                        stack -> !ItemStackUtils.isEmpty(stack) && ItemStackUtils.compareItemStacksIgnoreStackSize(stack, resource.getItemStack()));
+                  InventoryUtils.getItemCountInItemHandler(new InvWrapper(inventory),
+                    stack -> !ItemStackUtils.isEmpty(stack) && ItemStackUtils.compareItemStacksIgnoreStackSize(stack, resource.getItemStack()));
             }
 
             resource.setPlayerAmount(amountToSet);
@@ -122,9 +122,9 @@ public class WindowResourceList extends AbstractWindowSkeleton
 
         if (total > 0)
         {
-            findPaneOfTypeByID(LABEL_PROGRESS, Text.class).setText(Component.translatable("no.monopixel.slimcolonies.coremod.gui.progress.res",
-                (int) ((supplied / total) * 100) + "%",
-                moduleView.getProgress() + "%"));
+            findPaneOfTypeByID(LABEL_PROGRESS, Text.class).setText(Component.translatableEscape("no.monopixel.slimcolonies.coremod.gui.progress.res",
+              (int) ((supplied / total) * 100) + "%",
+              moduleView.getProgress() + "%"));
         }
 
         resources.sort(new BuildingBuilderResource.ResourceComparator(NOT_NEEDED, HAVE_ENOUGH, IN_DELIVERY, NEED_MORE, DONT_HAVE));
@@ -181,7 +181,7 @@ public class WindowResourceList extends AbstractWindowSkeleton
         final BuildingResourcesModuleView moduleView = builder.getModuleViewByType(BuildingResourcesModuleView.class);
 
         //Make sure we have a fresh view
-        Network.getNetwork().sendToServer(new MarkBuildingDirtyMessage(builder));
+        new MarkBuildingDirtyMessage(builder).sendToServer();
 
         findPaneOfTypeByID(LABEL_WORKERNAME, Text.class).setText(Component.literal(builder.getWorkerName()));
         if (moduleView.getWorkOrderId() > -1)
@@ -215,7 +215,7 @@ public class WindowResourceList extends AbstractWindowSkeleton
         rowPane.findPaneOfTypeByID(IN_WAREHOUSE_ICON, Image.class).setVisible(false);
         rowPane.findPaneOfTypeByID(IN_WAREHOUSE_AMOUNT, Text.class).clearText();
 
-        int resourceHashcode = resource.getItemStack().hasTag() ? resource.getItemStack().getTag().hashCode() : 0;
+        int resourceHashcode = resource.getItemStack().getComponentsPatch().hashCode();
         int warehouseAmount = warehouseSnapshot.getOrDefault(resource.getItem().getDescriptionId() + "-" + resourceHashcode, 0);
 
         if (resource.getAmountInDelivery() > 0)
@@ -269,8 +269,8 @@ public class WindowResourceList extends AbstractWindowSkeleton
         rowPane.findPaneOfTypeByID(RESOURCE_ID, Text.class).setText(Component.literal(Integer.toString(index)));
         rowPane.findPaneOfTypeByID(RESOURCE_QUANTITY_MISSING, Text.class).setText(Component.literal(Integer.toString(resource.getAmount() - resource.getAvailable())));
 
-        final ItemStack stack = new ItemStack(resource.getItem(), 1);
-        stack.setTag(resource.getItemStack().getTag());
+        final ItemStack stack = resource.getItemStack().copy();
+        stack.setCount(1);
         rowPane.findPaneOfTypeByID(RESOURCE_ICON, ItemIcon.class).setItem(stack);
     }
 

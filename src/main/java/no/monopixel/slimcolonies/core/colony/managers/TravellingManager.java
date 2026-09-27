@@ -11,11 +11,13 @@ import no.monopixel.slimcolonies.api.util.constant.ColonyConstants;
 import no.monopixel.slimcolonies.api.util.constant.NbtTagConstants;
 import no.monopixel.slimcolonies.core.util.TeleportHelper;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.NbtUtils;
 import net.minecraft.nbt.Tag;
-import net.minecraftforge.common.util.INBTSerializable;
+import net.neoforged.neoforge.common.util.INBTSerializable;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.Map;
 import java.util.Optional;
@@ -77,7 +79,7 @@ public class TravellingManager implements ITravellingManager, INBTSerializable<C
             }
             else
             {
-                spawnHutPos = colony.getBuildingManager().getTownHall().getPosition();
+                spawnHutPos = colony.getServerBuildingManager().getTownHall().getPosition();
             }
 
             Optional<AbstractEntityCitizen> optionalEntityCitizen = citizenData.getEntity();
@@ -103,14 +105,14 @@ public class TravellingManager implements ITravellingManager, INBTSerializable<C
     }
 
     @Override
-    public CompoundTag serializeNBT()
+    public CompoundTag serializeNBT(HolderLookup.@NotNull Provider provider)
     {
         final CompoundTag data = new CompoundTag();
         final ListTag output = new ListTag();
 
         for (TravelerData travelerData : travelerDataMap.values())
         {
-            CompoundTag serializeNBT = travelerData.serializeNBT();
+            CompoundTag serializeNBT = travelerData.serializeNBT(provider);
             output.add(serializeNBT);
         }
 
@@ -120,7 +122,7 @@ public class TravellingManager implements ITravellingManager, INBTSerializable<C
     }
 
     @Override
-    public void deserializeNBT(final CompoundTag nbt)
+    public void deserializeNBT(HolderLookup.@NotNull Provider provider, final CompoundTag nbt)
     {
         final ListTag travelerData = nbt.getList(NbtTagConstants.TRAVELER_DATA, Tag.TAG_COMPOUND);
         travelerDataMap.clear();
@@ -129,7 +131,7 @@ public class TravellingManager implements ITravellingManager, INBTSerializable<C
         {
             if (travelerDatum instanceof final CompoundTag compoundTag)
             {
-                TravelerData data = new TravelerData(compoundTag);
+                TravelerData data = new TravelerData(provider, compoundTag);
                 travelerDataMap.put(data.getCitizenId(), data);
             }
         }
@@ -150,9 +152,9 @@ public class TravellingManager implements ITravellingManager, INBTSerializable<C
             this.remainingTravelTime = initialTravelTime;
         }
 
-        public TravelerData(final CompoundTag tag)
+        public TravelerData(final HolderLookup.Provider provider, final CompoundTag tag)
         {
-            this.deserializeNBT(tag);
+            this.deserializeNBT(provider, tag);
         }
 
         public void onTick()
@@ -200,7 +202,7 @@ public class TravellingManager implements ITravellingManager, INBTSerializable<C
         }
 
         @Override
-        public CompoundTag serializeNBT()
+        public CompoundTag serializeNBT(HolderLookup.@NotNull Provider provider)
         {
             final CompoundTag data = new CompoundTag();
             data.putInt(NbtTagConstants.TAG_CITIZEN, citizenId);
@@ -211,10 +213,10 @@ public class TravellingManager implements ITravellingManager, INBTSerializable<C
         }
 
         @Override
-        public void deserializeNBT(final CompoundTag nbt)
+        public void deserializeNBT(HolderLookup.@NotNull Provider provider, final CompoundTag nbt)
         {
             this.citizenId = nbt.getInt(NbtTagConstants.TAG_CITIZEN);
-            this.target = NbtUtils.readBlockPos(nbt.getCompound(NbtTagConstants.TAG_TARGET));
+            this.target = NbtUtils.readBlockPos(nbt, NbtTagConstants.TAG_TARGET).orElse(BlockPos.ZERO);
             this.initialTravelTime = nbt.getInt(NbtTagConstants.TAG_INITIAL_TRAVEL_TIME);
             this.remainingTravelTime = nbt.getInt(NbtTagConstants.TAG_REMAINING_TRAVEL_TIME);
         }

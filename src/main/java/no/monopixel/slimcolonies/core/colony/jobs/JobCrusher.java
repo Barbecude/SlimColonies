@@ -1,10 +1,12 @@
 package no.monopixel.slimcolonies.core.colony.jobs;
 
+import no.monopixel.slimcolonies.core.colony.buildings.modules.BuildingModules;
 import no.monopixel.slimcolonies.core.entity.citizen.EntityCitizen;
 import net.minecraft.core.BlockPos;
 import net.minecraft.resources.ResourceLocation;
 import no.monopixel.slimcolonies.api.client.render.modeltype.ModModelTypes;
 import no.monopixel.slimcolonies.api.colony.ICitizenData;
+import no.monopixel.slimcolonies.core.colony.buildings.modules.WorkerBuildingModule;
 import no.monopixel.slimcolonies.core.entity.ai.workers.crafting.EntityAIWorkCrusher;
 import net.minecraft.sounds.SoundEvents;
 import org.jetbrains.annotations.NotNull;
@@ -24,6 +26,12 @@ public class JobCrusher extends AbstractJobCrafter<EntityAIWorkCrusher, JobCrush
         super(entity);
     }
 
+    @Override
+    public double getDiseaseModifier()
+    {
+        final int skill = getCitizen().getCitizenSkillHandler().getLevel(getCitizen().getWorkBuilding().getModule(BuildingModules.CRUSHER_WORK).getPrimarySkill());
+        return (int) ((100 - skill)/25.0);
+    }
 
     /**
      * Get the RenderBipedCitizen.Model to use when the Citizen performs this job role.
@@ -52,7 +60,6 @@ public class JobCrusher extends AbstractJobCrafter<EntityAIWorkCrusher, JobCrush
     @Override
     public void playSound(final BlockPos blockPos, final EntityCitizen worker)
     {
-        worker.queueSound(SoundEvents.SAND_BREAK, blockPos, 1, 4);
-        worker.queueSound(SoundEvents.SAND_BREAK, blockPos, 1, 1, 1.0f, 0.5f);
+        worker.queueSound(SoundEvents.GRINDSTONE_USE, blockPos, 1, 20);
     }
 }

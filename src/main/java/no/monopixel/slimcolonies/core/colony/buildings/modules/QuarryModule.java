@@ -1,9 +1,6 @@
 package no.monopixel.slimcolonies.core.colony.buildings.modules;
 
 import com.google.common.collect.ImmutableList;
-import net.minecraft.core.BlockPos;
-import net.minecraft.nbt.CompoundTag;
-import net.minecraft.util.Tuple;
 import no.monopixel.slimcolonies.api.colony.ICitizenData;
 import no.monopixel.slimcolonies.api.colony.IColony;
 import no.monopixel.slimcolonies.api.colony.buildings.IBuilding;
@@ -16,6 +13,10 @@ import no.monopixel.slimcolonies.core.colony.buildings.workerbuildings.BuildingM
 import no.monopixel.slimcolonies.core.colony.jobs.JobQuarrier;
 import no.monopixel.slimcolonies.core.colony.requestsystem.resolvers.StationRequestResolver;
 import no.monopixel.slimcolonies.core.util.BuildingUtils;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.util.Tuple;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -27,11 +28,7 @@ import static no.monopixel.slimcolonies.api.util.constant.NbtTagConstants.*;
 /**
  * The main data module for the quarry.
  */
-public class QuarryModule extends AbstractAssignedCitizenModule implements IAssignsJob, IBuildingEventsModule,
-    ITickingModule,
-    IPersistentModule,
-    ICreatesResolversModule,
-    IAltersBuildingFootprint
+public class QuarryModule extends AbstractAssignedCitizenModule implements IAssignsJob, IBuildingEventsModule, ITickingModule, IPersistentModule, ICreatesResolversModule, IAltersBuildingFootprint
 {
     /**
      * If the quarry was finished.
@@ -45,7 +42,6 @@ public class QuarryModule extends AbstractAssignedCitizenModule implements IAssi
 
     /**
      * Create a new quarry module.
-     *
      * @param height the height of the quarry.
      */
     public QuarryModule(final int height)
@@ -78,9 +74,9 @@ public class QuarryModule extends AbstractAssignedCitizenModule implements IAssi
     }
 
     @Override
-    public void deserializeNBT(CompoundTag compound)
+    public void deserializeNBT(@NotNull final HolderLookup.Provider provider, CompoundTag compound)
     {
-        super.deserializeNBT(compound);
+        super.deserializeNBT(provider, compound);
 
         if (compound.contains(getModuleSerializationIdentifier()))
         {
@@ -100,9 +96,9 @@ public class QuarryModule extends AbstractAssignedCitizenModule implements IAssi
     }
 
     @Override
-    public void serializeNBT(final CompoundTag compound)
+    public void serializeNBT(@NotNull final HolderLookup.Provider provider, CompoundTag compound)
     {
-        super.serializeNBT(compound);
+        super.serializeNBT(provider, compound);
 
         if (!assignedCitizen.isEmpty())
         {
@@ -151,7 +147,6 @@ public class QuarryModule extends AbstractAssignedCitizenModule implements IAssi
 
     /**
      * Check if the quarry was completed already.
-     *
      * @return true if so.
      */
     public boolean isFinished()

@@ -2,24 +2,24 @@ package no.monopixel.slimcolonies.core.colony.buildings.workerbuildings;
 
 import no.monopixel.slimcolonies.api.colony.IColony;
 import no.monopixel.slimcolonies.api.util.MathUtils;
+import no.monopixel.slimcolonies.api.util.NBTUtils;
 import no.monopixel.slimcolonies.core.colony.buildings.AbstractBuilding;
-import no.monopixel.slimcolonies.core.datalistener.StudyItemListener;
+import no.monopixel.slimcolonies.core.datalistener.model.StudyItem;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
-import net.minecraft.nbt.NbtUtils;
 import net.minecraft.nbt.Tag;
 import net.minecraft.util.Tuple;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
-import net.minecraftforge.common.Tags;
+import net.neoforged.neoforge.common.Tags;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
 import java.util.List;
 
 import static no.monopixel.slimcolonies.api.util.constant.NbtTagConstants.TAG_BOOKCASES;
-import static no.monopixel.slimcolonies.api.util.constant.NbtTagConstants.TAG_POS;
 
 /**
  * Creates a new building for the Library.
@@ -50,7 +50,7 @@ public class BuildingLibrary extends AbstractBuilding
     public BuildingLibrary(final IColony c, final BlockPos l)
     {
         super(c, l);
-        keepX.put(StudyItemListener::isStudyItem, new Tuple<>(64, true));
+        keepX.put(StudyItem::isStudyItem, new Tuple<>(64, true));
     }
 
     @NotNull
@@ -61,26 +61,24 @@ public class BuildingLibrary extends AbstractBuilding
     }
 
     @Override
-    public void deserializeNBT(final CompoundTag compound)
+    public void deserializeNBT(@NotNull final HolderLookup.Provider provider, final CompoundTag compound)
     {
-        super.deserializeNBT(compound);
-        final ListTag furnaceTagList = compound.getList(TAG_BOOKCASES, Tag.TAG_COMPOUND);
+        super.deserializeNBT(provider, compound);
+        final ListTag furnaceTagList = compound.getList(TAG_BOOKCASES, Tag.TAG_INT_ARRAY);
         for (int i = 0; i < furnaceTagList.size(); ++i)
         {
-            bookCases.add(NbtUtils.readBlockPos(furnaceTagList.getCompound(i).getCompound(TAG_POS)));
+            bookCases.add(NBTUtils.readBlockPos(furnaceTagList.get(i)));
         }
     }
 
     @Override
-    public CompoundTag serializeNBT()
+    public CompoundTag serializeNBT(@NotNull final HolderLookup.Provider provider)
     {
-        final CompoundTag compound = super.serializeNBT();
+        final CompoundTag compound = super.serializeNBT(provider);
         @NotNull final ListTag bookcaseTagList = new ListTag();
         for (@NotNull final BlockPos entry : bookCases)
         {
-            @NotNull final CompoundTag bookCompound = new CompoundTag();
-            bookCompound.put(TAG_POS, NbtUtils.writeBlockPos(entry));
-            bookcaseTagList.add(bookCompound);
+            bookcaseTagList.add(NBTUtils.writeBlockPos(entry));
         }
         compound.put(TAG_BOOKCASES, bookcaseTagList);
 

@@ -12,7 +12,7 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.monster.Enemy;
 import net.minecraft.world.phys.AABB;
-import net.minecraftforge.common.util.FakePlayer;
+import net.neoforged.neoforge.common.util.FakePlayer;
 
 import java.util.List;
 
@@ -139,7 +139,7 @@ public class TargetAI<T extends Mob & IThreatTableEntity> implements IStateAI
             return true;
         }
 
-        final List<LivingEntity> entities = user.level.getEntitiesOfClass(LivingEntity.class, getSearchArea());
+        final List<LivingEntity> entities = user.level().getEntitiesOfClass(LivingEntity.class, getSearchArea());
 
         if (entities.isEmpty())
         {

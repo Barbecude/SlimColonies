@@ -11,15 +11,17 @@ import no.monopixel.slimcolonies.api.entity.ai.JobStatus;
 import no.monopixel.slimcolonies.api.entity.citizen.AbstractEntityCitizen;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.item.ItemStack;
-import net.minecraftforge.common.util.INBTSerializable;
+import net.neoforged.neoforge.common.util.INBTSerializable;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Set;
 
+import static no.monopixel.slimcolonies.api.util.constant.HappinessConstants.IDLE_AT_JOB_COMPLAINS_DAYS;
+import static no.monopixel.slimcolonies.api.util.constant.HappinessConstants.IDLE_AT_JOB_DEMANDS_DAYS;
 
 public interface IJob<AI extends ITickingStateAI> extends INBTSerializable<CompoundTag>
 {
@@ -40,7 +42,7 @@ public interface IJob<AI extends ITickingStateAI> extends INBTSerializable<Compo
     /**
      * Get the Colony that this Job is associated with (shortcut for getAssignedCitizen().getColonyByPosFromWorld()).
      *
-     * @return {@link IColony} of the citizen.
+     * @return {@link no.monopixel.slimcolonies.api.colony.IColony} of the citizen.
      */
     IColony getColony();
 
@@ -59,11 +61,12 @@ public interface IJob<AI extends ITickingStateAI> extends INBTSerializable<Compo
     /**
      * Generate your AI class to register.
      * <p>
+     * Suppressing Sonar Rule squid:S1452 This rule does "Generic wildcard types should not be used in return parameters" But in this case the rule does not apply because We are
      * fine with all AbstractJob implementations and need generics only for java
      *
      * @return your personal AI instance.
      */
-    
+    @SuppressWarnings("squid:S1452")
     AI generateAI();
 
     /**
@@ -191,6 +194,12 @@ public interface IJob<AI extends ITickingStateAI> extends INBTSerializable<Compo
      */
     boolean allowsAvoidance();
 
+    /**
+     * Disease modifier of the job.
+     *
+     * @return the modifier of the job.
+     */
+    double getDiseaseModifier();
 
     /**
      * When job removed (death of citizen or job change).
@@ -229,7 +238,7 @@ public interface IJob<AI extends ITickingStateAI> extends INBTSerializable<Compo
      * Serialize the job to a buffer.
      * @param buffer the buffer to serialize it to.
      */
-    void serializeToView(final FriendlyByteBuf buffer);
+    void serializeToView(final RegistryFriendlyByteBuf buffer);
 
     /**
      * Get the time limit in seconds after which the job considers itself inactive.
@@ -249,11 +258,11 @@ public interface IJob<AI extends ITickingStateAI> extends INBTSerializable<Compo
     {
         if(isDemand)
         {
-            return 14; // Default idle days for demands
+            return IDLE_AT_JOB_DEMANDS_DAYS;
         }
         else
         {
-            return 7; // Default idle days for complains
+            return IDLE_AT_JOB_COMPLAINS_DAYS;
         }
     }
 
@@ -306,4 +315,13 @@ public interface IJob<AI extends ITickingStateAI> extends INBTSerializable<Compo
      * @return
      */
     boolean assignTo(IAssignsJob module);
+
+    /**
+     * Job saturation factor.
+     * @return increase in saturation consumption based on job.
+     */
+    default double getSaturationFactor()
+    {
+        return 1.0;
+    }
 }

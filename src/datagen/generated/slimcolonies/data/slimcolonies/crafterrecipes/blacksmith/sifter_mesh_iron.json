@@ -3,11 +3,13 @@
   "crafter": "blacksmith_crafting",
   "inputs": [
     {
-      "item": "minecraft:iron_ingot"
+      "id": "minecraft:iron_ingot"
     }
   ],
   "intermediate": "minecraft:air",
   "research-id": "slimcolonies:effects/sifterironunlock",
-  "result": "slimcolonies:sifter_mesh_iron",
+  "result": {
+    "id": "slimcolonies:sifter_mesh_iron"
+  },
   "show-tooltip": true
 }

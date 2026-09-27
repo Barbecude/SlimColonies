@@ -11,6 +11,7 @@ import no.monopixel.slimcolonies.api.util.StatsUtil;
 import no.monopixel.slimcolonies.api.util.Tuple;
 import no.monopixel.slimcolonies.api.util.WorldUtil;
 import no.monopixel.slimcolonies.api.util.constant.Constants;
+import no.monopixel.slimcolonies.core.colony.buildings.modules.WorkerBuildingModule;
 import no.monopixel.slimcolonies.core.colony.buildings.workerbuildings.BuildingSchool;
 import no.monopixel.slimcolonies.core.colony.jobs.JobPupil;
 import no.monopixel.slimcolonies.core.colony.jobs.JobTeacher;
@@ -46,7 +47,7 @@ public class EntityAIWorkTeacher extends AbstractEntityAIInteract<JobTeacher, Bu
      * Teaching icon
      */
     private final static VisibleCitizenStatus TEACHING_ICON =
-        new VisibleCitizenStatus(ResourceLocation.fromNamespaceAndPath(Constants.MOD_ID, "textures/icons/work/teacher_student.png"), "no.monopixel.slimcolonies.gui.visiblestatus.teacher_student");
+      new VisibleCitizenStatus(new ResourceLocation(Constants.MOD_ID, "textures/icons/work/teacher_student.png"), "no.monopixel.slimcolonies.gui.visiblestatus.teacher_student");
 
     /**
      * The next pupil to teach.
@@ -72,10 +73,10 @@ public class EntityAIWorkTeacher extends AbstractEntityAIInteract<JobTeacher, Bu
     {
         super(job);
         super.registerTargets(
-            new AITarget(IDLE, START_WORKING, 1),
-            new AITarget(START_WORKING, this::startWorkingAtOwnBuilding, TICKS_SECOND),
-            new AITarget(DECIDE, this::decide, TICKS_SECOND),
-            new AITarget(TEACH, this::teach, TICKS_SECOND)
+          new AITarget(IDLE, START_WORKING, 1),
+          new AITarget(START_WORKING, this::startWorkingAtOwnBuilding, TICKS_SECOND),
+          new AITarget(DECIDE, this::decide, TICKS_SECOND),
+          new AITarget(TEACH, this::teach, TICKS_SECOND)
         );
         worker.setCanPickUpLoot(true);
     }
@@ -101,9 +102,9 @@ public class EntityAIWorkTeacher extends AbstractEntityAIInteract<JobTeacher, Bu
         }
 
         final List<? extends AbstractEntityCitizen> pupils = WorldUtil.getEntitiesWithinBuilding(world,
-            AbstractEntityCitizen.class,
-            building,
-            cit -> cit.isBaby() && cit.vehicle != null && cit.getCitizenJobHandler().getColonyJob() instanceof JobPupil);
+          AbstractEntityCitizen.class,
+          building,
+          cit -> cit.isBaby() && cit.getVehicle() != null && cit.getCitizenJobHandler().getColonyJob() instanceof JobPupil);
         if (pupils.size() > 0)
         {
             pupilToTeach = pupils.get(worker.getRandom().nextInt(pupils.size()));
@@ -115,7 +116,7 @@ public class EntityAIWorkTeacher extends AbstractEntityAIInteract<JobTeacher, Bu
 
     private IAIState teach()
     {
-        if (pupilToTeach == null || pupilToTeach.vehicle == null)
+        if (pupilToTeach == null || pupilToTeach.getVehicle() == null)
         {
             return START_WORKING;
         }
@@ -126,7 +127,7 @@ public class EntityAIWorkTeacher extends AbstractEntityAIInteract<JobTeacher, Bu
             return getState();
         }
 
-        if (maxSittingTicks == 0 || worker.vehicle == null)
+        if (maxSittingTicks == 0 || worker.getVehicle() == null)
         {
             // Sit for 2-100 seconds, modified by Skill.Mana
             final int jobModifier = (int) (100 / Math.max(1, getSecondarySkillLevel() / 2.0));
@@ -141,7 +142,7 @@ public class EntityAIWorkTeacher extends AbstractEntityAIInteract<JobTeacher, Bu
             return getState();
         }
 
-        if (worker.vehicle != null)
+        if (worker.getVehicle() != null)
         {
             worker.stopRiding();
             worker.setPos(worker.getX(), worker.getY() + 1, worker.getZ());
@@ -152,9 +153,9 @@ public class EntityAIWorkTeacher extends AbstractEntityAIInteract<JobTeacher, Bu
         if (slot != -1 && pupilSlot == -1)
         {
             InventoryUtils.transferXOfFirstSlotInItemHandlerWithIntoNextFreeSlotInItemHandler(
-                worker.getInventoryCitizen(),
-                PAPER,
-                1, pupilToTeach.getInventoryCitizen()
+              worker.getInventoryCitizen(),
+              PAPER,
+              1, pupilToTeach.getInventoryCitizen()
             );
         }
 
@@ -166,6 +167,7 @@ public class EntityAIWorkTeacher extends AbstractEntityAIInteract<JobTeacher, Bu
         teachPupil(pupilToTeach, xp);
 
         worker.getCitizenExperienceHandler().addExperience(0.1);
+        worker.decreaseSaturationForContinuousAction();
         incrementActionsDone();
 
         maxSittingTicks = 0;
@@ -176,11 +178,10 @@ public class EntityAIWorkTeacher extends AbstractEntityAIInteract<JobTeacher, Bu
     /**
      * Teach the pupil given the xp gained during the teach action.
      * Tracks primary and secondary skill levels gained in the building's stats.
-     *
      * @param pupil the pupil to teach.
-     * @param xp    the experience points gained during the teach action.
+     * @param xp the experience points gained during the teach action.
      */
-    protected void teachPupil(final AbstractEntityCitizen pupil, double xp)
+    protected void teachPupil(final AbstractEntityCitizen pupil, double xp) 
     {
         int priorIntLevel = pupil.getCitizenData().getCitizenSkillHandler().getLevel(Skill.Intelligence);
 
@@ -208,7 +209,7 @@ public class EntityAIWorkTeacher extends AbstractEntityAIInteract<JobTeacher, Bu
     private void requestPaper()
     {
         if (!building.hasWorkerOpenRequestsFiltered(worker.getCitizenData().getId(),
-            q -> q.getRequest() instanceof Stack && ((Stack) q.getRequest()).getStack().getItem() == Items.PAPER))
+          q -> q.getRequest() instanceof Stack && ((Stack) q.getRequest()).getStack().getItem() == Items.PAPER))
         {
             worker.getCitizenData().createRequestAsync(new Stack(new ItemStack(Items.PAPER, PAPER_TO_REQUEST)));
         }

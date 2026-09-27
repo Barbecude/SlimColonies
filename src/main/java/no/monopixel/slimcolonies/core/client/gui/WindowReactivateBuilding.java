@@ -5,12 +5,12 @@ import no.monopixel.slimcolonies.api.colony.buildings.ModBuildings;
 import no.monopixel.slimcolonies.api.colony.buildings.registry.BuildingEntry;
 import no.monopixel.slimcolonies.api.colony.buildings.registry.IBuildingRegistry;
 import no.monopixel.slimcolonies.api.util.constant.Constants;
-import no.monopixel.slimcolonies.core.Network;
 import no.monopixel.slimcolonies.core.network.messages.server.ReactivateBuildingMessage;
 import no.monopixel.slimcolonies.core.tileentities.TileEntityColonyBuilding;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
 import org.jetbrains.annotations.NotNull;
 
 import static no.monopixel.slimcolonies.api.util.constant.WindowConstants.*;
@@ -28,12 +28,11 @@ public class WindowReactivateBuilding extends AbstractWindowSkeleton
 
     /**
      * Creates a new instance of this window.
-     *
      * @param pos the position of the building.
      */
     public WindowReactivateBuilding(@NotNull final BlockPos pos)
     {
-        super(Constants.MOD_ID + REACTIVATE_BUILDING_SOURCE_SUFFIX);
+        super(new ResourceLocation(Constants.MOD_ID, "gui/windowreactivatebuilding.xml"));
         this.pos = pos;
         registerButton(BUTTON_REACTIVATE, this::reactivateClicked);
         registerButton(BUTTON_CANCEL, this::cancelClicked);
@@ -41,16 +40,14 @@ public class WindowReactivateBuilding extends AbstractWindowSkeleton
 
         if (Minecraft.getInstance().level.getBlockEntity(pos) instanceof TileEntityColonyBuilding tileEntityColonyBuilding)
         {
-            final BuildingEntry buildingEntry = IBuildingRegistry.getInstance().getValue(tileEntityColonyBuilding.registryName);
+            final BuildingEntry buildingEntry = IBuildingRegistry.getInstance().get(tileEntityColonyBuilding.getBuildingName());
             if (buildingEntry == ModBuildings.home.get() || buildingEntry == ModBuildings.tavern.get())
             {
-                findPaneOfTypeByID("text", Text.class).setText(Component.translatable("no.monopixel.slimcolonies.core.gui.reactivate.message.living",
-                    Component.translatable(buildingEntry.getTranslationKey())));
+                findPaneOfTypeByID("text", Text.class).setText(Component.translatable("no.monopixel.slimcolonies.core.gui.reactivate.message.living", Component.translatable(buildingEntry.getTranslationKey())));
             }
             else if (buildingEntry != null)
             {
-                findPaneOfTypeByID("text", Text.class).setText(Component.translatable("no.monopixel.slimcolonies.core.gui.reactivate.message.working",
-                    Component.translatable(buildingEntry.getTranslationKey())));
+                findPaneOfTypeByID("text", Text.class).setText(Component.translatable("no.monopixel.slimcolonies.core.gui.reactivate.message.working", Component.translatable(buildingEntry.getTranslationKey())));
             }
         }
     }
@@ -60,9 +57,10 @@ public class WindowReactivateBuilding extends AbstractWindowSkeleton
      */
     private void reactivateClicked()
     {
-        Network.getNetwork().sendToServer(new ReactivateBuildingMessage(pos));
+        new ReactivateBuildingMessage(pos).sendToServer();
         close();
     }
+
 
     /**
      * Cancel reactivation.

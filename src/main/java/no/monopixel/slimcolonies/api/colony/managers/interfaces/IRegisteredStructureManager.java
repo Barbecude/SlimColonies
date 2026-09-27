@@ -1,14 +1,15 @@
 package no.monopixel.slimcolonies.api.colony.managers.interfaces;
 
 import no.monopixel.slimcolonies.api.colony.IColony;
+import no.monopixel.slimcolonies.api.colony.buildingextensions.registry.BuildingExtensionRegistries;
 import no.monopixel.slimcolonies.api.colony.buildings.IBuilding;
 import no.monopixel.slimcolonies.api.colony.buildings.IMysticalSite;
 import no.monopixel.slimcolonies.api.colony.buildings.workerbuildings.ITownHall;
 import no.monopixel.slimcolonies.api.colony.buildings.workerbuildings.IWareHouse;
 import no.monopixel.slimcolonies.api.colony.buildingextensions.IBuildingExtension;
-import no.monopixel.slimcolonies.api.entity.citizen.AbstractEntityCitizen;
 import no.monopixel.slimcolonies.api.tileentities.AbstractTileEntityColonyBuilding;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;
@@ -28,21 +29,21 @@ import java.util.function.Predicate;
  * Interface for the managers for registered structures.
  * Buildings + Extensions, Decorations, etc.
  */
-public interface IRegisteredStructureManager
+public interface IRegisteredStructureManager extends ICommonRegisteredStructureManager<IBuilding, ITownHall>
 {
     /**
      * Read the buildings from NBT.
      *
      * @param compound the compound.
      */
-    void read(@NotNull final CompoundTag compound);
+    void read(@NotNull final HolderLookup.Provider provider, @NotNull final CompoundTag compound);
 
     /**
      * Write the buildings to NBT.
      *
      * @param compound the compound.
      */
-    void write(@NotNull final CompoundTag compound);
+    void write(@NotNull final HolderLookup.Provider provider, @NotNull final CompoundTag compound);
 
     /**
      * Clear the isDirty of the buildings.
@@ -72,23 +73,25 @@ public interface IRegisteredStructureManager
     void cleanUpBuildings(final IColony colony);
 
     /**
-     * Get a certain building.
+     * Get the leisure site positions.
      *
-     * @param pos the id of the building.
-     * @return the building.
+     * @return the list.
      */
-    IBuilding getBuilding(BlockPos pos);
-
+    List<BlockPos> getLeisureSites();
 
     /**
-     * Get the first building matching the conditions.
+     * Register a new leisure site.
      *
-     * @param predicate the predicate matching the building.
-     * @return the building or null.
+     * @param pos the position of it.
      */
-    @Nullable
-    IBuilding getFirstBuildingMatching(final Predicate<IBuilding> predicate);
+    void addLeisureSite(BlockPos pos);
 
+    /**
+     * Remove a leisure site.
+     *
+     * @param pos the position of it.
+     */
+    void removeLeisureSite(BlockPos pos);
 
     /**
      * Get the closest warehouse relative to a position.
@@ -100,21 +103,6 @@ public interface IRegisteredStructureManager
     IWareHouse getClosestWarehouseInColony(BlockPos pos);
 
     /**
-     * Returns a map with all buildings within the colony. Key is ID (Coordinates), value is building object.
-     *
-     * @return Map with ID (coordinates) as key, and buildings as value.
-     */
-    @NotNull
-    Map<BlockPos, IBuilding> getBuildings();
-
-    /**
-     * Get the townhall from the colony.
-     *
-     * @return the townhall building.
-     */
-    ITownHall getTownHall();
-
-    /**
      * Get the maximum level among built mystical sites
      *
      * @return the max level among all mystical sites or zero if no mystical site built
@@ -122,35 +110,11 @@ public interface IRegisteredStructureManager
     int getMysticalSiteMaxBuildingLevel();
 
     /**
-     * Check if the colony has a placed warehouse.
-     *
-     * @return true if so.
-     */
-    boolean hasWarehouse();
-
-    /**
      * Check if the colony has a placed mystical site.
      *
      * @return true if so.
      */
     boolean hasMysticalSite();
-
-    /**
-     * Check if the colony has a placed townhall.
-     *
-     * @return true if so.
-     */
-    boolean hasTownHall();
-
-    /**
-     * Get building in Colony by ID. The building will be casted to the provided type.
-     *
-     * @param buildingId ID (coordinates) of the building to get.
-     * @param type       Type of building.
-     * @param <B>        Building class.
-     * @return the building with the specified id.
-     */
-    @Nullable <B extends IBuilding> B getBuilding(final BlockPos buildingId, @NotNull final Class<B> type);
 
     /**
      * Remove a IBuilding from the Colony (when it is destroyed).
@@ -181,52 +145,6 @@ public interface IRegisteredStructureManager
     IBuilding addNewBuilding(@NotNull final AbstractTileEntityColonyBuilding tileEntity, final Level world);
 
     /**
-     * Searches for the closest building to a given citizen.
-     *
-     * @param citizen  the citizen.
-     * @param building the type of building.
-     * @return the Position of it.
-     */
-    BlockPos getBestBuilding(final AbstractEntityCitizen citizen, final Class<? extends IBuilding> building);
-
-    /**
-     * Searches for the closest building to a given citizen, with an additional filter predicate.
-     *
-     * @param citizen  the citizen.
-     * @param building the type of building.
-     * @param filter   the filter to match a building against to further specialize the needs.
-     * @return the Position of it.
-     */
-    <T extends IBuilding> BlockPos getBestBuilding(final AbstractEntityCitizen citizen, final Class<T> building, @NotNull final Predicate<T> filter);
-
-    /**
-     * Searches for the closest building to a given position.
-     *
-     * @param pos      the pos.
-     * @param building the building class type.
-     * @return the Position of it.
-     */
-    BlockPos getBestBuilding(final BlockPos pos, final Class<? extends IBuilding> building);
-
-    /**
-     * Searches for the closest building to a given position, with an additional filter predicate.
-     *
-     * @param pos      the pos.
-     * @param building the building class type.
-     * @param filter   the filter to match a building against to further specialize the needs.
-     * @return the Position of it.
-     */
-    <T extends IBuilding> BlockPos getBestBuilding(final BlockPos pos, final Class<T> building, @NotNull final Predicate<T> filter);
-
-    /**
-     * Returns a random building in the colony, matching the filter predicate.
-     *
-     * @param filterPredicate the filter to apply.
-     * @return the random building. Returns null if no building matching the predicate was found.
-     */
-    BlockPos getRandomBuilding(Predicate<IBuilding> filterPredicate);
-
-    /**
      * Finds whether there is a guard building close to the given building
      *
      * @param building the building to check for.
@@ -234,6 +152,13 @@ public interface IRegisteredStructureManager
      */
     boolean hasGuardBuildingNear(IBuilding building);
 
+    /**
+     * Event once a guard building changed at a certain level.
+     *
+     * @param guardBuilding the guard building.
+     * @param newLevel      the level of it.
+     */
+    void guardBuildingChangedAt(IBuilding guardBuilding, int newLevel);
 
     /**
      * Set the townhall building.
@@ -303,14 +228,12 @@ public interface IRegisteredStructureManager
      */
     void onBuildingUpgradeComplete(@Nullable IBuilding building, int level);
 
-
     /**
-     * Get all the building extensions.
+     * Get a random leisure site to go to.
      *
-     * @param matcher the building extension matcher predicate.
-     * @return an unmodifiable collection of all building extensions.
+     * @return the position of it.
      */
-    @NotNull List<IBuildingExtension> getBuildingExtensions(Predicate<IBuildingExtension> matcher);
+    BlockPos getRandomLeisureSite();
 
     /**
      * Get a specific building extension on the given location.
@@ -342,4 +265,23 @@ public interface IRegisteredStructureManager
      * @return the building extension or null.
      */
     @Nullable IBuildingExtension getMatchingBuildingExtension(IBuildingExtension.ExtensionId extensionId);
+
+    /**
+     * Add a building extension if it's missing.
+     * @param buildingExtensionEntry the entry to create the extension from.
+     * @param pos the pos it's at.
+     */
+    void addBuildingExtensionIfMissing(BuildingExtensionRegistries.BuildingExtensionEntry buildingExtensionEntry, BlockPos pos, final Player player);
+
+    /**
+     * Indicate to building manager that prestige just has been calculated.
+     * @param building the building it happened for.
+     */
+    void clearPendingPrestigeCalc(IBuilding building);
+
+    /**
+     * Get the colony prestige.
+     * @return the prestige.
+     */
+    int getColonyPrestige();
 }

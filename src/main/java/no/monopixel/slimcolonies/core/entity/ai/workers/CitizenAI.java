@@ -1,8 +1,6 @@
 package no.monopixel.slimcolonies.core.entity.ai.workers;
 
-import net.minecraft.core.BlockPos;
-import net.minecraft.network.chat.Component;
-import net.minecraft.world.entity.monster.Monster;
+import no.monopixel.slimcolonies.api.colony.buildings.ModBuildings;
 import no.monopixel.slimcolonies.api.colony.interactionhandling.ChatPriority;
 import no.monopixel.slimcolonies.api.colony.jobs.ModJobs;
 import no.monopixel.slimcolonies.api.entity.ai.IStateAI;
@@ -13,25 +11,33 @@ import no.monopixel.slimcolonies.api.entity.ai.statemachine.states.AIBlockingEve
 import no.monopixel.slimcolonies.api.entity.ai.statemachine.states.CitizenAIState;
 import no.monopixel.slimcolonies.api.entity.ai.statemachine.states.IState;
 import no.monopixel.slimcolonies.api.entity.citizen.VisibleCitizenStatus;
+import no.monopixel.slimcolonies.api.entity.citizen.citizenhandlers.ICitizenColonyHandler;
 import no.monopixel.slimcolonies.api.util.CompatibilityUtils;
 import no.monopixel.slimcolonies.api.util.MathUtils;
 import no.monopixel.slimcolonies.api.util.WorldUtil;
 import no.monopixel.slimcolonies.api.util.constant.CitizenConstants;
+import no.monopixel.slimcolonies.core.MineColonies;
+import no.monopixel.slimcolonies.core.colony.buildings.modules.WorkerBuildingModule;
 import no.monopixel.slimcolonies.core.colony.interactionhandling.StandardInteraction;
 import no.monopixel.slimcolonies.core.colony.jobs.AbstractJobGuard;
 import no.monopixel.slimcolonies.core.colony.jobs.JobPupil;
 import no.monopixel.slimcolonies.core.entity.ai.minimal.*;
 import no.monopixel.slimcolonies.core.entity.citizen.EntityCitizen;
+import net.minecraft.core.BlockPos;
+import net.minecraft.network.chat.Component;
+import net.minecraft.world.entity.monster.Monster;
 
 import java.util.ArrayList;
 import java.util.List;
 
 import static no.monopixel.slimcolonies.api.entity.citizen.AbstractEntityCitizen.ENTITY_AI_TICKRATE;
 import static no.monopixel.slimcolonies.api.entity.citizen.VisibleCitizenStatus.*;
+import static no.monopixel.slimcolonies.api.research.util.ResearchConstants.WORKING_IN_RAIN;
 import static no.monopixel.slimcolonies.api.util.constant.CitizenConstants.*;
 import static no.monopixel.slimcolonies.api.util.constant.Constants.DEFAULT_SPEED;
+import static no.monopixel.slimcolonies.api.util.constant.TranslationConstants.*;
 import static no.monopixel.slimcolonies.core.entity.ai.minimal.EntityAIEatTask.RESTAURANT_LIMIT;
-import static no.monopixel.slimcolonies.core.entity.citizen.citizenhandlers.CitizenInjuryHandler.SEEK_DOCTOR_HEALTH;
+import static no.monopixel.slimcolonies.core.entity.citizen.citizenhandlers.CitizenDiseaseHandler.SEEK_DOCTOR_HEALTH;
 
 /**
  * High level AI for citizens, which switches between all the different AI states like sleeping,working,fleeing etc
@@ -63,8 +69,9 @@ public class CitizenAI implements IStateAI
         minimalAI.add(new EntityAICitizenAvoidEntity(citizen, Monster.class, (float) DISTANCE_OF_ENTITY_AVOID, LATER_RUN_SPEED_AVOID, INITIAL_RUN_SPEED_AVOID));
         minimalAI.add(new EntityAIEatTask(citizen));
         minimalAI.add(new EntityAICitizenWander(citizen, DEFAULT_SPEED));
-        minimalAI.add(new EntityAIInjuredTask(citizen));
+        minimalAI.add(new EntityAISickTask(citizen));
         minimalAI.add(new EntityAISleep(citizen));
+        minimalAI.add(new EntityAIMournCitizen(citizen, DEFAULT_SPEED));
     }
 
     /**
@@ -108,6 +115,10 @@ public class CitizenAI implements IStateAI
         IState next = calculateNextState();
         if (next == null || next == lastState)
         {
+            if (citizen.getCitizenAI().getState() == CitizenAIState.IDLE && next != CitizenAIState.IDLE)
+            {
+                return next;
+            }
             return null;
         }
 
@@ -131,7 +142,7 @@ public class CitizenAI implements IStateAI
             }
 
             // Sick
-            if (citizen.getCitizenData().getCitizenInjuryHandler().isHurt() && guardJob.canAIBeInterrupted())
+            if (citizen.getCitizenData().getCitizenDiseaseHandler().isSick() && guardJob.canAIBeInterrupted())
             {
                 citizen.getCitizenData().setVisibleStatus(VisibleCitizenStatus.SICK);
                 return CitizenAIState.SICK;
@@ -141,12 +152,19 @@ public class CitizenAI implements IStateAI
         }
 
         // Sick at hospital
-        if (citizen.getCitizenData().getCitizenInjuryHandler().isHurt() && citizen.getCitizenData().getCitizenInjuryHandler().sleepsAtHospital())
+        if (citizen.getCitizenData().getCitizenDiseaseHandler().isSick() && citizen.getCitizenData().getCitizenDiseaseHandler().sleepsAtHospital())
         {
             citizen.getCitizenData().setVisibleStatus(VisibleCitizenStatus.SICK);
             return CitizenAIState.SICK;
         }
 
+        // Raiding
+        if (citizen.getCitizenColonyHandler().getColonyOrRegister().getRaiderManager().isRaided())
+        {
+            citizen.getCitizenData().triggerInteraction(new StandardInteraction(Component.translatableEscape(COM_MINECOLONIES_COREMOD_ENTITY_CITIZEN_RAID), ChatPriority.IMPORTANT));
+            citizen.setVisibleStatusIfNone(RAIDED);
+            return CitizenAIState.SLEEP;
+        }
 
         // Sleeping
         if (!WorldUtil.isPastTime(CompatibilityUtils.getWorldFromCitizen(citizen), NIGHT - 2000))
@@ -160,6 +178,7 @@ public class CitizenAI implements IStateAI
 
             if (citizen.getCitizenSleepHandler().shouldGoSleep())
             {
+                citizen.getCitizenData().onGoSleep();
                 return CitizenAIState.SLEEP;
             }
         }
@@ -167,7 +186,7 @@ public class CitizenAI implements IStateAI
         {
             if (citizen.getCitizenSleepHandler().isAsleep())
             {
-                if (citizen.getCitizenData().getCitizenInjuryHandler().isHurt())
+                if (citizen.getCitizenData().getCitizenDiseaseHandler().isSick())
                 {
                     final BlockPos bedPos = citizen.getCitizenSleepHandler().getBedLocation();
                     if (bedPos == null || bedPos.distSqr(citizen.blockPosition()) > 5)
@@ -183,7 +202,7 @@ public class CitizenAI implements IStateAI
         }
 
         // Sick
-        if (citizen.getCitizenData().getCitizenInjuryHandler().isHurt() || citizen.getCitizenData().getCitizenInjuryHandler().isHurt())
+        if (citizen.getCitizenData().getCitizenDiseaseHandler().isSick() || citizen.getCitizenData().getCitizenDiseaseHandler().isHurt())
         {
             citizen.getCitizenData().setVisibleStatus(VisibleCitizenStatus.SICK);
             return CitizenAIState.SICK;
@@ -195,15 +214,44 @@ public class CitizenAI implements IStateAI
             return CitizenAIState.EATING;
         }
 
+        // Mourning
+        if (citizen.getCitizenData().getCitizenMournHandler().isMourning())
+        {
+            if (lastState != CitizenAIState.MOURN)
+            {
+                citizen.getCitizenData().triggerInteraction(new StandardInteraction(Component.translatableEscape(COM_MINECOLONIES_COREMOD_ENTITY_CITIZEN_MOURNING,
+                  citizen.getCitizenData().getCitizenMournHandler().getDeceasedCitizens().iterator().next()),
+                  Component.translatableEscape(COM_MINECOLONIES_COREMOD_ENTITY_CITIZEN_MOURNING),
+                  ChatPriority.IMPORTANT));
+
+                citizen.setVisibleStatusIfNone(MOURNING);
+            }
+            return CitizenAIState.MOURN;
+        }
+
+        // Raining
+        if (CompatibilityUtils.getWorldFromCitizen(citizen).isRaining() && !shouldWorkWhileRaining() && !WorldUtil.isNetherType(citizen.level()))
+        {
+            citizen.setVisibleStatusIfNone(BAD_WEATHER);
+            if (!citizen.getCitizenData().getColony().getRaiderManager().isRaided()
+                  && !citizen.getCitizenData().getCitizenMournHandler().isMourning())
+            {
+                citizen.getCitizenData().triggerInteraction(new StandardInteraction(Component.translatableEscape(COM_MINECOLONIES_COREMOD_ENTITY_CITIZEN_RAINING), ChatPriority.HIDDEN));
+            }
+            return CitizenAIState.IDLE;
+        }
+
         // Work
-        if (citizen.isBaby() && citizen.getCitizenJobHandler().getColonyJob() instanceof JobPupil && citizen.level.getDayTime() % 24000 > NOON)
+        if (citizen.isBaby() && citizen.getCitizenJobHandler().getColonyJob() instanceof JobPupil && citizen.level().getDayTime() % 24000 > NOON)
         {
             citizen.setVisibleStatusIfNone(HOUSE);
             return CitizenAIState.IDLE;
         }
 
         if (citizen.getCitizenJobHandler().getColonyJob() != null
-            && citizen.getCitizenJobHandler().getColonyJob().getWorkerAI() instanceof AbstractEntityAIBasic<?, ?> abstractEntityAIBasic && !abstractEntityAIBasic.canGoIdle())
+            && citizen.getCitizenJobHandler().getColonyJob().getWorkerAI() instanceof AbstractEntityAIBasic<?,?> abstractEntityAIBasic && !abstractEntityAIBasic.canGoIdle()
+            && (citizen.getCitizenData().getLeisureTime() <= 0
+            || !citizen.getCitizenData().getJob().canAIBeInterrupted()))
         {
             citizen.setVisibleStatusIfNone(WORKING);
             return CitizenAIState.WORK;
@@ -220,7 +268,7 @@ public class CitizenAI implements IStateAI
      */
     public boolean shouldEat()
     {
-        if (citizen.getCitizenData().justAte())
+        if (citizen.getCitizenData().justAte() || citizen.getCitizenData().getSaturation() >= FULL_SATURATION)
         {
             return false;
         }
@@ -235,18 +283,28 @@ public class CitizenAI implements IStateAI
             return true;
         }
 
-        if (citizen.getCitizenData().getJob() != null && (citizen.getCitizenData().getJob().getJobRegistryEntry() == ModJobs.cook.get()) && MathUtils.RANDOM.nextInt(20) > 0)
+        if (citizen.getCitizenData().getJob() != null && (citizen.getCitizenData().getJob().getJobRegistryEntry() == ModJobs.cook.get()) && MathUtils.RANDOM.nextInt(200) > 0)
         {
             return false;
         }
 
-        if (citizen.getCitizenData().getCitizenInjuryHandler().isHurt() && citizen.getCitizenSleepHandler().isAsleep())
+        if (citizen.getCitizenData().getCitizenDiseaseHandler().isSick() && citizen.getCitizenSleepHandler().isAsleep())
         {
             return false;
         }
 
         return citizen.getCitizenData().getSaturation() <= CitizenConstants.AVERAGE_SATURATION &&
-            (citizen.getCitizenData().getSaturation() <= RESTAURANT_LIMIT ||
-                (citizen.getCitizenData().getSaturation() < LOW_SATURATION && citizen.getHealth() < SEEK_DOCTOR_HEALTH));
+                 (citizen.getCitizenData().getSaturation() <= RESTAURANT_LIMIT ||
+                    (citizen.getCitizenData().getSaturation() < LOW_SATURATION && citizen.getHealth() < SEEK_DOCTOR_HEALTH));
+    }
+
+    /**
+     * Checks if the citizen should work even when it rains.
+     *
+     * @return true if his building level is bigger than 5.
+     */
+    private boolean shouldWorkWhileRaining()
+    {
+        return true;
     }
 }

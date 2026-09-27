@@ -1,5 +1,11 @@
 {
   "branch": "slimcolonies:technology",
+  "costs": [
+    {
+      "count": 16,
+      "item": "minecraft:beehive"
+    }
+  ],
   "effects": [
     {
       "id": "slimcolonies:effects/beekeep2unlock",

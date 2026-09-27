@@ -1,5 +1,11 @@
 {
   "branch": "slimcolonies:technology",
+  "costs": [
+    {
+      "count": 128,
+      "item": "minecraft:emerald"
+    }
+  ],
   "effects": [
     {
       "id": "slimcolonies:effects/citizeninvslotsaddition",
@@ -16,5 +22,5 @@
       "level": 5
     }
   ],
-  "researchLevel": 3
+  "researchLevel": 5
 }

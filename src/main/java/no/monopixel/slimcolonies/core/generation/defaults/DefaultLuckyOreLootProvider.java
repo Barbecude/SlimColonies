@@ -1,7 +1,9 @@
 package no.monopixel.slimcolonies.core.generation.defaults;
 
-import no.monopixel.slimcolonies.core.generation.SimpleLootTableProvider;
-import net.minecraft.data.PackOutput;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.data.loot.LootTableSubProvider;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.storage.loot.LootPool;
 import net.minecraft.world.level.storage.loot.LootPool.Builder;
@@ -9,40 +11,37 @@ import net.minecraft.world.level.storage.loot.LootTable;
 import net.minecraft.world.level.storage.loot.entries.LootItem;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.function.BiConsumer;
+
 import static no.monopixel.slimcolonies.core.entity.ai.workers.production.EntityAIStructureMiner.LUCKY_ORE_LOOT_TABLE;
 import static no.monopixel.slimcolonies.core.entity.ai.workers.production.EntityAIStructureMiner.LUCKY_ORE_PARAM_SET;
 
 /**
  * Loot table generator for lucky ores.
  */
-public class DefaultLuckyOreLootProvider extends SimpleLootTableProvider
+public class DefaultLuckyOreLootProvider implements LootTableSubProvider
 {
-    public DefaultLuckyOreLootProvider(final PackOutput output)
+    private final HolderLookup.Provider provider;
+
+    public DefaultLuckyOreLootProvider(@NotNull final HolderLookup.Provider provider)
     {
-        super(output);
+        this.provider = provider;
     }
 
     @Override
-    @NotNull
-    public String getName()
-    {
-        return "Lucky Ores Loot Table Provider";
-    }
-
-    @Override
-    protected void registerTables(final @NotNull SimpleLootTableProvider.LootTableRegistrar registrar)
+    public void generate(@NotNull final BiConsumer<ResourceKey<LootTable>, LootTable.Builder> generator)
     {
         final LootPool.Builder luckyOres1 = new Builder()
                                               .add(LootItem.lootTableItem(Items.COAL_ORE).setWeight(64))
                                               .add(LootItem.lootTableItem(Items.COPPER_ORE).setWeight(48));
-        registrar.register(LUCKY_ORE_LOOT_TABLE.withSuffix(String.valueOf(1)), LUCKY_ORE_PARAM_SET, LootTable.lootTable().withPool(luckyOres1));
+        generator.accept(ResourceKey.create(Registries.LOOT_TABLE, LUCKY_ORE_LOOT_TABLE.withSuffix(String.valueOf(1))), LootTable.lootTable().withPool(luckyOres1).setParamSet(LUCKY_ORE_PARAM_SET));
 
         final LootPool.Builder luckyOres2 = new Builder()
                                               .add(LootItem.lootTableItem(Items.COAL_ORE).setWeight(64))
                                               .add(LootItem.lootTableItem(Items.COPPER_ORE).setWeight(48))
                                               .add(LootItem.lootTableItem(Items.IRON_ORE).setWeight(32))
                                               .add(LootItem.lootTableItem(Items.GOLD_ORE).setWeight(16));
-        registrar.register(LUCKY_ORE_LOOT_TABLE.withSuffix(String.valueOf(2)), LUCKY_ORE_PARAM_SET, LootTable.lootTable().withPool(luckyOres2));
+        generator.accept(ResourceKey.create(Registries.LOOT_TABLE, LUCKY_ORE_LOOT_TABLE.withSuffix(String.valueOf(2))), LootTable.lootTable().withPool(luckyOres2).setParamSet(LUCKY_ORE_PARAM_SET));
 
         final LootPool.Builder luckyOres3 = new Builder()
                                               .add(LootItem.lootTableItem(Items.COAL_ORE).setWeight(64))
@@ -51,7 +50,7 @@ public class DefaultLuckyOreLootProvider extends SimpleLootTableProvider
                                               .add(LootItem.lootTableItem(Items.GOLD_ORE).setWeight(16))
                                               .add(LootItem.lootTableItem(Items.REDSTONE_ORE).setWeight(8))
                                               .add(LootItem.lootTableItem(Items.LAPIS_ORE).setWeight(4));
-        registrar.register(LUCKY_ORE_LOOT_TABLE.withSuffix(String.valueOf(3)), LUCKY_ORE_PARAM_SET, LootTable.lootTable().withPool(luckyOres3));
+        generator.accept(ResourceKey.create(Registries.LOOT_TABLE, LUCKY_ORE_LOOT_TABLE.withSuffix(String.valueOf(3))), LootTable.lootTable().withPool(luckyOres3).setParamSet(LUCKY_ORE_PARAM_SET));
 
         final LootPool.Builder luckyOres4 = new Builder()
                                               .add(LootItem.lootTableItem(Items.COAL_ORE).setWeight(64))
@@ -62,7 +61,7 @@ public class DefaultLuckyOreLootProvider extends SimpleLootTableProvider
                                               .add(LootItem.lootTableItem(Items.LAPIS_ORE).setWeight(4))
                                               .add(LootItem.lootTableItem(Items.DIAMOND_ORE).setWeight(2))
                                               .add(LootItem.lootTableItem(Items.EMERALD_ORE).setWeight(1));
-        registrar.register(LUCKY_ORE_LOOT_TABLE.withSuffix(String.valueOf(4)), LUCKY_ORE_PARAM_SET, LootTable.lootTable().withPool(luckyOres4));
-        registrar.register(LUCKY_ORE_LOOT_TABLE.withSuffix(String.valueOf(5)), LUCKY_ORE_PARAM_SET, LootTable.lootTable().withPool(luckyOres4));
+        generator.accept(ResourceKey.create(Registries.LOOT_TABLE, LUCKY_ORE_LOOT_TABLE.withSuffix(String.valueOf(4))), LootTable.lootTable().withPool(luckyOres4).setParamSet(LUCKY_ORE_PARAM_SET));
+        generator.accept(ResourceKey.create(Registries.LOOT_TABLE, LUCKY_ORE_LOOT_TABLE.withSuffix(String.valueOf(5))), LootTable.lootTable().withPool(luckyOres4).setParamSet(LUCKY_ORE_PARAM_SET));
     }
 }

@@ -1,5 +1,11 @@
 {
   "branch": "slimcolonies:technology",
+  "costs": [
+    {
+      "count": 32,
+      "tag": "slimcolonies:concrete"
+    }
+  ],
   "effects": [
     {
       "id": "slimcolonies:effects/blockhutconcretemixer",

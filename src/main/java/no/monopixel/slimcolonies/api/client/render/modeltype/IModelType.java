@@ -2,10 +2,9 @@ package no.monopixel.slimcolonies.api.client.render.modeltype;
 
 import no.monopixel.slimcolonies.api.entity.citizen.AbstractEntityCitizen;
 import net.minecraft.resources.ResourceLocation;
-import no.monopixel.slimcolonies.api.client.render.modeltype.registry.IModelTypeRegistry;
 
 /**
- * Defines a model type and its textures. Use the {@link IModelTypeRegistry} to register it, together with a Citizen model for
+ * Defines a model type and its textures. Use the {@link no.monopixel.slimcolonies.api.client.render.modeltype.registry.IModelTypeRegistry} to register it, together with a Citizen model for
  * both male and female.
  */
 public interface IModelType

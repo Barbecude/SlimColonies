@@ -4,14 +4,14 @@ import com.ldtteam.structurize.placement.IPlacementContext;
 import com.ldtteam.structurize.placement.handlers.placement.IPlacementHandler;
 import com.ldtteam.structurize.util.BlockUtils;
 import no.monopixel.slimcolonies.api.util.WorldUtil;
+import net.minecraft.util.Tuple;
+import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.BubbleColumnBlock;
 import net.minecraft.world.level.block.LiquidBlock;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.util.Tuple;
-import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.Level;
 import org.jetbrains.annotations.NotNull;
@@ -21,7 +21,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-import static com.ldtteam.structurize.api.util.constant.Constants.UPDATE_FLAG;
+import static com.ldtteam.structurize.api.constants.Constants.UPDATE_FLAG;
 
 /**
  * Makes lava in the nether free and water everywhere else.
@@ -84,8 +84,12 @@ public class DimensionFluidHandler implements IPlacementHandler
     }
 
     @Override
-    public boolean doesWorldStateMatchBlueprintState(final BlockState worldState, final BlockState blueprintState, @Nullable final Tuple<BlockEntity, CompoundTag> blockEntityData, @NotNull final IPlacementContext placementContext)
+    public boolean doesWorldStateMatchBlueprintState(
+        final BlockState blueprintState,
+        final BlockState worldState,
+        final Tuple<BlockEntity, CompoundTag> tuple,
+        @NotNull final IPlacementContext iPlacementContext)
     {
-        return worldState.equals(blueprintState);
+        return blueprintState.equals(worldState);
     }
 }

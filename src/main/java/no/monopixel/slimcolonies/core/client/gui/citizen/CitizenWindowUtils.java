@@ -2,6 +2,7 @@ package no.monopixel.slimcolonies.core.client.gui.citizen;
 
 import com.ldtteam.blockui.Alignment;
 import com.ldtteam.blockui.Pane;
+import com.ldtteam.blockui.PaneBuilders;
 import com.ldtteam.blockui.controls.Image;
 import com.ldtteam.blockui.controls.Text;
 import com.ldtteam.blockui.views.View;
@@ -11,6 +12,7 @@ import no.monopixel.slimcolonies.api.colony.IColonyView;
 import no.monopixel.slimcolonies.api.colony.buildings.ModBuildings;
 import no.monopixel.slimcolonies.api.colony.buildings.views.IBuildingView;
 import no.monopixel.slimcolonies.api.entity.citizen.Skill;
+import no.monopixel.slimcolonies.api.util.constant.Constants;
 import no.monopixel.slimcolonies.core.client.gui.AbstractWindowSkeleton;
 import no.monopixel.slimcolonies.core.colony.buildings.moduleviews.WorkerBuildingModuleView;
 import no.monopixel.slimcolonies.core.colony.buildings.views.AbstractBuildingView;
@@ -27,16 +29,19 @@ import java.util.Map;
 
 import static no.monopixel.slimcolonies.api.util.constant.TranslationConstants.*;
 import static no.monopixel.slimcolonies.api.util.constant.WindowConstants.*;
+import static no.monopixel.slimcolonies.core.client.gui.modules.building.WindowBuilderResModule.BLACK;
 import static no.monopixel.slimcolonies.core.entity.citizen.citizenhandlers.CitizenExperienceHandler.PRIMARY_DEPENDENCY_SHARE;
 import static no.monopixel.slimcolonies.core.entity.citizen.citizenhandlers.CitizenExperienceHandler.SECONDARY_DEPENDENCY_SHARE;
-import static net.minecraft.client.gui.Gui.GUI_ICONS_LOCATION;
 
 /**
  * BOWindow for the citizen.
  */
 public class CitizenWindowUtils
 {
-    // Happiness system removed
+    public static final ResourceLocation HAPPINESS_ICONS_LOCATION = new ResourceLocation(Constants.MOD_ID, "textures/gui/citizen/icons.png");
+    public static final ResourceLocation SATURATION_ICON_EMPTY = new ResourceLocation(Constants.MOD_ID, "textures/gui/citizen/empty.png");
+    public static final ResourceLocation SATURATION_ICON_FULL  = new ResourceLocation(Constants.MOD_ID, "textures/gui/citizen/full.png");
+    public static final ResourceLocation SATURATION_ICON_HALF  = new ResourceLocation(Constants.MOD_ID, "textures/gui/citizen/half.png");
 
     /**
      * Private con to hide public.
@@ -46,25 +51,55 @@ public class CitizenWindowUtils
         // Intentionally left empty.
     }
 
-    // Happiness system removed - SmileyEnum deleted
+    /**
+     * Enum for the available smileys.
+     */
+    private enum SmileyEnum
+    {
+        EMPTY(new ResourceLocation(Constants.MOD_ID, "citizen/smiley/empty"), EMPTY_HEART_VALUE, null, null),
+        HALF_RED(new ResourceLocation(Constants.MOD_ID, "citizen/smiley/half"), RED_HEART_VALUE - 1, null, EMPTY),
+        RED(new ResourceLocation(Constants.MOD_ID, "citizen/smiley/full"), RED_HEART_VALUE, HALF_RED, EMPTY);
+
+        public final int happinessValue;
+        public final SmileyEnum prevSmiley;
+        public final SmileyEnum halfSmiley;
+        public       boolean isHalfSmiley = false;
+        public final ResourceLocation Image;
+
+        SmileyEnum(
+          final ResourceLocation heartImage, final int happinessValue,
+          final SmileyEnum halfSmiley, final SmileyEnum prevSmiley)
+        {
+            this.Image = heartImage;
+            this.happinessValue = happinessValue;
+            this.halfSmiley = halfSmiley;
+            if (halfSmiley == null)
+            {
+                isHalfSmiley = true;
+            }
+            this.prevSmiley = prevSmiley;
+        }
+    }
 
     /**
      * Enum for the available hearts
      */
     private enum HeartsEnum
     {
-        EMPTY(GUI_ICONS_LOCATION, EMPTY_HEART_ICON_X, HEART_ICON_MC_Y, EMPTY_HEART_VALUE, null, null),
-        HALF_RED(GUI_ICONS_LOCATION, HALF_RED_HEART_ICON_X, HEART_ICON_MC_Y, RED_HEART_VALUE - 1, null, EMPTY),
-        RED(GUI_ICONS_LOCATION, RED_HEART_ICON_X, HEART_ICON_MC_Y, RED_HEART_VALUE, HALF_RED, EMPTY),
-        HALF_GOLDEN(GUI_ICONS_LOCATION, HALF_GOLD_HEART_ICON_X, HEART_ICON_MC_Y, GOLDEN_HEART_VALUE - 1, null, RED),
-        GOLDEN(GUI_ICONS_LOCATION, GOLD_HEART_ICON_X, HEART_ICON_MC_Y, GOLDEN_HEART_VALUE, HALF_GOLDEN, RED),
-        HALF_GREEN(GREEN_BLUE_ICON, GREEN_HALF_HEART_ICON_X, GREEN_HEARTS_ICON_Y, GREEN_HEART_VALUE - 1, null, GOLDEN),
-        GREEN(GREEN_BLUE_ICON, GREEN_HEART_ICON_X, GREEN_HEARTS_ICON_Y, GREEN_HEART_VALUE, HALF_GREEN, GOLDEN),
-        HALF_BLUE(GREEN_BLUE_ICON, BLUE_HALF_HEART_ICON_X, BLUE_HEARTS_ICON_Y, BLUE_HEART_VALUE - 1, null, GREEN),
-        BLUE(GREEN_BLUE_ICON, BLUE_HEART_ICON_X, BLUE_HEARTS_ICON_Y, BLUE_HEART_VALUE, HALF_BLUE, GREEN);
+        EMPTY(ResourceLocation.withDefaultNamespace("hud/heart/container"), EMPTY_HEART_VALUE, null, null),
 
-        public final int              X;
-        public final int              Y;
+        HALF_RED(ResourceLocation.withDefaultNamespace("hud/heart/half"), RED_HEART_VALUE - 1, null, EMPTY),
+        RED(ResourceLocation.withDefaultNamespace("hud/heart/full"), RED_HEART_VALUE, HALF_RED, EMPTY),
+
+        HALF_GOLDEN(ResourceLocation.withDefaultNamespace("hud/heart/absorbing_half"), GOLDEN_HEART_VALUE - 1, null, RED),
+        GOLDEN(ResourceLocation.withDefaultNamespace("hud/heart/absorbing_full"), GOLDEN_HEART_VALUE, HALF_GOLDEN, RED),
+
+        HALF_GREEN(new ResourceLocation(Constants.MOD_ID, "citizen/heart/green_half"), GREEN_HEART_VALUE - 1, null, GOLDEN),
+        GREEN(new ResourceLocation(Constants.MOD_ID, "citizen/heart/green"), GREEN_HEART_VALUE, HALF_GREEN, GOLDEN),
+
+        HALF_BLUE(new ResourceLocation(Constants.MOD_ID, "citizen/heart/blue_half"), BLUE_HEART_VALUE - 1, null, GREEN),
+        BLUE(new ResourceLocation(Constants.MOD_ID, "citizen/heart/blue"), BLUE_HEART_VALUE, HALF_BLUE, GREEN);
+
         public final int              hpValue;
         public final HeartsEnum       prevHeart;
         public final HeartsEnum       halfHeart;
@@ -72,12 +107,10 @@ public class CitizenWindowUtils
         public final ResourceLocation Image;
 
         HeartsEnum(
-          final ResourceLocation heartImage, final int x, final int y, final int hpValue,
+          final ResourceLocation heartImage, final int hpValue,
           final HeartsEnum halfHeart, final HeartsEnum prevHeart)
         {
             this.Image = heartImage;
-            this.X = x;
-            this.Y = y;
             this.hpValue = hpValue;
             this.halfHeart = halfHeart;
             if (halfHeart == null)
@@ -170,58 +203,178 @@ public class CitizenWindowUtils
     private static void addHeart(final View healthBarView, final int heartPos, final HeartsEnum heart)
     {
         @NotNull final Image heartImage = new Image();
-        heartImage.setImage(heart.Image, heart.X, heart.Y, HEART_ICON_HEIGHT_WIDTH, HEART_ICON_HEIGHT_WIDTH);
-        heartImage.setMapDimensions(256, 256);
+        heartImage.setImage(heart.Image, false);
         heartImage.setSize(HEART_ICON_HEIGHT_WIDTH, HEART_ICON_HEIGHT_WIDTH);
         heartImage.setPosition(heartPos * HEART_ICON_POS_X + HEART_ICON_OFFSET_X, HEART_ICON_POS_Y);
         healthBarView.addChild(heartImage);
     }
 
+    /**
+     * Get vertical offset for the saturation icon based on the iteration
+     * If i >= 10, move the icons down another line
+     * @param i the current iteration
+     * @return the y offset
+     */
+    private static int getYOffset(final int i)
+    {
+        return (i >= 10 ? SATURATION_ICON_POS_Y : 0);
+    }
+
+    /**
+     * Get horizontal offset modifier for the saturation icon based on the iteration
+     * if i >= 10, decrease i by 10 to start the line from the beginning
+     * @param i the current iteration
+     * @return the x offset modifier
+     */
+    private static int getXOffsetModifier(final int i)
+    {
+        return (i >= 10 ? i - 10 : i);
+    }
+
+    /**
+     * Creates a saturation bar
+     *
+     * @param citizen the citizen.
+     * @param view    the view to add these to.
+     */
     public static void createSaturationBar(final ICitizenDataView citizen, final View view)
     {
         createSaturationBar(citizen.getSaturation(), view);
     }
 
+    /**
+     * Creates a saturation bar
+     *
+     * @param curSaturation the current saturation level.
+     * @param view    the view to add these to.
+     */
     public static void createSaturationBar(final double curSaturation, final View view)
     {
         view.findPaneOfTypeByID(WINDOW_ID_SATURATION_BAR, View.class).setAlignment(Alignment.MIDDLE_RIGHT);
 
-        final int maxIcons = ICitizenData.MAX_SATURATION / 2;
 
-        for (int i = 0; i < maxIcons; i++)
+        //Max saturation (Black food items).
+        for (int i = 0; i < ICitizenData.MAX_SATURATION / 6.0; i++)
         {
             @NotNull final Image saturation = new Image();
-            saturation.setImage(GUI_ICONS_LOCATION,
-              EMPTY_SATURATION_ITEM_ROW_POS,
-              SATURATION_ICON_COLUMN, HEART_ICON_HEIGHT_WIDTH, HEART_ICON_HEIGHT_WIDTH);
-            saturation.setMapDimensions(256, 256);
+            saturation.setImage(SATURATION_ICON_EMPTY, false);
             saturation.setSize(SATURATION_ICON_HEIGHT_WIDTH, SATURATION_ICON_HEIGHT_WIDTH);
-            saturation.setPosition(i * SATURATION_ICON_POS_X + SATURATION_ICON_OFFSET_X, SATURATION_ICON_POS_Y);
+
+            saturation.setPosition(getXOffsetModifier(i) * SATURATION_ICON_POS_X + SATURATION_ICON_OFFSET_X, SATURATION_ICON_POS_Y + getYOffset(i));
             view.findPaneOfTypeByID(WINDOW_ID_SATURATION_BAR, View.class).addChild(saturation);
         }
 
-        final int fullIcons = (int) (curSaturation / 2);
-        for (int i = 0; i < fullIcons; i++)
+        final int brokenDownSaturation = (int) (curSaturation / 6.0);
+        //Current saturation (Full food hearts).
+        int saturationPos;
+        for (saturationPos = 0; saturationPos < brokenDownSaturation; saturationPos++)
         {
             @NotNull final Image saturation = new Image();
-            saturation.setImage(GUI_ICONS_LOCATION, FULL_SATURATION_ITEM_ROW_POS, SATURATION_ICON_COLUMN, HEART_ICON_HEIGHT_WIDTH, HEART_ICON_HEIGHT_WIDTH);
-            saturation.setMapDimensions(256, 256);
+            saturation.setImage(SATURATION_ICON_FULL, false);
             saturation.setSize(SATURATION_ICON_HEIGHT_WIDTH, SATURATION_ICON_HEIGHT_WIDTH);
-            saturation.setPosition(i * SATURATION_ICON_POS_X + SATURATION_ICON_OFFSET_X, SATURATION_ICON_POS_Y);
+            saturation.setPosition(getXOffsetModifier(saturationPos) * SATURATION_ICON_POS_X + SATURATION_ICON_OFFSET_X, SATURATION_ICON_POS_Y + getYOffset(saturationPos));
             view.findPaneOfTypeByID(WINDOW_ID_SATURATION_BAR, View.class).addChild(saturation);
         }
 
-        if (curSaturation % 2 >= 1)
+        //Half food items.
+        if (curSaturation / 6.0 % 1 > 0)
         {
             @NotNull final Image saturation = new Image();
-            saturation.setImage(GUI_ICONS_LOCATION, HALF_SATURATION_ITEM_ROW_POS, SATURATION_ICON_COLUMN, HEART_ICON_HEIGHT_WIDTH, HEART_ICON_HEIGHT_WIDTH);
-            saturation.setMapDimensions(256, 256);
+            saturation.setImage(SATURATION_ICON_HALF, false);
             saturation.setSize(SATURATION_ICON_HEIGHT_WIDTH, SATURATION_ICON_HEIGHT_WIDTH);
-            saturation.setPosition(fullIcons * SATURATION_ICON_POS_X + SATURATION_ICON_OFFSET_X, SATURATION_ICON_POS_Y);
+            saturation.setPosition(getXOffsetModifier(saturationPos) * SATURATION_ICON_POS_X + SATURATION_ICON_OFFSET_X, SATURATION_ICON_POS_Y + getYOffset(saturationPos));
             view.findPaneOfTypeByID(WINDOW_ID_SATURATION_BAR, View.class).addChild(saturation);
         }
     }
 
+    /**
+     * Creates a Happiness bar according to the citizen maxHappiness and currentHappiness.
+     *
+     * @param citizen pointer to the citizen data view
+     * @param happinessParView  pointer to the current bar view.
+     */
+    public static void createHappinessBar(final ICitizenDataView citizen, final View happinessParView)
+    {
+        int happiness = (int) citizen.getHappiness() * 2;
+        // Add Empty Smiley background
+        for (int i = 0; i < MAX_HEART_ICONS; i++)
+        {
+            addSmiley(happinessParView, i, SmileyEnum.EMPTY);
+        }
+
+        // Current Smiley we're filling
+        int smileyPos = 0;
+
+        // Order we're filling the smileys with from high to low
+        final List<SmileyEnum> heartList = new ArrayList<>();
+        heartList.add(SmileyEnum.RED);
+
+        // Iterate through hearts
+        for (final SmileyEnum smiley : heartList)
+        {
+            if (smiley.isHalfSmiley || smiley.prevSmiley == null)
+            {
+                continue;
+            }
+
+            // Add full Smiley
+            for (int i = smileyPos; i < MAX_HEART_ICONS && happiness > (smiley.prevSmiley.happinessValue * MAX_HEART_ICONS + 1); i++)
+            {
+                addSmiley(happinessParView, smileyPos, smiley);
+                happiness -= (smiley.happinessValue - smiley.prevSmiley.happinessValue);
+                smileyPos++;
+            }
+
+            // Add half Smiley
+            if (happiness % 2 == 1 && smileyPos < MAX_HEART_ICONS && smiley.halfSmiley != null && happiness > smiley.prevSmiley.happinessValue * MAX_HEART_ICONS)
+            {
+                addSmiley(happinessParView, smileyPos, smiley.prevSmiley);
+                addSmiley(happinessParView, smileyPos, smiley.halfSmiley);
+
+                happiness -= (smiley.halfSmiley.happinessValue - smiley.prevSmiley.happinessValue);
+                smileyPos++;
+            }
+            // Finished
+            if (smileyPos >= MAX_HEART_ICONS)
+            {
+                return;
+            }
+        }
+    }
+
+    /**
+     * Adds a smiley to the happiness view at the given Position
+     *
+     * @param happinessBarView the happiness bar to add the heart to.
+     * @param happinessPos     the number of the smileys to add.
+     * @param smiley         the smiley to add.
+     */
+    private static void addSmiley(final View happinessBarView, final int happinessPos, final SmileyEnum smiley)
+    {
+        @NotNull final Image smileyImage = new Image();
+        smileyImage.setImage(smiley.Image, false);
+        smileyImage.setSize(HEART_ICON_HEIGHT_WIDTH, HEART_ICON_HEIGHT_WIDTH);
+        smileyImage.setPosition(happinessPos * HEART_ICON_POS_X + HEART_ICON_OFFSET_X, HEART_ICON_POS_Y);
+        happinessBarView.addChild(smileyImage);
+    }
+
+    /**
+     * General happiness bar setup.
+     * @param citizen citizen its for.
+     * @param window window its at.
+     */
+    public static void createHappinessBar(final ICitizenDataView citizen, final AbstractWindowSkeleton window)
+    {
+        //Calculates how much percent of the next level has been completed.
+        window.findPaneOfTypeByID(WINDOW_ID_HAPPINESS_BAR, View.class).setAlignment(Alignment.MIDDLE_RIGHT);
+        createHappinessBar(citizen, window.findPaneOfTypeByID(WINDOW_ID_HAPPINESS_BAR, View.class));
+    }
+
+    /**
+     * Fills the citizen gui with it's skill values.
+     *  @param citizen the citizen to use.
+     * @param window  the window to fill.
+     */
     public static void createSkillContent(final ICitizenDataView citizen, final AbstractWindowSkeleton window)
     {
         final boolean isCreative = Minecraft.getInstance().player.isCreative();
@@ -238,7 +391,70 @@ public class CitizenWindowUtils
         }
     }
 
-    // Happiness system removed
+    /**
+     * Update the display for the happiness.
+     *
+     * @param citizen the citizen to update it for.
+     * @param window  the window to add things to.
+     */
+    public static void updateHappiness(final ICitizenDataView citizen, final AbstractWindowSkeleton window)
+    {
+        window.findPaneOfTypeByID("happinessModifier", Text.class).setText(Component.translatableEscape(LABEL_HAPPINESS_MODIFIER));
+        int yPos = 62;
+        for (final String name : citizen.getHappinessHandler().getModifiers())
+        {
+            final double value = citizen.getHappinessHandler().getModifier(name).getFactor(null);
+            if (value == 1.0)
+                continue;
+            final Image image = new Image();
+            image.setSize(11, 11);
+            image.setPosition(45, yPos);
+            window.addChild(image);
+
+            final Text label = new Text();
+            label.setSize(136, 11);
+            label.setPosition(70, yPos);
+            label.setColors(BLACK);
+            label.setText(Component.translatableEscape(PARTIAL_HAPPINESS_MODIFIER_NAME + name));
+            window.addChild(label);
+            PaneBuilders.tooltipBuilder().hoverPane(label).append(Component.translatableEscape(PARTIAL_HAPPINESS_MODIFIER_DESCRIPTION + name)).build();
+
+            if (value > 1.0)
+            {
+                image.setImage(ResourceLocation.parse(HAPPY_ICON), false);
+                PaneBuilders.tooltipBuilder()
+                    .append(Component.translatableEscape(LABEL_HAPPINESS_POSITIVE))
+                    .hoverPane(image)
+                    .build();
+            }
+            else if (value == 1)
+            {
+                image.setImage(ResourceLocation.parse(SATISFIED_ICON), false);
+                PaneBuilders.tooltipBuilder()
+                    .append(Component.translatableEscape(LABEL_HAPPINESS_NEUTRAL))
+                    .hoverPane(image)
+                    .build();
+            }
+            else if (value > 0.75)
+            {
+                image.setImage(ResourceLocation.parse(UNSATISFIED_ICON), false);
+                PaneBuilders.tooltipBuilder()
+                    .append(Component.translatableEscape(LABEL_HAPPINESS_SLIGHTLY_NEGATIVE))
+                    .hoverPane(image)
+                    .build();
+            }
+            else
+            {
+                image.setImage(ResourceLocation.parse(UNHAPPY_ICON), false);
+                PaneBuilders.tooltipBuilder()
+                    .append(Component.translatableEscape(LABEL_HAPPINESS_NEGATIVE))
+                    .hoverPane(image)
+                    .build();
+            }
+
+            yPos += 12;
+        }
+    }
 
     /**
      * Update the job page of the citizen.
@@ -249,7 +465,7 @@ public class CitizenWindowUtils
      */
     public static void updateJobPage(final ICitizenDataView citizen, final JobWindowCitizen windowCitizen, final IColonyView colony)
     {
-        final IBuildingView building = colony.getBuilding(citizen.getWorkBuilding());
+        final IBuildingView building = colony.getClientBuildingManager().getBuilding(citizen.getWorkBuilding());
 
         if (building instanceof AbstractBuildingView && building.getBuildingType() != ModBuildings.library.get() && citizen.getJobView() != null)
         {
@@ -259,49 +475,49 @@ public class CitizenWindowUtils
                 return;
             }
 
-            windowCitizen.findPaneOfTypeByID(JOB_TITLE_LABEL, Text.class).setText(Component.translatable(LABEL_CITIZEN_JOB, Component.translatable(citizen.getJob())));
-            windowCitizen.findPaneOfTypeByID(JOB_DESC_LABEL, Text.class).setText(Component.translatable(DESCRIPTION_CITIZEN_JOB));
+            windowCitizen.findPaneOfTypeByID(JOB_TITLE_LABEL, Text.class).setText(Component.translatableEscape(LABEL_CITIZEN_JOB, Component.translatableEscape(citizen.getJob())));
+            windowCitizen.findPaneOfTypeByID(JOB_DESC_LABEL, Text.class).setText(Component.translatableEscape(DESCRIPTION_CITIZEN_JOB));
 
             final Skill primary = moduleView.getPrimarySkill();
             windowCitizen.findPaneOfTypeByID(PRIMARY_SKILL_LABEL, Text.class)
-              .setText(Component.translatable(PARTIAL_SKILL_NAME + primary.name().toLowerCase(Locale.US)).append(" (100% XP)"));
+              .setText(Component.translatableEscape(PARTIAL_SKILL_NAME + primary.name().toLowerCase(Locale.US)).append(" (100% XP)"));
             windowCitizen.findPaneOfTypeByID(PRIMARY_SKILL_LABEL + IMAGE_APPENDIX, Image.class)
-              .setImage(new ResourceLocation(BASE_IMG_SRC + primary.name().toLowerCase(Locale.US) + ".png"), false);
+              .setImage(ResourceLocation.parse(BASE_IMG_SRC + primary.name().toLowerCase(Locale.US) + ".png"), false);
 
             if (primary.getComplimentary() != null && primary.getAdverse() != null)
             {
                 windowCitizen.findPaneOfTypeByID(PRIMARY_SKILL_COM, Text.class)
-                  .setText(Component.translatable(PARTIAL_SKILL_NAME + primary.getComplimentary().name().toLowerCase(Locale.US)).append(" ("
+                  .setText(Component.translatableEscape(PARTIAL_SKILL_NAME + primary.getComplimentary().name().toLowerCase(Locale.US)).append(" ("
                                   + PRIMARY_DEPENDENCY_SHARE + "% XP)"));
                 windowCitizen.findPaneOfTypeByID(PRIMARY_SKILL_COM + IMAGE_APPENDIX, Image.class)
-                  .setImage(new ResourceLocation(BASE_IMG_SRC + primary.getComplimentary().name().toLowerCase(Locale.US) + ".png"), false);
+                  .setImage(ResourceLocation.parse(BASE_IMG_SRC + primary.getComplimentary().name().toLowerCase(Locale.US) + ".png"), false);
 
                 windowCitizen.findPaneOfTypeByID(PRIMARY_SKILL_ADV, Text.class)
-                  .setText(Component.translatable(PARTIAL_SKILL_NAME + primary.getAdverse().name().toLowerCase(Locale.US)).append(" (-"
+                  .setText(Component.translatableEscape(PARTIAL_SKILL_NAME + primary.getAdverse().name().toLowerCase(Locale.US)).append(" (-"
                                   + PRIMARY_DEPENDENCY_SHARE + "% XP)"));
                 windowCitizen.findPaneOfTypeByID(PRIMARY_SKILL_ADV + IMAGE_APPENDIX, Image.class)
-                  .setImage(new ResourceLocation(BASE_IMG_SRC + primary.getAdverse().name().toLowerCase(Locale.US) + ".png"), false);
+                  .setImage(ResourceLocation.parse(BASE_IMG_SRC + primary.getAdverse().name().toLowerCase(Locale.US) + ".png"), false);
             }
 
             final Skill secondary = moduleView.getSecondarySkill();
             windowCitizen.findPaneOfTypeByID(SECONDARY_SKILL_LABEL, Text.class)
-              .setText(Component.translatable(PARTIAL_SKILL_NAME + secondary.name().toLowerCase(Locale.US)).append(" (50% XP)"));
+              .setText(Component.translatableEscape(PARTIAL_SKILL_NAME + secondary.name().toLowerCase(Locale.US)).append(" (50% XP)"));
             windowCitizen.findPaneOfTypeByID(SECONDARY_SKILL_LABEL + IMAGE_APPENDIX, Image.class)
-              .setImage(new ResourceLocation(BASE_IMG_SRC + secondary.name().toLowerCase(Locale.US) + ".png"), false);
+              .setImage(ResourceLocation.parse(BASE_IMG_SRC + secondary.name().toLowerCase(Locale.US) + ".png"), false);
 
             if (secondary.getComplimentary() != null && secondary.getAdverse() != null)
             {
                 windowCitizen.findPaneOfTypeByID(SECONDARY_SKILL_COM, Text.class)
-                  .setText(Component.translatable(PARTIAL_SKILL_NAME + secondary.getComplimentary().name().toLowerCase(Locale.US)).append(" ("
+                  .setText(Component.translatableEscape(PARTIAL_SKILL_NAME + secondary.getComplimentary().name().toLowerCase(Locale.US)).append(" ("
                                   + SECONDARY_DEPENDENCY_SHARE + "% XP)"));
                 windowCitizen.findPaneOfTypeByID(SECONDARY_SKILL_COM + IMAGE_APPENDIX, Image.class)
-                  .setImage(new ResourceLocation(BASE_IMG_SRC + secondary.getComplimentary().name().toLowerCase(Locale.US) + ".png"), false);
+                  .setImage(ResourceLocation.parse(BASE_IMG_SRC + secondary.getComplimentary().name().toLowerCase(Locale.US) + ".png"), false);
 
                 windowCitizen.findPaneOfTypeByID(SECONDARY_SKILL_ADV, Text.class)
-                  .setText(Component.translatable(PARTIAL_SKILL_NAME + secondary.getAdverse().name().toLowerCase(Locale.US)).append(" (-"
+                  .setText(Component.translatableEscape(PARTIAL_SKILL_NAME + secondary.getAdverse().name().toLowerCase(Locale.US)).append(" (-"
                                   + SECONDARY_DEPENDENCY_SHARE + "% XP)"));
                 windowCitizen.findPaneOfTypeByID(SECONDARY_SKILL_ADV + IMAGE_APPENDIX, Image.class)
-                  .setImage(new ResourceLocation(BASE_IMG_SRC + secondary.getAdverse().name().toLowerCase(Locale.US) + ".png"), false);
+                  .setImage(ResourceLocation.parse(BASE_IMG_SRC + secondary.getAdverse().name().toLowerCase(Locale.US) + ".png"), false);
             }
         }
         else

@@ -1,70 +1,53 @@
 package no.monopixel.slimcolonies.core.colony.crafting;
 
-import no.monopixel.slimcolonies.api.network.IMessage;
-import net.minecraft.client.Minecraft;
+import com.ldtteam.common.network.AbstractClientPlayMessage;
+import com.ldtteam.common.network.PlayMessageType;
+import no.monopixel.slimcolonies.api.util.constant.Constants;
+import io.netty.buffer.Unpooled;
 import net.minecraft.network.FriendlyByteBuf;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.api.distmarker.OnlyIn;
-import net.minecraftforge.fml.LogicalSide;
-import net.minecraftforge.network.NetworkEvent;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.world.entity.player.Player;
+import net.neoforged.neoforge.network.handling.IPayloadContext;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 /**
  * The message used to synchronize crafter recipes from a server to a client.
  */
-public class CustomRecipeManagerMessage implements IMessage
+public class CustomRecipeManagerMessage extends AbstractClientPlayMessage
 {
+    public static final PlayMessageType<?> TYPE = PlayMessageType.forClient(Constants.MOD_ID, "custom_recipe_manager", CustomRecipeManagerMessage::new, true, false);
+
     /**
      * The buffer with the data.
      */
-    private FriendlyByteBuf managerBuffer;
-
-    /**
-     * Empty constructor used when registering the message
-     */
-    public CustomRecipeManagerMessage()
-    {
-        super();
-    }
+    private final RegistryFriendlyByteBuf managerBuffer;
 
     /**
      * Add or Update a CustomRecipeManager on the client.
      *
      * @param buf               the bytebuffer.
      */
-    public CustomRecipeManagerMessage(final FriendlyByteBuf buf)
+    public CustomRecipeManagerMessage(final RegistryFriendlyByteBuf buf)
     {
-        this.managerBuffer = new FriendlyByteBuf(buf.copy());
+        super(TYPE);
+        this.managerBuffer = new RegistryFriendlyByteBuf(new FriendlyByteBuf(buf.copy()), buf.registryAccess());
+    }
+
+    protected CustomRecipeManagerMessage(final RegistryFriendlyByteBuf buf, final PlayMessageType<?> type)
+    {
+        super(buf, type);
+        managerBuffer = new RegistryFriendlyByteBuf(new FriendlyByteBuf(Unpooled.wrappedBuffer(buf.readByteArray())), buf.registryAccess());
     }
 
     @Override
-    public void fromBytes(@NotNull final FriendlyByteBuf buf)
+    protected void toBytes(@NotNull final RegistryFriendlyByteBuf buf)
     {
-        managerBuffer = new FriendlyByteBuf(buf.retain());
+        buf.writeByteArray(managerBuffer.array());
     }
 
     @Override
-    public void toBytes(@NotNull final FriendlyByteBuf buf)
+    public void onExecute(final IPayloadContext context, final Player player)
     {
-        buf.writeBytes(managerBuffer);
-    }
-
-    @Nullable
-    @Override
-    public LogicalSide getExecutionSide()
-    {
-        return LogicalSide.CLIENT;
-    }
-
-    @OnlyIn(Dist.CLIENT)
-    @Override
-    public void onExecute(final NetworkEvent.Context ctxIn, final boolean isLogicalServer)
-    {
-        if (Minecraft.getInstance().level != null)
-        {
-            CustomRecipeManager.getInstance().handleCustomRecipeManagerMessage(managerBuffer);
-        }
-        managerBuffer.release();
+        CustomRecipeManager.getInstance().handleCustomRecipeManagerMessage(managerBuffer);
     }
 }

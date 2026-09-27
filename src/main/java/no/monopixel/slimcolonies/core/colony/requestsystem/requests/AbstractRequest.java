@@ -15,6 +15,7 @@ import no.monopixel.slimcolonies.api.colony.requestsystem.requester.IRequester;
 import no.monopixel.slimcolonies.api.colony.requestsystem.token.IToken;
 import no.monopixel.slimcolonies.api.util.InventoryUtils;
 import no.monopixel.slimcolonies.api.util.Log;
+import no.monopixel.slimcolonies.api.util.constant.Constants;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.network.chat.MutableComponent;
@@ -35,7 +36,7 @@ public abstract class AbstractRequest<R extends IRequestable> implements IReques
     /**
      * Default display icon (none).
      */
-    public static final ResourceLocation MISSING = new ResourceLocation("missingno");
+    public static final ResourceLocation MISSING = new ResourceLocation(Constants.MOD_ID, "missingno");
 
     @NotNull
     private final IToken<?>       token;
@@ -51,7 +52,7 @@ public abstract class AbstractRequest<R extends IRequestable> implements IReques
     private       R               result;
     @Nullable
     private       IToken<?>       parent;
-    
+    @SuppressWarnings("squid:S1170")
 
     private       List<ItemStack> deliveries = Lists.newArrayList();
 

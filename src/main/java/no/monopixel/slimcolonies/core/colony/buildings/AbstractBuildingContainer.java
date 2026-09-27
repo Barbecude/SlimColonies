@@ -1,8 +1,18 @@
 package no.monopixel.slimcolonies.core.colony.buildings;
 
 import com.ldtteam.structurize.storage.StructurePacks;
+import no.monopixel.slimcolonies.api.blocks.AbstractBlockHut;
+import no.monopixel.slimcolonies.api.colony.IColony;
+import no.monopixel.slimcolonies.api.colony.buildings.IBuilding;
+import no.monopixel.slimcolonies.api.colony.buildings.IBuildingContainer;
+import no.monopixel.slimcolonies.api.tileentities.AbstractTileEntityColonyBuilding;
+import no.monopixel.slimcolonies.api.util.NBTUtils;
+import no.monopixel.slimcolonies.core.tileentities.TileEntityColonyBuilding;
+import no.monopixel.slimcolonies.core.tileentities.TileEntityRack;
+import no.monopixel.slimcolonies.core.blocks.BlockMinecoloniesRack;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.NbtUtils;
@@ -14,17 +24,7 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraftforge.common.capabilities.Capability;
-import net.minecraftforge.common.capabilities.ForgeCapabilities;
-import net.minecraftforge.common.util.LazyOptional;
-import no.monopixel.slimcolonies.api.blocks.AbstractBlockHut;
-import no.monopixel.slimcolonies.api.colony.IColony;
-import no.monopixel.slimcolonies.api.colony.buildings.IBuilding;
-import no.monopixel.slimcolonies.api.colony.buildings.IBuildingContainer;
-import no.monopixel.slimcolonies.api.tileentities.AbstractTileEntityColonyBuilding;
-import no.monopixel.slimcolonies.core.blocks.BlockSlimColoniesRack;
-import no.monopixel.slimcolonies.core.tileentities.TileEntityColonyBuilding;
-import no.monopixel.slimcolonies.core.tileentities.TileEntityRack;
+import net.neoforged.neoforge.items.IItemHandler;
 import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nonnull;
@@ -72,15 +72,14 @@ public abstract class AbstractBuildingContainer extends AbstractSchematicProvide
     }
 
     @Override
-    public void deserializeNBT(final CompoundTag compound)
+    public void deserializeNBT(@NotNull final HolderLookup.Provider provider, final CompoundTag compound)
     {
-        super.deserializeNBT(compound);
+        super.deserializeNBT(provider, compound);
 
-        final ListTag containerTagList = compound.getList(TAG_CONTAINERS, Tag.TAG_COMPOUND);
+        final ListTag containerTagList = compound.getList(TAG_CONTAINERS, Tag.TAG_INT_ARRAY);
         for (int i = 0; i < containerTagList.size(); ++i)
         {
-            final CompoundTag containerCompound = containerTagList.getCompound(i);
-            containerList.add(NbtUtils.readBlockPos(containerCompound));
+            containerList.add(NBTUtils.readBlockPos(containerTagList.get(i)));
         }
         if (compound.contains(TAG_PRIO))
         {
@@ -97,14 +96,14 @@ public abstract class AbstractBuildingContainer extends AbstractSchematicProvide
     }
 
     @Override
-    public CompoundTag serializeNBT()
+    public CompoundTag serializeNBT(@NotNull final HolderLookup.Provider provider)
     {
-        final CompoundTag compound = super.serializeNBT();
+        final CompoundTag compound = super.serializeNBT(provider);
 
         @NotNull final ListTag containerTagList = new ListTag();
         for (@NotNull final BlockPos pos : containerList)
         {
-            containerTagList.add(NbtUtils.writeBlockPos(pos));
+            containerTagList.add(NBTUtils.writeBlockPos(pos));
         }
         compound.put(TAG_CONTAINERS, containerTagList);
         compound.putInt(TAG_PRIO, this.unscaledPickUpPriority);
@@ -139,8 +138,7 @@ public abstract class AbstractBuildingContainer extends AbstractSchematicProvide
     @Override
     public List<BlockPos> getContainers()
     {
-        final List<BlockPos> list = new ArrayList<>(containerList);
-        ;
+        final List<BlockPos> list = new ArrayList<>(containerList);;
         list.add(this.getPosition());
         return list;
     }
@@ -152,7 +150,7 @@ public abstract class AbstractBuildingContainer extends AbstractSchematicProvide
     }
 
     @Override
-    
+    @SuppressWarnings("squid:S1172")
     public void registerBlockPosition(@NotNull final Block block, @NotNull final BlockPos pos, @NotNull final Level world)
     {
         if (block instanceof AbstractBlockHut)
@@ -161,8 +159,7 @@ public abstract class AbstractBuildingContainer extends AbstractSchematicProvide
             if (entity instanceof TileEntityColonyBuilding buildingEntity)
             {
                 buildingEntity.setStructurePack(StructurePacks.getStructurePack(getStructurePack()));
-                buildingEntity.setMirror(isMirrored());
-                final IBuilding building = colony.getBuildingManager().getBuilding(pos);
+                final IBuilding building = colony.getServerBuildingManager().getBuilding(pos);
                 if (building != null)
                 {
                     building.setStructurePack(getStructurePack());
@@ -170,7 +167,7 @@ public abstract class AbstractBuildingContainer extends AbstractSchematicProvide
                 }
             }
         }
-        else if (block instanceof BlockSlimColoniesRack)
+        else if (block instanceof BlockMinecoloniesRack)
         {
             addContainerPosition(pos);
             final BlockEntity entity = world.getBlockEntity(pos);
@@ -182,8 +179,7 @@ public abstract class AbstractBuildingContainer extends AbstractSchematicProvide
     }
 
     /**
-     * Gets the list of tags, and finds the first location registered there.
-     *
+     * Gets the list of tags, and finds the first location registered there. 
      * @param tagName the name of the tag to query
      * @return the BlockPos, or null if not found
      */
@@ -197,9 +193,9 @@ public abstract class AbstractBuildingContainer extends AbstractSchematicProvide
     @Override
     public List<BlockPos> getLocationsFromTag(@NotNull final String tagName)
     {
-        if (tileEntity != null)
+        if (getTileEntity() != null)
         {
-            return tileEntity.getCachedWorldTagNamePosMap().getOrDefault(tagName, Collections.emptyList());
+            return getTileEntity().getCachedWorldTagNamePosMap().getOrDefault(tagName, Collections.emptyList());
         }
         return Collections.emptyList();
     }
@@ -214,18 +210,14 @@ public abstract class AbstractBuildingContainer extends AbstractSchematicProvide
         }
     }
 
-    //------------------------- !Start! Capabilities handling for minecolonies buildings -------------------------//
+    //------------------------- !Start! Capabilities handling for slimcolonies buildings -------------------------//
 
-    @Nonnull
     @Override
-    public <T> LazyOptional<T> getCapability(@Nonnull final Capability<T> cap, @Nullable final Direction side)
+    public @Nullable IItemHandler getItemHandlerCap(Direction direction)
     {
-        if (cap == ForgeCapabilities.ITEM_HANDLER && getTileEntity() != null)
-        {
-            return tileEntity.getCapability(cap, side);
-        }
-        return LazyOptional.empty();
+        final AbstractTileEntityColonyBuilding tileEntity = getTileEntity();
+        return tileEntity == null ? null : tileEntity.getItemHandlerCap(direction);
     }
 
-    //------------------------- !End! Capabilities handling for minecolonies buildings -------------------------//
+    //------------------------- !End! Capabilities handling for slimcolonies buildings -------------------------//
 }

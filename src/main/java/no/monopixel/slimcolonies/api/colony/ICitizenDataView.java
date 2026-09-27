@@ -3,10 +3,11 @@ package no.monopixel.slimcolonies.api.colony;
 import no.monopixel.slimcolonies.api.colony.interactionhandling.IInteractionResponseHandler;
 import no.monopixel.slimcolonies.api.colony.jobs.IJobView;
 import no.monopixel.slimcolonies.api.entity.citizen.VisibleCitizenStatus;
+import no.monopixel.slimcolonies.api.entity.citizen.citizenhandlers.ICitizenHappinessHandler;
 import no.monopixel.slimcolonies.api.entity.citizen.citizenhandlers.ICitizenSkillHandler;
 import no.monopixel.slimcolonies.api.util.Tuple;
 import net.minecraft.core.BlockPos;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.resources.ResourceLocation;
@@ -70,6 +71,12 @@ public interface ICitizenDataView extends ICitizen
      */
     int getColonyId();
 
+    /**
+     * Gets the current Happiness value for the citizen
+     *
+     * @return citizens current Happiness value
+     */
+    double getHappiness();
 
     /**
      * Get the last registered position of the citizen.
@@ -83,7 +90,7 @@ public interface ICitizenDataView extends ICitizen
      *
      * @param buf Byte buffer to deserialize.
      */
-    void deserialize(@NotNull FriendlyByteBuf buf);
+    void deserialize(@NotNull RegistryFriendlyByteBuf buf);
 
     /**
      * @return current health.
@@ -120,7 +127,7 @@ public interface ICitizenDataView extends ICitizen
 
     /**
      * Check if the citizen has any visible interactions.
-     *
+     * 
      * @return true if so.
      */
     boolean hasVisibleStatus();
@@ -139,6 +146,12 @@ public interface ICitizenDataView extends ICitizen
      */
     ICitizenSkillHandler getCitizenSkillHandler();
 
+    /**
+     * The citizen happiness handler.
+     *
+     * @return the handler.
+     */
+    ICitizenHappinessHandler getHappinessHandler();
 
     /**
      * The texture to render for interactions
@@ -224,4 +237,12 @@ public interface ICitizenDataView extends ICitizen
      */
     ItemStack getDisplayArmor(EquipmentSlot equipmentSlot);
 
+    /**
+     * Check if sick.
+     * @return true if so.
+     */
+    boolean isSick();
+
+    @Override
+    IColonyView getColony();
 }

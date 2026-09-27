@@ -1,0 +1,31 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "ingredients": [
+    {
+      "item": "slimcolonies:onion"
+    },
+    {
+      "item": "slimcolonies:garlic"
+    },
+    {
+      "item": "slimcolonies:eggplant"
+    },
+    {
+      "item": "minecraft:carrot"
+    },
+    {
+      "item": "slimcolonies:cooked_rice"
+    },
+    {
+      "item": "minecraft:egg"
+    },
+    {
+      "tag": "slimcolonies:rawmeat"
+    }
+  ],
+  "result": {
+    "count": 1,
+    "id": "slimcolonies:fried_rice"
+  }
+}

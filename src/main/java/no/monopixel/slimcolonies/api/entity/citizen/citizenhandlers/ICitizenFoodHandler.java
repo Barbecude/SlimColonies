@@ -12,6 +12,12 @@ import com.google.common.collect.ImmutableList;
  */
 public interface ICitizenFoodHandler
 {
+    /**
+     * Food happiness stats.
+     * @param diversity number of diverse foods eaten.
+     * @param quality number of quality foods eaten.
+     */
+    record CitizenFoodStats(int diversity, int quality) {}
 
     /**
      * Add last eaten food item.
@@ -25,7 +31,18 @@ public interface ICitizenFoodHandler
      */
     Item getLastEaten();
 
+    /**
+     * Check when we last ate a given food item.
+     * -1 if not eaten recently.
+     * @param item the food item we last ate.
+     * @return the index in the list or -1 for not recently or oldest food in queue
+     */
+    int checkLastEaten(Item item);
 
+    /**
+     * Get the food happiness stats
+     */
+    CitizenFoodStats getFoodHappinessStats();
 
     /**
      * Read from nbt.
@@ -39,6 +56,12 @@ public interface ICitizenFoodHandler
      */
     void write(CompoundTag compound);
 
+    /**
+     * Disease modifier based on the food values.
+     * @param baseModifier the modifier to the original disease chance.
+     * @return the modifier.
+     */
+    double getDiseaseModifier(double baseModifier);
 
     /**
      * If the citizen has a full food history to allow a good analysis.

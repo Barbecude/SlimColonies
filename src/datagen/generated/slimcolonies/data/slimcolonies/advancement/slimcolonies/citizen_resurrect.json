@@ -1,0 +1,26 @@
+{
+  "parent": "slimcolonies:slimcolonies/citizen_bury",
+  "criteria": {
+    "resurrected": {
+      "trigger": "slimcolonies:citizen_resurrect"
+    }
+  },
+  "display": {
+    "description": {
+      "translate": "advancements.slimcolonies.citizen.resurrect.description"
+    },
+    "icon": {
+      "count": 1,
+      "id": "slimcolonies:blockhutgraveyard"
+    },
+    "title": {
+      "translate": "advancements.slimcolonies.citizen.resurrect.title"
+    }
+  },
+  "requirements": [
+    [
+      "resurrected"
+    ]
+  ],
+  "sends_telemetry_event": true
+}

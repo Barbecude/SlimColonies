@@ -1,8 +1,9 @@
 package no.monopixel.slimcolonies.core.colony.eventhooks.buildingEvents;
 
 import no.monopixel.slimcolonies.api.util.constant.Constants;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.core.BlockPos;
 import org.jetbrains.annotations.NotNull;
@@ -12,10 +13,11 @@ import org.jetbrains.annotations.NotNull;
  */
 public class BuildingUpgradedEvent extends AbstractBuildingEvent
 {
+
     /**
      * This events id, registry entries use res locations as ids.
      */
-    public static final ResourceLocation BUILDING_UPGRADED_EVENT_ID = ResourceLocation.fromNamespaceAndPath(Constants.MOD_ID, "building_upgraded");
+    public static final ResourceLocation BUILDING_UPGRADED_EVENT_ID = new ResourceLocation(Constants.MOD_ID, "building_upgraded");
 
     /**
      * Creates a new building upgraded event.
@@ -27,14 +29,14 @@ public class BuildingUpgradedEvent extends AbstractBuildingEvent
 
     /**
      * Creates a new building upgraded event.
-     *
+     * 
      * @param eventPos      the position of the hut block of the building.
      * @param buildingName  the name of the building.
      * @param buildingLevel the level of the building after this event.
      */
-    public BuildingUpgradedEvent(final BlockPos eventPos, final String buildingName, final int buildingLevel)
+    public BuildingUpgradedEvent(BlockPos eventPos, String buildingName, int buildingLevel)
     {
-        super(false, eventPos, buildingName, buildingLevel);
+        super(eventPos, buildingName, buildingLevel);
     }
 
     @Override
@@ -55,10 +57,10 @@ public class BuildingUpgradedEvent extends AbstractBuildingEvent
      * @param compound the NBT compound
      * @return the colony to load.
      */
-    public static BuildingUpgradedEvent loadFromNBT(@NotNull final CompoundTag compound)
+    public static BuildingUpgradedEvent loadFromNBT(@NotNull final HolderLookup.Provider provider, @NotNull final CompoundTag compound)
     {
         final BuildingUpgradedEvent upgradeEvent = new BuildingUpgradedEvent();
-        upgradeEvent.deserializeNBT(compound);
+        upgradeEvent.deserializeNBT(provider, compound);
         return upgradeEvent;
     }
 
@@ -68,7 +70,7 @@ public class BuildingUpgradedEvent extends AbstractBuildingEvent
      * @param buf the packet buffer.
      * @return the colony to load.
      */
-    public static BuildingUpgradedEvent loadFromFriendlyByteBuf(@NotNull final FriendlyByteBuf buf)
+    public static BuildingUpgradedEvent loadFromFriendlyByteBuf(@NotNull final RegistryFriendlyByteBuf buf)
     {
         final BuildingUpgradedEvent upgradeEvent = new BuildingUpgradedEvent();
         upgradeEvent.deserialize(buf);

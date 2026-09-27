@@ -8,6 +8,8 @@ import static no.monopixel.slimcolonies.api.util.constant.Constants.MOD_ID;
 
 public class ModRecipeTypes
 {
+    public static final RecipeType<CropRecipeCategory.CropRecipe> CROPS =
+        RecipeType.create(MOD_ID, "crops", CropRecipeCategory.CropRecipe.class);
 
     public static final RecipeType<CompostRecipe> COMPOSTING =
             RecipeType.create(MOD_ID, "composting", CompostRecipe.class);

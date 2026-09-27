@@ -9,8 +9,7 @@ import no.monopixel.slimcolonies.api.crafting.ModCraftingTypes;
 import no.monopixel.slimcolonies.api.inventory.container.ContainerCraftingFurnace;
 import no.monopixel.slimcolonies.api.util.ItemStackUtils;
 import no.monopixel.slimcolonies.api.util.constant.Constants;
-import no.monopixel.slimcolonies.core.Network;
-import no.monopixel.slimcolonies.core.client.gui.modules.WindowSelectRequest;
+import no.monopixel.slimcolonies.core.client.gui.modules.building.WindowSelectRequest;
 import no.monopixel.slimcolonies.core.colony.buildings.moduleviews.CraftingModuleView;
 import no.monopixel.slimcolonies.core.colony.buildings.views.AbstractBuildingView;
 import no.monopixel.slimcolonies.core.network.messages.server.colony.building.worker.AddRemoveRecipeMessage;
@@ -33,8 +32,8 @@ import java.util.List;
 import java.util.Map;
 
 import static no.monopixel.slimcolonies.api.util.constant.TranslationConstants.WARNING_MAXIMUM_NUMBER_RECIPES;
+import static no.monopixel.slimcolonies.api.util.constant.WindowConstants.CRAFTING_LIST;
 import static no.monopixel.slimcolonies.api.util.constant.WindowConstants.CRAFTING_SWITCH_SIZE;
-import static no.monopixel.slimcolonies.api.util.constant.WindowConstants.CRAFTING_SWITCH_TEXTURE;
 import static no.monopixel.slimcolonies.api.util.constant.translation.BaseGameTranslationConstants.BASE_GUI_DONE;
 
 /**
@@ -42,7 +41,7 @@ import static no.monopixel.slimcolonies.api.util.constant.translation.BaseGameTr
  */
 public class WindowFurnaceCrafting extends AbstractContainerScreen<ContainerCraftingFurnace>
 {
-    private static final ResourceLocation CRAFTING_FURNACE = ResourceLocation.fromNamespaceAndPath(Constants.MOD_ID, "textures/gui/furnace.png");
+    private static final ResourceLocation CRAFTING_FURNACE = new ResourceLocation(Constants.MOD_ID, "textures/gui/furnace.png");
 
     /**
      * X offset of the button.
@@ -98,7 +97,7 @@ public class WindowFurnaceCrafting extends AbstractContainerScreen<ContainerCraf
     {
         super(container, playerInventory, iTextComponent);
         this.container = container;
-        this.building = (AbstractBuildingView) IColonyManager.getInstance().getBuildingView(playerInventory.player.level.dimension(), container.getPos());
+        this.building = (AbstractBuildingView) IColonyManager.getInstance().getBuildingView(playerInventory.player.level().dimension(), container.getPos());
         this.module =(CraftingModuleView) building.getModuleView(container.getModuleId());
     }
 
@@ -112,7 +111,7 @@ public class WindowFurnaceCrafting extends AbstractContainerScreen<ContainerCraf
     protected void init()
     {
         super.init();
-        final Component buttonDisplay = Component.translatable(module.canLearn(ModCraftingTypes.SMELTING.get()) ? BASE_GUI_DONE : WARNING_MAXIMUM_NUMBER_RECIPES);
+        final Component buttonDisplay = Component.translatableEscape(module.canLearn(ModCraftingTypes.SMELTING.get()) ? BASE_GUI_DONE : WARNING_MAXIMUM_NUMBER_RECIPES);
         /*
          * The button to click done after finishing the recipe.
          */
@@ -124,10 +123,10 @@ public class WindowFurnaceCrafting extends AbstractContainerScreen<ContainerCraf
         }
 
         final ImageButton requestsButton = new ImageButton(leftPos + REQUEST_X_OFFSET, topPos + REQUEST_Y_OFFSET, CRAFTING_SWITCH_SIZE.width, CRAFTING_SWITCH_SIZE.height,
-                CRAFTING_SWITCH_SIZE.width + 1, 0, CRAFTING_SWITCH_SIZE.height + 1, CRAFTING_SWITCH_TEXTURE, btn ->
+                CRAFTING_LIST, btn ->
         {
             requestables.clear();
-            new WindowSelectRequest(this.building, this::matchingRequest, this::reopenWithRequest).open();
+            new WindowSelectRequest(module, this::matchingRequest, this::reopenWithRequest).open();
         });
         requestsButton.visible = Compatibility.jeiProxy.isLoaded();
         this.addRenderableWidget(requestsButton);
@@ -146,7 +145,7 @@ public class WindowFurnaceCrafting extends AbstractContainerScreen<ContainerCraf
 
                 if (!ItemStackUtils.isEmpty(primaryOutput))
                 {
-                    Network.getNetwork().sendToServer(new AddRemoveRecipeMessage(building, input, 1, primaryOutput, false, Blocks.FURNACE, module.getProducer().getRuntimeID()));
+                    new AddRemoveRecipeMessage(building, input, 1, primaryOutput, false, Blocks.FURNACE, module.getProducer().getRuntimeID()).sendToServer();
                 }
             }
         }
@@ -188,7 +187,6 @@ public class WindowFurnaceCrafting extends AbstractContainerScreen<ContainerCraf
     @Override
     public void render(@NotNull final GuiGraphics stack, int x, int y, float z)
     {
-        this.renderBackground(stack);
         super.render(stack, x, y, z);
         this.renderTooltip(stack, x, y);
     }

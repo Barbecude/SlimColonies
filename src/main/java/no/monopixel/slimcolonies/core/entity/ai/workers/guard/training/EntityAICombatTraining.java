@@ -25,7 +25,7 @@ import static no.monopixel.slimcolonies.api.util.constant.CitizenConstants.TICKS
 import static no.monopixel.slimcolonies.api.util.constant.GuardConstants.*;
 import static no.monopixel.slimcolonies.api.util.constant.StatisticsConstants.LEVELS_GAINED;
 
-
+@SuppressWarnings("squid:MaximumInheritanceDepth")
 public class EntityAICombatTraining extends AbstractEntityAITraining<JobCombatTraining, BuildingCombatAcademy>
 {
     /**
@@ -181,6 +181,7 @@ public class EntityAICombatTraining extends AbstractEntityAITraining<JobCombatTr
             int priorSecondaryLevel = getSecondarySkillLevel();
 
             worker.getCitizenExperienceHandler().addExperience(XP_BASE_RATE);
+            worker.decreaseSaturationForAction();
             worker.lookAt(trainingPartner, (float) TURN_AROUND, (float) TURN_AROUND);
             WorkerUtil.faceBlock(trainingPartner.blockPosition().above(), worker);
             worker.stopUsingItem();
@@ -285,6 +286,7 @@ public class EntityAICombatTraining extends AbstractEntityAITraining<JobCombatTr
             int priorSecondaryLevel = getSecondarySkillLevel();
 
             worker.getCitizenExperienceHandler().addExperience(XP_BASE_RATE);
+            worker.decreaseSaturationForAction();
             WorkerUtil.faceBlock(currentCombatTarget, worker);
             worker.stopUsingItem();
 
@@ -340,7 +342,7 @@ public class EntityAICombatTraining extends AbstractEntityAITraining<JobCombatTr
             return false;
         }
 
-        final int weaponSlot = InventoryUtils.getFirstSlotOfItemHandlerContainingEquipment(getInventory(), ModEquipmentTypes.sword.get(), 0, Integer.MAX_VALUE);
+        final int weaponSlot = InventoryUtils.getFirstSlotOfItemHandlerContainingEquipment(getInventory(), ModEquipmentTypes.sword.get(), 0, building.getMaxEquipmentLevel());
         if (weaponSlot != -1)
         {
             CitizenItemUtils.setHeldItem(worker, InteractionHand.MAIN_HAND, weaponSlot);

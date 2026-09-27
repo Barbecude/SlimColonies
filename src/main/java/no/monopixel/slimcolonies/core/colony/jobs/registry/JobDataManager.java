@@ -11,8 +11,9 @@ import no.monopixel.slimcolonies.api.colony.jobs.registry.IJobRegistry;
 import no.monopixel.slimcolonies.api.colony.jobs.registry.JobEntry;
 import no.monopixel.slimcolonies.api.util.Log;
 import no.monopixel.slimcolonies.api.util.constant.NbtTagConstants;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -23,8 +24,7 @@ public final class JobDataManager implements IJobDataManager
 {
     @Nullable
     @Override
-    public IJob<?> createFrom(
-      final ICitizenData citizen, @NotNull final CompoundTag compound)
+    public IJob<?> createFrom(final ICitizenData citizen, @NotNull final CompoundTag compound, @NotNull final HolderLookup.Provider provider)
     {
         String jobTypeName = compound.getString(NbtTagConstants.TAG_JOB_TYPE);
 
@@ -37,21 +37,21 @@ public final class JobDataManager implements IJobDataManager
             return null;
         }
 
-        JobEntry jobEntry = IJobRegistry.getInstance().getValue(jobType);
+        Optional<JobEntry> jobEntry = IJobRegistry.getInstance().getOptional(jobType);
 
-        if (jobEntry == null)
+        if (jobEntry == null || jobEntry.isEmpty())
         {
             Log.getLogger().error(String.format("Unknown job entry for type '%s'.", jobTypeName), new Exception());
             return null;
         }
 
-        final IJob<?> job = Optional.ofNullable(jobEntry).map(r -> r.produceJob(citizen)).orElse(null);
+        final IJob<?> job = Optional.ofNullable(jobEntry.get()).map(r -> r.produceJob(citizen)).orElse(null);
 
         if (job != null)
         {
             try
             {
-                job.deserializeNBT(compound);
+                job.deserializeNBT(provider, compound);
             }
             catch (final RuntimeException ex)
             {
@@ -70,10 +70,10 @@ public final class JobDataManager implements IJobDataManager
 
     @Override
     public IJobView createViewFrom(
-      final IColonyView colony, final ICitizenDataView citizenDataView, final FriendlyByteBuf networkBuffer)
+      final IColonyView colony, final ICitizenDataView citizenDataView, final RegistryFriendlyByteBuf networkBuffer)
     {
-        final ResourceLocation jobName = new ResourceLocation(networkBuffer.readUtf(32767));
-        final JobEntry entry = IJobRegistry.getInstance().getValue(jobName);
+        final ResourceLocation jobName = ResourceLocation.parse(networkBuffer.readUtf(32767));
+        final JobEntry entry = IJobRegistry.getInstance().get(jobName);
 
         if (entry == null)
         {

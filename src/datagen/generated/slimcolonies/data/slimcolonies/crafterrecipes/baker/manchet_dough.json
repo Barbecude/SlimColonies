@@ -1,0 +1,21 @@
+{
+  "type": "recipe",
+  "crafter": "baker_crafting",
+  "inputs": [
+    {
+      "id": "slimcolonies:durum"
+    },
+    {
+      "id": "slimcolonies:durum"
+    },
+    {
+      "id": "slimcolonies:butter"
+    }
+  ],
+  "intermediate": "minecraft:air",
+  "result": {
+    "count": 2,
+    "id": "slimcolonies:manchet_dough"
+  },
+  "show-tooltip": true
+}

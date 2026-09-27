@@ -1,0 +1,26 @@
+{
+  "criteria": {
+    "supply_ship_placed": {
+      "trigger": "slimcolonies:supply_placed"
+    }
+  },
+  "display": {
+    "background": "minecraft:textures/block/light_gray_wool.png",
+    "description": {
+      "translate": "advancements.slimcolonies.root.description"
+    },
+    "icon": {
+      "count": 1,
+      "id": "slimcolonies:supplychestdeployer"
+    },
+    "title": {
+      "translate": "advancements.slimcolonies.root.title"
+    }
+  },
+  "requirements": [
+    [
+      "supply_ship_placed"
+    ]
+  ],
+  "sends_telemetry_event": true
+}

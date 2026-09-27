@@ -5,9 +5,10 @@ import no.monopixel.slimcolonies.api.research.requirements.BuildingAlternatesRes
 import no.monopixel.slimcolonies.api.research.requirements.BuildingResearchRequirement;
 import no.monopixel.slimcolonies.api.research.requirements.ResearchResearchRequirement;
 import no.monopixel.slimcolonies.api.util.constant.Constants;
+import no.monopixel.slimcolonies.apiimp.CommonMinecoloniesAPIImpl;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraftforge.registries.DeferredRegister;
-import net.minecraftforge.registries.RegistryObject;
+import net.neoforged.neoforge.registries.DeferredHolder;
+import net.neoforged.neoforge.registries.DeferredRegister;
 
 import static no.monopixel.slimcolonies.api.research.ModResearchRequirements.*;
 
@@ -16,8 +17,7 @@ import static no.monopixel.slimcolonies.api.research.ModResearchRequirements.*;
  */
 public class ModResearchRequirementInitializer
 {
-    public final static DeferredRegister<ResearchRequirementEntry> DEFERRED_REGISTER =
-        DeferredRegister.create(ResourceLocation.fromNamespaceAndPath(Constants.MOD_ID, "researchrequirementtypes"), Constants.MOD_ID);
+    public final static DeferredRegister<ResearchRequirementEntry> DEFERRED_REGISTER = DeferredRegister.create(CommonMinecoloniesAPIImpl.RESEARCH_REQUIREMENT_TYPES, Constants.MOD_ID);
     static
     {
         buildingResearchRequirement = create(BUILDING_RESEARCH_REQ_ID, BuildingResearchRequirement::new, BuildingResearchRequirement::new);
@@ -39,7 +39,7 @@ public class ModResearchRequirementInitializer
      * @param readFromJson function to read this item from NBT.
      * @return the finalized registry object.
      */
-    private static RegistryObject<ResearchRequirementEntry> create(
+    private static DeferredHolder<ResearchRequirementEntry, ResearchRequirementEntry> create(
         final ResourceLocation registryName,
         final ReadFromNBTFunction readFromNBT,
         final ReadFromJsonFunction readFromJson)

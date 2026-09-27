@@ -18,7 +18,6 @@ import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.AirBlock;
 import net.minecraft.world.level.block.Block;
-import net.minecraft.world.level.block.Rotation;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.levelgen.structure.BoundingBox;
@@ -55,6 +54,11 @@ public final class BlockPosUtil
      * All directions.
      */
     public static final List<Direction> HORIZONTAL_DIRS = Arrays.asList(Direction.NORTH, Direction.SOUTH, Direction.EAST, Direction.WEST);
+
+    /**
+     * Hopefully future proof safe zero pos
+     */
+    public static final BlockPos SAFE_ZERO = BlockPos.ZERO.below(1 << 12); // should be less than two bytes of var_int
 
     /**
      * Selects a solid position with air above
@@ -791,7 +795,7 @@ public final class BlockPosUtil
      * @param pos1Z start-z
      * @param pos2X end-x
      * @param pos2Z end-z
-     * @return the direction.
+     * @return the horizontal direction or "up" if it faces neither.
      */
     public static Direction getXZFacing(final int pos1X, final int pos1Z, final int pos2X, final int pos2Z)
     {
@@ -807,10 +811,11 @@ public final class BlockPosUtil
         {
             return Direction.NORTH;
         }
-        else
+        else if (pos2Z > pos1Z)
         {
             return Direction.SOUTH;
         }
+        return Direction.UP;
     }
 
     /**
@@ -966,8 +971,8 @@ public final class BlockPosUtil
          */
         DirectionResult(final String longText, final String shortText)
         {
-            this.longText = Component.translatable(longText);
-            this.shortText = Component.translatable(shortText);
+            this.longText = Component.translatableEscape(longText);
+            this.shortText = Component.translatableEscape(shortText);
         }
 
         /**
@@ -997,27 +1002,6 @@ public final class BlockPosUtil
         public Component getShortText()
         {
             return shortText;
-        }
-    }
-
-    /**
-     * Get the rotation enum value from the amount of rotations.
-     *
-     * @param rotations the amount of rotations.
-     * @return the enum Rotation.
-     */
-    public static Rotation getRotationFromRotations(final int rotations)
-    {
-        switch (rotations)
-        {
-            case ROTATE_ONCE:
-                return Rotation.CLOCKWISE_90;
-            case ROTATE_TWICE:
-                return Rotation.CLOCKWISE_180;
-            case ROTATE_THREE_TIMES:
-                return Rotation.COUNTERCLOCKWISE_90;
-            default:
-                return Rotation.NONE;
         }
     }
 

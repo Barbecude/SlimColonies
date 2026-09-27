@@ -1,16 +1,15 @@
 package no.monopixel.slimcolonies.core.tileentities;
 
-import net.minecraft.core.BlockPos;
-import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.level.block.entity.BlockEntity;
-import net.minecraft.world.level.block.state.BlockState;
-import net.minecraftforge.common.capabilities.ForgeCapabilities;
 import no.monopixel.slimcolonies.api.inventory.InventoryCitizen;
 import no.monopixel.slimcolonies.api.tileentities.AbstractTileEntityRack;
 import no.monopixel.slimcolonies.api.tileentities.AbstractTileEntityWareHouse;
-import no.monopixel.slimcolonies.api.tileentities.SlimColoniesTileEntities;
+import no.monopixel.slimcolonies.api.tileentities.MinecoloniesTileEntities;
 import no.monopixel.slimcolonies.api.util.*;
 import no.monopixel.slimcolonies.core.colony.buildings.modules.BuildingModules;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.level.block.state.BlockState;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -30,11 +29,11 @@ public class TileEntityWareHouse extends AbstractTileEntityWareHouse
     /**
      * Time of last sent notifications.
      */
-    private long lastNotification = 0;
+    private long lastNotification                   = 0;
 
     public TileEntityWareHouse(final BlockPos pos, final BlockState state)
     {
-        super(SlimColoniesTileEntities.WAREHOUSE.get(), pos, state);
+        super(MinecoloniesTileEntities.WAREHOUSE.get(), pos, state);
         inWarehouse = true;
     }
 
@@ -103,7 +102,7 @@ public class TileEntityWareHouse extends AbstractTileEntityWareHouse
     public List<Tuple<ItemStack, BlockPos>> getMatchingItemStacksInWarehouse(@NotNull final Predicate<ItemStack> itemStackSelectionPredicate)
     {
         List<Tuple<ItemStack, BlockPos>> found = new ArrayList<>();
-
+        
         if (getBuilding() != null)
         {
             for (@NotNull final BlockPos pos : getBuilding().getContainers())
@@ -135,46 +134,43 @@ public class TileEntityWareHouse extends AbstractTileEntityWareHouse
                 continue;
             }
 
-            @Nullable final BlockEntity chest = getRackForStack(stack);
+            @Nullable final AbstractTileEntityRack chest = getRackForStack(stack);
             if (chest == null)
             {
-                if (level.getGameTime() - lastNotification > TICKS_FIVE_MIN)
+                if(level.getGameTime() - lastNotification > TICKS_FIVE_MIN)
                 {
                     lastNotification = level.getGameTime();
                     if (getBuilding().getBuildingLevel() == getBuilding().getMaxBuildingLevel())
                     {
                         if (getBuilding().getModule(BuildingModules.WAREHOUSE_OPTIONS).getStorageUpgrade() < MAX_STORAGE_UPGRADE)
                         {
-                            MessageUtils.format(COREMOD_WAREHOUSE_FULL_LEVEL5_UPGRADE).sendTo(getColony()).forAllPlayers();
+                            MessageUtils.format(COM_MINECOLONIES_COREMOD_WAREHOUSE_FULL_LEVEL5_UPGRADE).sendTo(getColony()).forAllPlayers();
                         }
                         else
                         {
-                            MessageUtils.format(COREMOD_WAREHOUSE_FULL_MAX_UPGRADE).sendTo(getColony()).forAllPlayers();
+                            MessageUtils.format(COM_MINECOLONIES_COREMOD_WAREHOUSE_FULL_MAX_UPGRADE).sendTo(getColony()).forAllPlayers();
                         }
                     }
                     else
                     {
-                        MessageUtils.format(COREMOD_WAREHOUSE_FULL).sendTo(getColony()).forAllPlayers();
+                        MessageUtils.format(COM_MINECOLONIES_COREMOD_WAREHOUSE_FULL).sendTo(getColony()).forAllPlayers();
                     }
                 }
                 return;
             }
 
-            final int index = i;
-            chest.getCapability(ForgeCapabilities.ITEM_HANDLER, null)
-                .ifPresent(handler -> InventoryUtils.transferItemStackIntoNextBestSlotInItemHandler(inventoryCitizen, index, handler));
+            InventoryUtils.transferItemStackIntoNextBestSlotInItemHandler(inventoryCitizen, i, chest.getItemHandlerCap());
         }
     }
 
     /**
      * Get a rack for a stack.
-     *
      * @param stack the stack to insert.
      * @return the matching rack.
      */
-    public BlockEntity getRackForStack(final ItemStack stack)
+    public AbstractTileEntityRack getRackForStack(final ItemStack stack)
     {
-        BlockEntity rack = getPositionOfChestWithItemStack(stack);
+        AbstractTileEntityRack rack = getPositionOfChestWithItemStack(stack);
         if (rack == null)
         {
             rack = getPositionOfChestWithSimilarItemStack(stack);
@@ -193,18 +189,18 @@ public class TileEntityWareHouse extends AbstractTileEntityWareHouse
      * @return the tile entity of the chest
      */
     @Nullable
-    private BlockEntity getPositionOfChestWithItemStack(@NotNull final ItemStack stack)
+    private AbstractTileEntityRack getPositionOfChestWithItemStack(@NotNull final ItemStack stack)
     {
         for (@NotNull final BlockPos pos : getBuilding().getContainers())
         {
             if (WorldUtil.isBlockLoaded(level, pos))
             {
                 final BlockEntity entity = getLevel().getBlockEntity(pos);
-                if (entity instanceof AbstractTileEntityRack)
+                if (entity instanceof final AbstractTileEntityRack rack)
                 {
-                    if (((AbstractTileEntityRack) entity).getFreeSlots() > 0 && ((AbstractTileEntityRack) entity).hasItemStack(stack, 1, true))
+                    if (rack.getFreeSlots() > 0 && rack.hasItemStack(stack, 1, true))
                     {
-                        return entity;
+                        return rack;
                     }
                 }
             }
@@ -220,18 +216,18 @@ public class TileEntityWareHouse extends AbstractTileEntityWareHouse
      * @return the entity of the chest.
      */
     @Nullable
-    private BlockEntity getPositionOfChestWithSimilarItemStack(final ItemStack stack)
+    private AbstractTileEntityRack getPositionOfChestWithSimilarItemStack(final ItemStack stack)
     {
         for (@NotNull final BlockPos pos : getBuilding().getContainers())
         {
             if (WorldUtil.isBlockLoaded(level, pos))
             {
                 final BlockEntity entity = getLevel().getBlockEntity(pos);
-                if (entity instanceof AbstractTileEntityRack)
+                if (entity instanceof final AbstractTileEntityRack rack)
                 {
-                    if (((AbstractTileEntityRack) entity).getFreeSlots() > 0 && ((AbstractTileEntityRack) entity).hasSimilarStack(stack))
+                    if (rack.getFreeSlots() > 0 && rack.hasSimilarStack(stack))
                     {
-                        return entity;
+                        return rack;
                     }
                 }
             }
@@ -245,25 +241,25 @@ public class TileEntityWareHouse extends AbstractTileEntityWareHouse
      * @return the tileEntity of this chest.
      */
     @Nullable
-    private BlockEntity searchMostEmptyRack()
+    private AbstractTileEntityRack searchMostEmptyRack()
     {
         int freeSlots = 0;
-        BlockEntity emptiestChest = null;
+        AbstractTileEntityRack emptiestChest = null;
         for (@NotNull final BlockPos pos : getBuilding().getContainers())
         {
             final BlockEntity entity = getLevel().getBlockEntity(pos);
-            if (entity instanceof TileEntityRack)
+            if (entity instanceof final TileEntityRack rack)
             {
-                if (((AbstractTileEntityRack) entity).isEmpty())
+                if (rack.isEmpty())
                 {
-                    return entity;
+                    return rack;
                 }
 
-                final int tempFreeSlots = ((AbstractTileEntityRack) entity).getFreeSlots();
+                final int tempFreeSlots = rack.getFreeSlots();
                 if (tempFreeSlots > freeSlots)
                 {
                     freeSlots = tempFreeSlots;
-                    emptiestChest = entity;
+                    emptiestChest = rack;
                 }
             }
         }

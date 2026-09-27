@@ -5,8 +5,10 @@ import no.monopixel.slimcolonies.api.colony.buildings.modules.IPersistentModule;
 import no.monopixel.slimcolonies.api.colony.managers.interfaces.IStatisticsManager;
 import no.monopixel.slimcolonies.api.util.MathUtils;
 import no.monopixel.slimcolonies.core.colony.managers.StatisticsManager;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Building statistic module.
@@ -19,19 +21,19 @@ public class BuildingStatisticsModule extends AbstractBuildingModule implements 
     private IStatisticsManager statisticsManager = new StatisticsManager();
 
     @Override
-    public void deserializeNBT(final CompoundTag compound)
+    public void deserializeNBT(@NotNull final HolderLookup.Provider provider, final CompoundTag compound)
     {
         statisticsManager.readFromNBT(compound);
     }
 
     @Override
-    public void serializeNBT(final CompoundTag compound)
+    public void serializeNBT(@NotNull final HolderLookup.Provider provider, CompoundTag compound)
     {
         statisticsManager.writeToNBT(compound);
     }
 
     @Override
-    public void serializeToView(final FriendlyByteBuf buf, final boolean fullSync)
+    public void serializeToView(final RegistryFriendlyByteBuf buf, final boolean fullSync)
     {
         statisticsManager.serialize(buf, fullSync);
     }

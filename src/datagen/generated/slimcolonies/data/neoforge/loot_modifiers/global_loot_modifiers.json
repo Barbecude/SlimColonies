@@ -1,0 +1,14 @@
+{
+  "entries": [
+    "slimcolonies:supplycamp_loot",
+    "slimcolonies:supplyship_loot",
+    "slimcolonies:crops/blocks/dead_bush",
+    "slimcolonies:crops/dungeon",
+    "slimcolonies:crops/blocks/tall_grass",
+    "slimcolonies:crops/blocks/small_dripleaf",
+    "slimcolonies:crops/blocks/seagrass",
+    "slimcolonies:crops/blocks/short_grass",
+    "slimcolonies:crops/blocks/fern"
+  ],
+  "replace": false
+}

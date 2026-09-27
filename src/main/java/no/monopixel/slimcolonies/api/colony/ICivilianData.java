@@ -4,12 +4,11 @@ import no.monopixel.slimcolonies.api.colony.interactionhandling.IInteractionResp
 import no.monopixel.slimcolonies.api.colony.requestsystem.requestable.IRequestable;
 import no.monopixel.slimcolonies.api.colony.requestsystem.token.IToken;
 import no.monopixel.slimcolonies.api.entity.citizen.AbstractCivilianEntity;
-import no.monopixel.slimcolonies.api.entity.citizen.AbstractEntityCitizen;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.player.Player;
-import net.minecraftforge.common.util.INBTSerializable;
+import net.neoforged.neoforge.common.util.INBTSerializable;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -91,7 +90,7 @@ public interface ICivilianData extends ICitizen, INBTSerializable<CompoundTag>
      *
      * @param buf Buffer to write to.
      */
-    void serializeViewNetworkData(@NotNull FriendlyByteBuf buf);
+    void serializeViewNetworkData(@NotNull RegistryFriendlyByteBuf buf);
 
     /**
      * Getter for the saturation.

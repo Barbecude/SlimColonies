@@ -7,9 +7,11 @@ import no.monopixel.slimcolonies.api.crafting.ItemStorage;
 import no.monopixel.slimcolonies.api.util.ItemStackUtils;
 import no.monopixel.slimcolonies.api.util.Log;
 import no.monopixel.slimcolonies.api.util.ReflectionUtils;
+import no.monopixel.slimcolonies.api.util.Utils;
 import no.monopixel.slimcolonies.api.util.constant.TypeConstants;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.world.item.ItemStack;
 import org.jetbrains.annotations.NotNull;
 
@@ -161,7 +163,7 @@ public class Stack implements IConcreteDeliverable
     {
         if (ItemStackUtils.isEmpty(stack))
         {
-            throw new IllegalArgumentException("Cannot create Stack request with empty ItemStack (likely from removed mod)");
+            Log.getLogger().error("Created Empty Stack: {}", stack, new Exception());
         }
 
         if (stack.getCount() != 1 && stack.getCount() != count)
@@ -185,17 +187,17 @@ public class Stack implements IConcreteDeliverable
      * @param input      the input.
      * @return the compound.
      */
-    public static CompoundTag serialize(final IFactoryController controller, final Stack input)
+    public static CompoundTag serialize(@NotNull final HolderLookup.Provider provider, final IFactoryController controller, final Stack input)
     {
         final CompoundTag compound = new CompoundTag();
-        compound.put(NBT_STACK, input.theStack.serializeNBT());
+        compound.put(NBT_STACK, input.theStack.saveOptional(provider));
         compound.putBoolean(NBT_MATCHMETA, input.matchDamage);
         compound.putBoolean(NBT_MATCHNBT, input.matchNBT);
         compound.putBoolean(NBT_BUILDING_RES, input.canBeResolvedByBuilding);
 
         if (!ItemStackUtils.isEmpty(input.result))
         {
-            compound.put(NBT_RESULT, input.result.serializeNBT());
+            compound.put(NBT_RESULT, input.result.saveOptional(provider));
         }
         compound.putInt(NBT_COUNT, input.getCount());
         compound.putInt(NBT_MINCOUNT, input.getMinimumCount());
@@ -210,14 +212,14 @@ public class Stack implements IConcreteDeliverable
      * @param compound   the compound.
      * @return the deliverable.
      */
-    public static Stack deserialize(final IFactoryController controller, final CompoundTag compound)
+    public static Stack deserialize(@NotNull final HolderLookup.Provider provider, final IFactoryController controller, final CompoundTag compound)
     {
-        final ItemStack stack = ItemStackUtils.deserializeFromNBT(compound.getCompound(NBT_STACK));
+        final ItemStack stack = ItemStackUtils.deserializeFromNBT(compound.getCompound(NBT_STACK), provider);
         final boolean matchMeta = compound.getBoolean(NBT_MATCHMETA);
         final boolean matchNBT = compound.getBoolean(NBT_MATCHNBT);
         final boolean canBeResolved = compound.contains(NBT_BUILDING_RES) ? compound.getBoolean(NBT_BUILDING_RES) : true;
 
-        final ItemStack result = compound.contains(NBT_RESULT) ? ItemStackUtils.deserializeFromNBT(compound.getCompound(NBT_RESULT)) : ItemStackUtils.EMPTY;
+        final ItemStack result = compound.contains(NBT_RESULT) ? ItemStackUtils.deserializeFromNBT(compound.getCompound(NBT_RESULT), provider) : ItemStackUtils.EMPTY;
 
         int count = compound.getInt("size");
         int minCount = count;
@@ -229,7 +231,7 @@ public class Stack implements IConcreteDeliverable
 
         if (stack.isEmpty())
         {
-            throw new IllegalArgumentException("Cannot deserialize Stack with empty ItemStack from NBT (likely removed mod): " + compound.toString());
+            Log.getLogger().error("Deserialized bad stack: {}", compound.toString());
         }
 
         return new Stack(stack, matchMeta, matchNBT, result, count, minCount, canBeResolved);
@@ -242,9 +244,9 @@ public class Stack implements IConcreteDeliverable
      * @param buffer     the the buffer to write to.
      * @param input      the input to serialize.
      */
-    public static void serialize(final IFactoryController controller, final FriendlyByteBuf buffer, final Stack input)
+    public static void serialize(final IFactoryController controller, final RegistryFriendlyByteBuf buffer, final Stack input)
     {
-        buffer.writeItem(input.theStack);
+        Utils.serializeCodecMess(buffer, input.theStack);
         buffer.writeBoolean(input.matchDamage);
         buffer.writeBoolean(input.matchNBT);
         buffer.writeBoolean(input.canBeResolvedByBuilding);
@@ -252,7 +254,7 @@ public class Stack implements IConcreteDeliverable
         buffer.writeBoolean(!ItemStackUtils.isEmpty(input.result));
         if (!ItemStackUtils.isEmpty(input.result))
         {
-            buffer.writeItem(input.result);
+            Utils.serializeCodecMess(buffer, input.result);
         }
         buffer.writeInt(input.getCount());
         buffer.writeInt(input.getMinimumCount());
@@ -265,21 +267,21 @@ public class Stack implements IConcreteDeliverable
      * @param buffer     the buffer to read.
      * @return the deliverable.
      */
-    public static Stack deserialize(final IFactoryController controller, final FriendlyByteBuf buffer)
+    public static Stack deserialize(final IFactoryController controller, final RegistryFriendlyByteBuf buffer)
     {
-        final ItemStack stack = buffer.readItem();
+        final ItemStack stack = Utils.deserializeCodecMess(buffer);
         final boolean matchMeta = buffer.readBoolean();
         final boolean matchNBT = buffer.readBoolean();
         final boolean canBeResolved = buffer.readBoolean();
 
-        final ItemStack result = buffer.readBoolean() ? buffer.readItem() : ItemStack.EMPTY;
+        final ItemStack result = buffer.readBoolean() ? Utils.deserializeCodecMess(buffer) : ItemStack.EMPTY;
 
         int count = buffer.readInt();
         int minCount = buffer.readInt();
 
         if (stack.isEmpty())
         {
-            throw new IllegalArgumentException("Cannot deserialize Stack with empty ItemStack from network buffer (likely removed mod)");
+            Log.getLogger().error("Deserialized bad stack {}", stack.toString());
         }
 
         return new Stack(stack, matchMeta, matchNBT, result, count, minCount, canBeResolved);

@@ -1,12 +1,13 @@
 package no.monopixel.slimcolonies.core.client.gui.citizen;
 
 import com.ldtteam.blockui.PaneBuilders;
-import com.ldtteam.blockui.controls.*;
+import com.ldtteam.blockui.controls.Button;
+import com.ldtteam.blockui.controls.Image;
+import com.ldtteam.blockui.controls.Text;
 import com.ldtteam.blockui.views.View;
 import no.monopixel.slimcolonies.api.colony.ICitizenDataView;
 import no.monopixel.slimcolonies.api.entity.citizen.Skill;
 import no.monopixel.slimcolonies.api.util.constant.Constants;
-import no.monopixel.slimcolonies.core.Network;
 import no.monopixel.slimcolonies.core.network.messages.server.colony.citizen.AdjustSkillCitizenMessage;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
@@ -18,13 +19,9 @@ import static no.monopixel.slimcolonies.api.util.constant.WindowConstants.*;
 /**
  * BOWindow for the citizen.
  */
+//TODO: Rework the layout, skills should be icons or shortform text with amount, left to right. This leaves more space and allows us to add missing important information such as current Job, home/work location etc
 public class MainWindowCitizen extends AbstractWindowCitizen
 {
-    /**
-     * The citizenData.View object.
-     */
-    private final ICitizenDataView citizen;
-
     /**
      * Tick function for updating every second.
      */
@@ -37,8 +34,7 @@ public class MainWindowCitizen extends AbstractWindowCitizen
      */
     public MainWindowCitizen(final ICitizenDataView citizen)
     {
-        super(citizen, Constants.MOD_ID + CITIZEN_MAIN_RESOURCE_SUFFIX);
-        this.citizen = citizen;
+        super(citizen, new ResourceLocation(Constants.MOD_ID, "gui/citizen/main.xml"));
 
         final Image statusIcon = findPaneOfTypeByID(STATUS_ICON, Image.class);
         if (citizen.getVisibleStatus() == null)
@@ -84,7 +80,7 @@ public class MainWindowCitizen extends AbstractWindowCitizen
 
         CitizenWindowUtils.createHealthBar(citizen, findPaneOfTypeByID(WINDOW_ID_HEALTHBAR, View.class));
         CitizenWindowUtils.createSaturationBar(citizen, this);
-        // Happiness system removed
+        CitizenWindowUtils.createHappinessBar(citizen, this);
         CitizenWindowUtils.createSkillContent(citizen, this);
 
         //Tool of class:§rwith minimal level:§rWood or Gold§r and§rwith maximal level:§rWood or Gold§r
@@ -109,14 +105,14 @@ public class MainWindowCitizen extends AbstractWindowCitizen
             final String label = button.getID().replace(PLUS_PREFIX, "");
             final Skill skill = Skill.valueOf(StringUtils.capitalize(label));
 
-            Network.getNetwork().sendToServer(new AdjustSkillCitizenMessage(colony, citizen, 1, skill));
+            new AdjustSkillCitizenMessage(colony, citizen, 1, skill).sendToServer();
         }
         else if (button.getID().contains(MINUS_PREFIX))
         {
             final String label = button.getID().replace(MINUS_PREFIX, "");
             final Skill skill = Skill.valueOf(StringUtils.capitalize(label));
 
-            Network.getNetwork().sendToServer(new AdjustSkillCitizenMessage(colony, citizen, -1, skill));
+            new AdjustSkillCitizenMessage(colony, citizen, -1, skill).sendToServer();
         }
     }
 }

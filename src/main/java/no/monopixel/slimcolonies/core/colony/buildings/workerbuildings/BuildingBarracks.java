@@ -1,25 +1,30 @@
 package no.monopixel.slimcolonies.core.colony.buildings.workerbuildings;
 
 import com.ldtteam.blockui.views.BOWindow;
+import com.ldtteam.structurize.blueprints.v1.Blueprint;
 import no.monopixel.slimcolonies.api.blocks.ModBlocks;
 import no.monopixel.slimcolonies.api.colony.IColony;
 import no.monopixel.slimcolonies.api.colony.IColonyView;
 import no.monopixel.slimcolonies.api.colony.buildings.IBuilding;
 import no.monopixel.slimcolonies.api.util.BlockPosUtil;
+import no.monopixel.slimcolonies.api.util.InventoryUtils;
 import no.monopixel.slimcolonies.api.util.NBTUtils;
 import no.monopixel.slimcolonies.core.client.gui.huts.WindowBarracksBuilding;
 import no.monopixel.slimcolonies.core.colony.buildings.AbstractBuilding;
 import no.monopixel.slimcolonies.core.colony.buildings.views.AbstractBuildingView;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.util.Tuple;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -27,7 +32,6 @@ import java.util.stream.Collectors;
 
 import static no.monopixel.slimcolonies.api.util.constant.Constants.STACKSIZE;
 import static no.monopixel.slimcolonies.api.util.constant.NbtTagConstants.TAG_POS;
-
 
 /**
  * Building class for the Barracks.
@@ -54,6 +58,10 @@ public class BuildingBarracks extends AbstractBuilding
      */
     private final List<BlockPos> towers = new ArrayList<>();
 
+    /**
+     * The goldcost for spies
+     */
+    public static int SPIES_GOLD_COST = 5;
 
     /**
      * Constructor for a AbstractBuilding.
@@ -74,7 +82,7 @@ public class BuildingBarracks extends AbstractBuilding
         return SCHEMATIC_NAME;
     }
 
-    
+    @SuppressWarnings("squid:S109")
     @Override
     public int getMaxBuildingLevel()
     {
@@ -94,12 +102,14 @@ public class BuildingBarracks extends AbstractBuilding
             }
         }
         super.onDestroyed();
+        colony.getServerBuildingManager().guardBuildingChangedAt(this, 0);
     }
 
     @Override
-    public void onUpgradeComplete(final int newLevel)
+    public void onUpgradeComplete(@Nullable final Blueprint blueprint, final int newLevel)
     {
-        super.onUpgradeComplete(newLevel);
+        super.onUpgradeComplete(blueprint, newLevel);
+        colony.getServerBuildingManager().guardBuildingChangedAt(this, newLevel);
     }
 
     @Override
@@ -108,7 +118,7 @@ public class BuildingBarracks extends AbstractBuilding
         super.registerBlockPosition(block, pos, world);
         if (block.getBlock() == ModBlocks.blockHutBarracksTower)
         {
-            final IBuilding building = getColony().getBuildingManager().getBuilding(pos);
+            final IBuilding building = getColony().getServerBuildingManager().getBuilding(pos);
             if (building instanceof BuildingBarracksTower)
             {
                 building.setStructurePack(this.getStructurePack());
@@ -121,12 +131,61 @@ public class BuildingBarracks extends AbstractBuilding
         }
     }
 
+    @Override
+    public void onColonyTick(@NotNull final IColony colony)
+    {
+        super.onColonyTick(colony);
+        if (colony.getWorld().isClientSide)
+        {
+            return;
+        }
 
+        if (colony.getRaiderManager().isRaided())
+        {
+            if (!colony.getRaiderManager().areSpiesEnabled())
+            {
+                if (InventoryUtils.tryRemoveStackFromItemHandler(getItemHandlerCap(), new ItemStack(Items.GOLD_INGOT, SPIES_GOLD_COST)))
+                {
+                    colony.getRaiderManager().setSpiesEnabled(true);
+                    colony.markDirty();
+                }
+            }
+        }
+        else
+        {
+            colony.getRaiderManager().setSpiesEnabled(false);
+        }
+    }
 
     @Override
-    public void deserializeNBT(final CompoundTag compound)
+    public int getClaimRadius(final int newLevel)
     {
-        super.deserializeNBT(compound);
+        if (newLevel <= 0)
+        {
+            return 0;
+        }
+
+        // tower levels must all be 4+ to get increased radius of 3 
+        int barracksClaimRadius = 3;
+        for (final BlockPos pos : towers)
+        {
+            final IBuilding building = colony.getServerBuildingManager().getBuilding(pos);
+            if (building != null)
+            {
+                if (building.getBuildingLevel() < 4) 
+                { 
+                    barracksClaimRadius = 2;
+                    break;
+                }
+            }
+        }
+        return barracksClaimRadius;
+    }
+
+    @Override
+    public void deserializeNBT(@NotNull final HolderLookup.Provider provider, final CompoundTag compound)
+    {
+        super.deserializeNBT(provider, compound);
         towers.clear();
         towers.addAll(NBTUtils.streamCompound(compound.getList(TAG_TOWERS, Tag.TAG_COMPOUND))
                         .map(resultCompound -> BlockPosUtil.read(resultCompound, TAG_POS))
@@ -134,9 +193,9 @@ public class BuildingBarracks extends AbstractBuilding
     }
 
     @Override
-    public CompoundTag serializeNBT()
+    public CompoundTag serializeNBT(@NotNull final HolderLookup.Provider provider)
     {
-        final CompoundTag compound = super.serializeNBT();
+        final CompoundTag compound = super.serializeNBT(provider);
         final ListTag towerTagList = towers.stream().map(pos -> BlockPosUtil.write(new CompoundTag(), TAG_POS, pos)).collect(NBTUtils.toListNBT());
         compound.put(TAG_TOWERS, towerTagList);
 

@@ -1,0 +1,21 @@
+{
+  "type": "recipe",
+  "crafter": "baker_crafting",
+  "inputs": [
+    {
+      "id": "slimcolonies:durum"
+    },
+    {
+      "id": "slimcolonies:butter"
+    },
+    {
+      "id": "minecraft:honey_bottle"
+    }
+  ],
+  "intermediate": "minecraft:air",
+  "loot-table": "slimcolonies:recipes/glass_bottle",
+  "result": {
+    "id": "slimcolonies:lembas_scone"
+  },
+  "show-tooltip": true
+}

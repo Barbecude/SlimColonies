@@ -11,7 +11,7 @@ public abstract class AbstractBuildingExtensionModule implements IBuildingExtens
     /**
      * The building extension this module belongs to.
      */
-    protected final IBuildingExtension extension;
+    protected IBuildingExtension extension;
 
     /**
      * Default constructor.
@@ -24,7 +24,7 @@ public abstract class AbstractBuildingExtensionModule implements IBuildingExtens
     }
 
     @Override
-    public IBuildingExtension getBuildingExtension()
+    public IBuildingExtension getExtension()
     {
         return extension;
     }

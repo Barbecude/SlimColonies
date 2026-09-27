@@ -8,8 +8,8 @@ import no.monopixel.slimcolonies.api.util.CraftingUtils;
 import no.monopixel.slimcolonies.api.util.OptionalPredicate;
 import no.monopixel.slimcolonies.core.colony.buildings.AbstractBuilding;
 import no.monopixel.slimcolonies.core.colony.buildings.modules.AbstractCraftingBuildingModule;
-import no.monopixel.slimcolonies.core.colony.buildings.modules.AbstractDOCraftingBuildingModule;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.component.DataComponents;
 import net.minecraft.world.item.*;
 import org.jetbrains.annotations.NotNull;
 
@@ -81,13 +81,11 @@ public class BuildingFletcher extends AbstractBuilding
             if (isRecipeAllowed.isPresent()) return isRecipeAllowed.get();
 
             final Item output = recipe.getPrimaryOutput().getItem();
-            return output instanceof ArrowItem ||
-                    (output instanceof DyeableArmorItem &&
-                    ((DyeableArmorItem) output).getMaterial() == ArmorMaterials.LEATHER);
+            return output instanceof ArrowItem || (output instanceof ArmorItem armorItem && recipe.getPrimaryOutput().has(DataComponents.DYED_COLOR) && armorItem.getMaterial() == ArmorMaterials.LEATHER);
         }
     }
 
-    public static class DOCraftingModule extends AbstractDOCraftingBuildingModule
+    public static class DOCraftingModule extends AbstractCraftingBuildingModule.Domum
     {
         /**
          * Create a new module.

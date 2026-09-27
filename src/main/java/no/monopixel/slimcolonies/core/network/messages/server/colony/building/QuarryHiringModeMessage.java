@@ -1,13 +1,16 @@
 package no.monopixel.slimcolonies.core.network.messages.server.colony.building;
 
+import com.ldtteam.common.network.PlayMessageType;
 import no.monopixel.slimcolonies.api.colony.IColony;
 import no.monopixel.slimcolonies.api.colony.buildings.HiringMode;
 import no.monopixel.slimcolonies.api.colony.buildings.IBuilding;
 import no.monopixel.slimcolonies.api.colony.buildings.views.IBuildingView;
+import no.monopixel.slimcolonies.api.util.constant.Constants;
 import no.monopixel.slimcolonies.core.colony.buildings.modules.QuarryModule;
 import no.monopixel.slimcolonies.core.network.messages.server.AbstractBuildingServerMessage;
-import net.minecraft.network.FriendlyByteBuf;
-import net.minecraftforge.network.NetworkEvent;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.server.level.ServerPlayer;
+import net.neoforged.neoforge.network.handling.IPayloadContext;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -15,23 +18,17 @@ import org.jetbrains.annotations.NotNull;
  */
 public class QuarryHiringModeMessage extends AbstractBuildingServerMessage<IBuilding>
 {
+    public static final PlayMessageType<?> TYPE = PlayMessageType.forServer(Constants.MOD_ID, "quarry_hiring_mode", QuarryHiringModeMessage::new);
+
     /**
      * The Hiring mode to set.
      */
-    private HiringMode mode;
+    private final HiringMode mode;
 
     /**
      * The module id
      */
-    private int moduleID;
-
-    /**
-     * Empty constructor used when registering the
-     */
-    public QuarryHiringModeMessage()
-    {
-        super();
-    }
+    private final int moduleID;
 
     /**
      * Creates object for the hiring mode
@@ -41,28 +38,30 @@ public class QuarryHiringModeMessage extends AbstractBuildingServerMessage<IBuil
      */
     public QuarryHiringModeMessage(@NotNull final IBuildingView building, final HiringMode mode, final int moduleID)
     {
-        super(building);
+        super(TYPE, building);
         this.mode = mode;
+        this.moduleID = moduleID;
     }
 
-    @Override
-    public void fromBytesOverride(@NotNull final FriendlyByteBuf buf)
+    protected QuarryHiringModeMessage(final RegistryFriendlyByteBuf buf, final PlayMessageType<?> type)
     {
+        super(buf, type);
         mode = HiringMode.values()[buf.readInt()];
         moduleID = buf.readInt();
     }
 
     @Override
-    public void toBytesOverride(@NotNull final FriendlyByteBuf buf)
+    protected void toBytes(@NotNull final RegistryFriendlyByteBuf buf)
     {
+        super.toBytes(buf);
         buf.writeInt(mode.ordinal());
         buf.writeInt(moduleID);
     }
 
     @Override
-    public void onExecute(final NetworkEvent.Context ctxIn, final boolean isLogicalServer, final IColony colony, final IBuilding building)
+    protected void onExecute(final IPayloadContext ctxIn, final ServerPlayer player, final IColony colony, final IBuilding building)
     {
-        if (building.getModule(moduleID) instanceof QuarryModule module)
+        if (building.getModule(moduleID) instanceof final QuarryModule module)
         {
             module.setHiringMode(mode);
         }

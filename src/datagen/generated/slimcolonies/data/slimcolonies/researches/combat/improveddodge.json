@@ -1,12 +1,18 @@
 {
   "branch": "slimcolonies:combat",
+  "costs": [
+    {
+      "count": 32,
+      "item": "minecraft:leather"
+    }
+  ],
   "effects": [
     {
       "id": "slimcolonies:effects/archerarmormultiplier",
       "level": 2
     }
   ],
-  "icon": "minecraft:iron_boots",
+  "icon": "slimcolonies:pirate_boots",
   "parentResearch": "slimcolonies:combat/dodge",
   "requirements": [
     {

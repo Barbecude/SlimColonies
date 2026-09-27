@@ -3,10 +3,7 @@ package no.monopixel.slimcolonies.core.colony.buildings.workerbuildings;
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
 import com.ldtteam.blockui.views.BOWindow;
-import net.minecraft.core.BlockPos;
-import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.MutableComponent;
-import net.minecraft.util.Tuple;
+import com.ldtteam.structurize.api.RotationMirror;
 import no.monopixel.slimcolonies.api.colony.IColony;
 import no.monopixel.slimcolonies.api.colony.IColonyView;
 import no.monopixel.slimcolonies.api.colony.buildings.IRSComponent;
@@ -16,9 +13,17 @@ import no.monopixel.slimcolonies.api.colony.requestsystem.request.RequestState;
 import no.monopixel.slimcolonies.api.colony.requestsystem.requestable.IDeliverable;
 import no.monopixel.slimcolonies.api.colony.requestsystem.requestable.Stack;
 import no.monopixel.slimcolonies.api.colony.requestsystem.resolver.IRequestResolver;
-import no.monopixel.slimcolonies.core.client.gui.WindowPostBox;
+import no.monopixel.slimcolonies.core.client.gui.WindowPostBoxMain;
+import no.monopixel.slimcolonies.core.client.gui.WindowPostBoxMinStock;
 import no.monopixel.slimcolonies.core.colony.buildings.AbstractBuilding;
+import no.monopixel.slimcolonies.core.colony.buildings.moduleviews.MinimumStockModuleView;
 import no.monopixel.slimcolonies.core.colony.buildings.views.AbstractBuildingView;
+import net.minecraft.core.BlockPos;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.util.Tuple;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.api.distmarker.OnlyIn;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -58,7 +63,21 @@ public class PostBox extends AbstractBuilding implements IRSComponent
     @Override
     public int getMaxBuildingLevel()
     {
-        return 0;
+        /* We set the PostBox to level 1 by force to enable the minimum stock feature */
+        return 1;
+    }
+
+    @Override
+    public int getBuildingLevel()
+    {
+        /* We set the PostBox to level 1 by force to enable the minimum stock feature */
+        return 1;
+    }
+
+    @Override
+    public boolean canBeGathered()
+    {
+        return false;
     }
 
     @Override
@@ -75,13 +94,13 @@ public class PostBox extends AbstractBuilding implements IRSComponent
     @Override
     public Tuple<BlockPos, BlockPos> getCorners()
     {
-        return new Tuple<>(getPosition(), getPosition());
+        return new Tuple<>(getPosition(),getPosition());
     }
 
     @Override
-    public int getRotation()
+    public RotationMirror getRotationMirror()
     {
-        return 0;
+        return RotationMirror.NONE;
     }
 
     /**
@@ -104,14 +123,27 @@ public class PostBox extends AbstractBuilding implements IRSComponent
         @Override
         public BOWindow getWindow()
         {
-            return new WindowPostBox(this);
+            return new WindowPostBoxMain(this);
         }
 
         @NotNull
         @Override
         public MutableComponent getRequesterDisplayName(@NotNull final IRequestManager manager, @NotNull final IRequest<?> request)
         {
-            return Component.translatable("block.slimcolonies.blockpostbox.name");
+            return Component.translatableEscape("block.slimcolonies.blockpostbox.name");
+        }
+    }
+
+    /**
+     * View class for the custom minimum stock PostBox functionality
+     */
+    public static class PostBoxMinimumStockModuleView extends MinimumStockModuleView
+    {
+        @Override
+        @OnlyIn(Dist.CLIENT)
+        public BOWindow getWindow()
+        {
+            return new WindowPostBoxMinStock(this);
         }
     }
 }

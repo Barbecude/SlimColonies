@@ -1,6 +1,6 @@
 package no.monopixel.slimcolonies.core.colony.interactionhandling;
 
-import com.ldtteam.structurize.api.util.BlockPosUtil;
+import com.ldtteam.structurize.api.BlockPosUtil;
 import no.monopixel.slimcolonies.api.colony.ICitizen;
 import no.monopixel.slimcolonies.api.colony.ICitizenData;
 import no.monopixel.slimcolonies.api.colony.interactionhandling.IChatPriority;
@@ -9,6 +9,7 @@ import no.monopixel.slimcolonies.api.colony.interactionhandling.InteractionValid
 import no.monopixel.slimcolonies.api.colony.interactionhandling.ModInteractionResponseHandlers;
 import no.monopixel.slimcolonies.api.util.Tuple;
 import no.monopixel.slimcolonies.api.util.WorldUtil;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
@@ -29,10 +30,10 @@ public class PosBasedInteraction extends ServerCitizenInteraction
 
     @SuppressWarnings("unchecked")
     private static final Tuple<Component, Component>[] responses = (Tuple<Component, Component>[]) new Tuple[] {
-      new Tuple<>(Component.translatable(INTERACTION_R_OKAY), null),
-      new Tuple<>(Component.translatable(INTERACTION_R_IGNORE), null),
-      new Tuple<>(Component.translatable(INTERACTION_R_REMIND), null),
-      new Tuple<>(Component.translatable(INTERACTION_R_SKIP), null)};
+      new Tuple<>(Component.translatableEscape(INTERACTION_R_OKAY), Component.empty()),
+      new Tuple<>(Component.translatableEscape(INTERACTION_R_IGNORE), Component.empty()),
+      new Tuple<>(Component.translatableEscape(INTERACTION_R_REMIND), Component.empty()),
+      new Tuple<>(Component.translatableEscape(INTERACTION_R_SKIP), Component.empty())};
 
     /**
      * The position this is related to.
@@ -111,17 +112,17 @@ public class PosBasedInteraction extends ServerCitizenInteraction
     }
 
     @Override
-    public CompoundTag serializeNBT()
+    public CompoundTag serializeNBT(@NotNull final HolderLookup.Provider provider)
     {
-        final CompoundTag tag = super.serializeNBT();
+        final CompoundTag tag = super.serializeNBT(provider);
         BlockPosUtil.writeToNBT(tag, POS_TAG, pos);
         return tag;
     }
 
     @Override
-    public void deserializeNBT(@NotNull final CompoundTag compoundNBT)
+    public void deserializeNBT(@NotNull final HolderLookup.Provider provider, @NotNull final CompoundTag compoundNBT)
     {
-        super.deserializeNBT(compoundNBT);
+        super.deserializeNBT(provider, compoundNBT);
         this.pos = BlockPosUtil.readFromNBT(compoundNBT, POS_TAG);
     }
 

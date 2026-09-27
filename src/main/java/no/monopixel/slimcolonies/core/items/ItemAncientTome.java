@@ -1,5 +1,8 @@
 package no.monopixel.slimcolonies.core.items;
 
+import no.monopixel.slimcolonies.api.colony.IColony;
+import no.monopixel.slimcolonies.api.colony.IColonyManager;
+import net.minecraft.core.component.DataComponents;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
@@ -9,7 +12,7 @@ import static no.monopixel.slimcolonies.api.util.constant.Constants.STACKSIZE;
 /**
  * Class describing the Ancient Tome item.
  */
-public class ItemAncientTome extends AbstractItemSlimColonies
+public class ItemAncientTome extends AbstractItemMinecolonies
 {
     /**
      * Sets the name, creative tab, and registers the Ancient Tome item.
@@ -18,17 +21,20 @@ public class ItemAncientTome extends AbstractItemSlimColonies
      */
     public ItemAncientTome(final Properties properties)
     {
-        super("ancienttome", properties.stacksTo(STACKSIZE));
+        super("ancienttome", properties.stacksTo(STACKSIZE).component(DataComponents.ENCHANTMENT_GLINT_OVERRIDE, false));
     }
 
     @Override
     public void inventoryTick(final ItemStack stack, final Level worldIn, final Entity entityIn, final int itemSlot, final boolean isSelected)
     {
         super.inventoryTick(stack, worldIn, entityIn, itemSlot, isSelected);
-    }
-
-    public boolean isFoil(final ItemStack stack)
-    {
-        return false;
+        if (!worldIn.isClientSide)
+        {
+            final IColony colony = IColonyManager.getInstance().getClosestColony(worldIn, entityIn.blockPosition());
+            if (colony != null)
+            {
+                stack.set(DataComponents.ENCHANTMENT_GLINT_OVERRIDE, colony.getRaiderManager().willRaidTonight());
+            }
+        }
     }
 }

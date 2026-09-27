@@ -1,5 +1,11 @@
 {
   "branch": "slimcolonies:technology",
+  "costs": [
+    {
+      "count": 64,
+      "tag": "minecraft:gold_ores"
+    }
+  ],
   "effects": [
     {
       "id": "slimcolonies:effects/moreoresmultiplier",

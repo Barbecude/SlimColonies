@@ -1,20 +1,20 @@
 package no.monopixel.slimcolonies.core.client.gui.townhall;
 
 import com.ldtteam.blockui.controls.Text;
+import no.monopixel.slimcolonies.api.util.constant.Constants;
 import no.monopixel.slimcolonies.core.client.gui.AbstractWindowSkeleton;
 import no.monopixel.slimcolonies.core.event.ColonyStoryListener;
 import net.minecraft.client.resources.sounds.SimpleSoundInstance;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.world.level.biome.Biome;
 
 import java.util.Random;
 
-import static no.monopixel.slimcolonies.api.util.constant.Constants.MOD_ID;
 import static no.monopixel.slimcolonies.api.util.constant.WindowConstants.BUTTON_CANCEL;
-import static no.monopixel.slimcolonies.api.util.constant.WindowConstants.TOWNHALL_COLONY_REACTIVATE_GUI;
 
 /**
  * UI to reactivate a colony.
@@ -27,13 +27,13 @@ public class WindowTownHallColonyReactivate extends AbstractWindowSkeleton
      * Townhall position
      */
     private final BlockPos pos;
-    private final String   preName;
-    private final int      closestDistance;
-    private final String   closestName;
+    private final String preName;
+    private final int closestDistance;
+    private final String closestName;
 
     public WindowTownHallColonyReactivate(final BlockPos pos, final String closestName, final int closestDistance)
     {
-        super(MOD_ID + TOWNHALL_COLONY_REACTIVATE_GUI);
+        super(new ResourceLocation(Constants.MOD_ID, "gui/townhall/windowcolonyreactivate.xml"));
         this.pos = pos;
         this.closestName = closestName;
         this.closestDistance = closestDistance;
@@ -48,8 +48,7 @@ public class WindowTownHallColonyReactivate extends AbstractWindowSkeleton
         final String story = ColonyStoryListener.pickRandom(ColonyStoryListener.abandonedColonyStories, biome, random);
 
         this.findPaneOfTypeByID("title", Text.class).setText(Component.translatable("no.monopixel.slimcolonies.core.gui.colony.reactivate.title", this.preName));
-        this.findPaneOfTypeByID("text1", Text.class)
-            .setText(Component.translatable(story, this.preName, Component.translatable(biome.unwrapKey().get().location().toLanguageKey("biome"))));
+        this.findPaneOfTypeByID("text1", Text.class).setText(Component.translatable(story, this.preName, Component.translatable(biome.unwrapKey().get().location().toLanguageKey("biome"))));
         this.findPaneOfTypeByID("text2", Text.class).setText(Component.translatable("no.monopixel.slimcolonies.core.gui.colony.reactivate.question", this.preName));
     }
 

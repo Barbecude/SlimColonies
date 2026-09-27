@@ -1,5 +1,11 @@
 {
   "branch": "slimcolonies:civilian",
+  "costs": [
+    {
+      "count": 32,
+      "item": "minecraft:cookie"
+    }
+  ],
   "effects": [
     {
       "id": "slimcolonies:effects/saturationmultiplier",

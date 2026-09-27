@@ -10,7 +10,7 @@ import no.monopixel.slimcolonies.api.util.Tuple;
 import no.monopixel.slimcolonies.core.colony.buildings.workerbuildings.BuildingLibrary;
 import no.monopixel.slimcolonies.core.colony.jobs.JobStudent;
 import no.monopixel.slimcolonies.core.datalistener.StudyItemListener;
-import no.monopixel.slimcolonies.core.datalistener.StudyItemListener.StudyItem;
+import no.monopixel.slimcolonies.core.datalistener.model.StudyItem;
 import no.monopixel.slimcolonies.core.entity.ai.workers.AbstractEntityAISkill;
 import net.minecraft.core.BlockPos;
 import net.minecraft.sounds.SoundEvents;
@@ -41,19 +41,27 @@ public class EntityAIStudy extends AbstractEntityAISkill<JobStudent, BuildingLib
     /**
      * Render the book.
      */
-    public static final  String   RENDER_META_STUDYING = "study";
+    public static final String RENDER_META_STUDYING = "study";
+
     /**
      * One in X chance to gain experience
      */
-    public static final  int      ONE_IN_X_CHANCE      = 8;
+    public static final int ONE_IN_X_CHANCE = 8;
+
     /**
      * Delay for each subject study.
      */
-    private static final int      STUDY_DELAY          = 20 * 60;
+    private static final int STUDY_DELAY = 20 * 60;
+
     /**
      * The current pos to study at.
      */
-    private              BlockPos studyPos             = null;
+    private BlockPos studyPos = null;
+
+    /**
+     * How long they tried walking to a given study pos.
+     */
+    public int walkDelay = 0;
 
     /**
      * Constructor for the student. Defines the tasks the student executes.
@@ -66,7 +74,7 @@ public class EntityAIStudy extends AbstractEntityAISkill<JobStudent, BuildingLib
         super.registerTargets(
           new AITarget(IDLE, START_WORKING, 1),
           new AITarget(START_WORKING, this::startWorkingAtOwnBuilding, TICKS_SECOND),
-          new AITarget(STUDY, this::study, STANDARD_DELAY)
+          new AITarget(STUDY, this::study, TICKS_SECOND)
         );
         worker.setCanPickUpLoot(true);
     }
@@ -106,13 +114,14 @@ public class EntityAIStudy extends AbstractEntityAISkill<JobStudent, BuildingLib
             studyPos = building.getRandomBookShelf();
         }
 
-        if (!walkToWorkPos(studyPos))
+        if (!walkToSafePos(studyPos) && walkDelay < STUDY_DELAY)
         {
-            setDelay(WALK_DELAY);
+            walkDelay += TICKS_SECOND;
             return getState();
         }
+        walkDelay = 0;
 
-        final Collection<StudyItem> studyItems = StudyItemListener.getAllStudyItems().values();
+        final Collection<StudyItem> studyItems = StudyItemListener.INSTANCE.getEntries().values();
 
         // Search for Items to use to study
         final List<StudyItem> availableItemKeys = new ArrayList<>();
@@ -171,6 +180,7 @@ public class EntityAIStudy extends AbstractEntityAISkill<JobStudent, BuildingLib
             }
         }
 
+        worker.decreaseSaturationForContinuousAction();
         studyPos = null;
         worker.queueSound(SoundEvents.BOOK_PAGE_TURN, worker.blockPosition().above(), 80, 15, 0.25f, 1.5f);
 

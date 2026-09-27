@@ -9,6 +9,7 @@ import no.monopixel.slimcolonies.api.research.IGlobalResearch;
 import no.monopixel.slimcolonies.api.research.IGlobalResearchTree;
 import no.monopixel.slimcolonies.core.colony.Colony;
 import no.monopixel.slimcolonies.core.event.QuestObjectiveEventHandler;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.network.chat.Style;
@@ -37,14 +38,14 @@ public class ResearchObjectiveTemplate extends DialogueObjectiveTemplateTemplate
     /**
      * Create a new objective of this type.
      *
-     * @param target  the target citizen.
-     * @param rewards the rewards this unlocks.
+     * @param target        the target citizen.
+     * @param rewards       the rewards this unlocks.
      */
     public ResearchObjectiveTemplate(
-        final int target,
-        final ResourceLocation researchId,
-        final int nextObjective,
-        final List<Integer> rewards)
+      final int target,
+      final ResourceLocation researchId,
+      final int nextObjective,
+      final List<Integer> rewards)
     {
         super(target, buildDialogueTree(researchId), rewards);
         this.researchId = researchId;
@@ -56,12 +57,12 @@ public class ResearchObjectiveTemplate extends DialogueObjectiveTemplateTemplate
     {
         final IGlobalResearch research = IGlobalResearchTree.getInstance().getResearch(researchId);
 
-        final Component text = Component.translatable("no.monopixel.slimcolonies.coremod.questobjectives.research", MutableComponent.create((research.getName())));
+        final Component text  = Component.translatable("no.monopixel.slimcolonies.coremod.questobjectives.research", MutableComponent.create((research.getName())));
 
         final AnswerElement answer1 = new AnswerElement(Component.translatable("no.monopixel.slimcolonies.coremod.questobjectives.answer.later"),
-            new IQuestDialogueAnswer.CloseUIDialogueAnswer());
+          new IQuestDialogueAnswer.CloseUIDialogueAnswer());
         final AnswerElement answer2 = new AnswerElement(Component.translatable("no.monopixel.slimcolonies.coremod.questobjectives.answer.cancel"),
-            new IQuestDialogueAnswer.QuestCancellationDialogueAnswer());
+          new IQuestDialogueAnswer.QuestCancellationDialogueAnswer());
         return new DialogueElement(text, List.of(answer1, answer2));
     }
 
@@ -71,12 +72,12 @@ public class ResearchObjectiveTemplate extends DialogueObjectiveTemplateTemplate
      * @param jsonObject the json to parse it from.
      * @return a new objective object.
      */
-    public static IQuestObjectiveTemplate createObjective(final JsonObject jsonObject)
+    public static IQuestObjectiveTemplate createObjective(@NotNull final HolderLookup.Provider provider, final JsonObject jsonObject)
     {
         JsonObject details = jsonObject.getAsJsonObject(DETAILS_KEY);
 
         final int target = details.get(TARGET_KEY).getAsInt();
-        final ResourceLocation researchId = new ResourceLocation(details.get(BUILDING_KEY).getAsString());
+        final ResourceLocation researchId = ResourceLocation.parse(details.get(BUILDING_KEY).getAsString());
 
         final int nextObj = details.has(NEXT_OBJ_KEY) ? details.get(NEXT_OBJ_KEY).getAsInt() : -1;
 

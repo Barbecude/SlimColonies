@@ -7,8 +7,10 @@ import no.monopixel.slimcolonies.api.util.BlockPosUtil;
 import no.monopixel.slimcolonies.api.util.Log;
 import io.netty.buffer.Unpooled;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.core.RegistryAccess;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
 import org.jetbrains.annotations.NotNull;
 
@@ -31,15 +33,15 @@ public final class BuildingExtensionDataManager
      * @param compound the input compound data.
      * @return the created building extension instance.
      */
-    public static IBuildingExtension compoundToExtension(final @NotNull CompoundTag compound)
+    public static IBuildingExtension compoundToExtension(@NotNull final HolderLookup.Provider provider, final @NotNull CompoundTag compound)
     {
-        final ResourceLocation name = new ResourceLocation(compound.getString(TAG_EXTENSION_NAME));
+        final ResourceLocation name = ResourceLocation.parse(compound.getString(TAG_EXTENSION_NAME));
         final BlockPos position = BlockPosUtil.read(compound, TAG_EXTENSION_POSITION);
 
         final IBuildingExtension extension = resourceLocationToExtension(name, position);
         if (extension != null)
         {
-            extension.deserializeNBT(compound.getCompound(TAG_EXTENSION_DATA));
+            extension.deserializeNBT(provider, compound.getCompound(TAG_EXTENSION_DATA));
         }
         return extension;
     }
@@ -48,12 +50,12 @@ public final class BuildingExtensionDataManager
      * Creates a building extension instance from a building extension type and position.
      *
      * @param registryName the building extension registry entry name.
-     * @param position     the position of the building extension.
+     * @param position  the position of the building extension.
      * @return the building extension instance.
      */
     public static IBuildingExtension resourceLocationToExtension(final @NotNull ResourceLocation registryName, final @NotNull BlockPos position)
     {
-        final BuildingExtensionEntry entry = BuildingExtensionRegistries.getBuildingExtensionRegistry().getValue(registryName);
+        final BuildingExtensionEntry entry = BuildingExtensionRegistries.getBuildingExtensionRegistry().get(registryName);
 
         if (entry == null)
         {
@@ -70,9 +72,9 @@ public final class BuildingExtensionDataManager
      * @param buf the buffer, still containing the building extension registry type and position.
      * @return the building extension instance.
      */
-    public static IBuildingExtension bufferToExtension(final @NotNull FriendlyByteBuf buf)
+    public static IBuildingExtension bufferToExtension(final @NotNull RegistryFriendlyByteBuf buf)
     {
-        final BuildingExtensionEntry entry = buf.readRegistryIdSafe(BuildingExtensionEntry.class);
+        final BuildingExtensionEntry entry = buf.readById(BuildingExtensionRegistries.getBuildingExtensionRegistry()::byIdOrThrow);
         final BlockPos position = buf.readBlockPos();
         final IBuildingExtension extension = entry.produceExtension(position);
         extension.deserialize(buf);
@@ -85,10 +87,10 @@ public final class BuildingExtensionDataManager
      * @param extension the building extension instance.
      * @return the network buffer.
      */
-    public static FriendlyByteBuf extensionToBuffer(final @NotNull IBuildingExtension extension)
+    public static RegistryFriendlyByteBuf extensionToBuffer(final @NotNull IBuildingExtension extension, @NotNull final RegistryAccess provider)
     {
-        final FriendlyByteBuf buf = new FriendlyByteBuf(Unpooled.buffer());
-        buf.writeRegistryId(BuildingExtensionRegistries.getBuildingExtensionRegistry(), extension.getBuildingExtensionType());
+        final RegistryFriendlyByteBuf buf = new RegistryFriendlyByteBuf(Unpooled.buffer(), provider);
+        buf.writeById(BuildingExtensionRegistries.getBuildingExtensionRegistry()::getIdOrThrow, extension.getBuildingExtensionType());
         buf.writeBlockPos(extension.getPosition());
         extension.serialize(buf);
         return buf;
@@ -100,12 +102,12 @@ public final class BuildingExtensionDataManager
      * @param extension the building extension instance.
      * @return the NBT compound.
      */
-    public static CompoundTag extensionToCompound(final @NotNull IBuildingExtension extension)
+    public static CompoundTag extensionToCompound(@NotNull final HolderLookup.Provider provider, final @NotNull IBuildingExtension extension)
     {
         final CompoundTag compound = new CompoundTag();
         compound.putString(TAG_EXTENSION_NAME, extension.getBuildingExtensionType().getRegistryName().toString());
         BlockPosUtil.write(compound, TAG_EXTENSION_POSITION, extension.getPosition());
-        compound.put(TAG_EXTENSION_DATA, extension.serializeNBT());
+        compound.put(TAG_EXTENSION_DATA, extension.serializeNBT(provider));
         return compound;
     }
 }

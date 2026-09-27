@@ -2,7 +2,7 @@ package no.monopixel.slimcolonies.api.colony.workorders;
 
 import no.monopixel.slimcolonies.api.colony.buildings.views.IBuildingView;
 import net.minecraft.core.BlockPos;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import org.jetbrains.annotations.NotNull;
 
 public interface IWorkOrderView extends IWorkOrder
@@ -20,7 +20,7 @@ public interface IWorkOrderView extends IWorkOrder
      *
      * @param buf Byte buffer to deserialize.
      */
-    void deserialize(@NotNull FriendlyByteBuf buf);
+    void deserialize(@NotNull RegistryFriendlyByteBuf buf);
 
     /**
      * Checks if a builder may accept this workOrder while ignoring the distance to the builder.

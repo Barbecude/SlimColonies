@@ -52,6 +52,11 @@ public class JobQuarrier extends AbstractJobStructure<EntityAIQuarrier, JobQuarr
         return new EntityAIQuarrier(this);
     }
 
+    @Override
+    public double getDiseaseModifier()
+    {
+        return 2;
+    }
 
     /**
      * Finds the quarry our miner is assigned to
@@ -60,7 +65,7 @@ public class JobQuarrier extends AbstractJobStructure<EntityAIQuarrier, JobQuarr
      */
     public IBuilding findQuarry()
     {
-        for (final IBuilding building : getColony().getBuildingManager().getBuildings().values())
+        for (final IBuilding building : getColony().getServerBuildingManager().getBuildings().values())
         {
             if (building.getBuildingType().getRegistryName().getPath().contains("quarry") && building.getFirstModuleOccurance(QuarryModule.class).hasAssignedCitizen(getCitizen()))
             {
@@ -103,5 +108,11 @@ public class JobQuarrier extends AbstractJobStructure<EntityAIQuarrier, JobQuarr
         }
 
         return super.ignoresDamage(damageSource);
+    }
+
+    @Override
+    public double getSaturationFactor()
+    {
+        return 1.2;
     }
 }

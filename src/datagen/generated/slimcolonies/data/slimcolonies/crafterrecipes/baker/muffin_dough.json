@@ -1,0 +1,26 @@
+{
+  "type": "recipe",
+  "crafter": "baker_crafting",
+  "inputs": [
+    {
+      "id": "slimcolonies:durum"
+    },
+    {
+      "id": "slimcolonies:butter"
+    },
+    {
+      "id": "minecraft:sugar"
+    },
+    {
+      "id": "minecraft:egg"
+    },
+    {
+      "id": "minecraft:sweet_berries"
+    }
+  ],
+  "intermediate": "minecraft:air",
+  "result": {
+    "id": "slimcolonies:muffin_dough"
+  },
+  "show-tooltip": true
+}

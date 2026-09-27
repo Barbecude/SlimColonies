@@ -1,15 +1,16 @@
 package no.monopixel.slimcolonies.apiimp.initializer;
 
-import net.minecraft.resources.ResourceLocation;
-import net.minecraft.world.item.Items;
-import net.minecraftforge.registries.DeferredRegister;
-import net.minecraftforge.registries.RegistryObject;
 import no.monopixel.slimcolonies.api.colony.buildingextensions.registry.BuildingExtensionRegistries;
 import no.monopixel.slimcolonies.api.colony.buildingextensions.registry.BuildingExtensionRegistries.BuildingExtensionEntry;
 import no.monopixel.slimcolonies.api.util.constant.Constants;
+import no.monopixel.slimcolonies.apiimp.CommonMinecoloniesAPIImpl;
 import no.monopixel.slimcolonies.core.colony.buildingextensions.FarmField;
 import no.monopixel.slimcolonies.core.colony.buildingextensions.PlantationField;
 import no.monopixel.slimcolonies.core.colony.buildings.workerbuildings.plantation.modules.specific.*;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.item.Items;
+import net.neoforged.neoforge.registries.DeferredHolder;
+import net.neoforged.neoforge.registries.DeferredRegister;
 
 import java.util.function.Consumer;
 
@@ -17,8 +18,7 @@ import static no.monopixel.slimcolonies.api.util.constant.SchematicTagConstants.
 
 public final class ModBuildingExtensionsInitializer
 {
-    public static final DeferredRegister<BuildingExtensionEntry> DEFERRED_REGISTER =
-        DeferredRegister.create(ResourceLocation.fromNamespaceAndPath(Constants.MOD_ID, "buildingextensions"), Constants.MOD_ID);
+    public static final DeferredRegister<BuildingExtensionEntry> DEFERRED_REGISTER = DeferredRegister.create(CommonMinecoloniesAPIImpl.BUILDING_EXTENSIONS, Constants.MOD_ID);
     static
     {
         BuildingExtensionRegistries.farmField = createEntry(BuildingExtensionRegistries.FARM_FIELD_ID, builder -> builder.setExtensionProducer(FarmField::new));
@@ -75,10 +75,10 @@ public final class ModBuildingExtensionsInitializer
     }
     private ModBuildingExtensionsInitializer()
     {
-        throw new IllegalStateException("Tried to initialize: ModFieldsInitializer but this is a Utility class.");
+        throw new IllegalStateException("Tried to initialize: ModBuildingExtensionsInitializer but this is a Utility class.");
     }
 
-    private static RegistryObject<BuildingExtensionEntry> createEntry(ResourceLocation registryName, Consumer<BuildingExtensionEntry.Builder> builder)
+    private static DeferredHolder<BuildingExtensionEntry, BuildingExtensionEntry> createEntry(ResourceLocation registryName, Consumer<BuildingExtensionEntry.Builder> builder)
     {
         BuildingExtensionEntry.Builder field = new BuildingExtensionEntry.Builder().setRegistryName(registryName);
         builder.accept(field);

@@ -7,18 +7,21 @@ import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ChunkHolder;
+import net.minecraft.server.level.FullChunkStatus;
 import net.minecraft.server.level.ServerChunkCache;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.Tuple;
+import net.minecraft.world.Difficulty;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.ChunkPos;
+import net.minecraft.world.level.GameRules;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.level.chunk.ChunkStatus;
+import net.minecraft.world.level.chunk.status.ChunkStatus;
 import net.minecraft.world.level.dimension.BuiltinDimensionTypes;
 import net.minecraft.world.level.dimension.DimensionType;
 import net.minecraft.world.level.material.FluidState;
@@ -31,6 +34,7 @@ import java.util.Set;
 import java.util.function.Predicate;
 
 import static no.monopixel.slimcolonies.api.util.constant.CitizenConstants.NIGHT;
+import static no.monopixel.slimcolonies.api.util.constant.CitizenConstants.NOON;
 
 /**
  * Class which has world related util functions like chunk load checks
@@ -61,10 +65,10 @@ public class WorldUtil
     {
         if (world.getChunkSource() instanceof ServerChunkCache)
         {
-            final ChunkHolder holder = ((ServerChunkCache) world.getChunkSource()).chunkMap.visibleChunkMap.get(ChunkPos.asLong(x, z));
+            final ChunkHolder holder = ((ServerChunkCache) world.getChunkSource()).chunkMap.getVisibleChunkIfPresent(ChunkPos.asLong(x, z));
             if (holder != null)
             {
-                return holder.getFullChunkFuture().getNow(ChunkHolder.UNLOADED_LEVEL_CHUNK).left().isPresent();
+                return holder.getFullStatus().isOrAfter(FullChunkStatus.FULL) && holder.getChunkIfPresent(ChunkStatus.FULL) != null;
             }
 
             return false;
@@ -175,6 +179,16 @@ public class WorldUtil
         return world.getDayTime() % 24000 <= pastTime;
     }
 
+    /**
+     * Check if it's currently afternoon the world.
+     *
+     * @param world the world to check.
+     * @return true if so.
+     */
+    public static boolean isPastNoon(final Level world)
+    {
+        return isPastTime(world, NOON);
+    }
 
     /**
      * Check if a world is of the overworld type.
@@ -221,6 +235,18 @@ public class WorldUtil
         return regKey == type;
     }
 
+    /**
+     * Check to see if the world is peaceful.
+     * <p>
+     * There are several checks performed here, currently both gamerule and difficulty.
+     *
+     * @param world world to check
+     * @return true if peaceful
+     */
+    public static boolean isPeaceful(@NotNull final Level world)
+    {
+        return !world.getLevelData().getGameRules().getBoolean(GameRules.RULE_DOMOBSPAWNING) || world.getDifficulty().equals(Difficulty.PEACEFUL);
+    }
 
     /**
      * Custom set block state, with 1 instead of default flag 3, to skip vanilla's path notify upon block change, making setBlockState expensive. The state change still affects
@@ -250,17 +276,17 @@ public class WorldUtil
      */
     public static boolean setBlockState(final LevelAccessor world, final BlockPos pos, final BlockState state, int flags)
     {
-        if (world.isClientSide() || !(world instanceof ServerLevel))
+        if (world.isClientSide() || !(world instanceof ServerLevel serverLevel))
         {
             return world.setBlock(pos, state, flags);
         }
 
         if ((flags & 2) != 0)
         {
-            final Set<Mob> navigators = ((ServerLevel) world).navigatingMobs;
-            ((ServerLevel) world).navigatingMobs.clear();
+            final Set<Mob> navigators = serverLevel.navigatingMobs;
+            serverLevel.navigatingMobs.clear();
             final boolean result = world.setBlock(pos, state, flags);
-            ((ServerLevel) world).navigatingMobs.addAll(navigators);
+            serverLevel.navigatingMobs.addAll(navigators);
             return result;
         }
         else
@@ -358,7 +384,7 @@ public class WorldUtil
     @Nullable
     public static Player getNearestPlayer(Mob livingEntity, final int x, final int y, final int z, final double lookDistance)
     {
-        return getNearestEntity(livingEntity.level.players(), livingEntity, x, y, z, lookDistance);
+        return getNearestEntity(livingEntity.level().players(), livingEntity, x, y, z, lookDistance);
     }
 
     /**

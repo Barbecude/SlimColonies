@@ -1,0 +1,25 @@
+{
+  "branch": "slimcolonies:technology",
+  "costs": [
+    {
+      "count": 128,
+      "item": "minecraft:paper"
+    }
+  ],
+  "effects": [
+    {
+      "id": "slimcolonies:effects/recipesmultiplier",
+      "level": 3
+    }
+  ],
+  "icon": "minecraft:enchanted_book",
+  "parentResearch": "slimcolonies:technology/cheatsheet",
+  "requirements": [
+    {
+      "type": "slimcolonies:building",
+      "building": "slimcolonies:sawmill",
+      "level": 3
+    }
+  ],
+  "researchLevel": 4
+}

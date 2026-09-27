@@ -3,14 +3,14 @@ package no.monopixel.slimcolonies.api.colony.buildings;
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
 import com.google.common.reflect.TypeToken;
+import com.ldtteam.structurize.blueprints.v1.Blueprint;
 import no.monopixel.slimcolonies.api.colony.ICitizenData;
 import no.monopixel.slimcolonies.api.colony.IColony;
-import no.monopixel.slimcolonies.api.colony.buildings.modules.IBuildingModule;
 import no.monopixel.slimcolonies.api.colony.buildings.modules.settings.ISetting;
 import no.monopixel.slimcolonies.api.colony.buildings.modules.settings.ISettingKey;
 import no.monopixel.slimcolonies.api.colony.buildings.registry.BuildingEntry;
 import no.monopixel.slimcolonies.api.colony.jobs.registry.JobEntry;
-import no.monopixel.slimcolonies.api.colony.modules.IModuleContainer;
+import no.monopixel.slimcolonies.api.colony.modules.IBuildingModuleContainer;
 import no.monopixel.slimcolonies.api.colony.requestsystem.request.IRequest;
 import no.monopixel.slimcolonies.api.colony.requestsystem.requestable.IDeliverable;
 import no.monopixel.slimcolonies.api.colony.requestsystem.requestable.IRequestable;
@@ -19,23 +19,35 @@ import no.monopixel.slimcolonies.api.colony.requestsystem.resolver.IRequestResol
 import no.monopixel.slimcolonies.api.colony.requestsystem.resolver.IRequestResolverProvider;
 import no.monopixel.slimcolonies.api.colony.requestsystem.token.IToken;
 import no.monopixel.slimcolonies.api.crafting.ItemStorage;
+import no.monopixel.slimcolonies.api.inventory.api.CombinedItemHandler;
+import no.monopixel.slimcolonies.api.items.component.BuildingId;
+import no.monopixel.slimcolonies.core.util.SortingUtils;
+
 import net.minecraft.core.BlockPos;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.util.Tuple;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
-import net.minecraftforge.items.IItemHandler;
+import net.neoforged.neoforge.items.IItemHandler;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
 import java.util.function.Predicate;
 
+import static no.monopixel.slimcolonies.api.util.constant.EquipmentLevelConstants.BASIC_TOOL_LEVEL;
+import static no.monopixel.slimcolonies.api.util.constant.EquipmentLevelConstants.TOOL_LEVEL_MAXIMUM;
+import static no.monopixel.slimcolonies.api.util.constant.Suppression.GENERIC_WILDCARD;
 
-public interface IBuilding extends IBuildingContainer, IModuleContainer<IBuildingModule>, IRequestResolverProvider, IRequester, ISchematicProvider
+public interface IBuilding extends IBuildingContainer, IBuildingModuleContainer, IRequestResolverProvider, IRequester, ICommonBuilding
 {
+    /**
+     * Minimal level to ask for wood tools. (WOOD_HUT_LEVEL + 1 == stone)
+     */
+    int WOOD_HUT_LEVEL = 0;
 
     /**
      * Getter for the custom name of a building.
@@ -108,12 +120,6 @@ public interface IBuilding extends IBuildingContainer, IModuleContainer<IBuildin
     void onDestroyed();
 
     /**
-     * Get the colony from a building.
-     * @return the colony it belongs to.
-     */
-    IColony getColony();
-
-    /**
      * Method to define if a builder can build this although the builder is not level 1 yet.
      *
      * @param newLevel the new level of the building.
@@ -125,7 +131,7 @@ public interface IBuilding extends IBuildingContainer, IModuleContainer<IBuildin
     void markDirty();
 
     /**
-     * Checks if this building is pending construction (building, upgrading, or repairing).
+     * Checks if this building have a work order.
      *
      * @return true if the building is building, upgrading or repairing.
      */
@@ -149,10 +155,10 @@ public interface IBuilding extends IBuildingContainer, IModuleContainer<IBuildin
     /**
      * Serializes to view.
      *
-     * @param buf      FriendlyByteBuf to write to.
+     * @param buf      RegistryFriendlyByteBuf to write to.
      * @param fullSync Whether it's a full sync
      */
-    void serializeToView(@NotNull FriendlyByteBuf buf, final boolean fullSync);
+    void serializeToView(@NotNull RegistryFriendlyByteBuf buf, final boolean fullSync);
 
     /**
      * Set the custom building name of the building.
@@ -161,6 +167,12 @@ public interface IBuilding extends IBuildingContainer, IModuleContainer<IBuildin
      */
     void setCustomBuildingName(String name);
 
+    /**
+     * Check if the building should be gathered by the dman.
+     *
+     * @return true if so.
+     */
+    boolean canBeGathered();
 
     /**
      * Requests an upgrade for the current building.
@@ -202,8 +214,19 @@ public interface IBuilding extends IBuildingContainer, IModuleContainer<IBuildin
      *
      * @param newLevel The new level.
      */
-    void onUpgradeComplete(int newLevel);
+    void onUpgradeComplete(@Nullable final Blueprint blueprint, int newLevel);
 
+    /**
+     * Whether this building has a guard building nearby
+     *
+     * @return true/false
+     */
+    boolean isGuardBuildingNear();
+
+    /**
+     * Requests recalculation of whether this building has a guard building nearby
+     */
+    void resetGuardBuildingNear();
 
     /**
      * Check if the worker requires a certain amount of that item and the alreadykept list contains it.
@@ -286,7 +309,7 @@ public interface IBuilding extends IBuildingContainer, IModuleContainer<IBuildin
 
     <R> boolean hasWorkerOpenRequestsOfType(final int citizenid, TypeToken<R> requestType);
 
-    @SuppressWarnings("unchecked")
+    @SuppressWarnings(GENERIC_WILDCARD)
     <R> ImmutableList<IRequest<? extends R>> getOpenRequestsOfType(
       final int citizenid,
       TypeToken<R> requestType);
@@ -302,10 +325,10 @@ public interface IBuilding extends IBuildingContainer, IModuleContainer<IBuildin
      */
     Collection<IRequest<?>> getCompletedRequestsOfCitizenOrBuilding(@Nullable ICitizenData data);
 
-    @SuppressWarnings("unchecked")
+    @SuppressWarnings(GENERIC_WILDCARD)
     <R> ImmutableList<IRequest<? extends R>> getCompletedRequestsOfType(@NotNull ICitizenData citizenData, TypeToken<R> requestType);
 
-    @SuppressWarnings("unchecked")
+    @SuppressWarnings(GENERIC_WILDCARD)
     <R> ImmutableList<IRequest<? extends R>> getCompletedRequestsOfTypeFiltered(
       @NotNull ICitizenData citizenData,
       TypeToken<R> requestType,
@@ -326,10 +349,10 @@ public interface IBuilding extends IBuildingContainer, IModuleContainer<IBuildin
      *
      * @param stack the stack.
      */
-    
+    @SuppressWarnings("squid:S135")
     void overruleNextOpenRequestWithStack(@NotNull ItemStack stack);
 
-    @SuppressWarnings("unchecked")
+    @SuppressWarnings(GENERIC_WILDCARD)
     <R> ImmutableList<IRequest<? extends R>> getOpenRequestsOfTypeFiltered(
       @NotNull ICitizenData citizenData,
       TypeToken<R> requestType,
@@ -341,10 +364,11 @@ public interface IBuilding extends IBuildingContainer, IModuleContainer<IBuildin
      * Creates a pickup request for the building. It will make sure that only one pickup request exists per building, so it's safe to call multiple times. The call will return
      * false if a pickup request already exists, or if the priority is not within the proper range, or if the pickup priority is set to NEVER (0).
      *
-     * @param pickUpPrio The priority of the pickup request.
+     * @param qty the qty of items to be picked up.
+     * @param force if the pickup should be forced.
      * @return true if a pickup request could be created, false if not.
      */
-    boolean createPickupRequest(final int pickUpPrio);
+    boolean createPickupRequest(final int qty, final boolean force);
 
     @Override
     ImmutableCollection<IRequestResolver<?>> getResolvers();
@@ -398,13 +422,6 @@ public interface IBuilding extends IBuildingContainer, IModuleContainer<IBuildin
     void pickUp(final Player player);
 
     /**
-     * Get the Building type
-     *
-     * @return building type
-     */
-    BuildingEntry getBuildingType();
-
-    /**
      * Set the building type
      *
      * @param buildingType
@@ -424,6 +441,23 @@ public interface IBuilding extends IBuildingContainer, IModuleContainer<IBuildin
      */
     boolean isItemStackInRequest(@Nullable ItemStack stack);
 
+    /**
+     * Get the max equipment level useable by the worker.
+     *
+     * @return the integer.
+     */
+    default int getMaxEquipmentLevel()
+    {
+        if (getBuildingLevel() >= getMaxBuildingLevel())
+        {
+            return TOOL_LEVEL_MAXIMUM;
+        }
+        else if (getBuildingLevel() <= WOOD_HUT_LEVEL)
+        {
+            return BASIC_TOOL_LEVEL;
+        }
+        return getBuildingLevel() - WOOD_HUT_LEVEL;
+    }
 
     /**
      * Check if this building is sufficiently built to be able to assign workers.
@@ -476,10 +510,52 @@ public interface IBuilding extends IBuildingContainer, IModuleContainer<IBuildin
     }
 
     /**
+     * Saves reference of this building and colony to given itemStack.
+     */
+    default void writeToItemStack(final ItemStack stack)
+    {
+        getColony().writeToItemStack(stack);
+        new BuildingId(getID()).writeToItemStack(stack);
+    }
+
+    /**
      * Gets the list of tags, and finds all locations registered there.
      * @param tagName the name of the tag to query
      * @return all the matching BlockPos, or an empty list if not found
      */
     @NotNull
     List<BlockPos> getLocationsFromTag(@NotNull final String tagName);
+
+
+
+    /**
+     * Checks if the building can be sorted.
+     * @return true if the building can be sorted, false otherwise.
+     */
+    default public boolean canSort()
+    {
+        return false;
+    }
+
+    /**
+     * Sort the inventory of this building using the given provider.
+     * The implementation of this method is usually a call to {@link SortingUtils#sort(HolderLookup.Provider, CombinedItemHandler)}.
+     * @param provider the provider to use for sorting.
+     * @param inventoryHandler the inventory handler to sort.
+     */
+    default public void sort(@NotNull final HolderLookup.Provider provider, final CombinedItemHandler inventoryHandler)
+    {
+        SortingUtils.sort(provider, inventoryHandler);
+    }
+
+    /**
+     * Recalculate prestige for building.
+     * @param blueprint the blueprint as a basis.
+     */
+    void calculatePrestige(final Blueprint blueprint);
+
+    /**
+     * Trigger for async prestige recalculation.
+     */
+    void asyncPrestigeRecalc();
 }

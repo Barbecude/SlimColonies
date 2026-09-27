@@ -6,10 +6,11 @@ import no.monopixel.slimcolonies.core.colony.buildings.workerbuildings.BuildingM
 import no.monopixel.slimcolonies.core.colony.workorders.WorkOrderMiner;
 import no.monopixel.slimcolonies.core.entity.ai.workers.util.MinerLevel;
 import no.monopixel.slimcolonies.core.entity.ai.workers.util.MineNode;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.core.BlockPos;
 
 import org.jetbrains.annotations.NotNull;
@@ -55,7 +56,7 @@ public class MinerLevelManagementModule extends AbstractBuildingModule implement
     private int startingLevelShaft = 0;
 
     @Override
-    public void deserializeNBT(final CompoundTag compound)
+    public void deserializeNBT(@NotNull final HolderLookup.Provider provider, final CompoundTag compound)
     {
         startingLevelShaft = compound.getInt(TAG_STARTING_LEVEL);
         currentLevel = compound.getInt(TAG_CURRENT_LEVEL);
@@ -76,7 +77,7 @@ public class MinerLevelManagementModule extends AbstractBuildingModule implement
     }
 
     @Override
-    public void serializeNBT(final CompoundTag compound)
+    public void serializeNBT(@NotNull final HolderLookup.Provider provider, CompoundTag compound)
     {
         compound.putInt(TAG_STARTING_LEVEL, startingLevelShaft);
         compound.putInt(TAG_CURRENT_LEVEL, currentLevel);
@@ -105,7 +106,7 @@ public class MinerLevelManagementModule extends AbstractBuildingModule implement
     }
 
     @Override
-    public void serializeToView(final FriendlyByteBuf buf)
+    public void serializeToView(final RegistryFriendlyByteBuf buf)
     {
         buf.writeInt(currentLevel);
         buf.writeInt(levels.size());
@@ -273,7 +274,6 @@ public class MinerLevelManagementModule extends AbstractBuildingModule implement
             final int zOffset = SHAFT_RADIUS * vector.getZ();
 
             BuildingMiner.initStructure(null,
-              0,
               new BlockPos(ladderPos.getX() + xOffset, levels.get(level).getDepth(), ladderPos.getZ() + zOffset),
               (BuildingMiner) building,
               building.getColony().getWorld(),

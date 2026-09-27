@@ -1,16 +1,20 @@
 package no.monopixel.slimcolonies.api.colony.requestsystem.requestable;
 
 import com.google.common.reflect.TypeToken;
-import net.minecraft.nbt.CompoundTag;
-import net.minecraft.network.FriendlyByteBuf;
-import net.minecraft.world.item.ItemStack;
 import no.monopixel.slimcolonies.api.colony.requestsystem.factory.IFactoryController;
 import no.monopixel.slimcolonies.api.equipment.ModEquipmentTypes;
 import no.monopixel.slimcolonies.api.equipment.registry.EquipmentTypeEntry;
 import no.monopixel.slimcolonies.api.util.ItemStackUtils;
 import no.monopixel.slimcolonies.api.util.Log;
 import no.monopixel.slimcolonies.api.util.ReflectionUtils;
+import no.monopixel.slimcolonies.api.util.Utils;
 import no.monopixel.slimcolonies.api.util.constant.TypeConstants;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.world.item.*;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Set;
@@ -25,17 +29,17 @@ public class Tool implements IDeliverable
      * Set of type tokens belonging to this class.
      */
     private final static Set<TypeToken<?>> TYPE_TOKENS =
-        ReflectionUtils.getSuperClasses(TypeToken.of(Tool.class)).stream().filter(type -> !type.equals(TypeConstants.OBJECT)).collect(Collectors.toSet());
+      ReflectionUtils.getSuperClasses(TypeToken.of(Tool.class)).stream().filter(type -> !type.equals(TypeConstants.OBJECT)).collect(Collectors.toSet());
 
-    /// /// --------------------------- NBTConstants --------------------------- \\\\\\
-    private static final String             NBT_TYPE      = "Type";
-    private static final String             NBT_MIN_LEVEL = "MinLevel";
-    private static final String             NBT_MAX_LEVEL = "MaxLevel";
-    private static final String             NBT_RESULT    = "Result";
-    /// /// --------------------------- NBTConstants --------------------------- \\\\\\
+    ////// --------------------------- NBTConstants --------------------------- \\\\\\
+    private static final String NBT_TYPE      = "Type";
+    private static final String NBT_MIN_LEVEL = "MinLevel";
+    private static final String NBT_MAX_LEVEL = "MaxLevel";
+    private static final String NBT_RESULT    = "Result";
+    ////// --------------------------- NBTConstants --------------------------- \\\\\\
 
     @NotNull
-    private final        EquipmentTypeEntry equipmentType;
+    private final EquipmentTypeEntry equipmentType;
 
     @NotNull
     private final Integer minLevel;
@@ -63,18 +67,18 @@ public class Tool implements IDeliverable
      * Serializes this equipment into NBT.
      *
      * @param controller The IFactoryController used to serialize sub types.
-     * @param equipment  the equipment to serialize.
+     * @param equipment       the equipment to serialize.
      * @return The CompoundTag containing the equipment data.
      */
     @NotNull
-    public static CompoundTag serialize(final IFactoryController controller, final Tool equipment)
+    public static CompoundTag serialize(@NotNull final HolderLookup.Provider provider, final IFactoryController controller, final Tool equipment)
     {
         final CompoundTag compound = new CompoundTag();
 
         compound.putString(NBT_TYPE, equipment.getEquipmentType().getRegistryName().toString());
         compound.putInt(NBT_MIN_LEVEL, equipment.getMinLevel());
         compound.putInt(NBT_MAX_LEVEL, equipment.getMaxLevel());
-        compound.put(NBT_RESULT, equipment.getResult().serializeNBT());
+        compound.put(NBT_RESULT, equipment.getResult().saveOptional(provider));
 
         return compound;
     }
@@ -120,14 +124,14 @@ public class Tool implements IDeliverable
      * @return An instance of equipment with the data contained in the given NBT.
      */
     @NotNull
-    public static Tool deserialize(final IFactoryController controller, final CompoundTag nbt)
+    public static Tool deserialize(@NotNull final HolderLookup.Provider provider, final IFactoryController controller, final CompoundTag nbt)
     {
         //API:Map the given strings a proper way.
         String resLoc = nbt.getString(NBT_TYPE);
-        final EquipmentTypeEntry type = ModEquipmentTypes.getRegistry().getValue(EquipmentTypeEntry.parseResourceLocation(resLoc));
+        final EquipmentTypeEntry type = ModEquipmentTypes.getRegistry().get(EquipmentTypeEntry.parseResourceLocation(resLoc));
         final Integer minLevel = nbt.getInt(NBT_MIN_LEVEL);
         final Integer maxLevel = nbt.getInt(NBT_MAX_LEVEL);
-        final ItemStack result = ItemStack.of(nbt.getCompound(NBT_RESULT));
+        final ItemStack result = ItemStack.parseOptional(provider, nbt.getCompound(NBT_RESULT));
 
         return new Tool(type, minLevel, maxLevel, result);
     }
@@ -139,7 +143,7 @@ public class Tool implements IDeliverable
      * @param buffer     the the buffer to write to.
      * @param input      the input to serialize.
      */
-    public static void serialize(final IFactoryController controller, final FriendlyByteBuf buffer, final Tool input)
+    public static void serialize(final IFactoryController controller, final RegistryFriendlyByteBuf buffer, final Tool input)
     {
         buffer.writeResourceLocation(input.getEquipmentType().getRegistryName());
         buffer.writeInt(input.getMinLevel());
@@ -147,7 +151,7 @@ public class Tool implements IDeliverable
         buffer.writeBoolean(!ItemStackUtils.isEmpty(input.result));
         if (!ItemStackUtils.isEmpty(input.result))
         {
-            buffer.writeItem(input.result);
+            Utils.serializeCodecMess(buffer, input.result);
         }
     }
 
@@ -158,12 +162,12 @@ public class Tool implements IDeliverable
      * @param buffer     the buffer to read.
      * @return the deliverable.
      */
-    public static Tool deserialize(final IFactoryController controller, final FriendlyByteBuf buffer)
+    public static Tool deserialize(final IFactoryController controller, final RegistryFriendlyByteBuf buffer)
     {
-        final EquipmentTypeEntry type = ModEquipmentTypes.getRegistry().getValue(buffer.readResourceLocation());
+        final EquipmentTypeEntry type = ModEquipmentTypes.getRegistry().get(buffer.readResourceLocation());
         final int minLevel = buffer.readInt();
         final int maxLevel = buffer.readInt();
-        final ItemStack result = buffer.readBoolean() ? buffer.readItem() : ItemStack.EMPTY;
+        final ItemStack result = buffer.readBoolean() ? Utils.deserializeCodecMess(buffer) : ItemStack.EMPTY;
 
         return new Tool(type, minLevel, maxLevel, result);
     }
@@ -178,7 +182,7 @@ public class Tool implements IDeliverable
 
         try
         {
-            return ItemStackUtils.isEquipmentType(stack, getEquipmentType());
+            return ItemStackUtils.hasEquipmentLevel(stack, getEquipmentType(), getMinLevel(), getMaxLevel());
         }
         catch (final Exception e)
         {
@@ -230,7 +234,7 @@ public class Tool implements IDeliverable
     public boolean isArmor()
     {
         return equipmentType == ModEquipmentTypes.helmet.get() || equipmentType == ModEquipmentTypes.leggings.get() || equipmentType == ModEquipmentTypes.chestplate.get()
-            || equipmentType == ModEquipmentTypes.boots.get();
+                 || equipmentType == ModEquipmentTypes.boots.get();
     }
 
     @Override

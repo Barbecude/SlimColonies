@@ -1,32 +1,27 @@
 package no.monopixel.slimcolonies.core.network.messages.server;
 
+import com.ldtteam.common.network.AbstractServerPlayMessage;
+import com.ldtteam.common.network.PlayMessageType;
 import com.ldtteam.structurize.items.ModItems;
-import no.monopixel.slimcolonies.api.network.IMessage;
+import no.monopixel.slimcolonies.api.util.Utils;
+import no.monopixel.slimcolonies.api.util.constant.Constants;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.network.FriendlyByteBuf;
-import net.minecraftforge.fml.LogicalSide;
-import net.minecraftforge.network.NetworkEvent;
+import net.neoforged.neoforge.network.handling.IPayloadContext;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 /**
  * Switch the buildtool with the respective item in the inventory.
  */
-public class SwitchBuildingWithToolMessage implements IMessage
+public class SwitchBuildingWithToolMessage extends AbstractServerPlayMessage
 {
+    public static final PlayMessageType<?> TYPE = PlayMessageType.forServer(Constants.MOD_ID, "switch_building_with_tool", SwitchBuildingWithToolMessage::new);
+
     /**
      * The stack to switch.
      */
-    private ItemStack stack;
-
-    /**
-     * Empty constructor used when registering the
-     */
-    public SwitchBuildingWithToolMessage()
-    {
-        super();
-    }
+    private final ItemStack stack;
 
     /**
      * Switch the stack.
@@ -35,44 +30,35 @@ public class SwitchBuildingWithToolMessage implements IMessage
      */
     public SwitchBuildingWithToolMessage(final ItemStack stack)
     {
-        super();
+        super(TYPE);
         this.stack = stack;
     }
 
     /**
-     * Reads this packet from a {@link FriendlyByteBuf}.
+     * Reads this packet from a {@link RegistryFriendlyByteBuf}.
      *
      * @param buf The buffer begin read from.
      */
-    @Override
-    public void fromBytes(@NotNull final FriendlyByteBuf buf)
+    protected SwitchBuildingWithToolMessage(final RegistryFriendlyByteBuf buf, final PlayMessageType<?> type)
     {
-        stack = buf.readItem();
+        super(buf, type);
+        stack = Utils.deserializeCodecMess(buf);
     }
 
     /**
-     * Writes this packet to a {@link FriendlyByteBuf}.
+     * Writes this packet to a {@link RegistryFriendlyByteBuf}.
      *
      * @param buf The buffer being written to.
      */
     @Override
-    public void toBytes(@NotNull final FriendlyByteBuf buf)
+    protected void toBytes(@NotNull final RegistryFriendlyByteBuf buf)
     {
-        buf.writeItem(stack);
-    }
-
-    @Nullable
-    @Override
-    public LogicalSide getExecutionSide()
-    {
-        return LogicalSide.SERVER;
+        Utils.serializeCodecMess(buf, stack);
     }
 
     @Override
-    public void onExecute(final NetworkEvent.Context ctxIn, final boolean isLogicalServer)
+    protected void onExecute(final IPayloadContext ctxIn, final ServerPlayer player)
     {
-        final ServerPlayer player = ctxIn.getSender();
-
         int stackSlot = -1;
         int buildToolSlot = -1;
         for (int i = 0; i < 9; i++)

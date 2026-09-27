@@ -1,0 +1,26 @@
+{
+  "parent": "slimcolonies:production/build_farmer",
+  "criteria": {
+    "fields": {
+      "trigger": "slimcolonies:max_fields"
+    }
+  },
+  "display": {
+    "description": {
+      "translate": "advancements.slimcolonies.max_fields.description"
+    },
+    "icon": {
+      "count": 1,
+      "id": "slimcolonies:blockhutfield"
+    },
+    "title": {
+      "translate": "advancements.slimcolonies.max_fields.title"
+    }
+  },
+  "requirements": [
+    [
+      "fields"
+    ]
+  ],
+  "sends_telemetry_event": true
+}

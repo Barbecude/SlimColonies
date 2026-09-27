@@ -6,7 +6,24 @@ import com.ldtteam.structurize.placement.handlers.placement.IPlacementHandler;
 import com.ldtteam.structurize.placement.handlers.placement.PlacementHandlers;
 import com.ldtteam.structurize.util.BlockInfo;
 import com.ldtteam.structurize.util.BlockUtils;
-import com.ldtteam.structurize.util.PlacementSettings;
+import no.monopixel.slimcolonies.api.colony.IColony;
+import no.monopixel.slimcolonies.api.colony.IColonyManager;
+import no.monopixel.slimcolonies.api.colony.IColonyView;
+import no.monopixel.slimcolonies.api.colony.buildings.IBuilding;
+import no.monopixel.slimcolonies.api.colony.buildings.ModBuildings;
+import no.monopixel.slimcolonies.api.colony.buildings.views.IBuildingView;
+import no.monopixel.slimcolonies.api.colony.interactionhandling.ChatPriority;
+import no.monopixel.slimcolonies.api.colony.permissions.Action;
+import no.monopixel.slimcolonies.api.colony.workorders.IWorkOrder;
+import no.monopixel.slimcolonies.api.util.InventoryUtils;
+import no.monopixel.slimcolonies.api.util.ItemStackUtils;
+import no.monopixel.slimcolonies.api.util.constant.ColonyConstants;
+import no.monopixel.slimcolonies.core.colony.buildings.modules.BuildingModules;
+import no.monopixel.slimcolonies.core.colony.buildings.workerbuildings.BuildingMiner;
+import no.monopixel.slimcolonies.core.colony.interactionhandling.SimpleNotificationInteraction;
+import no.monopixel.slimcolonies.core.entity.ai.workers.util.BuildingProgressStage;
+import no.monopixel.slimcolonies.core.network.messages.server.PlayerAssistantBuildRequestMessage;
+import no.monopixel.slimcolonies.core.placementhandlers.SolidPlaceholderPlacementHandler;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.BlockParticleOption;
@@ -17,50 +34,31 @@ import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.InteractionResultHolder;
+import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.level.block.Mirror;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec3;
-import net.minecraftforge.items.wrapper.InvWrapper;
-import no.monopixel.slimcolonies.api.colony.IColony;
-import no.monopixel.slimcolonies.api.colony.IColonyManager;
-import no.monopixel.slimcolonies.api.colony.IColonyView;
-import no.monopixel.slimcolonies.api.colony.buildings.IBuilding;
-import no.monopixel.slimcolonies.api.colony.permissions.Action;
-import no.monopixel.slimcolonies.api.colony.workorders.IWorkOrder;
-import no.monopixel.slimcolonies.api.util.BlockPosUtil;
-import no.monopixel.slimcolonies.api.util.InventoryUtils;
-import no.monopixel.slimcolonies.api.util.ItemStackUtils;
-import no.monopixel.slimcolonies.api.util.constant.ColonyConstants;
-import no.monopixel.slimcolonies.core.Network;
-import no.monopixel.slimcolonies.core.colony.buildings.modules.BuildingModules;
-import no.monopixel.slimcolonies.core.colony.buildings.workerbuildings.BuildingMiner;
-import no.monopixel.slimcolonies.core.entity.ai.workers.util.BuildingProgressStage;
-import no.monopixel.slimcolonies.core.network.messages.server.PlayerAssistantBuildRequestMessage;
-import no.monopixel.slimcolonies.core.placementhandlers.SolidPlaceholderPlacementHandler;
+import net.neoforged.neoforge.items.wrapper.InvWrapper;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
-import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 
 /**
  * Assistant Hammer item used to allow the player to assist the builder in building
  */
-@SuppressWarnings("removal")
-public class ItemAssistantHammer extends AbstractItemSlimColonies
+public class ItemAssistantHammer extends AbstractItemMinecolonies
 {
+    /**
+     * The distance at which blocks can get placed from the clicked position
+     */
     private int reach = 1;
 
-    /**
-     * GuardScepter constructor. Sets max stack to 1, like other tools.
-     *
-     * @param properties the properties.
-     */
     public ItemAssistantHammer(final String id, final Properties properties, final int reach)
     {
         super(id, properties);
@@ -85,18 +83,28 @@ public class ItemAssistantHammer extends AbstractItemSlimColonies
         boolean unclaimed = true;
         for (final IWorkOrder workOrder : view.getWorkOrders())
         {
-            if (workOrder.isClaimed() && workOrder.getBoundingBox() != null && workOrder.getBoundingBox().inflate(2).contains(Vec3.atLowerCornerOf(interactPos)))
+            if (workOrder.isClaimed()
+                && view.getClientBuildingManager().getBuilding(workOrder.getClaimedBy()) != null
+                && view.getClientBuildingManager().getBuilding(workOrder.getClaimedBy()).getBuildingType() == ModBuildings.builder.get()
+                && workOrder.getBoundingBox() != null && workOrder.getBoundingBox().inflate(2).contains(Vec3.atLowerCornerOf(interactPos)))
             {
                 unclaimed = false;
                 if (workOrder.getBlueprint() == null)
                 {
-                    workOrder.loadBlueprint(player.level, b -> {});
+                    workOrder.loadBlueprint(player.level(), b -> {});
                     return;
                 }
 
                 List<IPlacementHandler> handlers = new ArrayList<>(PlacementHandlers.handlers);
                 SolidPlaceholderPlacementHandler solidPlaceHolderHandler = new SolidPlaceholderPlacementHandler();
-                solidPlaceHolderHandler.setReplacement(view.getBuilding(workOrder.getClaimedBy())
+                final IBuildingView building = view.getClientBuildingManager().getBuilding(workOrder.getClaimedBy());
+
+                if (building == null || !building.hasModuleView(BuildingModules.BUILDER_SETTINGS))
+                {
+                    return;
+                }
+
+                solidPlaceHolderHandler.setReplacement(building
                     .getModuleView(BuildingModules.BUILDER_SETTINGS)
                     .getSetting(BuildingMiner.FILL_BLOCK)
                     .getValue()
@@ -107,7 +115,7 @@ public class ItemAssistantHammer extends AbstractItemSlimColonies
                 final BuildAttemptResult buildAttemptResult = tryBuildingBlockNearby(player, view, workOrder, interactPos, handlers);
                 if (buildAttemptResult.areBlocksToBuildNearby() && !buildAttemptResult.didTryBuilding())
                 {
-                    player.displayClientMessage(Component.translatable("item.slimcolonies.assistantaxe.noitems"), true);
+                    player.displayClientMessage(Component.translatable("item.slimcolonies.assistanthammer.noitems"), true);
                 }
 
                 break;
@@ -116,7 +124,7 @@ public class ItemAssistantHammer extends AbstractItemSlimColonies
 
         if (unclaimed)
         {
-            player.displayClientMessage(Component.translatable("item.slimcolonies.assistantaxe.onlyactive"), true);
+            player.displayClientMessage(Component.translatable("item.slimcolonies.assistanthammer.onlyactive"), true);
         }
     }
 
@@ -135,7 +143,7 @@ public class ItemAssistantHammer extends AbstractItemSlimColonies
             final BuildingProgressStage stage = workOrder.getStage();
             if (stage == BuildingProgressStage.CLEAR || stage == BuildingProgressStage.CLEAR_NON_SOLIDS)
             {
-                player.displayClientMessage(Component.translatable("item.slimcolonies.assistantaxe.notcleared"), true);
+                player.displayClientMessage(Component.translatable("item.slimcolonies.assistanthammer.notcleared"), true);
                 player.inventoryMenu.broadcastFullState();
                 return;
             }
@@ -144,14 +152,14 @@ public class ItemAssistantHammer extends AbstractItemSlimColonies
             if (workOrder.getBlueprint() == null)
             {
                 workOrder.loadBlueprint(player.level(), b -> {});
-                player.displayClientMessage(Component.translatable("item.slimcolonies.assistantaxe.notloaded"), true);
+                player.displayClientMessage(Component.translatable("item.slimcolonies.assistanthammer.notloaded"), true);
                 player.inventoryMenu.broadcastFullState();
                 return;
             }
 
             List<IPlacementHandler> handlers = new ArrayList<>(PlacementHandlers.handlers);
             SolidPlaceholderPlacementHandler solidPlaceHolderHandler = new SolidPlaceholderPlacementHandler();
-            solidPlaceHolderHandler.setReplacement(colony.getBuildingManager().getBuilding(workOrder.getClaimedBy())
+            solidPlaceHolderHandler.setReplacement(colony.getServerBuildingManager().getBuilding(workOrder.getClaimedBy())
                 .getModule(BuildingModules.BUILDER_SETTINGS)
                 .getSetting(BuildingMiner.FILL_BLOCK)
                 .getValue()
@@ -162,11 +170,14 @@ public class ItemAssistantHammer extends AbstractItemSlimColonies
             final BuildAttemptResult buildAttemptResult = tryBuildingBlockNearby(player, colony, workOrder, interactPos, handlers);
             if (buildAttemptResult.areBlocksToBuildNearby() && !buildAttemptResult.didTryBuilding())
             {
-                player.displayClientMessage(Component.translatable("item.slimcolonies.assistantaxe.noitems"), true);
+                player.displayClientMessage(Component.translatable("item.slimcolonies.assistanthammer.noitems"), true);
                 player.inventoryMenu.broadcastFullState();
             }
 
-            // Assistant axe has no durability - infinite uses
+            if (buildAttemptResult.areBlocksToBuildNearby() && buildAttemptResult.didTryBuilding() && !player.isCreative())
+            {
+                player.getMainHandItem().hurtAndBreak(player.getMainHandItem().getItem().damageItem(player.getMainHandItem(), 1, player, s -> {}), player, EquipmentSlot.MAINHAND);
+            }
         }
     }
 
@@ -248,8 +259,7 @@ public class ItemAssistantHammer extends AbstractItemSlimColonies
                         {
                             if (handler.canHandle(player.level(), BlockPos.ZERO, blockInfo.getState()))
                             {
-                                final List<ItemStack> itemList = handler.getRequiredItems(player.level(), workPos, blockInfo.getState(), blockInfo.getTileEntityData(),
-                                    new SimplePlacementContext(true, new PlacementSettings(workOrder.isMirrored() ? Mirror.FRONT_BACK : Mirror.NONE, BlockPosUtil.getRotationFromRotations(workOrder.getRotation()))));
+                                final List<ItemStack> itemList = handler.getRequiredItems(player.level(), workPos, blockInfo.getState(), blockInfo.getTileEntityData(), new SimplePlacementContext(true, workOrder.getRotationMirror()));
                                 requiredItem.addAll(itemList);
 
                                 foundHandler = handler;
@@ -301,7 +311,7 @@ public class ItemAssistantHammer extends AbstractItemSlimColonies
                             workPos,
                             blockInfo.getState(),
                             blockInfo.getTileEntityData(),
-                            new SimplePlacementContext(true, new PlacementSettings(workOrder.isMirrored() ? Mirror.FRONT_BACK : Mirror.NONE, BlockPosUtil.getRotationFromRotations(workOrder.getRotation()))));
+                            new SimplePlacementContext(true, workOrder.getRotationMirror()));
 
                         if (result == IPlacementHandler.ActionProcessingResult.DENY)
                         {
@@ -310,7 +320,7 @@ public class ItemAssistantHammer extends AbstractItemSlimColonies
 
                         if (!colony.getWorld().isClientSide())
                         {
-                            final IBuilding building = colony.getBuildingManager().getBuilding(workOrder.getLocation());
+                            final IBuilding building = colony.getServerBuildingManager().getBuilding(workOrder.getLocation());
                             if (building != null)
                             {
                                 building.registerBlockPosition(blockInfo.getState(), workPos, colony.getWorld());
@@ -325,15 +335,26 @@ public class ItemAssistantHammer extends AbstractItemSlimColonies
                         // Server message
                         if (colony.getWorld().isClientSide)
                         {
-                            Network.getNetwork()
-                                .sendToServer(new PlayerAssistantBuildRequestMessage(colony, workOrder.getID(), interactPos));
+                            new PlayerAssistantBuildRequestMessage(colony, workOrder.getID(), interactPos).sendToServer();
                         }
                         else
                         {
-                            final IBuilding building = colony.getBuildingManager().getBuilding(workOrder.getClaimedBy());
+                            final IBuilding building = colony.getServerBuildingManager().getBuilding(workOrder.getClaimedBy());
                             for (final ItemStack stack : requiredItem)
                             {
                                 building.getModule(BuildingModules.BUILDING_RESOURCES).reduceNeededResource(stack, 1);
+                            }
+
+                            if (ColonyConstants.rand.nextInt(20) == 0)
+                            {
+                                final var buildingBuilder = colony.getServerBuildingManager().getBuilding(workOrder.getClaimedBy());
+                                if (buildingBuilder != null)
+                                {
+                                    buildingBuilder.getModule(BuildingModules.BUILDER_WORK).getAssignedCitizen()
+                                        .forEach(citizen -> citizen.triggerInteraction(new SimpleNotificationInteraction(Component.translatable(
+                                            "item.slimcolonies.assistanthammer.happybuilder"),
+                                            ChatPriority.CHITCHAT)));
+                                }
                             }
                         }
 
@@ -389,9 +410,9 @@ public class ItemAssistantHammer extends AbstractItemSlimColonies
         boolean didTryBuilding) {}
 
     @Override
-    public void appendHoverText(ItemStack stack, @Nullable Level world, List<Component> tooltipList, TooltipFlag flag)
+    public void appendHoverText(@NotNull final ItemStack stack, @Nullable final TooltipContext ctx, @NotNull final List<Component> tooltipList, @NotNull final TooltipFlag flagIn)
     {
-        tooltipList.add(Component.translatable("item.slimcolonies.assistantaxe.reach", reach).withStyle(ChatFormatting.BLUE));
-        tooltipList.add(Component.translatable("item.slimcolonies.assistantaxe.desc").withStyle(ChatFormatting.ITALIC).withStyle(ChatFormatting.GRAY));
+        tooltipList.add(Component.translatable("item.slimcolonies.assistanthammer.reach", reach).withStyle(ChatFormatting.BLUE));
+        tooltipList.add(Component.translatable("item.slimcolonies.assistanthammer.desc").withStyle(ChatFormatting.ITALIC).withStyle(ChatFormatting.GRAY));
     }
 }

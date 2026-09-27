@@ -1,12 +1,12 @@
 package no.monopixel.slimcolonies.core.colony.managers;
 
+import no.monopixel.slimcolonies.api.colony.managers.interfaces.IStatisticsManager;
 import it.unimi.dsi.fastutil.ints.Int2IntLinkedOpenHashMap;
 import it.unimi.dsi.fastutil.ints.Int2IntMap;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
-import net.minecraft.network.FriendlyByteBuf;
-import no.monopixel.slimcolonies.api.colony.managers.interfaces.IStatisticsManager;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.HashMap;
@@ -52,58 +52,41 @@ public class StatisticsManager implements IStatisticsManager
     }
 
     @Override
-    public @NotNull Map<String, Integer> getStats()
+    public int getStatTotal(final @NotNull String id)
     {
-        final Map<String, Integer> result = new HashMap<>();
-
-        for (final Map.Entry<String, Int2IntLinkedOpenHashMap> entry : stats.entrySet())
+        final Int2IntLinkedOpenHashMap stats = this.stats.getOrDefault(id, new Int2IntLinkedOpenHashMap());
+        int totalCount = 0;
+        for (final int count : stats.values())
         {
-            int total = 0;
-            for (final int count : entry.getValue().values())
-            {
-                total += count;
-            }
-
-            if (total > 0)
-            {
-                result.put(entry.getKey(), total);
-            }
+            totalCount += count;
         }
-
-        return result;
+        return totalCount;
     }
 
     @Override
-    public @NotNull Map<String, Integer> getStats(final int startDay, final int endDay)
+    public int getStatsInPeriod(final @NotNull String id, final int startDay, final int endDay)
     {
-        final Map<String, Integer> result = new HashMap<>();
-
-        for (final Map.Entry<String, Int2IntLinkedOpenHashMap> entry : stats.entrySet())
+        final Int2IntLinkedOpenHashMap stats = this.stats.getOrDefault(id, new Int2IntLinkedOpenHashMap());
+        int count = 0;
+        for (int day = startDay; day <= endDay; day++)
         {
-            final Int2IntLinkedOpenHashMap dayMap = entry.getValue();
-            int count = 0;
-
-            for (int day = startDay; day <= endDay; day++)
-            {
-                count += dayMap.get(day);
-            }
-
-            if (count > 0)
-            {
-                result.put(entry.getKey(), count);
-            }
+            count += stats.get(day);
         }
+        return count;
+    }
 
-        return result;
+    @Override
+    public @NotNull Set<String> getStatTypes()
+    {
+        return stats.keySet();
     }
 
     /**
      * Gets all the current stat entries in this manager.
-     *
      * @return a set of entries with the id and the stats map.
      */
     @Override
-    public @NotNull Set<Map.Entry<String, Int2IntLinkedOpenHashMap>> getStatEntries()
+    public @NotNull Set<Map.Entry<String, Int2IntLinkedOpenHashMap>>  getStatEntries()
     {
         return stats.entrySet();
     }
@@ -114,12 +97,12 @@ public class StatisticsManager implements IStatisticsManager
     @Override
     public void clear()
     {
+        dirtyStats.addAll(stats.keySet());
         stats.clear();
-        dirtyStats = new HashSet<>();
     }
 
     @Override
-    public void serialize(@NotNull final FriendlyByteBuf buf, final boolean fullSync)
+    public void serialize(@NotNull final RegistryFriendlyByteBuf buf, final boolean fullSync)
     {
         buf.writeBoolean(fullSync);
         buf.writeVarInt(fullSync ? stats.size() : dirtyStats.size());
@@ -142,9 +125,15 @@ public class StatisticsManager implements IStatisticsManager
         {
             for (final String id : dirtyStats)
             {
-                var dataEntry = stats.get(id);
+                final Int2IntLinkedOpenHashMap dataEntry = stats.get(id);
 
                 buf.writeUtf(id);
+                if (dataEntry == null)
+                {
+                    buf.writeVarInt(0);
+                    continue;
+                }
+
                 buf.writeVarInt(1);
                 buf.writeVarInt(dataEntry.lastIntKey());
                 buf.writeVarInt(dataEntry.get(dataEntry.lastIntKey()));
@@ -158,7 +147,7 @@ public class StatisticsManager implements IStatisticsManager
     }
 
     @Override
-    public void deserialize(@NotNull final FriendlyByteBuf buf)
+    public void deserialize(@NotNull final RegistryFriendlyByteBuf buf)
     {
         final boolean fullSync = buf.readBoolean();
         if (fullSync)
@@ -171,6 +160,12 @@ public class StatisticsManager implements IStatisticsManager
         {
             final String id = buf.readUtf();
             final int statEntrySize = buf.readVarInt();
+
+            if (!fullSync && statEntrySize == 0)
+            {
+                stats.remove(id);
+                continue;
+            }
 
             final Int2IntLinkedOpenHashMap statValues = (fullSync || !stats.containsKey(id)) ? new Int2IntLinkedOpenHashMap(statEntrySize) : stats.get(id);
             for (int j = 0; j < statEntrySize; j++)

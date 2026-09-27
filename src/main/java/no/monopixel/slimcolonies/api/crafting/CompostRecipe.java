@@ -1,21 +1,19 @@
 package no.monopixel.slimcolonies.api.crafting;
 
-import com.google.gson.JsonObject;
 import no.monopixel.slimcolonies.api.crafting.registry.ModRecipeSerializer;
 import no.monopixel.slimcolonies.api.items.ModItems;
 import no.monopixel.slimcolonies.api.tileentities.AbstractTileEntityBarrel;
+import com.mojang.serialization.MapCodec;
+import com.mojang.serialization.codecs.RecordCodecBuilder;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.core.NonNullList;
-import net.minecraft.core.RegistryAccess;
-import net.minecraft.network.FriendlyByteBuf;
-import net.minecraft.resources.ResourceLocation;
-import net.minecraft.util.GsonHelper;
-import net.minecraft.world.Container;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.codec.ByteBufCodecs;
+import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.util.ExtraCodecs;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.crafting.Ingredient;
-import net.minecraft.world.item.crafting.Recipe;
-import net.minecraft.world.item.crafting.RecipeSerializer;
-import net.minecraft.world.item.crafting.RecipeType;
+import net.minecraft.world.item.crafting.*;
 import net.minecraft.world.level.Level;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -25,20 +23,28 @@ import org.jetbrains.annotations.Nullable;
  * assign different "strength" ratings to different input items; currently the actual outputs of the barrel
  * are fixed.
  */
-public class CompostRecipe implements Recipe<Container>
+public class CompostRecipe implements Recipe<SingleRecipeInput>
 {
+    public static final MapCodec<CompostRecipe> CODEC = RecordCodecBuilder.mapCodec(builder -> builder
+        .group(Ingredient.CODEC_NONEMPTY.fieldOf("input").forGetter(CompostRecipe::getInput),
+          ExtraCodecs.POSITIVE_INT.optionalFieldOf("strength", 1).forGetter(CompostRecipe::getStrength))
+        .apply(builder, CompostRecipe::new));
+
+    public static final StreamCodec<RegistryFriendlyByteBuf, CompostRecipe> STREAM_CODEC =
+            StreamCodec.composite(
+                    Ingredient.CONTENTS_STREAM_CODEC, CompostRecipe::getInput,
+                    ByteBufCodecs.VAR_INT, CompostRecipe::getStrength,
+                    CompostRecipe::new);
+
     private static final int FERMENT_TIME = 24000;
     private static final int COMPOST_RESULT = 6;
-
-    private final ResourceLocation id;
 
     private final Ingredient input;
     private final ItemStack output;
     private final int strength;
 
-    public CompostRecipe(@NotNull final ResourceLocation id, @NotNull final Ingredient ingredient, final int strength)
+    public CompostRecipe(@NotNull final Ingredient ingredient, final int strength)
     {
-        this.id = id;
         this.input = ingredient;
         this.strength = strength;
         this.output = new ItemStack(ModItems.compost, COMPOST_RESULT);
@@ -47,10 +53,6 @@ public class CompostRecipe implements Recipe<Container>
     @NotNull
     @Override
     public RecipeType<?> getType() { return ModRecipeSerializer.CompostRecipeType.get(); }
-
-    @NotNull
-    @Override
-    public ResourceLocation getId() { return this.id; }
 
     /**
      * Get the input ingredient for this recipe (this is multiple alternative item types).
@@ -77,14 +79,14 @@ public class CompostRecipe implements Recipe<Container>
     public int getFermentTime() { return FERMENT_TIME; }
 
     @Override
-    public boolean matches(final Container inv, final Level worldIn)
+    public boolean matches(@NotNull final SingleRecipeInput input, @NotNull final Level worldIn)
     {
         return false;
     }
 
     @NotNull
     @Override
-    public ItemStack assemble(final Container inv, final RegistryAccess access)
+    public ItemStack assemble(@NotNull final SingleRecipeInput input, @NotNull final HolderLookup.Provider provider)
     {
         return this.output.copy();
     }
@@ -97,7 +99,7 @@ public class CompostRecipe implements Recipe<Container>
 
     @NotNull
     @Override
-    public ItemStack getResultItem(final RegistryAccess access)
+    public ItemStack getResultItem(@Nullable final HolderLookup.Provider provider)
     {
         return this.output;
     }
@@ -120,7 +122,7 @@ public class CompostRecipe implements Recipe<Container>
     public NonNullList<Ingredient> getIngredients()
     {
         final NonNullList<Ingredient> ingredients = NonNullList.create();
-        ingredients.add(new CountedIngredient(this.input, calculateIngredientCount()));
+        ingredients.add(CountedIngredient.of(this.input, calculateIngredientCount()));
         return ingredients;
     }
 
@@ -132,38 +134,25 @@ public class CompostRecipe implements Recipe<Container>
     // JEI looks better if we render these as many individual recipes rather than as
     // a few recipes with a massive number of alternative ingredients.
     @NotNull
-    public static CompostRecipe individualize(@NotNull final Item item, @NotNull final CompostRecipe recipe)
+    public static CompostRecipe individualize(@NotNull final Item item, @NotNull final RecipeHolder<CompostRecipe> recipe)
     {
-        return new CompostRecipe(recipe.getId(), Ingredient.of(item), recipe.getStrength());
+        return new CompostRecipe(Ingredient.of(item), recipe.value().getStrength());
     }
 
     public static class Serializer implements RecipeSerializer<CompostRecipe>
     {
         @NotNull
         @Override
-        public CompostRecipe fromJson(@NotNull final ResourceLocation recipeId, @NotNull final JsonObject json)
+        public MapCodec<CompostRecipe> codec()
         {
-            final Ingredient ingredient = Ingredient.fromJson(json.get("input"));
-            final int strength = GsonHelper.getAsInt(json, "strength", 1);
-
-            return new CompostRecipe(recipeId, ingredient, strength);
+            return CompostRecipe.CODEC;
         }
 
-        @Nullable
+        @NotNull
         @Override
-        public CompostRecipe fromNetwork(@NotNull final ResourceLocation recipeId, @NotNull final FriendlyByteBuf buffer)
+        public StreamCodec<RegistryFriendlyByteBuf, CompostRecipe> streamCodec()
         {
-            final Ingredient ingredient = Ingredient.fromNetwork(buffer);
-            final int strength = buffer.readVarInt();
-
-            return new CompostRecipe(recipeId, ingredient, strength);
-        }
-
-        @Override
-        public void toNetwork(@NotNull final FriendlyByteBuf buffer, @NotNull final CompostRecipe recipe)
-        {
-            recipe.getInput().toNetwork(buffer);
-            buffer.writeVarInt(recipe.getStrength());
+            return CompostRecipe.STREAM_CODEC;
         }
     }
 }

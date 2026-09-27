@@ -1,0 +1,30 @@
+{
+  "parent": "slimcolonies:production/build_sawmill",
+  "criteria": {
+    "blacksmith": {
+      "conditions": {
+        "hut_name": "blacksmith",
+        "level": 1
+      },
+      "trigger": "slimcolonies:complete_build_request"
+    }
+  },
+  "display": {
+    "description": {
+      "translate": "advancements.slimcolonies.build.blacksmith.description"
+    },
+    "icon": {
+      "count": 1,
+      "id": "slimcolonies:blockhutblacksmith"
+    },
+    "title": {
+      "translate": "advancements.slimcolonies.build.blacksmith.title"
+    }
+  },
+  "requirements": [
+    [
+      "blacksmith"
+    ]
+  ],
+  "sends_telemetry_event": true
+}

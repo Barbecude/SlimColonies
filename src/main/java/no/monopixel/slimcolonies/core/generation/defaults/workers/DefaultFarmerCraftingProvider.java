@@ -1,16 +1,18 @@
 package no.monopixel.slimcolonies.core.generation.defaults.workers;
 
-import net.minecraft.data.PackOutput;
-import net.minecraft.data.recipes.FinishedRecipe;
-import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.Items;
 import no.monopixel.slimcolonies.api.colony.jobs.ModJobs;
 import no.monopixel.slimcolonies.api.crafting.ItemStorage;
 import no.monopixel.slimcolonies.api.equipment.ModEquipmentTypes;
+import no.monopixel.slimcolonies.api.items.ModItems;
 import no.monopixel.slimcolonies.core.generation.CustomRecipeProvider;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.data.PackOutput;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 
 import static no.monopixel.slimcolonies.api.util.constant.BuildingConstants.MODULE_CRAFTING;
@@ -22,9 +24,9 @@ public class DefaultFarmerCraftingProvider extends CustomRecipeProvider
 {
     private static final String FARMER = ModJobs.FARMER_ID.getPath();
 
-    public DefaultFarmerCraftingProvider(@NotNull final PackOutput packOutput)
+    public DefaultFarmerCraftingProvider(@NotNull final PackOutput packOutput, final CompletableFuture<HolderLookup.Provider> lookupProvider)
     {
-        super(packOutput);
+        super(packOutput, lookupProvider);
     }
 
     @NotNull
@@ -35,22 +37,19 @@ public class DefaultFarmerCraftingProvider extends CustomRecipeProvider
     }
 
     @Override
-    protected void registerRecipes(@NotNull final Consumer<FinishedRecipe> consumer)
+    protected void registerRecipes(@NotNull final Consumer<CustomRecipeBuilder> consumer)
     {
-        CustomRecipeBuilder.create(FARMER, MODULE_CRAFTING, "carved_pumpkin")
-            .inputs(List.of(new ItemStorage(new ItemStack(Items.PUMPKIN))))
-            .result(new ItemStack(Items.CARVED_PUMPKIN))
-            .requiredTool(ModEquipmentTypes.shears.get())
-            .build(consumer);
+        recipe(FARMER, MODULE_CRAFTING, "carved_pumpkin")
+                .inputs(List.of(new ItemStorage(new ItemStack(Items.PUMPKIN))))
+                .result(new ItemStack(Items.CARVED_PUMPKIN))
+                .requiredTool(ModEquipmentTypes.shears.get())
+                .build(consumer);
 
-        CustomRecipeBuilder.create(FARMER, MODULE_CRAFTING, "mud")
-            .inputs(List.of(new ItemStorage(new ItemStack(Items.DIRT))))
-            .result(new ItemStack(Items.MUD))
-            .build(consumer);
-
-        CustomRecipeBuilder.create(FARMER, MODULE_CRAFTING, "water_bucket")
-            .inputs(List.of(new ItemStorage(new ItemStack(Items.BUCKET))))
-            .result(new ItemStack(Items.WATER_BUCKET))
-            .build(consumer);
+        recipe(FARMER, MODULE_CRAFTING, "mud")
+                .inputs(List.of(new ItemStorage(new ItemStack(Items.DIRT)),
+                        new ItemStorage(ModItems.large_water_bottle.getDefaultInstance())))
+                .result(new ItemStack(Items.MUD))
+                .lootTable(DefaultRecipeLootProvider.LOOT_TABLE_LARGE_BOTTLE)
+                .build(consumer);
     }
 }

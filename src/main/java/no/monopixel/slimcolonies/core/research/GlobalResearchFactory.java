@@ -1,20 +1,25 @@
 package no.monopixel.slimcolonies.core.research;
 
 import com.google.common.reflect.TypeToken;
-import net.minecraft.nbt.CompoundTag;
-import net.minecraft.nbt.ListTag;
-import net.minecraft.nbt.Tag;
-import net.minecraft.network.FriendlyByteBuf;
-import net.minecraft.network.chat.contents.TranslatableContents;
-import net.minecraft.resources.ResourceLocation;
-import no.monopixel.slimcolonies.api.ISlimColoniesAPI;
+import no.monopixel.slimcolonies.api.IMinecoloniesAPI;
 import no.monopixel.slimcolonies.api.colony.requestsystem.factory.FactoryVoidInput;
 import no.monopixel.slimcolonies.api.colony.requestsystem.factory.IFactoryController;
 import no.monopixel.slimcolonies.api.research.*;
+import no.monopixel.slimcolonies.api.research.IResearchEffect;
 import no.monopixel.slimcolonies.api.research.factories.IGlobalResearchFactory;
 import no.monopixel.slimcolonies.api.util.NBTUtils;
+import no.monopixel.slimcolonies.api.util.Utils;
 import no.monopixel.slimcolonies.api.util.constant.SerializationIdentifierConstants;
 import no.monopixel.slimcolonies.api.util.constant.TypeConstants;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.ListTag;
+import net.minecraft.nbt.Tag;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.chat.contents.TranslatableContents;
+import net.minecraft.network.codec.ByteBufCodecs;
+import net.minecraft.resources.ResourceLocation;
+import net.neoforged.neoforge.common.crafting.SizedIngredient;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Objects;
@@ -61,7 +66,7 @@ public class GlobalResearchFactory implements IGlobalResearchFactory
 
     @NotNull
     @Override
-    public CompoundTag serialize(@NotNull final IFactoryController controller, @NotNull final IGlobalResearch research)
+    public CompoundTag serialize(final @NotNull HolderLookup.Provider provider, @NotNull final IFactoryController controller, @NotNull final IGlobalResearch research)
     {
         final CompoundTag compound = new CompoundTag();
         if (research.getParent() != null)
@@ -79,7 +84,7 @@ public class GlobalResearchFactory implements IGlobalResearchFactory
         compound.putBoolean(TAG_AUTOSTART, research.isAutostart());
         compound.putBoolean(TAG_IMMUTABLE, research.isImmutable());
         compound.putBoolean(TAG_HIDDEN, research.isHidden());
-        // Research no longer uses costs - skip cost serialization
+        compound.put(TAG_COSTS, Utils.serializeCodecMess(SizedIngredient.FLAT_CODEC.listOf(), provider, research.getCostList()));
 
         @NotNull final ListTag reqTagList = research.getResearchRequirements().stream().map(req ->
         {
@@ -112,15 +117,15 @@ public class GlobalResearchFactory implements IGlobalResearchFactory
 
     @NotNull
     @Override
-    public IGlobalResearch deserialize(@NotNull final IFactoryController controller, @NotNull final CompoundTag nbt)
+    public IGlobalResearch deserialize(final @NotNull HolderLookup.Provider provider, @NotNull final IFactoryController controller, @NotNull final CompoundTag nbt)
     {
-        final ResourceLocation id = new ResourceLocation(nbt.getString(TAG_ID));
-        final ResourceLocation parent = nbt.contains(TAG_PARENT) ? new ResourceLocation(nbt.getString(TAG_PARENT)) : null;
-        final ResourceLocation branch = new ResourceLocation(nbt.getString(TAG_BRANCH));
+        final ResourceLocation id = ResourceLocation.parse(nbt.getString(TAG_ID));
+        final ResourceLocation parent = nbt.contains(TAG_PARENT) ? ResourceLocation.parse(nbt.getString(TAG_PARENT)) : null;
+        final ResourceLocation branch = ResourceLocation.parse(nbt.getString(TAG_BRANCH));
         final TranslatableContents name = new TranslatableContents(nbt.getString(TAG_NAME), null, TranslatableContents.NO_ARGS);
         final TranslatableContents subtitle = new TranslatableContents(nbt.getString(TAG_SUBTITLE_NAME), null, TranslatableContents.NO_ARGS);
         final int depth = nbt.getInt(TAG_RESEARCH_LVL);
-        final int sortOrder = nbt.getInt(TAG_RESEARCH_SORT);
+        final int sortOrder =  nbt.getInt(TAG_RESEARCH_SORT);
         final boolean onlyChild = nbt.getBoolean(TAG_ONLY_CHILD);
         final boolean instant = nbt.getBoolean(TAG_INSTANT);
         final boolean autostart = nbt.getBoolean(TAG_AUTOSTART);
@@ -129,22 +134,24 @@ public class GlobalResearchFactory implements IGlobalResearchFactory
 
         final IGlobalResearch research = getNewInstance(id, parent, branch, name, subtitle, depth, sortOrder, onlyChild, hidden, autostart, instant, immutable);
 
-        // Research no longer uses costs - skip cost deserialization
+        Utils.deserializeCodecMess(SizedIngredient.FLAT_CODEC.listOf(), provider, nbt.get(TAG_COSTS)).forEach(research::addCost);
+
         NBTUtils.streamCompound(nbt.getList(TAG_REQS, Tag.TAG_COMPOUND))
-            .forEach(compound -> research.addRequirement(Objects.requireNonNull(ISlimColoniesAPI.getInstance()
+            .forEach(compound -> research.addRequirement(Objects.requireNonNull(IMinecoloniesAPI.getInstance()
                 .getResearchRequirementRegistry()
-                .getValue(ResourceLocation.tryParse(compound.getString(TAG_REQ_TYPE)))).readFromNBT(compound.getCompound(TAG_REQ_ITEM))));
+                .get(ResourceLocation.tryParse(compound.getString(TAG_REQ_TYPE)))).readFromNBT(compound.getCompound(TAG_REQ_ITEM))));
 
         NBTUtils.streamCompound(nbt.getList(TAG_EFFECTS, Tag.TAG_COMPOUND))
-            .forEach(compound -> research.addEffect(Objects.requireNonNull(ISlimColoniesAPI.getInstance().getResearchEffectRegistry()
-                .getValue(ResourceLocation.tryParse(compound.getString(TAG_EFFECT_TYPE)))).readFromNBT(compound.getCompound(TAG_EFFECT_ITEM))));
+            .forEach(compound -> research.addEffect(Objects.requireNonNull(IMinecoloniesAPI.getInstance()
+                .getResearchEffectRegistry()
+                .get(ResourceLocation.tryParse(compound.getString(TAG_EFFECT_TYPE)))).readFromNBT(compound.getCompound(TAG_EFFECT_ITEM))));
 
-        NBTUtils.streamCompound(nbt.getList(TAG_CHILDS, Tag.TAG_COMPOUND)).forEach(compound -> research.addChild(new ResourceLocation(compound.getString(TAG_RESEARCH_CHILD))));
+        NBTUtils.streamCompound(nbt.getList(TAG_CHILDS, Tag.TAG_COMPOUND)).forEach(compound -> research.addChild(ResourceLocation.parse(compound.getString(TAG_RESEARCH_CHILD))));
         return research;
     }
 
     @Override
-    public void serialize(@NotNull IFactoryController controller, IGlobalResearch input, FriendlyByteBuf packetBuffer)
+    public void serialize(final @NotNull IFactoryController controller, final @NotNull IGlobalResearch input, final RegistryFriendlyByteBuf packetBuffer)
     {
         packetBuffer.writeResourceLocation(input.getId());
         packetBuffer.writeBoolean(input.getParent() != null);
@@ -162,17 +169,17 @@ public class GlobalResearchFactory implements IGlobalResearchFactory
         packetBuffer.writeBoolean(input.isAutostart());
         packetBuffer.writeBoolean(input.isImmutable());
         packetBuffer.writeBoolean(input.isHidden());
-        // Research no longer uses costs - skip cost serialization entirely
+        Utils.serializeCodecMess(SizedIngredient.STREAM_CODEC.apply(ByteBufCodecs.list()), packetBuffer, input.getCostList());
         packetBuffer.writeVarInt(input.getResearchRequirements().size());
         for (IResearchRequirement req : input.getResearchRequirements())
         {
-            packetBuffer.writeRegistryId(ISlimColoniesAPI.getInstance().getResearchRequirementRegistry(), req.getRegistryEntry());
+            packetBuffer.writeById(IMinecoloniesAPI.getInstance().getResearchRequirementRegistry()::getIdOrThrow, req.getRegistryEntry());
             packetBuffer.writeNbt(req.writeToNBT());
         }
         packetBuffer.writeVarInt(input.getEffects().size());
         for (IResearchEffect effect : input.getEffects())
         {
-            packetBuffer.writeRegistryId(ISlimColoniesAPI.getInstance().getResearchEffectRegistry(), effect.getRegistryEntry());
+            packetBuffer.writeById(IMinecoloniesAPI.getInstance().getResearchEffectRegistry()::getIdOrThrow, effect.getRegistryEntry());
             packetBuffer.writeNbt(effect.writeToNBT());
         }
         packetBuffer.writeVarInt(input.getChildren().size());
@@ -184,7 +191,7 @@ public class GlobalResearchFactory implements IGlobalResearchFactory
 
     @NotNull
     @Override
-    public IGlobalResearch deserialize(@NotNull IFactoryController controller, FriendlyByteBuf buffer) throws Throwable
+    public IGlobalResearch deserialize(final @NotNull IFactoryController controller, final @NotNull RegistryFriendlyByteBuf buffer) throws Throwable
     {
         final ResourceLocation id = buffer.readResourceLocation();
         final ResourceLocation parent = buffer.readBoolean() ? buffer.readResourceLocation() : null;
@@ -201,23 +208,24 @@ public class GlobalResearchFactory implements IGlobalResearchFactory
 
         final IGlobalResearch research = getNewInstance(id, parent, branch, name, subtitle, depth, sortOrder, hasOnlyChild, hidden, autostart, instant, immutable);
 
-        // Research no longer uses costs - skip cost deserialization entirely
+        Utils.deserializeCodecMess(SizedIngredient.STREAM_CODEC.apply(ByteBufCodecs.list()), buffer).forEach(research::addCost);
+
         final int reqCount = buffer.readVarInt();
-        for (int i = 0; i < reqCount; i++)
+        for(int i = 0; i < reqCount; i++)
         {
-            final ModResearchRequirements.ResearchRequirementEntry researchRequirementEntry = buffer.readRegistryIdSafe(ModResearchRequirements.ResearchRequirementEntry.class);
+            final ModResearchRequirements.ResearchRequirementEntry researchRequirementEntry = buffer.readById(IMinecoloniesAPI.getInstance().getResearchRequirementRegistry()::byIdOrThrow);
             research.addRequirement(researchRequirementEntry.readFromNBT(buffer.readNbt()));
         }
 
         final int effectCount = buffer.readVarInt();
-        for (int i = 0; i < effectCount; i++)
+        for(int i = 0; i < effectCount; i++)
         {
-            final ModResearchEffects.ResearchEffectEntry researchEffectEntry = buffer.readRegistryIdSafe(ModResearchEffects.ResearchEffectEntry.class);
+            final ModResearchEffects.ResearchEffectEntry researchEffectEntry = buffer.readById(IMinecoloniesAPI.getInstance().getResearchEffectRegistry()::byIdOrThrow);
             research.addEffect(researchEffectEntry.readFromNBT(buffer.readNbt()));
         }
 
         final int childCount = buffer.readVarInt();
-        for (int i = 0; i < childCount; i++)
+        for(int i = 0; i < childCount; i++)
         {
             research.addChild(buffer.readResourceLocation());
         }

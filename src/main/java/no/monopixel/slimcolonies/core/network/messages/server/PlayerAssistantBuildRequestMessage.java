@@ -1,14 +1,16 @@
 package no.monopixel.slimcolonies.core.network.messages.server;
 
+import com.ldtteam.common.network.PlayMessageType;
 import no.monopixel.slimcolonies.api.colony.IColony;
 import no.monopixel.slimcolonies.api.colony.permissions.Action;
 import no.monopixel.slimcolonies.api.colony.workorders.IWorkOrder;
+import no.monopixel.slimcolonies.api.util.constant.Constants;
 import no.monopixel.slimcolonies.core.items.ItemAssistantHammer;
 import net.minecraft.core.BlockPos;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.chat.Component;
-import net.minecraft.world.entity.player.Player;
-import net.minecraftforge.network.NetworkEvent;
+import net.minecraft.server.level.ServerPlayer;
+import net.neoforged.neoforge.network.handling.IPayloadContext;
 import org.jetbrains.annotations.Nullable;
 
 /**
@@ -16,34 +18,29 @@ import org.jetbrains.annotations.Nullable;
  */
 public class PlayerAssistantBuildRequestMessage extends AbstractColonyServerMessage
 {
+    public static final PlayMessageType<?> TYPE = PlayMessageType.forServer(Constants.MOD_ID, "assistanthammerrequest", PlayerAssistantBuildRequestMessage::new);
+
     private int      workorderID;
     private BlockPos interactPos;
 
-    /**
-     * Empty constructor used when registering the
-     */
-    public PlayerAssistantBuildRequestMessage()
-    {
-        super();
-    }
-
     public PlayerAssistantBuildRequestMessage(final IColony colony, final int workorderID, final BlockPos interactPos)
     {
-        super(colony);
+        super(TYPE, colony);
         this.workorderID = workorderID;
         this.interactPos = interactPos;
     }
 
     @Override
-    protected void toBytesOverride(final FriendlyByteBuf buf)
+    protected void toBytes(final RegistryFriendlyByteBuf buf)
     {
+        super.toBytes(buf);
         buf.writeInt(workorderID);
         buf.writeBlockPos(interactPos);
     }
 
-    @Override
-    protected void fromBytesOverride(final FriendlyByteBuf buf)
+    protected PlayerAssistantBuildRequestMessage(final RegistryFriendlyByteBuf buf, final PlayMessageType<?> type)
     {
+        super(buf, TYPE);
         workorderID = buf.readInt();
         interactPos = buf.readBlockPos();
     }
@@ -55,10 +52,8 @@ public class PlayerAssistantBuildRequestMessage extends AbstractColonyServerMess
     }
 
     @Override
-    protected void onExecute(final NetworkEvent.Context ctxIn, final boolean isLogicalServer, final IColony colony)
+    protected void onExecute(final IPayloadContext ctxIn, final ServerPlayer player, final IColony colony)
     {
-        final Player player = ctxIn.getSender();
-
         final IWorkOrder workOrder = colony.getWorkManager().getWorkOrder(workorderID);
         if (workOrder == null)
         {
@@ -72,3 +67,4 @@ public class PlayerAssistantBuildRequestMessage extends AbstractColonyServerMess
         }
     }
 }
+

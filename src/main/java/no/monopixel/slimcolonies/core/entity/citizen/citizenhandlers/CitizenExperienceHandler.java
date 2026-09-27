@@ -163,7 +163,7 @@ public class CitizenExperienceHandler implements ICitizenExperienceHandler
     @Override
     public void gatherXp()
     {
-        if (citizen.level.isClientSide)
+        if (citizen.level().isClientSide)
         {
             return;
         }
@@ -171,14 +171,14 @@ public class CitizenExperienceHandler implements ICitizenExperienceHandler
         final int growSize = counterMovedXp > 0 || citizen.getRandom().nextInt(100) < 20 ? 4 : 2;
 
         final AABB box = citizen.getBoundingBox().inflate(growSize);
-        if (!WorldUtil.isAABBLoaded(citizen.level, box))
+        if (!WorldUtil.isAABBLoaded(citizen.level(), box))
         {
             return;
         }
 
         boolean movedXp = false;
 
-        for (@NotNull final ExperienceOrb orb : citizen.level.getEntitiesOfClass(ExperienceOrb.class, box))
+        for (@NotNull final ExperienceOrb orb : citizen.level().getEntitiesOfClass(ExperienceOrb.class, box))
         {
             if (orb.tickCount < 5)
             {

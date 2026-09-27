@@ -1,5 +1,11 @@
 {
   "branch": "slimcolonies:technology",
+  "costs": [
+    {
+      "count": 64,
+      "item": "minecraft:bone_meal"
+    }
+  ],
   "effects": [
     {
       "id": "slimcolonies:effects/blockhutcomposter",

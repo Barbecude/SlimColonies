@@ -9,13 +9,12 @@ import no.monopixel.slimcolonies.api.colony.buildings.views.IBuildingView;
 import no.monopixel.slimcolonies.api.colony.jobs.ModJobs;
 import no.monopixel.slimcolonies.api.colony.jobs.registry.JobEntry;
 import no.monopixel.slimcolonies.api.util.constant.Constants;
-import no.monopixel.slimcolonies.core.Network;
-import no.monopixel.slimcolonies.core.client.gui.modules.SpecialAssignmentModuleWindow;
+import no.monopixel.slimcolonies.core.client.gui.modules.building.SpecialAssignmentModuleWindow;
 import no.monopixel.slimcolonies.core.network.messages.server.colony.building.CourierHiringModeMessage;
 import no.monopixel.slimcolonies.core.network.messages.server.colony.building.HireFireMessage;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
-
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
@@ -38,11 +37,6 @@ public class CourierAssignmentModuleView extends AbstractBuildingModuleView impl
      */
     private HiringMode hiringMode;
 
-    /**
-     * Max number of miners.
-     */
-    private int maxSize;
-
     @Override
     public List<Integer> getAssignedCitizens()
     {
@@ -53,11 +47,11 @@ public class CourierAssignmentModuleView extends AbstractBuildingModuleView impl
     public void addCitizen(final @NotNull ICitizenDataView citizen)
     {
         workerIDs.add(citizen.getId());
-        Network.getNetwork().sendToServer(new HireFireMessage(buildingView, true, citizen.getId(), getProducer().getRuntimeID()));
+        new HireFireMessage(buildingView, true, citizen.getId(), getProducer().getRuntimeID()).sendToServer();
     }
 
     @Override
-    public void deserialize(@NotNull final FriendlyByteBuf buf)
+    public void deserialize(@NotNull final RegistryFriendlyByteBuf buf)
     {
         final int size = buf.readInt();
         workerIDs.clear();
@@ -67,32 +61,26 @@ public class CourierAssignmentModuleView extends AbstractBuildingModuleView impl
         }
 
         this.hiringMode = HiringMode.values()[buf.readInt()];
-        this.maxSize = buf.readInt();
+        buf.readInt();
     }
 
     @Override
     public ResourceLocation getIconResourceLocation()
     {
-        return ResourceLocation.fromNamespaceAndPath(Constants.MOD_ID, "textures/gui/modules/entity.png");
+        return new ResourceLocation(Constants.MOD_ID, "textures/gui/modules/entity.png");
     }
 
     @Override
-    public String getDesc()
+    public Component getDesc()
     {
-        return "no.monopixel.slimcolonies.coremod.gui.workerhuts.warehouse.couriers";
-    }
-
-    @Override
-    public boolean isPageVisible()
-    {
-        return true;
+        return Component.translatable("no.monopixel.slimcolonies.coremod.gui.workerhuts.warehouse.couriers");
     }
 
     @Override
     public void removeCitizen(final @NotNull ICitizenDataView citizen)
     {
         workerIDs.remove(citizen.getId());
-        Network.getNetwork().sendToServer(new HireFireMessage(buildingView, false, citizen.getId(), getProducer().getRuntimeID()));
+        new HireFireMessage(buildingView, false, citizen.getId(), getProducer().getRuntimeID()).sendToServer();
     }
 
     @Override
@@ -105,21 +93,21 @@ public class CourierAssignmentModuleView extends AbstractBuildingModuleView impl
     public void setHiringMode(final HiringMode hiringMode)
     {
         this.hiringMode = hiringMode;
-        Network.getNetwork().sendToServer(new CourierHiringModeMessage(buildingView, hiringMode, getProducer().getRuntimeID()));
+        new CourierHiringModeMessage(buildingView, hiringMode, getProducer().getRuntimeID()).sendToServer();
     }
 
     @Override
     public boolean canAssign(ICitizenDataView data)
     {
-        for (final IBuildingView bView : buildingView.getColony().getBuildings())
+        for (final IBuildingView bView : buildingView.getColony().getClientBuildingManager().getBuildings().values())
         {
-            final CourierAssignmentModuleView view = bView.getModuleViewMatching(CourierAssignmentModuleView.class, m -> !m.buildingView.getId().equals(buildingView.getId()));
+            final CourierAssignmentModuleView view = bView.getModuleViewMatching(CourierAssignmentModuleView.class, m-> !m.buildingView.getId().equals(buildingView.getId()));
             if (view != null && view.getAssignedCitizens().contains(data.getId()))
             {
                 return false;
             }
         }
-
+        
         return !data.isChild() && data.getJobView() != null && data.getJobView().getEntry() == ModJobs.delivery.get();
     }
 
@@ -133,7 +121,7 @@ public class CourierAssignmentModuleView extends AbstractBuildingModuleView impl
     @Override
     public BOWindow getWindow()
     {
-        return new SpecialAssignmentModuleWindow(buildingView, Constants.MOD_ID + ":gui/layouthuts/layoutcourierassignment.xml");
+        return new SpecialAssignmentModuleWindow(this, new ResourceLocation(Constants.MOD_ID, "gui/layouthuts/layoutcourierassignment.xml"));
     }
 
     @Override

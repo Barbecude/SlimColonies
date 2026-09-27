@@ -1,5 +1,11 @@
 {
   "branch": "slimcolonies:civilian",
+  "costs": [
+    {
+      "count": 12,
+      "item": "minecraft:bookshelf"
+    }
+  ],
   "effects": [
     {
       "id": "slimcolonies:effects/teachingmultiplier",

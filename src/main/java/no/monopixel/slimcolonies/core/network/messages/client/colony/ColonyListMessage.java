@@ -1,34 +1,37 @@
 package no.monopixel.slimcolonies.core.network.messages.client.colony;
 
+import com.ldtteam.common.network.AbstractPlayMessage;
+import com.ldtteam.common.network.PlayMessageType;
 import no.monopixel.slimcolonies.api.colony.IColony;
 import no.monopixel.slimcolonies.api.colony.IColonyManager;
-import no.monopixel.slimcolonies.api.network.IMessage;
-import no.monopixel.slimcolonies.core.Network;
+import no.monopixel.slimcolonies.api.util.constant.Constants;
+import no.monopixel.slimcolonies.core.client.gui.map.WindowColonyMap;
 import net.minecraft.core.BlockPos;
-import net.minecraft.network.FriendlyByteBuf;
-import net.minecraftforge.network.NetworkEvent;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.player.Player;
+import net.neoforged.neoforge.network.handling.IPayloadContext;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 /**
  * Add or Update a AbstractBuilding.View to a ColonyView on the client.
  */
-public class ColonyListMessage implements IMessage
+public class ColonyListMessage extends AbstractPlayMessage
 {
+    public static final PlayMessageType<?> TYPE = PlayMessageType.forBothSides(Constants.MOD_ID, "colony_list", ColonyListMessage::new);
+
     /**
      * List of colonies
      */
-    List<IColony>    colonies   = new ArrayList<>();
-    List<ColonyInfo> colonyInfo = new ArrayList<>();
+    private final List<IColony>    colonies;
+    private final List<ColonyInfo> colonyInfo;
 
-    /**
-     * Empty constructor used when registering the
-     */
     public ColonyListMessage()
     {
-        super();
+        this(Collections.emptyList());
     }
 
     /**
@@ -36,51 +39,49 @@ public class ColonyListMessage implements IMessage
      */
     public ColonyListMessage(final List<IColony> colonies)
     {
-        super();
+        super(TYPE);
         this.colonies = colonies;
+        this.colonyInfo = null;
+    }
+
+    protected ColonyListMessage(@NotNull final RegistryFriendlyByteBuf buf, final PlayMessageType<?> type)
+    {
+        super(buf, type);
+        colonies = null;
+        colonyInfo = buf.readList(b -> {
+            final ColonyInfo info = new ColonyInfo(b.readInt());
+            info.center = b.readBlockPos();
+            info.name = b.readUtf(32767);
+            info.citizencount = b.readInt();
+            info.owner = b.readUtf(32767);
+            info.prestige = b.readInt();
+            return info;
+        });
     }
 
     @Override
-    public void fromBytes(@NotNull final FriendlyByteBuf buf)
+    protected void toBytes(@NotNull final RegistryFriendlyByteBuf buf)
     {
-        colonyInfo = new ArrayList<>();
-        final int count = buf.readInt();
-        for (int i = 0; i < count; i++)
-        {
-            final ColonyInfo info = new ColonyInfo(buf.readInt());
-            info.center = buf.readBlockPos();
-            info.name = buf.readUtf(32767);
-            info.citizencount = buf.readInt();
-            info.owner = buf.readUtf(32767);
-            colonyInfo.add(info);
-        }
+        buf.writeCollection(colonies, (b, colony) ->{
+            b.writeInt(colony.getID());
+            b.writeBlockPos(colony.getCenter());
+            b.writeUtf(colony.getName());
+            b.writeInt(colony.getCitizenManager().getCurrentCitizenCount());
+            b.writeUtf(colony.getPermissions().getOwnerName());
+            b.writeInt(colony.getServerBuildingManager().getColonyPrestige());
+        });
     }
 
     @Override
-    public void toBytes(@NotNull final FriendlyByteBuf buf)
+    protected void onClientExecute(final IPayloadContext context, final Player player)
     {
-        buf.writeInt(colonies.size());
-        for (final IColony colony : colonies)
-        {
-            buf.writeInt(colony.getID());
-            buf.writeBlockPos(colony.getCenter());
-            buf.writeUtf(colony.getName());
-            buf.writeInt(colony.getCitizenManager().getCurrentCitizenCount());
-            buf.writeUtf(colony.getPermissions().getOwnerName());
-        }
+        WindowColonyMap.setColonies(colonyInfo);
     }
 
     @Override
-    public void onExecute(final NetworkEvent.Context ctxIn, final boolean isLogicalServer)
+    protected void onServerExecute(final IPayloadContext context, final ServerPlayer player)
     {
-        if (!isLogicalServer)
-        {
-            // Map functionality removed
-        }
-        else if (ctxIn.getSender() != null)
-        {
-            Network.getNetwork().sendToPlayer(new ColonyListMessage(IColonyManager.getInstance().getColonies(ctxIn.getSender().level)), ctxIn.getSender());
-        }
+        new ColonyListMessage(IColonyManager.getInstance().getColonies(player.level())).sendToPlayer(player);
     }
 
     public static class ColonyInfo
@@ -90,6 +91,7 @@ public class ColonyListMessage implements IMessage
         private       String   name;
         private       int      citizencount;
         private       String   owner;
+        private       int      prestige;
 
         public ColonyInfo(final int id)
         {
@@ -119,6 +121,10 @@ public class ColonyListMessage implements IMessage
         public String getOwner()
         {
             return owner;
+        }
+
+        public int getPrestige() {
+            return prestige;
         }
     }
 }

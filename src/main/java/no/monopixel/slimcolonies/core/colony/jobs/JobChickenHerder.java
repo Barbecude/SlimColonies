@@ -4,6 +4,7 @@ import no.monopixel.slimcolonies.api.client.render.modeltype.ModModelTypes;
 import no.monopixel.slimcolonies.api.colony.ICitizenData;
 import no.monopixel.slimcolonies.api.util.StatsUtil;
 import no.monopixel.slimcolonies.core.colony.buildings.modules.BuildingModules;
+import no.monopixel.slimcolonies.core.colony.buildings.modules.WorkerBuildingModule;
 import no.monopixel.slimcolonies.core.entity.ai.workers.production.herders.EntityAIWorkChickenHerder;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;

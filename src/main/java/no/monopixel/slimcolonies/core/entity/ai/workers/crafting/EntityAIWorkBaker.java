@@ -1,18 +1,24 @@
 package no.monopixel.slimcolonies.core.entity.ai.workers.crafting;
 
+import no.monopixel.slimcolonies.api.colony.requestsystem.request.IRequest;
+import no.monopixel.slimcolonies.api.colony.requestsystem.requestable.crafting.PublicCrafting;
+import no.monopixel.slimcolonies.api.crafting.IRecipeStorage;
 import no.monopixel.slimcolonies.api.entity.ai.statemachine.states.IAIState;
 import no.monopixel.slimcolonies.api.entity.citizen.AbstractEntityCitizen;
 import no.monopixel.slimcolonies.api.entity.citizen.VisibleCitizenStatus;
+import no.monopixel.slimcolonies.api.util.StatsUtil;
 import no.monopixel.slimcolonies.api.util.constant.Constants;
 import no.monopixel.slimcolonies.core.colony.buildings.workerbuildings.BuildingBaker;
 import no.monopixel.slimcolonies.core.colony.jobs.JobBaker;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.item.ItemStack;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import static no.monopixel.slimcolonies.api.util.constant.StatisticsConstants.ITEMS_CRAFTED_DETAIL;
+import static no.monopixel.slimcolonies.api.util.constant.StatisticsConstants.ITEMS_SMELTED_DETAIL;
 import static no.monopixel.slimcolonies.api.util.constant.StatisticsConstants.ITEMS_BAKED_DETAIL;
-
 /**
  * Baker AI class.
  */
@@ -22,7 +28,7 @@ public class EntityAIWorkBaker extends AbstractEntityAIRequestSmelter<JobBaker, 
      * Baking icon
      */
     private final static VisibleCitizenStatus BAKING =
-        new VisibleCitizenStatus(ResourceLocation.fromNamespaceAndPath(Constants.MOD_ID, "textures/icons/work/baker.png"), "no.monopixel.slimcolonies.gui.visiblestatus.baker");
+      new VisibleCitizenStatus(new ResourceLocation(Constants.MOD_ID, "textures/icons/work/baker.png"), "no.monopixel.slimcolonies.gui.visiblestatus.baker");
 
     /**
      * Constructor for the Baker. Defines the tasks the bakery executes.
@@ -67,11 +73,11 @@ public class EntityAIWorkBaker extends AbstractEntityAIRequestSmelter<JobBaker, 
 
     /**
      * Returns the name of the smelting stat that is used in the building's statistics.
-     *
      * @return the name of the smelting stat.
      */
     protected String getSmeltingStatName()
     {
         return ITEMS_BAKED_DETAIL;
     }
+
 }

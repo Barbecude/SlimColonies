@@ -1,0 +1,28 @@
+{
+  "variants": {
+    "moisture=0": {
+      "model": "slimcolonies:block/floodedfarmland"
+    },
+    "moisture=1": {
+      "model": "slimcolonies:block/floodedfarmland"
+    },
+    "moisture=2": {
+      "model": "slimcolonies:block/floodedfarmland"
+    },
+    "moisture=3": {
+      "model": "slimcolonies:block/floodedfarmland"
+    },
+    "moisture=4": {
+      "model": "slimcolonies:block/floodedfarmland"
+    },
+    "moisture=5": {
+      "model": "slimcolonies:block/floodedfarmland"
+    },
+    "moisture=6": {
+      "model": "slimcolonies:block/floodedfarmland"
+    },
+    "moisture=7": {
+      "model": "slimcolonies:block/floodedfarmland"
+    }
+  }
+}

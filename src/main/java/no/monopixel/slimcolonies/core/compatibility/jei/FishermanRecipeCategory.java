@@ -9,12 +9,12 @@ import no.monopixel.slimcolonies.core.colony.crafting.LootTableAnalyzer;
 import mezz.jei.api.gui.builder.IRecipeLayoutBuilder;
 import mezz.jei.api.helpers.IGuiHelper;
 import mezz.jei.api.recipe.IFocusGroup;
-import mezz.jei.api.recipe.RecipeIngredientRole;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.item.ItemStack;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.api.distmarker.OnlyIn;
+import net.minecraft.world.level.storage.loot.LootTable;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.api.distmarker.OnlyIn;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
@@ -44,7 +44,7 @@ public class FishermanRecipeCategory extends JobBasedRecipeCategory<FishermanRec
     protected List<Component> generateInfoBlocks(@NotNull FishingRecipe recipe)
     {
         return Collections.singletonList(
-                Component.translatable(PARTIAL_JEI_INFO + "onelevelrestriction",
+                Component.translatableEscape(PARTIAL_JEI_INFO + "onelevelrestriction",
                         recipe.getLevel()));
     }
 
@@ -58,7 +58,7 @@ public class FishermanRecipeCategory extends JobBasedRecipeCategory<FishermanRec
         if (!recipe.getDrops().isEmpty())
         {
             final int initialColumns = LOOT_SLOTS_W / this.slot.getWidth();
-            final int rows = (recipe.getDrops().size() + initialColumns - 1) / initialColumns;
+            final int rows = Math.max(1, (recipe.getDrops().size() + initialColumns - 1) / initialColumns);
             final int columns = (recipe.getDrops().size() + rows - 1) / rows;
             final int startX = LOOT_SLOTS_X + (LOOT_SLOTS_W - (columns * this.slot.getWidth())) / 2;
             int x = startX;
@@ -67,10 +67,10 @@ public class FishermanRecipeCategory extends JobBasedRecipeCategory<FishermanRec
 
             for (final LootTableAnalyzer.LootDrop drop : recipe.getDrops())
             {
-                builder.addSlot(RecipeIngredientRole.OUTPUT, x, y)
+                builder.addOutputSlot(x, y)
                         .setBackground(this.chanceSlot, -1, -1)
                         .addItemStacks(drop.getItemStacks())
-                        .addTooltipCallback(new LootTableTooltipCallback(drop, recipe.getId()));
+                        .addRichTooltipCallback(new LootTableTooltipCallback(drop, recipe.getId()));
                 if (++c >= columns)
                 {
                     c = 0;
@@ -91,7 +91,7 @@ public class FishermanRecipeCategory extends JobBasedRecipeCategory<FishermanRec
         final List<LootTableAnalyzer.LootDrop> commonDrops = CustomRecipeManager.getInstance().getLootDrops(ModLootTables.FISHING);
 
         final List<FishingRecipe> recipes = new ArrayList<>();
-        for (final Map.Entry<Integer, ResourceLocation> level : ModLootTables.FISHERMAN_BONUS.entrySet())
+        for (final Map.Entry<Integer, ResourceKey<LootTable>> level : ModLootTables.FISHERMAN_BONUS.entrySet())
         {
             final List<LootTableAnalyzer.LootDrop> drops = new ArrayList<>(commonDrops);
             drops.addAll(CustomRecipeManager.getInstance().getLootDrops(level.getValue()));
@@ -102,12 +102,12 @@ public class FishermanRecipeCategory extends JobBasedRecipeCategory<FishermanRec
 
     public static class FishingRecipe
     {
-        private final ResourceLocation id;
+        private final ResourceKey<LootTable> id;
         private final int level;
         @NotNull
         private final List<LootTableAnalyzer.LootDrop> drops;
 
-        public FishingRecipe(@NotNull final ResourceLocation id, final int level, @NotNull final List<LootTableAnalyzer.LootDrop> drops)
+        public FishingRecipe(@NotNull final ResourceKey<LootTable> id, final int level, @NotNull final List<LootTableAnalyzer.LootDrop> drops)
         {
             this.id = id;
             this.level = level;
@@ -115,7 +115,7 @@ public class FishermanRecipeCategory extends JobBasedRecipeCategory<FishermanRec
         }
 
         @NotNull
-        public ResourceLocation getId()
+        public ResourceKey<LootTable> getId()
         {
             return id;
         }

@@ -3,13 +3,15 @@ package no.monopixel.slimcolonies.core.colony.buildings.modules.settings;
 import com.ldtteam.blockui.Pane;
 import com.ldtteam.blockui.controls.TextField;
 import com.ldtteam.blockui.views.BOWindow;
-import net.minecraft.resources.ResourceLocation;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.api.distmarker.OnlyIn;
+import no.monopixel.slimcolonies.api.colony.buildings.modules.ICommonSettingsModule;
+import no.monopixel.slimcolonies.api.colony.buildings.modules.ISettingsModule;
 import no.monopixel.slimcolonies.api.colony.buildings.modules.settings.ISetting;
 import no.monopixel.slimcolonies.api.colony.buildings.modules.settings.ISettingKey;
 import no.monopixel.slimcolonies.api.colony.buildings.modules.settings.ISettingsModuleView;
 import no.monopixel.slimcolonies.api.colony.buildings.views.IBuildingView;
+import net.minecraft.resources.ResourceLocation;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.api.distmarker.OnlyIn;
 
 /**
  * Stores an integer setting.
@@ -28,7 +30,6 @@ public class IntSetting implements ISetting<Integer>
 
     /**
      * Create a new boolean setting.
-     *
      * @param init the initial value.
      */
     public IntSetting(final int init)
@@ -39,9 +40,8 @@ public class IntSetting implements ISetting<Integer>
 
     /**
      * Create a new int setting.
-     *
      * @param value the value.
-     * @param def   the default value.
+     * @param def the default value.
      */
     public IntSetting(final int value, final int def)
     {
@@ -51,7 +51,6 @@ public class IntSetting implements ISetting<Integer>
 
     /**
      * Get the setting value.
-     *
      * @return the set value.
      */
     public Integer getValue()
@@ -61,7 +60,6 @@ public class IntSetting implements ISetting<Integer>
 
     /**
      * Get the default value.
-     *
      * @return the default value.
      */
     public int getDefault()
@@ -72,16 +70,16 @@ public class IntSetting implements ISetting<Integer>
     @Override
     public ResourceLocation getLayoutItem()
     {
-        return ResourceLocation.parse("slimcolonies:gui/layouthuts/layoutintsetting.xml");
+        return new ResourceLocation("slimcolonies", "gui/layouthuts/layoutintsetting.xml");
     }
 
     @OnlyIn(Dist.CLIENT)
     @Override
     public void setupHandler(
-        final ISettingKey<?> key,
-        final Pane pane,
-        final ISettingsModuleView settingsModuleView,
-        final IBuildingView building, final BOWindow window)
+      final ISettingKey<?> key,
+      final Pane pane,
+      final ICommonSettingsModule settingsModuleView,
+      final IBuildingView building, final BOWindow window)
     {
         pane.findPaneOfTypeByID("trigger", TextField.class).setHandler(input -> {
             try
@@ -105,14 +103,14 @@ public class IntSetting implements ISetting<Integer>
 
     @Override
     public void render(
-        final ISettingKey<?> key,
-        final Pane pane,
-        final ISettingsModuleView settingsModuleView,
-        final IBuildingView building,
-        final BOWindow window)
+      final ISettingKey<?> key,
+      final Pane pane,
+      final ICommonSettingsModule settingsModuleView,
+      final IBuildingView building,
+      final BOWindow window)
     {
         final TextField field = pane.findPaneOfTypeByID("trigger", TextField.class);
-        field.setEnabled(isActive(settingsModuleView));
+        field.setEnabled(isActive((ISettingsModuleView) settingsModuleView));
         setHoverPane(key, field, settingsModuleView);
         if (!field.getText().equals(String.valueOf(this.value)))
         {
@@ -131,7 +129,6 @@ public class IntSetting implements ISetting<Integer>
 
     /**
      * Set a new int value.
-     *
      * @param value the int to set.
      */
     public void setValue(final int value)

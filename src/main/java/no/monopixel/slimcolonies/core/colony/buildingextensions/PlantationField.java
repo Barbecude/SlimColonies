@@ -7,8 +7,9 @@ import no.monopixel.slimcolonies.api.colony.buildingextensions.registry.Building
 import no.monopixel.slimcolonies.api.colony.buildingextensions.registry.BuildingExtensionRegistries.BuildingExtensionEntry;
 import no.monopixel.slimcolonies.api.util.BlockPosUtil;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.world.level.block.state.BlockState;
 import org.jetbrains.annotations.NotNull;
 
@@ -18,7 +19,7 @@ import java.util.List;
 /**
  * Field class implementation for the plantation
  */
-public class PlantationField extends AbstractBuildingExtensionModule
+public class PlantationField extends AbstractBuildingExtension
 {
     private static final String TAG_WORKING_POS = "workingPositions";
 
@@ -41,12 +42,12 @@ public class PlantationField extends AbstractBuildingExtensionModule
     /**
      * Constructor to create new instances
      *
-     * @param fieldEntry the type of field we want to produce.
-     * @param position   the position it is placed in.
+     * @param extensionEntry the type of field we want to produce.
+     * @param position       the position it is placed in.
      */
-    public static PlantationField create(final BuildingExtensionEntry fieldEntry, final BlockPos position)
+    public static PlantationField create(final BuildingExtensionEntry extensionEntry, final BlockPos position)
     {
-        return (PlantationField) fieldEntry.produceExtension(position);
+        return (PlantationField) extensionEntry.produceExtension(position);
     }
 
     @Override
@@ -88,22 +89,22 @@ public class PlantationField extends AbstractBuildingExtensionModule
     }
 
     @Override
-    public @NotNull CompoundTag serializeNBT()
+    public @NotNull CompoundTag serializeNBT(@NotNull final HolderLookup.Provider provider)
     {
-        CompoundTag compound = super.serializeNBT();
+        CompoundTag compound = super.serializeNBT(provider);
         BlockPosUtil.writePosListToNBT(compound, TAG_WORKING_POS, workingPositions);
         return compound;
     }
 
     @Override
-    public void deserializeNBT(@NotNull CompoundTag compound)
+    public void deserializeNBT(@NotNull final HolderLookup.Provider provider, @NotNull CompoundTag compound)
     {
-        super.deserializeNBT(compound);
+        super.deserializeNBT(provider, compound);
         workingPositions = BlockPosUtil.readPosListFromNBT(compound, TAG_WORKING_POS);
     }
 
     @Override
-    public void serialize(final @NotNull FriendlyByteBuf buf)
+    public void serialize(final @NotNull RegistryFriendlyByteBuf buf)
     {
         super.serialize(buf);
         buf.writeInt(workingPositions.size());
@@ -114,7 +115,7 @@ public class PlantationField extends AbstractBuildingExtensionModule
     }
 
     @Override
-    public void deserialize(final @NotNull FriendlyByteBuf buf)
+    public void deserialize(final @NotNull RegistryFriendlyByteBuf buf)
     {
         super.deserialize(buf);
         workingPositions = new ArrayList<>();

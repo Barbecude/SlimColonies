@@ -11,6 +11,7 @@ import no.monopixel.slimcolonies.api.colony.requestsystem.requestable.IDeliverab
 import no.monopixel.slimcolonies.api.colony.requestsystem.requester.IRequester;
 import no.monopixel.slimcolonies.api.colony.requestsystem.token.IToken;
 import no.monopixel.slimcolonies.api.crafting.ItemStorage;
+import no.monopixel.slimcolonies.api.util.IItemHandlerCapProvider;
 import no.monopixel.slimcolonies.api.util.InventoryUtils;
 import no.monopixel.slimcolonies.api.util.ItemStackUtils;
 import no.monopixel.slimcolonies.api.util.constant.TypeConstants;
@@ -18,7 +19,6 @@ import no.monopixel.slimcolonies.core.colony.buildings.AbstractBuilding;
 import no.monopixel.slimcolonies.core.colony.buildings.workerbuildings.BuildingWareHouse;
 import no.monopixel.slimcolonies.core.colony.requestsystem.resolvers.core.AbstractBuildingDependentRequestResolver;
 import net.minecraft.world.item.ItemStack;
-import net.minecraftforge.common.capabilities.ICapabilityProvider;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -135,13 +135,13 @@ public class BuildingRequestResolver extends AbstractBuildingDependentRequestRes
     @Override
     public void resolveForBuilding(@NotNull final IRequestManager manager, @NotNull final IRequest<? extends IDeliverable> request, @NotNull final AbstractBuilding building)
     {
-        final Set<ICapabilityProvider> tileEntities = getCapabilityProviders(manager, building);
+        final Set<IItemHandlerCapProvider> tileEntities = getCapabilityProviders(manager, building);
 
         final int total = request.getRequest().getCount();
         int current = 0;
         final List<ItemStack> deliveries = new ArrayList<>();
 
-        for (final ICapabilityProvider tile : tileEntities)
+        for (final IItemHandlerCapProvider tile : tileEntities)
         {
             final List<ItemStack> inv = InventoryUtils.filterProvider(tile, itemStack -> request.getRequest().matches(itemStack));
             for (final ItemStack stack : inv)
@@ -190,11 +190,11 @@ public class BuildingRequestResolver extends AbstractBuildingDependentRequestRes
     }
 
     @NotNull
-    private Set<ICapabilityProvider> getCapabilityProviders(
+    private Set<IItemHandlerCapProvider> getCapabilityProviders(
       @NotNull final IRequestManager manager,
       @NotNull final AbstractBuilding building)
     {
-        final Set<ICapabilityProvider> tileEntities = Sets.newHashSet();
+        final Set<IItemHandlerCapProvider> tileEntities = Sets.newHashSet();
         tileEntities.add(building.getTileEntity());
         tileEntities.removeIf(Objects::isNull);
         return tileEntities;

@@ -5,17 +5,19 @@ import no.monopixel.slimcolonies.api.blocks.ModBlocks;
 import no.monopixel.slimcolonies.api.colony.IColony;
 import no.monopixel.slimcolonies.api.colony.buildings.modules.settings.ISettingKey;
 import no.monopixel.slimcolonies.api.crafting.ItemStorage;
-import no.monopixel.slimcolonies.api.util.constant.Constants;
+import no.monopixel.slimcolonies.api.util.NBTUtils;
 import no.monopixel.slimcolonies.core.colony.buildings.AbstractBuilding;
 import no.monopixel.slimcolonies.core.colony.buildings.modules.ItemListModule;
 import no.monopixel.slimcolonies.core.colony.buildings.modules.settings.BoolSetting;
 import no.monopixel.slimcolonies.core.colony.buildings.modules.settings.IntSetting;
 import no.monopixel.slimcolonies.core.colony.buildings.modules.settings.SettingKey;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.NbtUtils;
 import net.minecraft.nbt.Tag;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Tuple;
 import net.minecraft.world.level.Level;
@@ -33,12 +35,12 @@ public class BuildingComposter extends AbstractBuilding
     /**
      * Settings key for the composting mode.
      */
-    public static final ISettingKey<BoolSetting> PRODUCE_DIRT = new SettingKey<>(BoolSetting.class, ResourceLocation.fromNamespaceAndPath(Constants.MOD_ID, "producedirt"));
+    public static final ISettingKey<BoolSetting> PRODUCE_DIRT = new SettingKey<>(BoolSetting.class, new ResourceLocation(no.monopixel.slimcolonies.api.util.constant.Constants.MOD_ID, "producedirt"));
 
     /**
      * Key for min remainder at warehouse.
      */
-    public static final ISettingKey<IntSetting> MIN = new SettingKey<>(IntSetting.class, ResourceLocation.fromNamespaceAndPath(Constants.MOD_ID, "warehousemin"));
+    public static final ISettingKey<IntSetting> MIN = new SettingKey<>(IntSetting.class, new ResourceLocation(no.monopixel.slimcolonies.api.util.constant.Constants.MOD_ID, "warehousemin"));
 
     /**
      * Description of the job for this building
@@ -111,26 +113,24 @@ public class BuildingComposter extends AbstractBuilding
     }
 
     @Override
-    public void deserializeNBT(final CompoundTag compound)
+    public void deserializeNBT(@NotNull final HolderLookup.Provider provider, final CompoundTag compound)
     {
-        super.deserializeNBT(compound);
-        final ListTag compostBinTagList = compound.getList(TAG_BARRELS, Tag.TAG_COMPOUND);
+        super.deserializeNBT(provider, compound);
+        final ListTag compostBinTagList = compound.getList(TAG_BARRELS, Tag.TAG_INT_ARRAY);
         for (int i = 0; i < compostBinTagList.size(); ++i)
         {
-            barrels.add(NbtUtils.readBlockPos(compostBinTagList.getCompound(i).getCompound(TAG_POS)));
+            barrels.add(NBTUtils.readBlockPos(compostBinTagList.get(i)));
         }
     }
 
     @Override
-    public CompoundTag serializeNBT()
+    public CompoundTag serializeNBT(@NotNull final HolderLookup.Provider provider)
     {
-        final CompoundTag compound = super.serializeNBT();
+        final CompoundTag compound = super.serializeNBT(provider);
         @NotNull final ListTag compostBinTagList = new ListTag();
         for (@NotNull final BlockPos entry : barrels)
         {
-            @NotNull final CompoundTag compostBinCompound = new CompoundTag();
-            compostBinCompound.put(TAG_POS, NbtUtils.writeBlockPos(entry));
-            compostBinTagList.add(compostBinCompound);
+            compostBinTagList.add(NBTUtils.writeBlockPos(entry));
         }
         compound.put(TAG_BARRELS, compostBinTagList);
         return compound;

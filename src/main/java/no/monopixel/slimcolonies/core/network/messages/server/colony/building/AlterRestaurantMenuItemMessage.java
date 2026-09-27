@@ -1,13 +1,17 @@
 package no.monopixel.slimcolonies.core.network.messages.server.colony.building;
 
+import com.ldtteam.common.network.PlayMessageType;
 import no.monopixel.slimcolonies.api.colony.IColony;
 import no.monopixel.slimcolonies.api.colony.buildings.IBuilding;
 import no.monopixel.slimcolonies.api.colony.buildings.views.IBuildingView;
+import no.monopixel.slimcolonies.api.util.Utils;
+import no.monopixel.slimcolonies.api.util.constant.Constants;
 import no.monopixel.slimcolonies.core.colony.buildings.modules.RestaurantMenuModule;
 import no.monopixel.slimcolonies.core.network.messages.server.AbstractBuildingServerMessage;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.ItemStack;
-import net.minecraftforge.network.NetworkEvent;
+import net.neoforged.neoforge.network.handling.IPayloadContext;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -15,6 +19,8 @@ import org.jetbrains.annotations.NotNull;
  */
 public class AlterRestaurantMenuItemMessage extends AbstractBuildingServerMessage<IBuilding>
 {
+    public static final PlayMessageType<?> TYPE = PlayMessageType.forServer(Constants.MOD_ID, "alter_restaurant_menu_module", AlterRestaurantMenuItemMessage::new);
+
     /**
      * The menu item.
      */
@@ -29,14 +35,6 @@ public class AlterRestaurantMenuItemMessage extends AbstractBuildingServerMessag
      * If add = true, or remove = false.
      */
     private boolean add;
-
-    /**
-     * Empty constructor used when registering the
-     */
-    public AlterRestaurantMenuItemMessage()
-    {
-        super();
-    }
 
     /**
      * Add a menu item to the building.
@@ -71,30 +69,31 @@ public class AlterRestaurantMenuItemMessage extends AbstractBuildingServerMessag
      */
     private AlterRestaurantMenuItemMessage(final IBuildingView building, final ItemStack itemStack, final int runtimeID, final boolean add)
     {
-        super(building);
+        super(TYPE, building);
         this.itemStack = itemStack;
         this.id = runtimeID;
         this.add = add;
     }
 
-    @Override
-    public void fromBytesOverride(@NotNull final FriendlyByteBuf buf)
+    protected AlterRestaurantMenuItemMessage(final RegistryFriendlyByteBuf buf, final PlayMessageType<?> type)
     {
-        itemStack = buf.readItem();
+        super(buf, type);
+        itemStack = Utils.deserializeCodecMess(buf);
         id = buf.readInt();
         add = buf.readBoolean();
     }
 
     @Override
-    public void toBytesOverride(@NotNull final FriendlyByteBuf buf)
+    protected void toBytes(@NotNull final RegistryFriendlyByteBuf buf)
     {
-        buf.writeItem(itemStack);
+        super.toBytes(buf);
+        Utils.serializeCodecMess(buf, itemStack);
         buf.writeInt(id);
         buf.writeBoolean(add);
     }
 
     @Override
-    public void onExecute(final NetworkEvent.Context ctxIn, final boolean isLogicalServer, final IColony colony, final IBuilding building)
+    protected void onExecute(final IPayloadContext ctxIn, final ServerPlayer player, final IColony colony, final IBuilding building)
     {
         if (building.getModule(id) instanceof RestaurantMenuModule restaurantMenuModule)
         {

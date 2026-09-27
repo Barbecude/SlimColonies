@@ -40,7 +40,7 @@ public class PathingOptions
     /**
      * Additional cost of swimming - base 1.
      */
-    public double swimCost = 2D;
+    public double swimCost = 4D;
 
     /**
      * Additional cost of cave air.
@@ -55,7 +55,7 @@ public class PathingOptions
     /**
      * Cost to traverse trap doors
      */
-    public double traverseToggleAbleCost = 2D;
+    public double traverseToggleAbleCost = 3D;
 
     /**
      * Cost to climb a non ladder.
@@ -73,6 +73,11 @@ public class PathingOptions
     public double divingCost = 4D;
 
     /**
+     * Cost added for going against the blocks inherent direction/facing value
+     */
+    public double badDirectionCost = 5;
+
+    /**
      * Factor multiplied to the small random base cost of values, increases this increases the paths randomness/volatilty. Set to 0 to disable rng.
      */
     public double randomnessFactor = 0.1;
@@ -86,9 +91,15 @@ public class PathingOptions
      */
     private boolean canSwim          = false;
     /**
-     * Allowed to enter doors?
+     * Allowed to enter doors (includes gates).
      */
     private boolean enterDoors       = false;
+
+    /**
+     * Allowed to enter gates?
+     */
+    private boolean enterGates       = true;
+
     /**
      * Allowed to open doors?
      */
@@ -112,6 +123,11 @@ public class PathingOptions
      * Whether we can drop down more than one block
      */
     public boolean canDrop = true;
+
+    /**
+     * Any turn penalty to be applied for cornering, u-turns, etc.
+     */    
+    protected float turnPenalty = 0.0f;
 
     public PathingOptions()
     {}
@@ -156,14 +172,43 @@ public class PathingOptions
         this.canSwim = canSwim;
     }
 
+    /**
+     * Whether the entity can enter doors, including gates.
+     * 
+     * @return true if the entity can enter doors, false otherwise
+     */
     public boolean canEnterDoors()
     {
         return enterDoors;
     }
 
+    /**
+     * Whether the entity can enter gates (not counting doors)
+     * @return true if the entity can enter gates, false otherwise
+     */
+    public boolean canEnterGates()
+    {
+        return enterGates;
+    }
+
+    /**
+     * Returns the turn penalty for the entity. This is a float value that represents the extra cost for the entity to make a turn while pathfinding.
+     * A higher value increases the cost, while a lower value decreases it. A value of 0 disables the turn penalty.
+     * @return the turn penalty for the entity
+     */
+    public float getTurnPenalty()
+    {
+        return turnPenalty;
+    }
+
     public void setEnterDoors(final boolean enterDoors)
     {
         this.enterDoors = enterDoors;
+    }
+
+    public void setEnterGates(final boolean enterGates)
+    {
+        this.enterGates = enterGates;
     }
 
     public void setPassDanger(final boolean danger)
@@ -183,6 +228,15 @@ public class PathingOptions
     public void setWalkUnderWater(final boolean walkUnderWater)
     {
         this.walkUnderWater = walkUnderWater;
+    }
+
+    /**
+     * Sets the turn penalty for the entity. 
+     * @param turnPenalty the turn penalty for the entity
+     */
+    public void setTurnPenalty(final float turnPenalty)
+    {
+        this.turnPenalty = turnPenalty;
     }
 
     public PathingOptions withStartSwimCost(final double startSwimCost)
@@ -245,6 +299,12 @@ public class PathingOptions
         return this;
     }
 
+    public PathingOptions withBadDirectionCost(final double badDirectionCost)
+    {
+        this.badDirectionCost = badDirectionCost;
+        return this;
+    }
+
     /**
      * Sets swimming ability
      *
@@ -269,6 +329,16 @@ public class PathingOptions
     }
 
     /**
+     * @param canEnter whether we can enter gates
+     * @return
+     */
+    public PathingOptions withCanEnterGates(final boolean canEnter)
+    {
+        setEnterGates(canEnter);
+        return this;
+    }
+
+    /**
      * Set under water walking opening capability
      * @param walkUnderWater whether we can walk underwater
      * @return
@@ -276,6 +346,18 @@ public class PathingOptions
     public PathingOptions withWalkUnderWater(final boolean walkUnderWater)
     {
         setWalkUnderWater(walkUnderWater);
+        return this;
+    }
+
+    /**
+     * Set the penalty for making a turn while pathfinding.
+     * 
+     * @param turnPenalty the penalty for making a turn
+     * @return this PathingOptions object
+     */
+    public PathingOptions withTurnPenalty(final float turnPenalty)
+    {
+        this.turnPenalty = turnPenalty;
         return this;
     }
 
@@ -300,11 +382,13 @@ public class PathingOptions
         canUseRails = pathingOptions.canUseRails;
         canSwim = pathingOptions.canSwim;
         enterDoors = pathingOptions.enterDoors;
+        enterGates = pathingOptions.enterGates;
         canOpenDoors = pathingOptions.canOpenDoors;
         canClimbAdvanced = pathingOptions.canClimbAdvanced;
         canPassDanger = pathingOptions.canPassDanger;
         randomnessFactor = pathingOptions.randomnessFactor;
         walkUnderWater = pathingOptions.walkUnderWater;
         canDrop = pathingOptions.canDrop;
+        turnPenalty = pathingOptions.turnPenalty;
     }
 }

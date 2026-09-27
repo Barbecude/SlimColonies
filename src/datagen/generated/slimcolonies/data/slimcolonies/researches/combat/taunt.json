@@ -1,5 +1,19 @@
 {
   "branch": "slimcolonies:combat",
+  "costs": [
+    {
+      "count": 8,
+      "item": "minecraft:rotten_flesh"
+    },
+    {
+      "count": 8,
+      "item": "minecraft:bone"
+    },
+    {
+      "count": 8,
+      "item": "minecraft:spider_eye"
+    }
+  ],
   "effects": [
     {
       "id": "slimcolonies:effects/knighttauntmobsunlock",

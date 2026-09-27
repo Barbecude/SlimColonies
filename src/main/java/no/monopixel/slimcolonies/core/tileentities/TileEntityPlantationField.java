@@ -1,9 +1,18 @@
 package no.monopixel.slimcolonies.core.tileentities;
 
-import com.ldtteam.structurize.storage.StructurePacks;
-import com.ldtteam.structurize.util.RotationMirror;
+import com.ldtteam.structurize.api.RotationMirror;
+import no.monopixel.slimcolonies.api.colony.IColony;
+import no.monopixel.slimcolonies.api.colony.IColonyManager;
+import no.monopixel.slimcolonies.api.colony.buildingextensions.plantation.IPlantationModule;
+import no.monopixel.slimcolonies.api.colony.buildingextensions.registry.BuildingExtensionRegistries;
+import no.monopixel.slimcolonies.api.colony.buildingextensions.registry.BuildingExtensionRegistries.BuildingExtensionEntry;
+import no.monopixel.slimcolonies.api.tileentities.AbstractTileEntityPlantationField;
+import no.monopixel.slimcolonies.api.tileentities.MinecoloniesTileEntities;
+import no.monopixel.slimcolonies.api.util.WorldUtil;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.Tag;
 import net.minecraft.network.Connection;
 import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
 import net.minecraft.resources.ResourceKey;
@@ -12,24 +21,12 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Mirror;
 import net.minecraft.world.level.block.Rotation;
 import net.minecraft.world.level.block.state.BlockState;
-import no.monopixel.slimcolonies.api.colony.IColony;
-import no.monopixel.slimcolonies.api.colony.IColonyManager;
-import no.monopixel.slimcolonies.api.colony.buildingextensions.plantation.IPlantationModule;
-import no.monopixel.slimcolonies.api.colony.buildingextensions.registry.BuildingExtensionRegistries;
-import no.monopixel.slimcolonies.api.colony.buildingextensions.registry.BuildingExtensionRegistries.BuildingExtensionEntry;
-import no.monopixel.slimcolonies.api.compatibility.newstruct.BlueprintMapping;
-import no.monopixel.slimcolonies.api.tileentities.AbstractTileEntityPlantationField;
-import no.monopixel.slimcolonies.api.tileentities.SlimColoniesTileEntities;
-import no.monopixel.slimcolonies.api.util.Utils;
-import no.monopixel.slimcolonies.api.util.WorldUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.io.File;
 import java.util.*;
 import java.util.stream.Collectors;
 
-import static no.monopixel.slimcolonies.api.util.constant.Constants.DEFAULT_STYLE;
 import static no.monopixel.slimcolonies.api.util.constant.NbtTagConstants.*;
 
 /**
@@ -64,9 +61,9 @@ public class TileEntityPlantationField extends AbstractTileEntityPlantationField
     private BlockPos corner2 = BlockPos.ZERO;
 
     /**
-     * The used rotation/mirror.
+     * The used rotation and mirror.
      */
-    private RotationMirror rotMir = RotationMirror.NONE;
+    private RotationMirror rotationMirror = RotationMirror.NONE;
 
     /**
      * Map of block positions relative to TE pos and string tags
@@ -91,7 +88,7 @@ public class TileEntityPlantationField extends AbstractTileEntityPlantationField
      */
     public TileEntityPlantationField(final BlockPos pos, final BlockState state)
     {
-        super(SlimColoniesTileEntities.PLANTATION_FIELD.get(), pos, state);
+        super(MinecoloniesTileEntities.PLANTATION_FIELD.get(), pos, state);
     }
 
     @Override
@@ -100,10 +97,10 @@ public class TileEntityPlantationField extends AbstractTileEntityPlantationField
         if (plantationFieldTypes == null)
         {
             plantationFieldTypes = tagPosMap.values().stream()
-                .flatMap(Collection::stream)
-                .map(this::getPlantationFieldEntryFromFieldTag)
-                .filter(Objects::nonNull)
-                .collect(Collectors.toSet());
+                                     .flatMap(Collection::stream)
+                                     .map(this::getPlantationFieldEntryFromFieldTag)
+                                     .filter(Objects::nonNull)
+                                     .collect(Collectors.toSet());
         }
         return plantationFieldTypes;
     }
@@ -112,11 +109,11 @@ public class TileEntityPlantationField extends AbstractTileEntityPlantationField
     public List<BlockPos> getWorkingPositions(final String tag)
     {
         workingPositions.computeIfAbsent(tag, newTag -> tagPosMap.entrySet().stream()
-            .filter(f -> f.getValue().contains(newTag))
-            .distinct()
-            .map(Map.Entry::getKey)
-            .map(worldPosition::offset)
-            .toList());
+                                                          .filter(f -> f.getValue().contains(newTag))
+                                                          .distinct()
+                                                          .map(Map.Entry::getKey)
+                                                          .map(worldPosition::offset)
+                                                          .toList());
         return workingPositions.get(tag);
     }
 
@@ -154,34 +151,25 @@ public class TileEntityPlantationField extends AbstractTileEntityPlantationField
      *
      * @return the placed rotation.
      */
-    public Rotation getRotation()
+    @Override
+    public RotationMirror getRotationMirror()
     {
-        return this.rotMir.rotation();
-    }
-
-    /**
-     * Get the mirroring setting of the controller.
-     *
-     * @return true if mirrored.
-     */
-    public boolean getMirror()
-    {
-        return this.rotMir.isMirrored();
+        return rotationMirror;
     }
 
     private BuildingExtensionEntry getPlantationFieldEntryFromFieldTag(String fieldTag)
     {
-        return BuildingExtensionRegistries.getBuildingExtensionRegistry().getValues().stream()
-            .filter(fieldEntry -> {
-                List<IPlantationModule> modules = fieldEntry.getExtensionModuleProducers().stream().map(m -> m.apply(null))
-                    .filter(IPlantationModule.class::isInstance)
-                    .map(m -> (IPlantationModule) m)
-                    .toList();
+        return BuildingExtensionRegistries.getBuildingExtensionRegistry().stream()
+                 .filter(fieldEntry -> {
+                     List<IPlantationModule> modules = fieldEntry.getExtensionModuleProducers().stream().map(m -> m.apply(null))
+                                                         .filter(IPlantationModule.class::isInstance)
+                                                         .map(m -> (IPlantationModule) m)
+                                                         .toList();
 
-                return modules.stream().anyMatch(module -> module.getFieldTag().equals(fieldTag));
-            })
-            .findFirst()
-            .orElse(null);
+                     return modules.stream().anyMatch(module -> module.getFieldTag().equals(fieldTag));
+                 })
+                 .findFirst()
+                 .orElse(null);
     }
 
     @Override
@@ -246,31 +234,32 @@ public class TileEntityPlantationField extends AbstractTileEntityPlantationField
     }
 
     @Override
-    public void rotate(final Rotation rotationIn)
+    public void rotateAndMirror(final RotationMirror rotMir)
     {
-        this.rotMir = this.rotMir.rotate(rotationIn);
+        this.rotationMirror = rotMir;
     }
 
     @Override
-    public void mirror(final Mirror mirror)
-    {
-        this.rotMir = this.rotMir.mirrorate(mirror);
-    }
-
-    @Override
-    public void onDataPacket(final Connection net, final ClientboundBlockEntityDataPacket packet)
+    public void onDataPacket(final Connection net, final ClientboundBlockEntityDataPacket packet, @NotNull final HolderLookup.Provider provider)
     {
         final CompoundTag compound = packet.getTag();
-        this.load(compound);
+        this.loadAdditional(compound, provider);
     }
 
     @Override
-    public void load(final CompoundTag compound)
+    public void loadAdditional(final CompoundTag compound, @NotNull final HolderLookup.Provider provider)
     {
-        super.load(compound);
+        super.loadAdditional(compound, provider);
         super.readSchematicDataFromNBT(compound);
-        this.rotMir = RotationMirror.of(Rotation.values()[compound.getInt(TAG_ROTATION)],
-            compound.getBoolean(TAG_MIRROR) ? Mirror.FRONT_BACK : Mirror.NONE);
+        if (compound.contains(TAG_ROTATION_MIRROR, Tag.TAG_BYTE))
+        {
+            this.rotationMirror = RotationMirror.values()[compound.getByte(TAG_ROTATION_MIRROR)];
+        }
+        else
+        {
+            // TODO: remove this later (data break introduced in 1.20.4) because of blueprint data
+            this.rotationMirror = RotationMirror.of(Rotation.values()[compound.getInt(TAG_ROTATION)], compound.getBoolean(TAG_MIRROR) ? Mirror.FRONT_BACK : Mirror.NONE);
+        }
         if (compound.contains(TAG_PATH))
         {
             this.schematicPath = compound.getString(TAG_PATH);
@@ -295,12 +284,11 @@ public class TileEntityPlantationField extends AbstractTileEntityPlantationField
     }
 
     @Override
-    public void saveAdditional(final CompoundTag compound)
+    public void saveAdditional(final CompoundTag compound, @NotNull final HolderLookup.Provider provider)
     {
-        super.saveAdditional(compound);
+        super.saveAdditional(compound, provider);
         writeSchematicDataToNBT(compound);
-        compound.putInt(TAG_ROTATION, this.rotMir.rotation().ordinal());
-        compound.putBoolean(TAG_MIRROR, this.rotMir.isMirrored());
+        compound.putByte(TAG_ROTATION_MIRROR, (byte) this.rotationMirror.ordinal());
         compound.putString(TAG_NAME, schematicName == null ? "" : schematicName);
         compound.putString(TAG_PATH, schematicPath == null ? "" : schematicPath);
         compound.putString(TAG_PACK, (packName == null || packName.isEmpty()) ? "" : packName);
@@ -317,9 +305,9 @@ public class TileEntityPlantationField extends AbstractTileEntityPlantationField
 
     @NotNull
     @Override
-    public CompoundTag getUpdateTag()
+    public CompoundTag getUpdateTag(@NotNull final HolderLookup.Provider provider)
     {
-        return this.saveWithId();
+        return this.saveWithId(provider);
     }
 
     @Override

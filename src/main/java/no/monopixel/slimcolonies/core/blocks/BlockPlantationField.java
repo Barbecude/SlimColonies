@@ -1,11 +1,23 @@
 package no.monopixel.slimcolonies.core.blocks;
 
 import com.ldtteam.structurize.blocks.interfaces.IAnchorBlock;
+import no.monopixel.slimcolonies.api.blocks.AbstractBlockMinecoloniesHorizontal;
+import no.monopixel.slimcolonies.api.blocks.interfaces.IBuildingBrowsableBlock;
+import no.monopixel.slimcolonies.api.colony.IColony;
+import no.monopixel.slimcolonies.api.colony.IColonyManager;
+import no.monopixel.slimcolonies.api.colony.buildingextensions.registry.BuildingExtensionRegistries.BuildingExtensionEntry;
+import no.monopixel.slimcolonies.api.entity.ai.workers.util.IBuilderUndestroyable;
+import no.monopixel.slimcolonies.api.util.Log;
+import no.monopixel.slimcolonies.api.util.constant.Constants;
+import no.monopixel.slimcolonies.core.client.gui.WindowPlantationField;
+import no.monopixel.slimcolonies.core.colony.buildingextensions.PlantationField;
+import no.monopixel.slimcolonies.core.tileentities.TileEntityPlantationField;
+import com.mojang.serialization.MapCodec;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.InteractionHand;
-import net.minecraft.world.InteractionResult;
+import net.minecraft.world.ItemInteractionResult;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
@@ -23,17 +35,6 @@ import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.shapes.CollisionContext;
 import net.minecraft.world.phys.shapes.Shapes;
 import net.minecraft.world.phys.shapes.VoxelShape;
-import no.monopixel.slimcolonies.api.blocks.AbstractBlockSlimColoniesHorizontal;
-import no.monopixel.slimcolonies.api.blocks.interfaces.IBuildingBrowsableBlock;
-import no.monopixel.slimcolonies.api.colony.IColony;
-import no.monopixel.slimcolonies.api.colony.IColonyManager;
-import no.monopixel.slimcolonies.api.colony.buildingextensions.registry.BuildingExtensionRegistries.BuildingExtensionEntry;
-import no.monopixel.slimcolonies.api.entity.ai.workers.util.IBuilderUndestroyable;
-import no.monopixel.slimcolonies.api.util.Log;
-import no.monopixel.slimcolonies.api.util.constant.Constants;
-import no.monopixel.slimcolonies.core.client.gui.WindowPlantationField;
-import no.monopixel.slimcolonies.core.colony.buildingextensions.PlantationField;
-import no.monopixel.slimcolonies.core.tileentities.TileEntityPlantationField;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.EnumMap;
@@ -43,9 +44,10 @@ import java.util.Map;
 /**
  * Block class for the plantation field block.
  */
-public class BlockPlantationField extends AbstractBlockSlimColoniesHorizontal<BlockPlantationField>
-    implements IBuilderUndestroyable, IAnchorBlock, IBuildingBrowsableBlock, EntityBlock
+public class BlockPlantationField extends AbstractBlockMinecoloniesHorizontal<BlockPlantationField> implements IBuilderUndestroyable, IAnchorBlock, IBuildingBrowsableBlock, EntityBlock
 {
+    public static final MapCodec<BlockPlantationField> CODEC = simpleCodec(BlockPlantationField::new);
+
     /**
      * If the block is mirrored.
      */
@@ -76,14 +78,25 @@ public class BlockPlantationField extends AbstractBlockSlimColoniesHorizontal<Bl
      */
     public BlockPlantationField()
     {
-        super(Properties.of().mapColor(MapColor.WOOD).sound(SoundType.WOOD).strength(BLOCK_HARDNESS, RESISTANCE));
+        this(Properties.of().mapColor(MapColor.WOOD).sound(SoundType.WOOD).strength(BLOCK_HARDNESS, RESISTANCE));
+    }
+
+    public BlockPlantationField(final Properties properties)
+    {
+        super(properties);
         this.registerDefaultState(this.defaultBlockState().setValue(FACING, Direction.NORTH).setValue(MIRROR, false));
+    }
+
+    @Override
+    protected MapCodec<BlockPlantationField> codec()
+    {
+        return CODEC;
     }
 
     @Override
     public ResourceLocation getRegistryName()
     {
-        return ResourceLocation.fromNamespaceAndPath(Constants.MOD_ID, BLOCK_NAME);
+        return new ResourceLocation(Constants.MOD_ID, BLOCK_NAME);
     }
 
     @Override
@@ -107,33 +120,34 @@ public class BlockPlantationField extends AbstractBlockSlimColoniesHorizontal<Bl
     }
 
     @Override
-    public InteractionResult use(
-        final BlockState state,
-        final Level worldIn,
-        final BlockPos pos,
-        final Player player,
-        final InteractionHand hand,
-        final BlockHitResult ray)
+    public ItemInteractionResult useItemOn(
+      final ItemStack stack,
+      final BlockState state,
+      final Level worldIn,
+      final BlockPos pos,
+      final Player player,
+      final InteractionHand hand,
+      final BlockHitResult ray)
     {
         // If this is the client side, open the plantation field GUI
         if (worldIn.isClientSide)
         {
             if (hand == InteractionHand.OFF_HAND)
             {
-                return InteractionResult.FAIL;
+                return ItemInteractionResult.FAIL;
             }
 
             final BlockEntity tileEntity = worldIn.getBlockEntity(pos);
             if (tileEntity instanceof TileEntityPlantationField plantationField)
             {
                 new WindowPlantationField(plantationField).open();
-                return InteractionResult.SUCCESS;
+                return ItemInteractionResult.SUCCESS;
             }
 
-            return InteractionResult.FAIL;
+            return ItemInteractionResult.FAIL;
         }
 
-        return InteractionResult.SUCCESS;
+        return ItemInteractionResult.SUCCESS;
     }
 
     @Override
@@ -145,12 +159,12 @@ public class BlockPlantationField extends AbstractBlockSlimColoniesHorizontal<Bl
             return SHAPES.get(dir);
         }
         VoxelShape shape = Shapes.box(
-            0D + (dir.getStepX() > 0 ? 0.5 : 0),
-            0D,
-            0D + (dir.getStepZ() > 0 ? 0.5 : 0),
-            1D - (dir.getStepX() < 0 ? 0.5 : 0),
-            0.625D,
-            1D - (dir.getStepZ() < 0 ? 0.5 : 0)
+          0D + (dir.getStepX() > 0 ? 0.5 : 0),
+          0D,
+          0D + (dir.getStepZ() > 0 ? 0.5 : 0),
+          1D - (dir.getStepX() < 0 ? 0.5 : 0),
+          0.625D,
+          1D - (dir.getStepZ() < 0 ? 0.5 : 0)
         );
         SHAPES.put(dir, shape);
         return shape;
@@ -202,7 +216,8 @@ public class BlockPlantationField extends AbstractBlockSlimColoniesHorizontal<Bl
                     if (!validPositions.isEmpty())
                     {
                         plantationField.setWorkingPositions(validPositions);
-                        colony.getBuildingManager().addBuildingExtension(plantationField);
+                        colony.getServerBuildingManager().addBuildingExtension(plantationField);
+                        colony.getServerBuildingManager().addLeisureSite(pos);
                     }
                     else
                     {
@@ -217,10 +232,10 @@ public class BlockPlantationField extends AbstractBlockSlimColoniesHorizontal<Bl
     }
 
     @Override
-    public void playerWillDestroy(final Level worldIn, @NotNull final BlockPos pos, final BlockState state, @NotNull final Player player)
+    public BlockState playerWillDestroy(final Level worldIn, @NotNull final BlockPos pos, final BlockState state, @NotNull final Player player)
     {
         notifyColonyAboutDestruction(worldIn, pos);
-        super.playerWillDestroy(worldIn, pos, state, player);
+        return super.playerWillDestroy(worldIn, pos, state, player);
     }
 
     @Override
@@ -247,8 +262,8 @@ public class BlockPlantationField extends AbstractBlockSlimColoniesHorizontal<Bl
                 {
                     for (BuildingExtensionEntry plantationFieldType : plantationField.getPlantationFieldTypes())
                     {
-                        colony.getBuildingManager()
-                            .removeBuildingExtension(field -> field.getBuildingExtensionType().equals(plantationFieldType) && field.getPosition().equals(pos));
+                        colony.getServerBuildingManager().removeBuildingExtension(field -> field.getBuildingExtensionType().equals(plantationFieldType) && field.getPosition().equals(pos));
+                        colony.getServerBuildingManager().removeLeisureSite(pos);
                     }
                 }
             }

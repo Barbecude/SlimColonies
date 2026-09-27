@@ -1,20 +1,22 @@
 package no.monopixel.slimcolonies.api.inventory.api;
 
+import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.IntTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.ItemStack;
-import net.minecraftforge.common.util.INBTSerializable;
-import net.minecraftforge.items.IItemHandler;
-import net.minecraftforge.items.IItemHandlerModifiable;
+import net.neoforged.neoforge.common.util.INBTSerializable;
+import net.neoforged.neoforge.items.IItemHandler;
+import net.neoforged.neoforge.items.IItemHandlerModifiable;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import javax.annotation.Nonnull;
 import java.util.Arrays;
 
+import static no.monopixel.slimcolonies.api.util.constant.Suppression.UNCHECKED;
 
 /**
  * Abstract class wrapping around multiple IItemHandler.
@@ -73,7 +75,7 @@ public class CombinedItemHandler implements IItemHandlerModifiable, INBTSerializ
     }
 
     @Override
-    public CompoundTag serializeNBT()
+    public CompoundTag serializeNBT(@NotNull final HolderLookup.Provider provider)
     {
         final CompoundTag compound = new CompoundTag();
 
@@ -85,7 +87,7 @@ public class CombinedItemHandler implements IItemHandlerModifiable, INBTSerializ
             if (handlerModifiable instanceof INBTSerializable)
             {
                 final INBTSerializable<?> serializable = (INBTSerializable<?>) handlerModifiable;
-                handlerList.add(serializable.serializeNBT());
+                handlerList.add(serializable.serializeNBT(provider));
                 indexList.add(IntTag.valueOf(index));
             }
 
@@ -103,9 +105,9 @@ public class CombinedItemHandler implements IItemHandlerModifiable, INBTSerializ
         return compound;
     }
 
-    @SuppressWarnings("unchecked")
+    @SuppressWarnings(UNCHECKED)
     @Override
-    public void deserializeNBT(final CompoundTag nbt)
+    public void deserializeNBT(@NotNull final HolderLookup.Provider provider, final CompoundTag nbt)
     {
         final ListTag handlerList = nbt.getList(NBT_KEY_HANDLERS, Tag.TAG_COMPOUND);
         final ListTag indexList = nbt.getList(NBT_KEY_HANDLERS_INDEXLIST, Tag.TAG_INT);
@@ -119,7 +121,7 @@ public class CombinedItemHandler implements IItemHandlerModifiable, INBTSerializ
                 if (modifiable instanceof INBTSerializable)
                 {
                     final INBTSerializable<CompoundTag> serializable = (INBTSerializable<CompoundTag>) modifiable;
-                    serializable.deserializeNBT(handlerCompound);
+                    serializable.deserializeNBT(provider, handlerCompound);
                 }
             }
         }

@@ -58,8 +58,9 @@
       "type": "slimcolonies:delivery",
       "details": {
         "target": 0,
-        "item": "slimcolonies:resourcescroll",
-        "qty": 1,
+        "item": {
+          "id": "slimcolonies:resourcescroll"
+        },
         "next-objective": 2
       }
     },
@@ -83,8 +84,9 @@
     {
       "type": "slimcolonies:item",
       "details": {
-        "item": "slimcolonies:resourcescroll",
-        "qty": 1
+        "item": {
+          "id": "slimcolonies:resourcescroll"
+        }
       }
     }
   ]

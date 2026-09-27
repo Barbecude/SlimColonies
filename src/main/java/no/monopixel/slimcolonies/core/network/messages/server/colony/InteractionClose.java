@@ -1,13 +1,18 @@
 package no.monopixel.slimcolonies.core.network.messages.server.colony;
 
+import com.ldtteam.common.network.PlayMessageType;
 import no.monopixel.slimcolonies.api.colony.ICitizenData;
 import no.monopixel.slimcolonies.api.colony.IColony;
+import no.monopixel.slimcolonies.api.util.Utils;
+import no.monopixel.slimcolonies.api.util.constant.Constants;
 import no.monopixel.slimcolonies.core.network.messages.server.AbstractColonyServerMessage;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.ComponentSerialization;
 import net.minecraft.resources.ResourceKey;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.level.Level;
-import net.minecraftforge.network.NetworkEvent;
+import net.neoforged.neoforge.network.handling.IPayloadContext;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -15,23 +20,17 @@ import org.jetbrains.annotations.NotNull;
  */
 public class InteractionClose extends AbstractColonyServerMessage
 {
+    public static final PlayMessageType<?> TYPE = PlayMessageType.forServer(Constants.MOD_ID, "interaction_close", InteractionClose::new);
+
     /**
      * Id of the citizen.
      */
-    private int citizenId;
+    private final int citizenId;
 
     /**
      * The key of the handler to trigger.
      */
-    private Component key;
-
-    /**
-     * Empty public constructor.
-     */
-    public InteractionClose()
-    {
-        super();
-    }
+    private final Component key;
 
     /**
      * Trigger the server response handler.
@@ -47,7 +46,7 @@ public class InteractionClose extends AbstractColonyServerMessage
       final ResourceKey<Level> dimension,
       @NotNull final Component key)
     {
-        super(dimension, colonyId);
+        super(TYPE, dimension, colonyId);
         this.citizenId = citizenId;
         this.key = key;
     }
@@ -57,11 +56,11 @@ public class InteractionClose extends AbstractColonyServerMessage
      *
      * @param buf the used byteBuffer.
      */
-    @Override
-    public void fromBytesOverride(@NotNull final FriendlyByteBuf buf)
+    protected InteractionClose(final RegistryFriendlyByteBuf buf, final PlayMessageType<?> type)
     {
+        super(buf, type);
         this.citizenId = buf.readInt();
-        this.key = buf.readComponent();
+        this.key = Utils.deserializeCodecMess(ComponentSerialization.STREAM_CODEC, buf);
     }
 
     /**
@@ -70,14 +69,15 @@ public class InteractionClose extends AbstractColonyServerMessage
      * @param buf the used byteBuffer.
      */
     @Override
-    public void toBytesOverride(@NotNull final FriendlyByteBuf buf)
+    protected void toBytes(@NotNull final RegistryFriendlyByteBuf buf)
     {
+        super.toBytes(buf);
         buf.writeInt(this.citizenId);
-        buf.writeComponent(key);
+        Utils.serializeCodecMess(ComponentSerialization.STREAM_CODEC, buf, key);
     }
 
     @Override
-    protected void onExecute(final NetworkEvent.Context ctxIn, final boolean isLogicalServer, final IColony colony)
+    protected void onExecute(final IPayloadContext ctxIn, final ServerPlayer player, final IColony colony)
     {
         ICitizenData citizenData = colony.getCitizenManager().getCivilian(citizenId);
         if (citizenData == null)
@@ -85,9 +85,11 @@ public class InteractionClose extends AbstractColonyServerMessage
             citizenData = colony.getVisitorManager().getVisitor(citizenId);
         }
 
-        if (citizenData != null && ctxIn.getSender() != null)
+        if (citizenData != null && player != null)
         {
-            citizenData.onInteractionClosed(key, ctxIn.getSender());
+            citizenData.onInteractionClosed(key, player);
         }
     }
 }
+
+

@@ -3,6 +3,7 @@ package no.monopixel.slimcolonies.api.colony.buildings.modules;
 import no.monopixel.slimcolonies.api.colony.ICitizenDataView;
 import no.monopixel.slimcolonies.api.colony.buildings.HiringMode;
 import no.monopixel.slimcolonies.api.colony.jobs.registry.JobEntry;
+import net.minecraft.resources.ResourceLocation;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
@@ -67,4 +68,10 @@ public interface IAssignmentModuleView extends IBuildingModuleView
      * @return the entry.
      */
     JobEntry getJobEntry();
+
+    /**
+     * If unlocked by research it returns a research requirement.
+     * @return return null by default, otherwise String research effect key.
+     */
+    default ResourceLocation getResearchRequirement() { return null;}
 }

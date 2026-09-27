@@ -8,7 +8,7 @@ import org.jetbrains.annotations.NonNls;
 public class CommandTranslationConstants
 {
     @NonNls
-    public static final String COMMAND_REQUIRES_CREATIVE                     = "no.monopixel.slimcolonies.command.notcreative";
+    public static final String COMMAND_REQUIRES_CREATIVE      = "no.monopixel.slimcolonies.command.notcreative";
     @NonNls
     public static final String COMMAND_REQUIRES_OP                           = "no.monopixel.slimcolonies.command.notop";
     @NonNls
@@ -60,7 +60,7 @@ public class CommandTranslationConstants
     @NonNls
     public static final String COMMAND_CITIZEN_LIST_NEXT                     = "no.monopixel.slimcolonies.command.citizenlist.next";
     @NonNls
-    public static final String COMMAND_CITIZEN_MODIFY_SUCCESS                = "no.monopixel.slimcolonies.command.citizenmodify.success";
+    public static final String COMMAND_CITIZEN_MODIFY_SUCCESS = "no.monopixel.slimcolonies.command.citizenmodify.success";
     @NonNls
     public static final String COMMAND_CITIZEN_RELOAD_SUCCESS                = "no.monopixel.slimcolonies.command.citizenreload.success";
     @NonNls
@@ -73,6 +73,8 @@ public class CommandTranslationConstants
     public static final String COMMAND_ENTITY_TRACK_DISABLED                 = "no.monopixel.slimcolonies.command.citizentrack.success.disable";
     @NonNls
     public static final String COMMAND_OFFICER_ADD_SUCCESS                   = "no.monopixel.slimcolonies.command.addofficer.success";
+    @NonNls
+    public static final String COMMAND_CAN_RAIDER_SPAWN_SUCCESS              = "no.monopixel.slimcolonies.command.canspawnraider.success";
     @NonNls
     public static final String COMMAND_OWNER_CHANGE_SUCCESS                  = "no.monopixel.slimcolonies.command.ownerchange.success";
     @NonNls
@@ -107,6 +109,15 @@ public class CommandTranslationConstants
     public static final String COMMAND_COLONY_EXPORT_SUCCESS                 = "no.monopixel.slimcolonies.command.export.success";
     @NonNls
     public static final String COMMAND_COLONY_LOAD_BACKUP_SUCCESS            = "no.monopixel.slimcolonies.command.loadbackup.success";
+    /** Translation key for a successful colony statistics reset. */
+    @NonNls
+    public static final String COMMAND_COLONY_RESET_STATS_SUCCESS            = "no.monopixel.slimcolonies.command.resetstats.success";
+    @NonNls
+    public static final String COMMAND_RAID_NOW_SUCCESS                      = "no.monopixel.slimcolonies.command.raidnow.success";
+    @NonNls
+    public static final String COMMAND_RAID_NOW_FAILURE                      = "no.monopixel.slimcolonies.command.raidnow.failure";
+    @NonNls
+    public static final String COMMAND_RAID_TONIGHT_SUCCESS                  = "no.monopixel.slimcolonies.command.raidtonight.success";
     @NonNls
     public static final String COMMAND_REQUEST_SYSTEM_RESET_SUCCESS          = "no.monopixel.slimcolonies.command.rsreset.success";
     @NonNls
@@ -134,7 +145,7 @@ public class CommandTranslationConstants
     @NonNls
     public static final String COMMAND_WHERE_AM_I_NO_COLONY                  = "no.monopixel.slimcolonies.command.whereami.nocolony";
     @NonNls
-    public static final String COMMAND_WHERE_AM_I_COLONY_CLOSE               = "no.monopixel.slimcolonies.command.whereami.colonyclose";
+    public static final String COMMAND_WHERE_AM_I_COLONY_CLOSE               = "no.monopixel.slimcolonies.command.whereami.closecolony";
     @NonNls
     public static final String COMMAND_WHERE_AM_I_IN_COLONY                  = "no.monopixel.slimcolonies.command.whereami.incolony";
     @NonNls

@@ -1,8 +1,6 @@
 package no.monopixel.slimcolonies.api.colony.buildings.registry;
 
 import com.google.common.collect.ImmutableMap;
-import net.minecraft.core.BlockPos;
-import net.minecraft.resources.ResourceLocation;
 import no.monopixel.slimcolonies.api.blocks.AbstractBlockHut;
 import no.monopixel.slimcolonies.api.blocks.AbstractColonyBlock;
 import no.monopixel.slimcolonies.api.colony.IColony;
@@ -11,13 +9,15 @@ import no.monopixel.slimcolonies.api.colony.buildings.IBuilding;
 import no.monopixel.slimcolonies.api.colony.buildings.modules.IBuildingModule;
 import no.monopixel.slimcolonies.api.colony.buildings.modules.IBuildingModuleView;
 import no.monopixel.slimcolonies.api.colony.buildings.views.IBuildingView;
-import org.apache.commons.lang3.Validate;
+import net.minecraft.core.BlockPos;
+import net.minecraft.resources.ResourceLocation;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.function.BiFunction;
 import java.util.function.Supplier;
 
@@ -31,7 +31,7 @@ public class BuildingEntry
     private final AbstractColonyBlock<?> buildingBlock;
 
     private final BiFunction<IColony, BlockPos, IBuilding> buildingProducer;
-    private final ResourceLocation                         registryName;
+    private final ResourceLocation registryName;
 
     private List<ModuleProducer> buildingModuleProducers;
 
@@ -102,17 +102,16 @@ public class BuildingEntry
         @SuppressWarnings("PMD.AccessorClassGeneration") //The builder explicitly allowed to create an instance.
         public BuildingEntry createBuildingEntry()
         {
-            Validate.notNull(buildingBlock);
-            Validate.notNull(buildingProducer);
-            Validate.notNull(buildingViewProducer);
-            Validate.notNull(registryName);
+            Objects.requireNonNull(buildingBlock);
+            Objects.requireNonNull(buildingProducer);
+            Objects.requireNonNull(buildingViewProducer);
+            Objects.requireNonNull(registryName);
 
             return new BuildingEntry(registryName, buildingBlock, buildingProducer, buildingViewProducer, buildingModuleProducers);
         }
 
         /**
          * Add a building module producer.
-         *
          * @return the builder again.
          */
         public Builder addBuildingModuleProducer(final ModuleProducer moduleSet)
@@ -124,7 +123,7 @@ public class BuildingEntry
 
     public String getTranslationKey()
     {
-        return "no.monopixel." + registryName.getNamespace() + ".building." + registryName.getPath();
+        return "com." + registryName.getNamespace() + ".building." + registryName.getPath();
     }
 
     private final Supplier<BiFunction<IColonyView, BlockPos, IBuildingView>> buildingViewProducer;
@@ -152,7 +151,7 @@ public class BuildingEntry
     {
         final IBuildingView buildingView = buildingViewProducer.get().apply(colony, position);
         buildingView.setBuildingType(this);
-        for (final ModuleProducer<IBuildingModule, IBuildingModuleView> moduleSet : buildingModuleProducers)
+        for (final ModuleProducer<IBuildingModule,IBuildingModuleView> moduleSet : buildingModuleProducers)
         {
             if (moduleSet.viewProducer != null)
             {
@@ -163,14 +162,14 @@ public class BuildingEntry
         return buildingView;
     }
 
-    public List<ModuleProducer> getModuleProducers() {return buildingModuleProducers;}
+    public List<ModuleProducer> getModuleProducers() { return buildingModuleProducers;}
 
     private BuildingEntry(
-        final ResourceLocation registryName,
-        final AbstractColonyBlock<?> buildingBlock,
-        final BiFunction<IColony, BlockPos, IBuilding> buildingProducer,
-        final Supplier<BiFunction<IColonyView, BlockPos, IBuildingView>> buildingViewProducer,
-        List<ModuleProducer> buildingModuleProducers)
+      final ResourceLocation registryName,
+      final AbstractColonyBlock<?> buildingBlock,
+      final BiFunction<IColony, BlockPos, IBuilding> buildingProducer,
+      final Supplier<BiFunction<IColonyView, BlockPos, IBuildingView>> buildingViewProducer,
+      List<ModuleProducer> buildingModuleProducers)
     {
         super();
         this.registryName = registryName;
@@ -182,7 +181,6 @@ public class BuildingEntry
 
     /**
      * Get the assigned registry name.
-     *
      * @return
      */
     public ResourceLocation getRegistryName()
@@ -206,25 +204,25 @@ public class BuildingEntry
         private static int runtimeIdGenerator = 0;
 
         public ModuleProducer(
-            final String key, final Supplier<IBuildingModule> moduleProducer,
-            final Supplier<Supplier<IBuildingModuleView>> viewProducer)
+          final String key, final Supplier<IBuildingModule> moduleProducer,
+          final Supplier<Supplier<IBuildingModuleView>> viewProducer)
         {
             this.key = key;
             this.id = ++runtimeIdGenerator;
             this.viewProducer = viewProducer;
             this.moduleProducer = moduleProducer;
 
-            ModuleProducer previous = ALL_MODULES.put(key, this);
+            ModuleProducer previous = ALL_MODULES.put(key,this);
             if (previous != null)
             {
-                throw new RuntimeException("Tried to register existing module: " + key + " again!");
+                throw new RuntimeException("Tried to register existing module: "+key+" again!");
             }
         }
 
         /**
          * Internal temporary ID, used for sync, not guaranteed to persist between updates
          */
-        private final int id;
+        private final int                                     id;
 
         /**
          * Saving and loading ID, should never change
@@ -239,7 +237,7 @@ public class BuildingEntry
         /**
          * Server module producers
          */
-        private final Supplier<IBuildingModule> moduleProducer;
+        private final Supplier<IBuildingModule>               moduleProducer;
 
         /**
          * Internal temporary ID, used for sync, not guaranteed to persist between updates
@@ -251,7 +249,6 @@ public class BuildingEntry
 
         /**
          * Get if a view exists
-         *
          * @return
          */
         public boolean hasView()
@@ -261,7 +258,6 @@ public class BuildingEntry
 
         /**
          * Get if a server module exists
-         *
          * @return
          */
         public boolean hasServerModule()
@@ -318,12 +314,12 @@ public class BuildingEntry
      * @return
      */
     @Nullable
-    public static IBuildingModuleView produceViewWithoutBuilding(final String key)
+    public static IBuildingModuleView produceViewWithoutBuilding(final String key, final IColonyView colony)
     {
         final var producer = ModuleProducer.ALL_MODULES.get(key);
         if (producer.hasView())
         {
-            return producer.viewProducer.get().get();
+            return producer.viewProducer.get().get().setProducer(producer).setColonyView(colony);
         }
 
         return null;

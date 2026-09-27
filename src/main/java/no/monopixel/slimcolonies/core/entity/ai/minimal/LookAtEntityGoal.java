@@ -1,6 +1,7 @@
 package no.monopixel.slimcolonies.core.entity.ai.minimal;
 
 import no.monopixel.slimcolonies.api.util.WorldUtil;
+import no.monopixel.slimcolonies.api.util.constant.ColonyConstants;
 import no.monopixel.slimcolonies.core.colony.jobs.AbstractJobGuard;
 import no.monopixel.slimcolonies.core.entity.citizen.EntityCitizen;
 import net.minecraft.world.entity.Entity;
@@ -47,7 +48,7 @@ public class LookAtEntityGoal extends Goal
     @Override
     public boolean canUse()
     {
-        if (this.mob.getRandom().nextFloat() >= this.probability)
+        if (ColonyConstants.rand.nextFloat() >= this.probability)
         {
             return false;
         }
@@ -64,7 +65,7 @@ public class LookAtEntityGoal extends Goal
             }
             else
             {
-                this.lookAt = WorldUtil.getNearestEntity(this.mob.level.getEntitiesOfClass(this.lookAtType,
+                this.lookAt = WorldUtil.getNearestEntity(this.mob.level().getEntitiesOfClass(this.lookAtType,
                   this.mob.getBoundingBox().inflate(this.lookDistance, 3.0D, this.lookDistance),
                   (entity) -> true), this.mob, this.mob.getBlockX(), this.mob.getBlockY() + 1, this.mob.getBlockZ(), lookDistance);
             }

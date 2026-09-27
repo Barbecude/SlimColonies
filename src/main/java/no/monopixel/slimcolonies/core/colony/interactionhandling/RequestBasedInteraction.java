@@ -2,13 +2,6 @@ package no.monopixel.slimcolonies.core.colony.interactionhandling;
 
 import com.ldtteam.blockui.controls.ItemIcon;
 import com.ldtteam.blockui.views.BOWindow;
-import net.minecraft.client.Minecraft;
-import net.minecraft.nbt.CompoundTag;
-import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.contents.TranslatableContents;
-import net.minecraft.world.entity.player.Player;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.api.distmarker.OnlyIn;
 import no.monopixel.slimcolonies.api.colony.*;
 import no.monopixel.slimcolonies.api.colony.interactionhandling.*;
 import no.monopixel.slimcolonies.api.colony.requestsystem.StandardFactoryController;
@@ -16,8 +9,15 @@ import no.monopixel.slimcolonies.api.colony.requestsystem.request.IRequest;
 import no.monopixel.slimcolonies.api.colony.requestsystem.request.RequestState;
 import no.monopixel.slimcolonies.api.colony.requestsystem.token.IToken;
 import no.monopixel.slimcolonies.api.util.Tuple;
-import no.monopixel.slimcolonies.core.client.gui.WindowRequestDetail;
 import no.monopixel.slimcolonies.core.client.gui.citizen.RequestWindowCitizen;
+import net.minecraft.client.Minecraft;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.network.chat.contents.TranslatableContents;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.chat.Component;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.api.distmarker.OnlyIn;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Collections;
@@ -35,17 +35,17 @@ public class RequestBasedInteraction extends ServerCitizenInteraction
 
     @SuppressWarnings("unchecked")
     private static final Tuple<Component, Component>[] tuples = (Tuple<Component, Component>[]) new Tuple[] {
-        new Tuple<>(Component.translatable(INTERACTION_R_OKAY), null),
-        new Tuple<>(Component.translatable(INTERACTION_R_REMIND), null),
-        new Tuple<>(Component.translatable("no.monopixel.slimcolonies.coremod.gui.chat.cancel"), null),
-        new Tuple<>(Component.translatable("no.monopixel.slimcolonies.coremod.gui.chat.fulfill"), null)};
+      new Tuple<>(Component.translatableEscape(INTERACTION_R_OKAY), Component.empty()),
+      new Tuple<>(Component.translatableEscape(INTERACTION_R_REMIND), Component.empty()),
+      new Tuple<>(Component.translatableEscape("no.monopixel.slimcolonies.coremod.gui.chat.cancel"), Component.empty()),
+      new Tuple<>(Component.translatableEscape("no.monopixel.slimcolonies.coremod.gui.chat.fulfill"), Component.empty())};
 
     @SuppressWarnings("unchecked")
     private static final Tuple<Component, Component>[] tuplesAsync = (Tuple<Component, Component>[]) new Tuple[] {
-        new Tuple<>(Component.translatable(INTERACTION_R_OKAY), null),
-        new Tuple<>(Component.translatable(INTERACTION_R_IGNORE), null),
-        new Tuple<>(Component.translatable(INTERACTION_R_REMIND), null),
-        new Tuple<>(Component.translatable(INTERACTION_R_SKIP), null)};
+      new Tuple<>(Component.translatableEscape(INTERACTION_R_OKAY), Component.empty()),
+      new Tuple<>(Component.translatableEscape(INTERACTION_R_IGNORE), Component.empty()),
+      new Tuple<>(Component.translatableEscape(INTERACTION_R_REMIND), Component.empty()),
+      new Tuple<>(Component.translatableEscape(INTERACTION_R_SKIP), Component.empty())};
 
     /**
      * The request this is related to.
@@ -66,10 +66,10 @@ public class RequestBasedInteraction extends ServerCitizenInteraction
      * @param validator the validator id.
      */
     public RequestBasedInteraction(
-        final Component inquiry,
-        final IChatPriority priority,
-        final Component validator,
-        final IToken<?> token)
+      final Component inquiry,
+      final IChatPriority priority,
+      final Component validator,
+      final IToken<?> token)
     {
         super(inquiry, true, priority, null, validator, priority == ChatPriority.BLOCKING ? tuples : tuplesAsync);
         this.validator = InteractionValidatorRegistry.getTokenBasedInteractionValidatorPredicate(validator);
@@ -84,9 +84,9 @@ public class RequestBasedInteraction extends ServerCitizenInteraction
      * @param token    the token this is related to.
      */
     public RequestBasedInteraction(
-        final Component inquiry,
-        final IChatPriority priority,
-        final IToken<?> token)
+      final Component inquiry,
+      final IChatPriority priority,
+      final IToken<?> token)
     {
         super(inquiry, true, priority, null, inquiry, tuples);
         this.validator = InteractionValidatorRegistry.getTokenBasedInteractionValidatorPredicate(inquiry);
@@ -116,25 +116,25 @@ public class RequestBasedInteraction extends ServerCitizenInteraction
     }
 
     @Override
-    public CompoundTag serializeNBT()
+    public CompoundTag serializeNBT(@NotNull final HolderLookup.Provider provider)
     {
-        final CompoundTag tag = super.serializeNBT();
-        tag.put(TOKEN_TAG, StandardFactoryController.getInstance().serialize(token));
+        final CompoundTag tag = super.serializeNBT(provider);
+        tag.put(TOKEN_TAG, StandardFactoryController.getInstance().serializeTag(provider, token));
         return tag;
     }
 
     @Override
-    public void deserializeNBT(@NotNull final CompoundTag compoundNBT)
+    public void deserializeNBT(@NotNull final HolderLookup.Provider provider, @NotNull final CompoundTag compoundNBT)
     {
-        super.deserializeNBT(compoundNBT);
-        this.token = StandardFactoryController.getInstance().deserialize(compoundNBT.getCompound(TOKEN_TAG));
+        super.deserializeNBT(provider, compoundNBT);
+        this.token = StandardFactoryController.getInstance().deserializeTag(provider, compoundNBT.getCompound(TOKEN_TAG));
     }
 
     @Override
     @OnlyIn(Dist.CLIENT)
     public void onWindowOpened(final BOWindow window, final ICitizenDataView dataView)
     {
-        final IColony colony = IColonyManager.getInstance().getColonyView(dataView.getColonyId(), Minecraft.getInstance().player.level.dimension());
+        final IColony colony = IColonyManager.getInstance().getColonyView(dataView.getColonyId(), Minecraft.getInstance().player.level().dimension());
         if (colony != null)
         {
             final IRequest<?> request = colony.getRequestManager().getRequestForToken(token);
@@ -156,19 +156,15 @@ public class RequestBasedInteraction extends ServerCitizenInteraction
     {
         if (((TranslatableContents) getPossibleResponses().get(responseId).getContents()).getKey().equals("no.monopixel.slimcolonies.coremod.gui.chat.fulfill"))
         {
-            final IColony colony = IColonyManager.getInstance().getColonyView(data.getColonyId(), player.level.dimension());
+            final IColony colony = IColonyManager.getInstance().getColonyView(data.getColonyId(), player.level().dimension());
 
             if (colony != null)
             {
                 final IRequest<?> request = colony.getRequestManager().getRequestForToken(token);
                 if (request != null)
                 {
-                    final RequestWindowCitizen windowCitizen = new RequestWindowCitizen(data);
+                    final RequestWindowCitizen windowCitizen = new RequestWindowCitizen(data, request);
                     windowCitizen.open();
-
-                    final WindowRequestDetail windowRequestDetail = new WindowRequestDetail(windowCitizen, request, data.getColonyId());
-                    windowRequestDetail.open();
-
 
                     return false;
                 }
@@ -186,7 +182,7 @@ public class RequestBasedInteraction extends ServerCitizenInteraction
     {
         super.onServerResponseTriggered(responseId, player, data);
         final Component response = getPossibleResponses().get(responseId);
-        if (response.equals(Component.translatable("no.monopixel.slimcolonies.coremod.gui.chat.cancel")) && data.getColony() != null)
+        if (response.equals(Component.translatableEscape("no.monopixel.slimcolonies.coremod.gui.chat.cancel")) && data.getColony() != null)
         {
             data.getColony().getRequestManager().updateRequestState(token, RequestState.CANCELLED);
         }

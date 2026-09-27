@@ -7,12 +7,14 @@ import no.monopixel.slimcolonies.api.colony.buildings.modules.settings.ISetting;
 import no.monopixel.slimcolonies.api.colony.buildings.modules.settings.ISettingKey;
 import no.monopixel.slimcolonies.api.colony.requestsystem.StandardFactoryController;
 import no.monopixel.slimcolonies.api.util.Log;
+import no.monopixel.slimcolonies.api.util.constant.Constants;
 import no.monopixel.slimcolonies.core.colony.buildings.modules.settings.SettingKey;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.Tag;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
-import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
 import org.jetbrains.annotations.NotNull;
 
@@ -52,7 +54,7 @@ public class SettingsModule extends AbstractBuildingModule implements IPersisten
     }
 
     @Override
-    public void deserializeNBT(final CompoundTag compound)
+    public void deserializeNBT(@NotNull final HolderLookup.Provider provider, final CompoundTag compound)
     {
         final CompoundTag settingsCompound = compound.contains("settings") ? compound.getCompound("settings") : compound;
         final ListTag list = settingsCompound.getList("settingslist", Tag.TAG_COMPOUND);
@@ -62,7 +64,7 @@ public class SettingsModule extends AbstractBuildingModule implements IPersisten
             final ResourceLocation key = ResourceLocation.parse(entryCompound.getString("key"));
             try
             {
-                final ISetting setting = StandardFactoryController.getInstance().deserialize(entryCompound.getCompound("value"));
+                final ISetting setting = StandardFactoryController.getInstance().deserializeTag(provider, entryCompound.getCompound("value"));
                 final ISettingKey<?> settingsKey = new SettingKey<>(setting.getClass(), key);
                 if (settings.containsKey(settingsKey))
                 {
@@ -78,21 +80,21 @@ public class SettingsModule extends AbstractBuildingModule implements IPersisten
     }
 
     @Override
-    public void serializeNBT(final CompoundTag compound)
+    public void serializeNBT(@NotNull final HolderLookup.Provider provider, CompoundTag compound)
     {
         final ListTag list = new ListTag();
         for (final Map.Entry<ISettingKey<?>, ISetting<?>> setting : settings.entrySet())
         {
             final CompoundTag entryCompound = new CompoundTag();
             entryCompound.putString("key", setting.getKey().getUniqueId().toString());
-            entryCompound.put("value", StandardFactoryController.getInstance().serialize(setting.getValue()));
+            entryCompound.put("value", StandardFactoryController.getInstance().serializeTag(provider, setting.getValue()));
             list.add(entryCompound);
         }
         compound.put("settingslist", list);
     }
 
     @Override
-    public void serializeToView(final FriendlyByteBuf buf)
+    public void serializeToView(final RegistryFriendlyByteBuf buf)
     {
         buf.writeInt(settings.size());
         for (final Map.Entry<ISettingKey<?>, ISetting<?>> setting : settings.entrySet())

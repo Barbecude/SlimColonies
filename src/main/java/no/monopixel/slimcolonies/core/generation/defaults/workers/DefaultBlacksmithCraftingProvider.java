@@ -5,16 +5,17 @@ import no.monopixel.slimcolonies.api.crafting.ItemStorage;
 import no.monopixel.slimcolonies.api.items.ModItems;
 import no.monopixel.slimcolonies.api.research.util.ResearchConstants;
 import no.monopixel.slimcolonies.core.generation.CustomRecipeProvider;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.data.PackOutput;
-import net.minecraft.data.recipes.FinishedRecipe;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.ItemLike;
-import net.minecraftforge.registries.ForgeRegistries;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 
 import static no.monopixel.slimcolonies.api.util.constant.BuildingConstants.MODULE_CRAFTING;
@@ -26,9 +27,9 @@ public class DefaultBlacksmithCraftingProvider extends CustomRecipeProvider
 {
     private static final String BLACKSMITH = ModJobs.BLACKSMITH_ID.getPath();
 
-    public DefaultBlacksmithCraftingProvider(@NotNull final PackOutput packOutput)
+    public DefaultBlacksmithCraftingProvider(@NotNull final PackOutput packOutput, final CompletableFuture<HolderLookup.Provider> lookupProvider)
     {
-        super(packOutput);
+        super(packOutput, lookupProvider);
     }
 
     @NotNull
@@ -39,8 +40,13 @@ public class DefaultBlacksmithCraftingProvider extends CustomRecipeProvider
     }
 
     @Override
-    protected void registerRecipes(@NotNull final Consumer<FinishedRecipe> consumer)
+    protected void registerRecipes(@NotNull final Consumer<CustomRecipeBuilder> consumer)
     {
+        plate(consumer, 4, 1, ModItems.plateArmorHelmet);
+        plate(consumer, 7, 3, ModItems.plateArmorChest);
+        plate(consumer, 6, 4, ModItems.plateArmorLegs);
+        plate(consumer, 3, 1, ModItems.plateArmorBoots);
+
         netherite(consumer, Items.DIAMOND_SWORD, Items.NETHERITE_SWORD);
         netherite(consumer, Items.DIAMOND_PICKAXE, Items.NETHERITE_PICKAXE);
         netherite(consumer, Items.DIAMOND_AXE, Items.NETHERITE_AXE);
@@ -51,15 +57,47 @@ public class DefaultBlacksmithCraftingProvider extends CustomRecipeProvider
         netherite(consumer, Items.DIAMOND_LEGGINGS, Items.NETHERITE_LEGGINGS);
         netherite(consumer, Items.DIAMOND_BOOTS, Items.NETHERITE_BOOTS);
 
-        // Trowel recipe removed - crafted via regular crafting table instead
+        recipe(BLACKSMITH, MODULE_CRAFTING,
+            BuiltInRegistries.ITEM.getKey(ModItems.assistantHammer_Iron).getPath())
+            .inputs(List.of(new ItemStorage(new ItemStack(Items.IRON_INGOT, 5)),
+                new ItemStorage(new ItemStack(Items.STICK))))
+            .result(new ItemStack(ModItems.assistantHammer_Iron))
+            .minResearchId(ResearchConstants.BUILDERS_ASSISTANT_HAMMER)
+            .showTooltip(true)
+            .build(consumer);
+
+        recipe(BLACKSMITH, MODULE_CRAFTING,
+            BuiltInRegistries.ITEM.getKey(ModItems.assistantHammer_Diamond).getPath())
+            .inputs(List.of(new ItemStorage(new ItemStack(Items.DIAMOND, 5)),
+                new ItemStorage(new ItemStack(Items.STICK))))
+            .result(new ItemStack(ModItems.assistantHammer_Diamond))
+            .minResearchId(ResearchConstants.BUILDERS_ASSISTANT_HAMMER)
+            .showTooltip(true)
+            .build(consumer);
     }
 
-    private void netherite(@NotNull final Consumer<FinishedRecipe> consumer,
+    private void plate(@NotNull final Consumer<CustomRecipeBuilder> consumer,
+                       final int ironCount, final int coalCount,
+                       @NotNull final ItemLike output)
+    {
+        recipe(BLACKSMITH, MODULE_CRAFTING,
+                        BuiltInRegistries.ITEM.getKey(output.asItem()).getPath())
+                .inputs(List.of(new ItemStorage(new ItemStack(Items.IRON_INGOT, ironCount)),
+                        new ItemStorage(new ItemStack(Items.LEATHER)),
+                        new ItemStorage(new ItemStack(Items.COAL, coalCount))))
+                .result(new ItemStack(output))
+                .minBuildingLevel(4)
+                .minResearchId(ResearchConstants.PLATE_ARMOR)
+                .showTooltip(true)
+                .build(consumer);
+    }
+
+    private void netherite(@NotNull final Consumer<CustomRecipeBuilder> consumer,
                            @NotNull final ItemLike input,
                            @NotNull final ItemLike output)
     {
-        CustomRecipeBuilder.create(BLACKSMITH, MODULE_CRAFTING,
-                        ForgeRegistries.ITEMS.getKey(output.asItem()).getPath())
+        recipe(BLACKSMITH, MODULE_CRAFTING,
+                        BuiltInRegistries.ITEM.getKey(output.asItem()).getPath())
                 .inputs(List.of(new ItemStorage(new ItemStack(input)),
                         new ItemStorage(new ItemStack(Items.NETHERITE_UPGRADE_SMITHING_TEMPLATE)),
                         new ItemStorage(new ItemStack(Items.NETHERITE_INGOT)),

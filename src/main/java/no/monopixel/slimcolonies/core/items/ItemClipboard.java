@@ -1,5 +1,13 @@
 package no.monopixel.slimcolonies.core.items;
 
+import no.monopixel.slimcolonies.api.colony.IColonyView;
+import no.monopixel.slimcolonies.api.items.component.ColonyId;
+import no.monopixel.slimcolonies.core.client.gui.WindowClipBoard;
+import no.monopixel.slimcolonies.core.tileentities.TileEntityColonyBuilding;
+import no.monopixel.slimcolonies.api.util.MessageUtils;
+import no.monopixel.slimcolonies.api.util.constant.TranslationConstants;
+
+import net.minecraft.core.component.DataComponents;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.InteractionHand;
@@ -8,24 +16,18 @@ import net.minecraft.world.InteractionResultHolder;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.component.CustomData;
 import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
-import no.monopixel.slimcolonies.api.colony.IColonyManager;
-import no.monopixel.slimcolonies.api.colony.IColonyView;
-import no.monopixel.slimcolonies.api.util.MessageUtils;
-import no.monopixel.slimcolonies.api.util.constant.TranslationConstants;
-import no.monopixel.slimcolonies.core.client.gui.WindowClipBoard;
-import no.monopixel.slimcolonies.core.tileentities.TileEntityColonyBuilding;
 import org.jetbrains.annotations.NotNull;
 
-import static no.monopixel.slimcolonies.api.util.constant.Constants.STACKSIZE;
-import static no.monopixel.slimcolonies.api.util.constant.TranslationConstants.CLIPBOARD_COLONY_SET;
+import static no.monopixel.slimcolonies.api.util.constant.TranslationConstants.COM_MINECOLONIES_CLIPBOARD_COLONY_SET;
 
 /**
  * Class describing the clipboard item.
  */
-public class ItemClipboard extends AbstractItemSlimColonies
+public class ItemClipboard extends AbstractItemMinecolonies
 {
     /**
      * Tag of the colony.
@@ -44,7 +46,7 @@ public class ItemClipboard extends AbstractItemSlimColonies
      */
     public ItemClipboard(final Item.Properties properties)
     {
-        super("clipboard", properties.stacksTo(STACKSIZE));
+        super("clipboard", properties.stacksTo(1));
     }
 
     @Override
@@ -53,20 +55,20 @@ public class ItemClipboard extends AbstractItemSlimColonies
     {
         final ItemStack clipboard = ctx.getPlayer().getItemInHand(ctx.getHand());
 
-        final CompoundTag compound = checkForCompound(clipboard);
         final BlockEntity entity = ctx.getLevel().getBlockEntity(ctx.getClickedPos());
 
         if (entity instanceof TileEntityColonyBuilding buildingEntity)
         {
-            compound.putInt(TAG_COLONY, buildingEntity.getColonyId());
+            buildingEntity.writeColonyToItemStack(clipboard);
+
             if (!ctx.getLevel().isClientSide)
             {
-                MessageUtils.format(CLIPBOARD_COLONY_SET, buildingEntity.getColony().getName()).sendTo(ctx.getPlayer());
+                MessageUtils.format(COM_MINECOLONIES_CLIPBOARD_COLONY_SET, buildingEntity.getColony().getName()).sendTo(ctx.getPlayer());
             }
         }
         else if (ctx.getLevel().isClientSide)
         {
-            openWindow(compound, ctx.getLevel(), ctx.getPlayer());
+            openWindow(clipboard, ctx.getLevel(), ctx.getPlayer());
         }
 
         return InteractionResult.SUCCESS;
@@ -83,63 +85,46 @@ public class ItemClipboard extends AbstractItemSlimColonies
     @Override
     @NotNull
     public InteractionResultHolder<ItemStack> use(
-        final Level worldIn,
-        final Player playerIn,
-        final InteractionHand hand)
+            final Level worldIn,
+            final Player playerIn,
+            final InteractionHand hand)
     {
         final ItemStack clipboard = playerIn.getItemInHand(hand);
 
-        if (!worldIn.isClientSide)
-        {
+        if (!worldIn.isClientSide) {
             return new InteractionResultHolder<>(InteractionResult.SUCCESS, clipboard);
         }
 
-        openWindow(checkForCompound(clipboard), worldIn, playerIn);
+        openWindow(clipboard, worldIn, playerIn);
 
         return new InteractionResultHolder<>(InteractionResult.SUCCESS, clipboard);
     }
 
     /**
-     * Check for the compound and return it. If not available create and return it.
-     *
-     * @param clipboard the clipboard to check for.
-     * @return the compound of the clipboard.
-     */
-    private static CompoundTag checkForCompound(final ItemStack clipboard)
-    {
-        if (!clipboard.hasTag())
-        {
-            clipboard.setTag(new CompoundTag());
-        }
-        return clipboard.getTag();
-    }
-
-    /**
      * Opens the clipboard window if there is a valid colony linked
-     *
-     * @param compound the item compound
-     * @param player   the player entity opening the window
+     * @param stack the item
+     * @param player the player entity opening the window
      */
-    private static void openWindow(CompoundTag compound, Level world, Player player)
-    {
-        if (compound.contains(TAG_COLONY))
+    private static void openWindow(ItemStack stack, Level world, Player player)
+    {        
+        final IColonyView colonyView = ColonyId.readColonyViewFromItemStack(stack);
+        if (colonyView != null)
         {
-            final IColonyView colonyView = IColonyManager.getInstance().getColonyView(compound.getInt(TAG_COLONY), world.dimension());
-            if (colonyView != null)
+            boolean hide = false;
+
+            final CustomData current = stack.getOrDefault(DataComponents.CUSTOM_DATA, CustomData.EMPTY);
+            final CompoundTag compound = current.copyTag();
+
+            if (compound.contains(TAG_HIDEUNIMPORTANT))
             {
-                boolean hide = false;
-
-                if (compound.contains(TAG_HIDEUNIMPORTANT))
-                {
-                    hide = compound.getBoolean(TAG_HIDEUNIMPORTANT);
-                }
-
-                new WindowClipBoard(colonyView, hide).open();
+                hide = compound.getBoolean(TAG_HIDEUNIMPORTANT);
             }
+
+            new WindowClipBoard(colonyView, hide).open();
         }
         else
         {
-            player.displayClientMessage(Component.translatable(TranslationConstants.CLIPBOARD_NEED_COLONY), true);
+            player.displayClientMessage(Component.translatableEscape(TranslationConstants.COM_MINECOLONIES_CLIPBOARD_NEED_COLONY), true);
         }
     }
 }

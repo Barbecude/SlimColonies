@@ -5,6 +5,7 @@ import no.monopixel.slimcolonies.api.colony.IColonyManager;
 import no.monopixel.slimcolonies.api.colony.buildings.IBuilding;
 import no.monopixel.slimcolonies.api.colony.requestsystem.requestable.IDeliverable;
 import no.monopixel.slimcolonies.api.crafting.ItemStorage;
+import no.monopixel.slimcolonies.api.util.IItemHandlerCapProvider;
 import no.monopixel.slimcolonies.api.util.ItemStackUtils;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.MenuProvider;
@@ -12,8 +13,8 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraftforge.items.IItemHandlerModifiable;
-import net.minecraftforge.items.ItemStackHandler;
+import net.neoforged.neoforge.items.IItemHandlerModifiable;
+import net.neoforged.neoforge.items.ItemStackHandler;
 import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nonnull;
@@ -21,7 +22,7 @@ import java.util.function.Predicate;
 
 import static no.monopixel.slimcolonies.api.util.constant.Constants.DEFAULT_SIZE;
 
-public abstract class AbstractTileEntityRack extends BlockEntity implements MenuProvider
+public abstract class AbstractTileEntityRack extends BlockEntity implements MenuProvider, IItemHandlerCapProvider
 {
     /**
      * whether this rack is in a warehouse or not. defaults to not set by the warehouse building upon being built
@@ -140,7 +141,7 @@ public abstract class AbstractTileEntityRack extends BlockEntity implements Menu
                     }
                     else
                     {
-                        final IBuilding building = colony.getBuildingManager().getBuilding(buildingPos);
+                        final IBuilding building = colony.getServerBuildingManager().getBuilding(buildingPos);
                         if (building != null)
                         {
                             building.overruleNextOpenRequestWithStack(stack);

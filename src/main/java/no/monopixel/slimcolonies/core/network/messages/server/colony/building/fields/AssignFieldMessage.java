@@ -1,15 +1,18 @@
 package no.monopixel.slimcolonies.core.network.messages.server.colony.building.fields;
 
+import com.ldtteam.common.network.PlayMessageType;
 import no.monopixel.slimcolonies.api.colony.IColony;
 import no.monopixel.slimcolonies.api.colony.buildings.IBuilding;
 import no.monopixel.slimcolonies.api.colony.buildings.views.IBuildingView;
 import no.monopixel.slimcolonies.api.colony.buildingextensions.IBuildingExtension;
+import no.monopixel.slimcolonies.api.util.constant.Constants;
 import no.monopixel.slimcolonies.core.colony.buildings.modules.BuildingExtensionsModule;
 import no.monopixel.slimcolonies.core.colony.buildingextensions.registry.BuildingExtensionDataManager;
 import no.monopixel.slimcolonies.core.network.messages.server.AbstractBuildingServerMessage;
 import io.netty.buffer.Unpooled;
-import net.minecraft.network.FriendlyByteBuf;
-import net.minecraftforge.network.NetworkEvent;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.server.level.ServerPlayer;
+import net.neoforged.neoforge.network.handling.IPayloadContext;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -17,28 +20,22 @@ import org.jetbrains.annotations.NotNull;
  */
 public class AssignFieldMessage extends AbstractBuildingServerMessage<IBuilding>
 {
+    public static final PlayMessageType<?> TYPE = PlayMessageType.forServer(Constants.MOD_ID, "assign_field", AssignFieldMessage::new);
+
     /**
      * The modules ID
      */
-    private int       moduleID = 0;
+    private final int       moduleID;
 
     /**
      * The field to (un)assign.
      */
-    private FriendlyByteBuf fieldData;
+    private final RegistryFriendlyByteBuf fieldData;
 
     /**
      * Whether to assign or un-assign this field.
      */
-    private boolean assign;
-
-    /**
-     * Empty standard constructor.
-     */
-    public AssignFieldMessage()
-    {
-        super();
-    }
+    private final boolean assign;
 
     /**
      * Creates the message to assign a field.
@@ -49,38 +46,37 @@ public class AssignFieldMessage extends AbstractBuildingServerMessage<IBuilding>
      */
     public AssignFieldMessage(final IBuildingView building, final IBuildingExtension field, final boolean assign, final int moduleID)
     {
-        super(building);
+        super(TYPE, building);
         this.assign = assign;
-        this.fieldData = BuildingExtensionDataManager.extensionToBuffer(field);
+        this.fieldData = BuildingExtensionDataManager.extensionToBuffer(field, building.getColony().getWorld().registryAccess());
         this.moduleID = moduleID;
     }
 
     @Override
-    public void toBytesOverride(@NotNull final FriendlyByteBuf buf)
+    protected void toBytes(@NotNull final RegistryFriendlyByteBuf buf)
     {
+        super.toBytes(buf);
         fieldData.resetReaderIndex();
         buf.writeBoolean(assign);
         buf.writeInt(moduleID);
-        buf.writeBytes(fieldData);
+        buf.writeByteArray(fieldData.array());
     }
 
-    @Override
-    public void fromBytesOverride(@NotNull final FriendlyByteBuf buf)
+    protected AssignFieldMessage(final RegistryFriendlyByteBuf buf, final PlayMessageType<?> type)
     {
+        super(buf, type);
         assign = buf.readBoolean();
         moduleID = buf.readInt();
-        fieldData = new FriendlyByteBuf(Unpooled.buffer(buf.readableBytes()));
-        buf.readBytes(fieldData, buf.readableBytes());
+        fieldData = new RegistryFriendlyByteBuf(Unpooled.wrappedBuffer(buf.readByteArray()), buf.registryAccess());
     }
 
     @Override
-    public void onExecute(
-      final NetworkEvent.Context ctxIn, final boolean isLogicalServer, final IColony colony, final IBuilding building)
+    protected void onExecute(final IPayloadContext ctxIn, final ServerPlayer player, final IColony colony, final IBuilding building)
     {
         final IBuildingExtension parsedField = BuildingExtensionDataManager.bufferToExtension(fieldData);
-        colony.getBuildingManager().getMatchingBuildingExtension(otherField -> otherField.equals(parsedField)).ifPresent(field -> {
+        colony.getServerBuildingManager().getMatchingBuildingExtension(otherField -> otherField.equals(parsedField)).ifPresent(field -> {
 
-            if (building.getModule(moduleID) instanceof BuildingExtensionsModule fieldsModule)
+            if (building.getModule(moduleID) instanceof final BuildingExtensionsModule fieldsModule)
             {
                 if (assign)
                 {
@@ -94,3 +90,4 @@ public class AssignFieldMessage extends AbstractBuildingServerMessage<IBuilding>
         });
     }
 }
+

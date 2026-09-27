@@ -1,14 +1,13 @@
 package no.monopixel.slimcolonies.core.network.messages.client;
 
-import no.monopixel.slimcolonies.api.network.IMessage;
+import com.ldtteam.common.network.AbstractClientPlayMessage;
+import com.ldtteam.common.network.PlayMessageType;
+import no.monopixel.slimcolonies.api.util.constant.Constants;
 import no.monopixel.slimcolonies.core.client.render.worldevent.PathfindingDebugRenderer;
 import no.monopixel.slimcolonies.core.entity.pathfinding.MNode;
-import net.minecraft.network.FriendlyByteBuf;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.api.distmarker.OnlyIn;
-import net.minecraftforge.fml.LogicalSide;
-import net.minecraftforge.network.NetworkEvent;
-import org.jetbrains.annotations.Nullable;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.world.entity.player.Player;
+import net.neoforged.neoforge.network.handling.IPayloadContext;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -16,8 +15,10 @@ import java.util.Set;
 /**
  * Message to sync some path over to the client.
  */
-public class SyncPathMessage implements IMessage
+public class SyncPathMessage extends AbstractClientPlayMessage
 {
+    public static final PlayMessageType<?> TYPE = PlayMessageType.forClient(Constants.MOD_ID, "sync_path", SyncPathMessage::new);
+
     /**
      * Set of visited nodes.
      */
@@ -37,14 +38,6 @@ public class SyncPathMessage implements IMessage
     public Set<MNode> debugNodesExtra = new HashSet<>();
 
     /**
-     * Default constructor.
-     */
-    public SyncPathMessage()
-    {
-        super();
-    }
-
-    /**
      * Create a new path message with the filled pathpoints.
      */
     public SyncPathMessage(
@@ -55,7 +48,7 @@ public class SyncPathMessage implements IMessage
       final Set<MNode> debugNodesOrgPath,
       final Set<MNode> debugNodesExtra)
     {
-        super();
+        super(TYPE);
         this.lastDebugNodesVisited = lastDebugNodesVisited;
         this.lastDebugNodesNotVisited = lastDebugNodesNotVisited;
         this.lastDebugNodesPath = lastDebugNodesPath;
@@ -65,7 +58,7 @@ public class SyncPathMessage implements IMessage
     }
 
     @Override
-    public void toBytes(final FriendlyByteBuf buf)
+    protected void toBytes(final RegistryFriendlyByteBuf buf)
     {
         buf.writeInt(lastDebugNodesVisited.size());
         for (final MNode node : lastDebugNodesVisited)
@@ -104,9 +97,9 @@ public class SyncPathMessage implements IMessage
         }
     }
 
-    @Override
-    public void fromBytes(final FriendlyByteBuf buf)
+    protected SyncPathMessage(final RegistryFriendlyByteBuf buf, final PlayMessageType<?> type)
     {
+        super(type);
         int size = buf.readInt();
         for (int i = 0; i < size; i++)
         {
@@ -144,16 +137,8 @@ public class SyncPathMessage implements IMessage
         }
     }
 
-    @Nullable
     @Override
-    public LogicalSide getExecutionSide()
-    {
-        return LogicalSide.CLIENT;
-    }
-
-    @OnlyIn(Dist.CLIENT)
-    @Override
-    public void onExecute(final NetworkEvent.Context ctxIn, final boolean isLogicalServer)
+    protected void onExecute(final IPayloadContext ctxIn, final Player player)
     {
         PathfindingDebugRenderer.lastDebugNodesVisited = lastDebugNodesVisited;
         PathfindingDebugRenderer.lastDebugNodesNotVisited = lastDebugNodesNotVisited;

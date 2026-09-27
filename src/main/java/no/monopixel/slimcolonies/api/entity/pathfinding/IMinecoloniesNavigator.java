@@ -1,15 +1,15 @@
 package no.monopixel.slimcolonies.api.entity.pathfinding;
 
-import net.minecraft.core.BlockPos;
-import net.minecraft.world.entity.Mob;
-import no.monopixel.slimcolonies.core.entity.pathfinding.navigation.SlimColoniesAdvancedPathNavigate;
+import no.monopixel.slimcolonies.core.entity.pathfinding.navigation.MinecoloniesAdvancedPathNavigate;
 import no.monopixel.slimcolonies.core.entity.pathfinding.pathjobs.AbstractPathJob;
 import no.monopixel.slimcolonies.core.entity.pathfinding.pathresults.PathResult;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.entity.Mob;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * Describes the Navigator used by minecolonies entities
+ * Describes the Navigator used by slimcolonies entities
  */
 public interface IMinecoloniesNavigator
 {
@@ -67,5 +67,5 @@ public interface IMinecoloniesNavigator
      *
      * @return
      */
-    IStuckHandler<SlimColoniesAdvancedPathNavigate> getStuckHandler();
+    IStuckHandler<MinecoloniesAdvancedPathNavigate> getStuckHandler();
 }

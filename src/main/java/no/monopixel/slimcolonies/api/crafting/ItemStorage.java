@@ -2,6 +2,9 @@ package no.monopixel.slimcolonies.api.crafting;
 
 import com.google.gson.JsonObject;
 import no.monopixel.slimcolonies.api.util.ItemStackUtils;
+import no.monopixel.slimcolonies.api.util.Utils;
+import no.monopixel.slimcolonies.core.util.GsonHelper;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import org.jetbrains.annotations.NotNull;
@@ -145,41 +148,24 @@ public class ItemStorage
 
     /**
      * Creates an instance of the storage from JSON
-     *
+     * 
      * @param jObject the JSON Object to parse
      */
-    public ItemStorage(@NotNull final JsonObject jObject)
+    public ItemStorage(@NotNull final HolderLookup.Provider provider, @NotNull JsonObject jObject)
     {
-        if (jObject.has(ITEM_PROP))
+        // storage amount can be larger than is valid for ItemStack.
+        this.amount = GsonHelper.getAsInt(jObject, COUNT_PROP, 1);
+        if (this.amount > 1)
         {
-            final ItemStack parsedStack = ItemStackUtils.idToItemStack(jObject.get(ITEM_PROP).getAsString());
-            if(jObject.has(COUNT_PROP))
-            {
-                parsedStack.setCount(jObject.get(COUNT_PROP).getAsInt());
-                this.amount = jObject.get(COUNT_PROP).getAsInt();
-            }
-            else
-            {
-                this.amount = parsedStack.getCount();
-            }
-            this.stack = parsedStack;
-            if(jObject.has(MATCHTYPE_PROP))
-            {
-                String matchType = jObject.get(MATCHTYPE_PROP).getAsString();
-                if(matchType.equals(MATCH_NBTIGNORE))
-                {
-                    this.shouldIgnoreNBTValue = true;
-                }
-                else // includes "exact"
-                {
-                    this.shouldIgnoreNBTValue = false;
-                }
-            }
-            else
-            {
-                this.shouldIgnoreNBTValue = false;
-            }
-            this.shouldIgnoreDamageValue= true;
+            jObject = jObject.deepCopy();
+            jObject.remove(COUNT_PROP);
+        }
+
+        if (jObject.has("id"))
+        {
+            this.stack = Utils.deserializeCodecMessFromJson(ItemStack.OPTIONAL_CODEC, provider, jObject);
+            this.shouldIgnoreNBTValue = GsonHelper.getAsString(jObject, MATCHTYPE_PROP, "exact").equals(MATCH_NBTIGNORE);
+            this.shouldIgnoreDamageValue = true;
         }
         else
         {
@@ -281,12 +267,11 @@ public class ItemStorage
         {
             return true;
         }
-        if (!(o instanceof ItemStorage))
+        if (!(o instanceof final ItemStorage that))
         {
             return false;
         }
 
-        final ItemStorage that = (ItemStorage) o;
         return ItemStackUtils.compareItemStacksIgnoreStackSize(that.getItemStack(), this.getItemStack(), !(this.shouldIgnoreDamageValue || that.shouldIgnoreDamageValue), !(this.shouldIgnoreNBTValue || that.shouldIgnoreNBTValue));
     }
 
@@ -297,7 +282,7 @@ public class ItemStorage
      */
     public boolean matchDefinitionEquals(ItemStorage that)
     {
-        return this.shouldIgnoreDamageValue == that.shouldIgnoreDamageValue
+        return this.shouldIgnoreDamageValue == that.shouldIgnoreDamageValue 
         && this.shouldIgnoreNBTValue == that.shouldIgnoreNBTValue;
     }
 
@@ -334,7 +319,7 @@ public class ItemStorage
 
     /**
      * Is this an empty ItemStorage
-     *
+     * 
      * @return true if empty
      */
     public boolean isEmpty()
@@ -348,9 +333,7 @@ public class ItemStorage
      */
     public ItemStorage copy()
     {
-        ItemStorage newInstance = new ItemStorage(stack.copy(), shouldIgnoreDamageValue, shouldIgnoreNBTValue);
-        newInstance.setAmount(amount);
-        return newInstance;
+        return new ItemStorage(stack.copy(), amount, shouldIgnoreDamageValue, shouldIgnoreNBTValue);
     }
 
     /**

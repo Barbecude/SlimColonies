@@ -1,22 +1,21 @@
 package no.monopixel.slimcolonies.core.network.messages.server.colony.building;
 
-import net.minecraft.ChatFormatting;
-import net.minecraft.network.FriendlyByteBuf;
-import net.minecraft.network.chat.Component;
-import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.item.ItemStack;
-import net.minecraftforge.items.wrapper.InvWrapper;
-import net.minecraftforge.network.NetworkEvent;
+import com.ldtteam.common.network.PlayMessageType;
 import no.monopixel.slimcolonies.api.colony.IColony;
 import no.monopixel.slimcolonies.api.colony.buildings.IBuilding;
 import no.monopixel.slimcolonies.api.colony.buildings.views.IBuildingView;
 import no.monopixel.slimcolonies.api.crafting.ItemStorage;
-import no.monopixel.slimcolonies.api.util.InventoryUtils;
-import no.monopixel.slimcolonies.api.util.ItemStackUtils;
-import no.monopixel.slimcolonies.api.util.Log;
-import no.monopixel.slimcolonies.api.util.MessageUtils;
-import no.monopixel.slimcolonies.core.SlimColonies;
+import no.monopixel.slimcolonies.api.util.*;
+import no.monopixel.slimcolonies.api.util.constant.Constants;
+import no.monopixel.slimcolonies.core.MineColonies;
 import no.monopixel.slimcolonies.core.network.messages.server.AbstractBuildingServerMessage;
+import net.minecraft.ChatFormatting;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.chat.Component;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.item.ItemStack;
+import net.neoforged.neoforge.items.wrapper.InvWrapper;
+import net.neoforged.neoforge.network.handling.IPayloadContext;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Map;
@@ -28,28 +27,22 @@ import java.util.Map;
  */
 public class TransferItemsRequestMessage extends AbstractBuildingServerMessage<IBuilding>
 {
-    /**
-     * How many item need to be transfer from the player inventory to the building chest.
-     */
-    private ItemStack itemStack;
+    public static final PlayMessageType<?> TYPE = PlayMessageType.forServer(Constants.MOD_ID, "transfer_items_request", TransferItemsRequestMessage::new);
 
     /**
      * How many item need to be transfer from the player inventory to the building chest.
      */
-    private int quantity;
+    private final ItemStack itemStack;
+
+    /**
+     * How many item need to be transfer from the player inventory to the building chest.
+     */
+    private final int quantity;
 
     /**
      * Attempt a resolve or not.
      */
-    private boolean attemptResolve;
-
-    /**
-     * Empty constructor used when registering the
-     */
-    public TransferItemsRequestMessage()
-    {
-        super();
-    }
+    private final boolean attemptResolve;
 
     /**
      * Creates a Transfer Items request
@@ -61,40 +54,35 @@ public class TransferItemsRequestMessage extends AbstractBuildingServerMessage<I
      */
     public TransferItemsRequestMessage(@NotNull final IBuildingView building, final ItemStack itemStack, final int quantity, final boolean attemptResolve)
     {
-        super(building);
+        super(TYPE, building);
         this.itemStack = itemStack;
         this.quantity = quantity;
         this.attemptResolve = attemptResolve;
     }
 
-    @Override
-    public void fromBytesOverride(@NotNull final FriendlyByteBuf buf)
+    protected TransferItemsRequestMessage(final RegistryFriendlyByteBuf buf, final PlayMessageType<?> type)
     {
-        itemStack = buf.readItem();
+        super(buf, type);
+        itemStack = Utils.deserializeCodecMess(buf);
         quantity = buf.readInt();
         attemptResolve = buf.readBoolean();
     }
 
     @Override
-    public void toBytesOverride(@NotNull final FriendlyByteBuf buf)
+    protected void toBytes(@NotNull final RegistryFriendlyByteBuf buf)
     {
-        buf.writeItem(itemStack);
+        super.toBytes(buf);
+        Utils.serializeCodecMess(buf, itemStack);
         buf.writeInt(quantity);
         buf.writeBoolean(attemptResolve);
     }
 
     @Override
-    protected void onExecute(final NetworkEvent.Context ctxIn, final boolean isLogicalServer, final IColony colony, final IBuilding building)
+    protected void onExecute(final IPayloadContext ctxIn, final ServerPlayer player, final IColony colony, final IBuilding building)
     {
         if (quantity <= 0)
         {
             Log.getLogger().warn("TransferItemsRequestMessage quantity below 0");
-            return;
-        }
-
-        final Player player = ctxIn.getSender();
-        if (player == null)
-        {
             return;
         }
 
@@ -108,21 +96,21 @@ public class TransferItemsRequestMessage extends AbstractBuildingServerMessage<I
         }
         else
         {
-            if (SlimColonies.getConfig().getServer().debugInventories.get())
+            if (MineColonies.getConfig().getServer().debugInventories.get())
             {
                 previousContent = InventoryUtils.getAllItemsForProviders(building.getTileEntity(), new InvWrapper(player.getInventory()));
             }
 
             amountToTake = Math.min(quantity, InventoryUtils.getItemCountInItemHandler(new InvWrapper(player.getInventory()),
-                stack -> ItemStackUtils.compareItemStacksIgnoreStackSize(stack, itemStack, true, true)));
+              stack -> ItemStackUtils.compareItemStacksIgnoreStackSize(stack, itemStack, true, true)));
         }
 
         ItemStack remainingItemStack = ItemStack.EMPTY;
         int tempAmount = amountToTake;
-        for (int i = 0; i < Math.max(1, Math.ceil((double) amountToTake / itemStack.getMaxStackSize())); i++)
+        for (int i = 0; i < Math.max(1, Math.ceil((double) amountToTake/itemStack.getMaxStackSize())); i++)
         {
             final ItemStack itemStackToTake = itemStack.copy();
-            int insertAmount = Math.min(itemStack.getMaxStackSize(), tempAmount);
+            final int insertAmount = Math.min(itemStack.getMaxStackSize(), tempAmount);
             itemStackToTake.setCount(insertAmount);
             tempAmount -= insertAmount;
 
@@ -136,7 +124,7 @@ public class TransferItemsRequestMessage extends AbstractBuildingServerMessage<I
 
         if (!ItemStackUtils.isEmpty(remainingItemStack))
         {
-            MessageUtils.format(Component.translatable("entity.builder.inventoryfull", remainingItemStack.getDisplayName()).withStyle(ChatFormatting.RED)).sendTo(player);
+            MessageUtils.format(Component.translatableEscape("entity.builder.inventoryfull", remainingItemStack.getDisplayName()).withStyle(ChatFormatting.RED)).sendTo(player);
         }
 
         if (ItemStackUtils.isEmpty(remainingItemStack) || ItemStackUtils.getSize(remainingItemStack) != amountToTake)
@@ -153,8 +141,8 @@ public class TransferItemsRequestMessage extends AbstractBuildingServerMessage<I
                 while (amountToRemoveFromPlayer > 0)
                 {
                     final int slot =
-                        InventoryUtils.findFirstSlotInItemHandlerWith(new InvWrapper(player.getInventory()),
-                            stack -> ItemStackUtils.compareItemStacksIgnoreStackSize(stack, itemStack, true, true));
+                      InventoryUtils.findFirstSlotInItemHandlerWith(new InvWrapper(player.getInventory()),
+                        stack -> ItemStackUtils.compareItemStacksIgnoreStackSize(stack, itemStack, true, true));
                     final ItemStack itemsTaken = player.getInventory().removeItem(slot, amountToRemoveFromPlayer);
                     amountToRemoveFromPlayer -= ItemStackUtils.getSize(itemsTaken);
                 }
@@ -166,7 +154,7 @@ public class TransferItemsRequestMessage extends AbstractBuildingServerMessage<I
             }
         }
 
-        if (!isCreative && previousContent != null && SlimColonies.getConfig().getServer().debugInventories.get())
+        if (!isCreative && previousContent != null && MineColonies.getConfig().getServer().debugInventories.get())
         {
             InventoryUtils.doStorageSetsMatch(previousContent, InventoryUtils.getAllItemsForProviders(building.getTileEntity(), new InvWrapper(player.getInventory())), true);
         }

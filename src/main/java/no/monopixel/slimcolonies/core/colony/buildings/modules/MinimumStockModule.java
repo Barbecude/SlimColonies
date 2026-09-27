@@ -1,11 +1,6 @@
 package no.monopixel.slimcolonies.core.colony.buildings.modules;
 
 import com.google.common.reflect.TypeToken;
-import net.minecraft.nbt.CompoundTag;
-import net.minecraft.nbt.ListTag;
-import net.minecraft.nbt.Tag;
-import net.minecraft.network.FriendlyByteBuf;
-import net.minecraft.world.item.ItemStack;
 import no.monopixel.slimcolonies.api.colony.IColony;
 import no.monopixel.slimcolonies.api.colony.buildings.modules.*;
 import no.monopixel.slimcolonies.api.colony.requestsystem.request.IRequest;
@@ -16,16 +11,26 @@ import no.monopixel.slimcolonies.api.colony.requestsystem.token.IToken;
 import no.monopixel.slimcolonies.api.crafting.ItemStorage;
 import no.monopixel.slimcolonies.api.util.InventoryUtils;
 import no.monopixel.slimcolonies.api.util.ItemStackUtils;
+import no.monopixel.slimcolonies.api.util.Utils;
 import no.monopixel.slimcolonies.api.util.WorldUtil;
+import no.monopixel.slimcolonies.api.util.constant.Constants;
+import no.monopixel.slimcolonies.api.util.constant.NbtTagConstants;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.nbt.Tag;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.ListTag;
+
 import org.apache.logging.log4j.util.TriConsumer;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 import java.util.function.Predicate;
 
+import static no.monopixel.slimcolonies.api.research.util.ResearchConstants.MINIMUM_STOCK;
+import static no.monopixel.slimcolonies.api.research.util.ResearchConstants.MIN_ORDER;
 import static no.monopixel.slimcolonies.api.util.constant.NbtTagConstants.TAG_QUANTITY;
 
 /**
@@ -34,14 +39,14 @@ import static no.monopixel.slimcolonies.api.util.constant.NbtTagConstants.TAG_QU
 public class MinimumStockModule extends AbstractBuildingModule implements IMinimumStockModule, IPersistentModule, ITickingModule, IAltersRequiredItems
 {
     /**
-     * Minimum stock it can hold per level.
-     */
-    private static final int STOCK_PER_LEVEL = 10;
-
-    /**
      * The minimum stock tag.
      */
-    private static final String TAG_MINIMUM_STOCK = "minstock";
+    public static final String TAG_MINIMUM_STOCK = "minstock";
+
+    /**
+     * Minimum stock it can hold per level.
+     */
+    private static final int STOCK_PER_LEVEL = 5;
 
     /**
      * The minimum stock.
@@ -55,7 +60,9 @@ public class MinimumStockModule extends AbstractBuildingModule implements IMinim
      */
     private int minimumStockSize()
     {
-        return building.getBuildingLevel() * STOCK_PER_LEVEL;
+        final double increase = 1 + building.getColony().getResearchManager().getResearchEffects().getEffectStrength(MINIMUM_STOCK);
+
+        return (int) (building.getBuildingLevel() * STOCK_PER_LEVEL * increase);
     }
 
     @Override
@@ -70,9 +77,8 @@ public class MinimumStockModule extends AbstractBuildingModule implements IMinim
 
     /**
      * Get the request from the list that matches this stack.
-     *
      * @param stack the stack to search for in the requests.
-     * @param list  the list of requests.
+     * @param list the list of requests.
      * @return the token of the matching request or null.
      */
     private IToken<?> getMatchingRequest(final ItemStack stack, final Collection<IToken<?>> list)
@@ -123,7 +129,7 @@ public class MinimumStockModule extends AbstractBuildingModule implements IMinim
                 final int count = InventoryUtils.hasBuildingEnoughElseCount(this.building, new ItemStorage(itemStack, true), target);
                 final int delta = target - count;
                 final IToken<?> request = getMatchingRequest(itemStack, list);
-                if (delta > target / 4)
+                if (delta > (building.getColony().getResearchManager().getResearchEffects().getEffectStrength(MIN_ORDER) > 0 ? target / 4 : 0))
                 {
                     if (request == null)
                     {
@@ -150,37 +156,35 @@ public class MinimumStockModule extends AbstractBuildingModule implements IMinim
     @Override
     public void alterItemsToBeKept(final TriConsumer<Predicate<ItemStack>, Integer, Boolean> consumer)
     {
-        if (!minimumStock.isEmpty())
+        if(!minimumStock.isEmpty())
         {
-            for (ItemStorage item : minimumStock.keySet())
+            for(ItemStorage item:minimumStock.keySet())
             {
-                consumer.accept(stack -> ItemStackUtils.compareItemStacksIgnoreStackSize(stack, item.getItemStack(), false, true),
-                    minimumStock.get(item).intValue() * item.getItemStack().getMaxStackSize(),
-                    false);
+                consumer.accept(stack -> ItemStackUtils.compareItemStacksIgnoreStackSize(stack, item.getItemStack(), false, true), minimumStock.get(item).intValue() * item.getItemStack().getMaxStackSize(), false);
             }
         }
     }
 
     @Override
-    public void deserializeNBT(final CompoundTag compound)
+    public void deserializeNBT(@NotNull final HolderLookup.Provider provider, final CompoundTag compound)
     {
         minimumStock.clear();
         final ListTag minimumStockTagList = compound.getList(TAG_MINIMUM_STOCK, Tag.TAG_COMPOUND);
         for (int i = 0; i < minimumStockTagList.size(); i++)
         {
             final CompoundTag compoundNBT = minimumStockTagList.getCompound(i);
-            minimumStock.put(new ItemStorage(ItemStack.of(compoundNBT)), compoundNBT.getInt(TAG_QUANTITY));
+            minimumStock.put(new ItemStorage(ItemStack.parseOptional(provider, compoundNBT.getCompound(NbtTagConstants.STACK))), compoundNBT.getInt(TAG_QUANTITY));
         }
     }
 
     @Override
-    public void serializeNBT(final CompoundTag compound)
+    public void serializeNBT(@NotNull final HolderLookup.Provider provider, CompoundTag compound)
     {
         @NotNull final ListTag minimumStockTagList = new ListTag();
         for (@NotNull final Map.Entry<ItemStorage, Integer> entry : minimumStock.entrySet())
         {
             final CompoundTag compoundNBT = new CompoundTag();
-            entry.getKey().getItemStack().save(compoundNBT);
+            compoundNBT.put(NbtTagConstants.STACK, entry.getKey().getItemStack().saveOptional(provider));
             compoundNBT.putInt(TAG_QUANTITY, entry.getValue());
             minimumStockTagList.add(compoundNBT);
         }
@@ -188,12 +192,12 @@ public class MinimumStockModule extends AbstractBuildingModule implements IMinim
     }
 
     @Override
-    public void serializeToView(@NotNull final FriendlyByteBuf buf)
+    public void serializeToView(@NotNull final RegistryFriendlyByteBuf buf)
     {
         buf.writeInt(minimumStock.size());
         for (final Map.Entry<ItemStorage, Integer> entry : minimumStock.entrySet())
         {
-            buf.writeItem(entry.getKey().getItemStack());
+            Utils.serializeCodecMess(buf, entry.getKey().getItemStack());
             buf.writeInt(entry.getValue());
         }
         buf.writeBoolean(minimumStock.size() >= minimumStockSize());

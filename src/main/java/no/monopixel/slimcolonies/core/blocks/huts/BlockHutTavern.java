@@ -1,14 +1,25 @@
 package no.monopixel.slimcolonies.core.blocks.huts;
 
 import no.monopixel.slimcolonies.api.blocks.AbstractBlockHut;
+import no.monopixel.slimcolonies.api.colony.IColony;
+import no.monopixel.slimcolonies.api.colony.IColonyManager;
+import no.monopixel.slimcolonies.api.colony.buildings.IBuilding;
 import no.monopixel.slimcolonies.api.colony.buildings.ModBuildings;
 import no.monopixel.slimcolonies.api.colony.buildings.registry.BuildingEntry;
+import no.monopixel.slimcolonies.api.util.MessageUtils;
+import no.monopixel.slimcolonies.core.colony.buildings.modules.BuildingModules;
+
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.entity.player.Player;
+
 import org.jetbrains.annotations.NotNull;
+
+import static no.monopixel.slimcolonies.api.util.constant.TranslationConstants.WARNING_DUPLICATE_TAVERN;
 
 /**
  * HutBlock for the Tavern
  */
-public class BlockHutTavern extends AbstractBlockHut<BlockHutTavern>
+public class BlockHutTavern extends AbstractBlockHut<no.monopixel.slimcolonies.core.blocks.huts.BlockHutTavern>
 {
     /**
      * Block name
@@ -26,5 +37,29 @@ public class BlockHutTavern extends AbstractBlockHut<BlockHutTavern>
     public BuildingEntry getBuildingEntry()
     {
         return ModBuildings.tavern.get();
+    }
+
+    /**
+     * Check if the block can be placed at the given position by the player.
+     *
+     * @param pos the position to check.
+     * @param player the player trying to place the block.
+     * @return true if the block can be placed.
+     */
+    @Override
+    public boolean canPlaceAt(final BlockPos pos, final Player player)
+    {
+        IColony colony = IColonyManager.getInstance().getIColony(player.level(), pos);
+        
+        for (final IBuilding building : colony.getServerBuildingManager().getBuildings().values())
+        {
+            if (colony.getWorld() != null && !colony.getWorld().isClientSide && building.hasModule(BuildingModules.TAVERN_VISITOR))
+            {
+                MessageUtils.format(WARNING_DUPLICATE_TAVERN, building.getPosition().toShortString()).sendTo(player);
+                return false;
+            }
+        }
+
+        return true;
     }
 }

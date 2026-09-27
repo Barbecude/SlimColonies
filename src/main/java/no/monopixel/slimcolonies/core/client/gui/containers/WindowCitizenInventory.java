@@ -29,7 +29,7 @@ public class WindowCitizenInventory extends AbstractContainerScreen<ContainerCit
     /**
      * Texture res loc.
      */
-    private static final ResourceLocation TEXT = ResourceLocation.fromNamespaceAndPath(Constants.MOD_ID, "textures/gui/citizen_container.png");
+    private static final ResourceLocation TEXT = new ResourceLocation(Constants.MOD_ID, "textures/gui/citizen_container.png");
 
     /**
      * Offset inside the texture to use.
@@ -90,7 +90,6 @@ public class WindowCitizenInventory extends AbstractContainerScreen<ContainerCit
     @Override
     public void render(@NotNull final GuiGraphics stack, int x, int y, float z)
     {
-        this.renderBackground(stack);
         super.render(stack, x, y, z);
         this.renderTooltip(stack, x, y);
     }
@@ -170,7 +169,7 @@ public class WindowCitizenInventory extends AbstractContainerScreen<ContainerCit
     public static void renderEntityInInventory(GuiGraphics stack, int x, int y, int scale, Quaternionf quaternionf, @Nullable Quaternionf quaternionf1, LivingEntity entity) {
         stack.pose().pushPose();
         stack.pose().translate(x, y, 50.0D);
-        stack.pose().mulPoseMatrix((new Matrix4f()).scaling((float)scale, (float)scale, (float)(-scale)));
+        stack.pose().mulPose((new Matrix4f()).scaling((float)scale, (float)scale, (float)(-scale)));
         stack.pose().mulPose(quaternionf);
         Lighting.setupForEntityInInventory();
         EntityRenderDispatcher entityrenderdispatcher = Minecraft.getInstance().getEntityRenderDispatcher();

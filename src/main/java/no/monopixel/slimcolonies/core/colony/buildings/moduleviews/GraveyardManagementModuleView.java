@@ -3,14 +3,15 @@ package no.monopixel.slimcolonies.core.colony.buildings.moduleviews;
 import com.ldtteam.blockui.views.BOWindow;
 import no.monopixel.slimcolonies.api.colony.buildings.modules.AbstractBuildingModuleView;
 import no.monopixel.slimcolonies.api.util.constant.Constants;
+import no.monopixel.slimcolonies.core.client.gui.modules.building.GraveyardManagementWindow;
 import no.monopixel.slimcolonies.core.tileentities.TileEntityGrave;
-import no.monopixel.slimcolonies.core.client.gui.modules.GraveyardManagementWindow;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.core.BlockPos;
+import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.block.entity.BlockEntity;
-import net.minecraft.core.BlockPos;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.api.distmarker.OnlyIn;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.api.distmarker.OnlyIn;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
@@ -32,7 +33,7 @@ public class GraveyardManagementModuleView extends AbstractBuildingModuleView
     private List<String> restingCitizen = new ArrayList<>();
 
     @Override
-    public void deserialize(@NotNull final FriendlyByteBuf buf)
+    public void deserialize(@NotNull final RegistryFriendlyByteBuf buf)
     {
         graves = new ArrayList<>();
         final int size = buf.readInt();
@@ -54,19 +55,19 @@ public class GraveyardManagementModuleView extends AbstractBuildingModuleView
     @Override
     public BOWindow getWindow()
     {
-        return new GraveyardManagementWindow(buildingView, this);
+        return new GraveyardManagementWindow(this);
     }
 
     @Override
     public ResourceLocation getIconResourceLocation()
     {
-        return ResourceLocation.fromNamespaceAndPath(Constants.MOD_ID, "textures/gui/modules/grave.png");
+        return new ResourceLocation(Constants.MOD_ID, "textures/gui/modules/grave.png");
     }
 
     @Override
-    public String getDesc()
+    public Component getDesc()
     {
-        return "no.monopixel.slimcolonies.gui.workerhuts.enchanter.workers";
+        return Component.translatable("no.monopixel.slimcolonies.gui.workerhuts.enchanter.workers");
     }
 
     /**

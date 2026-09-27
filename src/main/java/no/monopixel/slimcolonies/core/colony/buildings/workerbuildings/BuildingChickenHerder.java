@@ -10,6 +10,7 @@ import no.monopixel.slimcolonies.core.colony.buildings.modules.AnimalHerdingModu
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.animal.Animal;
 import net.minecraft.world.entity.animal.Chicken;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import org.jetbrains.annotations.NotNull;
 

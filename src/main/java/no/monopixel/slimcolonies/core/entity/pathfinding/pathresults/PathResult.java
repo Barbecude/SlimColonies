@@ -1,7 +1,6 @@
 package no.monopixel.slimcolonies.core.entity.pathfinding.pathresults;
 
 import no.monopixel.slimcolonies.api.util.Log;
-import no.monopixel.slimcolonies.core.Network;
 import no.monopixel.slimcolonies.core.debug.messages.DebugOutputMessage;
 import no.monopixel.slimcolonies.core.entity.pathfinding.PathFindingStatus;
 import no.monopixel.slimcolonies.core.entity.pathfinding.PathfindingUtils;
@@ -293,12 +292,12 @@ public class PathResult<T extends AbstractPathJob>
                     .append(Component.literal(job.toString()))
                     .append(Component.literal(" reaches: " + path.canReach())
                         .withStyle(path.canReach() ? ChatFormatting.GREEN : ChatFormatting.RED)
-                        .append(Component.literal(" path target:" + path.getTarget()).withStyle(ChatFormatting.BLUE)));
+                        .append(Component.literal(" path target:" + path.getTarget().toShortString()).withStyle(ChatFormatting.BLUE)));
                 Log.getLogger().info(debugInfo.getString());
 
                 for (final ServerPlayer player : watchers)
                 {
-                    Network.getNetwork().sendToPlayer(new DebugOutputMessage(debugInfo, false), player);
+                    new DebugOutputMessage(debugInfo, false).sendToPlayer(player);
                 }
             }
         }

@@ -1,8 +1,9 @@
 package no.monopixel.slimcolonies.core.colony.eventhooks.citizenEvents;
 
 import no.monopixel.slimcolonies.api.util.constant.Constants;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.core.BlockPos;
 import org.jetbrains.annotations.NotNull;
@@ -16,7 +17,7 @@ public class CitizenGrownUpEvent extends AbstractCitizenEvent
     /**
      * This events id, registry entries use res locations as ids.
      */
-    public static final ResourceLocation CITIZEN_GROWN_UP_EVENT_ID = ResourceLocation.fromNamespaceAndPath(Constants.MOD_ID, "citizen_grown_up");
+    public static final ResourceLocation CITIZEN_GROWN_UP_EVENT_ID = new ResourceLocation(Constants.MOD_ID, "citizen_grown_up");
 
     /**
      * Creates a new citizen grown up event.
@@ -28,13 +29,13 @@ public class CitizenGrownUpEvent extends AbstractCitizenEvent
 
     /**
      * Creates a new citizen grown up event.
-     *
+     * 
      * @param eventPos    the position of the hut block of the building.
      * @param citizenName the name of the building.
      */
-    public CitizenGrownUpEvent(final BlockPos eventPos, final String citizenName)
+    public CitizenGrownUpEvent(BlockPos eventPos, String citizenName)
     {
-        super(true, eventPos, citizenName);
+        super(eventPos, citizenName);
     }
 
     @Override
@@ -55,10 +56,10 @@ public class CitizenGrownUpEvent extends AbstractCitizenEvent
      * @param compound the NBT compound
      * @return the colony to load.
      */
-    public static CitizenGrownUpEvent loadFromNBT(@NotNull final CompoundTag compound)
+    public static CitizenGrownUpEvent loadFromNBT(@NotNull final HolderLookup.Provider provider, @NotNull final CompoundTag compound)
     {
         final CitizenGrownUpEvent growUpEvent = new CitizenGrownUpEvent();
-        growUpEvent.deserializeNBT(compound);
+        growUpEvent.deserializeNBT(provider, compound);
         return growUpEvent;
     }
 
@@ -68,16 +69,10 @@ public class CitizenGrownUpEvent extends AbstractCitizenEvent
      * @param buf the packet buffer.
      * @return the colony to load.
      */
-    public static CitizenGrownUpEvent loadFromFriendlyByteBuf(@NotNull final FriendlyByteBuf buf)
+    public static CitizenGrownUpEvent loadFromFriendlyByteBuf(@NotNull final RegistryFriendlyByteBuf buf)
     {
         final CitizenGrownUpEvent growUpEvent = new CitizenGrownUpEvent();
         growUpEvent.deserialize(buf);
         return growUpEvent;
-    }
-
-    @Override
-    public String getSummaryTranslationKey()
-    {
-        return "no.monopixel.slimcolonies.core.event.summary.citizen.grownup";
     }
 }

@@ -4,14 +4,14 @@ import no.monopixel.slimcolonies.api.inventory.ModContainers;
 import no.monopixel.slimcolonies.api.tileentities.AbstractTileEntityGrave;
 import no.monopixel.slimcolonies.api.util.ItemStackUtils;
 import net.minecraft.core.BlockPos;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
-import net.minecraftforge.items.IItemHandler;
-import net.minecraftforge.items.SlotItemHandler;
+import net.neoforged.neoforge.items.IItemHandler;
+import net.neoforged.neoforge.items.SlotItemHandler;
 import org.jetbrains.annotations.NotNull;
 
 import static no.monopixel.slimcolonies.api.util.constant.InventoryConstants.*;
@@ -44,7 +44,7 @@ public class ContainerGrave extends AbstractContainerMenu
      * @param packetBuffer network buffer
      * @return new instance
      */
-    public static ContainerGrave fromFriendlyByteBuf(final int windowId, final Inventory inv, final FriendlyByteBuf packetBuffer)
+    public static ContainerGrave fromFriendlyByteBuf(final int windowId, final Inventory inv, final RegistryFriendlyByteBuf packetBuffer)
     {
         return new ContainerGrave(windowId, inv, packetBuffer);
     }
@@ -56,7 +56,7 @@ public class ContainerGrave extends AbstractContainerMenu
      * @param inv      the inventory.
      * @param extra    some extra data.
      */
-    public ContainerGrave(final int windowId, final Inventory inv, final FriendlyByteBuf extra)
+    public ContainerGrave(final int windowId, final Inventory inv, final RegistryFriendlyByteBuf extra)
     {
         super(ModContainers.graveInv.get(), windowId);
         final BlockPos grave = extra.readBlockPos();

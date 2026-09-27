@@ -1,6 +1,7 @@
 package no.monopixel.slimcolonies.api.util;
 
-import com.ldtteam.structurize.api.util.Log;
+import com.ldtteam.structurize.api.Log;
+import com.ldtteam.structurize.api.RotationMirror;
 import com.ldtteam.structurize.blockentities.interfaces.IBlueprintDataProviderBE;
 import com.ldtteam.structurize.blueprints.v1.Blueprint;
 import com.ldtteam.structurize.management.Manager;
@@ -9,7 +10,12 @@ import com.ldtteam.structurize.placement.StructurePlacer;
 import com.ldtteam.structurize.placement.structure.CreativeStructureHandler;
 import com.ldtteam.structurize.placement.structure.IStructureHandler;
 import com.ldtteam.structurize.storage.StructurePacks;
-import com.ldtteam.structurize.util.PlacementSettings;
+import no.monopixel.slimcolonies.api.blocks.ModBlocks;
+import no.monopixel.slimcolonies.api.colony.IColony;
+import no.monopixel.slimcolonies.api.colony.IColonyManager;
+import no.monopixel.slimcolonies.api.colony.buildings.IBuilding;
+import no.monopixel.slimcolonies.api.tileentities.AbstractTileEntityColonyBuilding;
+import no.monopixel.slimcolonies.core.entity.ai.workers.util.ConstructionTapeHelper;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.level.ServerLevel;
@@ -19,16 +25,8 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
-import net.minecraft.world.level.block.Mirror;
-import net.minecraft.world.level.block.Rotation;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
-import no.monopixel.slimcolonies.api.blocks.ModBlocks;
-import no.monopixel.slimcolonies.api.colony.IColony;
-import no.monopixel.slimcolonies.api.colony.IColonyManager;
-import no.monopixel.slimcolonies.api.colony.buildings.IBuilding;
-import no.monopixel.slimcolonies.api.tileentities.AbstractTileEntityColonyBuilding;
-import no.monopixel.slimcolonies.core.entity.ai.workers.util.ConstructionTapeHelper;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -40,9 +38,8 @@ import static no.monopixel.slimcolonies.api.util.constant.NbtTagConstants.TAG_NA
 import static no.monopixel.slimcolonies.api.util.constant.NbtTagConstants.TAG_PACK;
 
 /**
- * SlimColonies specific creative structure handler. Main difference related to registering blocks to colonies.
+ * Minecolonies specific creative structure handler. Main difference related to registering blocks to colonies.
  */
-@SuppressWarnings("removal")
 public final class CreativeBuildingStructureHandler extends CreativeStructureHandler
 {
     /**
@@ -56,12 +53,12 @@ public final class CreativeBuildingStructureHandler extends CreativeStructureHan
      * @param world          the world.
      * @param pos            the pos it is placed at.
      * @param blueprint      the blueprint of the structure.
-     * @param settings       the placement settings.
+     * @param rotMir       the placement settings.
      * @param fancyPlacement if fancy or complete.
      */
-    public CreativeBuildingStructureHandler(final Level world, final BlockPos pos, final Blueprint blueprint, final PlacementSettings settings, final boolean fancyPlacement)
+    public CreativeBuildingStructureHandler(final Level world, final BlockPos pos, final Blueprint blueprint, final RotationMirror rotMir, final boolean fancyPlacement)
     {
-        super(world, pos, blueprint, settings, fancyPlacement);
+        super(world, pos, blueprint, rotMir, fancyPlacement);
         setupBuilding();
     }
 
@@ -71,17 +68,12 @@ public final class CreativeBuildingStructureHandler extends CreativeStructureHan
      * @param world          the world.
      * @param pos            the pos it is placed at.
      * @param blueprint      the blueprint of the structure.
-     * @param settings       the placement settings.
+     * @param rotMir       the placement settings.
      * @param fancyPlacement if fancy or complete.
      */
-    public CreativeBuildingStructureHandler(
-        final Level world,
-        final BlockPos pos,
-        final Future<Blueprint> blueprint,
-        final PlacementSettings settings,
-        final boolean fancyPlacement)
+    public CreativeBuildingStructureHandler(final Level world, final BlockPos pos, final Future<Blueprint> blueprint, final RotationMirror rotMir, final boolean fancyPlacement)
     {
-        super(world, pos, blueprint, settings, fancyPlacement);
+        super(world, pos, blueprint, rotMir, fancyPlacement);
         setupBuilding();
     }
 
@@ -93,7 +85,7 @@ public final class CreativeBuildingStructureHandler extends CreativeStructureHan
         final IColony colony = IColonyManager.getInstance().getColonyByPosFromWorld(getWorld(), getCenterPos());
         if (colony != null)
         {
-            this.building = colony.getBuildingManager().getBuilding(getCenterPos());
+            this.building = colony.getServerBuildingManager().getBuilding(getCenterPos());
         }
     }
 
@@ -135,32 +127,12 @@ public final class CreativeBuildingStructureHandler extends CreativeStructureHan
     }
 
     @Override
-    public boolean shouldBlocksBeConsideredEqual(final BlockState state1, final BlockState state2)
-    {
-        final Block block1 = state1.getBlock();
-        final Block block2 = state2.getBlock();
-
-        if (block1 == Blocks.FLOWER_POT || block2 == Blocks.FLOWER_POT)
-        {
-            return block1 == block2;
-        }
-
-        if (block1 == Blocks.GRASS_BLOCK && block2 == Blocks.DIRT || block2 == Blocks.GRASS_BLOCK && block1 == Blocks.DIRT)
-        {
-            return true;
-        }
-
-
-        return super.shouldBlocksBeConsideredEqual(state1, state2);
-    }
-
-    @Override
     public boolean isStackFree(@Nullable final ItemStack itemStack)
     {
         return itemStack == null
-            || itemStack.isEmpty()
-            || itemStack.is(ItemTags.LEAVES)
-            || itemStack.getItem() == new ItemStack(ModBlocks.blockDecorationPlaceholder, 1).getItem();
+                 || itemStack.isEmpty()
+                 || itemStack.is(ItemTags.LEAVES)
+                 || itemStack.getItem() == new ItemStack(ModBlocks.blockDecorationPlaceholder, 1).getItem();
     }
 
     /**
@@ -169,22 +141,20 @@ public final class CreativeBuildingStructureHandler extends CreativeStructureHan
      * @param worldObj       the world to load it in.
      * @param future         the structures blueprint future.
      * @param pos            coordinates.
-     * @param rotation       the rotation.
-     * @param mirror         the mirror used.
+     * @param rotMir         the rotation and mirror used.
      * @param fancyPlacement if fancy or complete.
      * @param player         the placing player.
      * @return the placed blueprint.
      */
     public static Blueprint loadAndPlaceStructureWithRotation(
-        final Level worldObj, @NotNull final Future<Blueprint> future,
-        @NotNull final BlockPos pos, final Rotation rotation,
-        @NotNull final Mirror mirror,
-        final boolean fancyPlacement,
-        @Nullable final ServerPlayer player)
+      final Level worldObj, @NotNull final Future<Blueprint> future,
+      @NotNull final BlockPos pos, final RotationMirror rotMir,
+      final boolean fancyPlacement,
+      @Nullable final ServerPlayer player)
     {
         try
         {
-            @NotNull final IStructureHandler structure = new CreativeBuildingStructureHandler(worldObj, pos, future, new PlacementSettings(mirror, rotation), fancyPlacement);
+            @NotNull final IStructureHandler structure = new CreativeBuildingStructureHandler(worldObj, pos, future, rotMir, fancyPlacement);
             if (structure.hasBluePrint())
             {
                 @NotNull final StructurePlacer instantPlacer = new StructurePlacer(structure);

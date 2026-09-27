@@ -47,3 +47,4 @@ public final class CompatibilityUtils
         world.addFreshEntity(entityToSpawn);
     }
 }
+

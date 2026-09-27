@@ -6,7 +6,9 @@ import no.monopixel.slimcolonies.api.colony.buildings.modules.IModuleWithExterna
 import no.monopixel.slimcolonies.api.colony.buildings.modules.IPersistentModule;
 import no.monopixel.slimcolonies.api.crafting.ItemStorage;
 import no.monopixel.slimcolonies.api.util.ItemStackUtils;
+import no.monopixel.slimcolonies.api.util.NBTUtils;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.NbtUtils;
@@ -23,8 +25,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Predicate;
 
-import static no.monopixel.slimcolonies.api.util.constant.BuildingConstants.FUEL_LIST;
 import static no.monopixel.slimcolonies.api.util.constant.Constants.STACKSIZE;
+import static no.monopixel.slimcolonies.core.colony.buildings.modules.BuildingModules.ITEMLIST_FUEL;
 
 /**
  * Module for all workers that need a furnace.
@@ -60,31 +62,22 @@ public class FurnaceUserModule extends AbstractBuildingModule implements IPersis
     }
 
     @Override
-    public void deserializeNBT(final CompoundTag compound)
+    public void deserializeNBT(@NotNull final HolderLookup.Provider provider, final CompoundTag compound)
     {
-        final ListTag furnaceTagList = compound.getList(TAG_FURNACES, Tag.TAG_COMPOUND);
+        final ListTag furnaceTagList = compound.getList(TAG_FURNACES, Tag.TAG_INT_ARRAY);
         for (int i = 0; i < furnaceTagList.size(); ++i)
         {
-            if(furnaceTagList.getCompound(i).contains(TAG_POS))
-            {
-                furnaces.add(NbtUtils.readBlockPos(furnaceTagList.getCompound(i).getCompound(TAG_POS)));
-            }
-            if(furnaceTagList.getCompound(i).contains(TAG_POS_COMPAT))
-            {
-                furnaces.add(NbtUtils.readBlockPos(furnaceTagList.getCompound(i).getCompound(TAG_POS_COMPAT)));
-            }
+            furnaces.add(NBTUtils.readBlockPos(furnaceTagList.get(i)));
         }
     }
 
     @Override
-    public void serializeNBT(final CompoundTag compound)
+    public void serializeNBT(@NotNull final HolderLookup.Provider provider, CompoundTag compound)
     {
         @NotNull final ListTag furnacesTagList = new ListTag();
         for (@NotNull final BlockPos entry : furnaces)
         {
-            @NotNull final CompoundTag furnaceCompound = new CompoundTag();
-            furnaceCompound.put(TAG_POS, NbtUtils.writeBlockPos(entry));
-            furnacesTagList.add(furnaceCompound);
+            furnacesTagList.add(NBTUtils.writeBlockPos(entry));
         }
         compound.put(TAG_FURNACES, furnacesTagList);
     }
@@ -117,7 +110,7 @@ public class FurnaceUserModule extends AbstractBuildingModule implements IPersis
         {
             return false;
         }
-        return building.getModuleMatching(ItemListModule.class, m -> m.getId().equals(FUEL_LIST)).isItemInList(new ItemStorage(stack));
+        return building.getModule(ITEMLIST_FUEL).isItemInList(new ItemStorage(stack));
     }
 
     /**
@@ -128,16 +121,6 @@ public class FurnaceUserModule extends AbstractBuildingModule implements IPersis
     public List<BlockPos> getFurnaces()
     {
         return new ArrayList<>(furnaces);
-    }
-
-    /**
-     * Return the number of furnaces assigned to this hut.
-     *
-     * @return the count of furnaces
-     */
-    public int getFurnaceCount()
-    {
-        return furnaces.size();
     }
 
     @Override

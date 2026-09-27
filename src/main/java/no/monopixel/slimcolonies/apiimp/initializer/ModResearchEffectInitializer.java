@@ -2,10 +2,11 @@ package no.monopixel.slimcolonies.apiimp.initializer;
 
 import no.monopixel.slimcolonies.api.research.ModResearchEffects;
 import no.monopixel.slimcolonies.api.util.constant.Constants;
+import no.monopixel.slimcolonies.apiimp.CommonMinecoloniesAPIImpl;
 import no.monopixel.slimcolonies.core.research.GlobalResearchEffect;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraftforge.registries.DeferredRegister;
-import net.minecraftforge.registries.RegistryObject;
+import net.neoforged.neoforge.registries.DeferredHolder;
+import net.neoforged.neoforge.registries.DeferredRegister;
 
 import static no.monopixel.slimcolonies.api.research.ModResearchEffects.*;
 
@@ -15,7 +16,7 @@ import static no.monopixel.slimcolonies.api.research.ModResearchEffects.*;
 public class ModResearchEffectInitializer
 {
     public final static DeferredRegister<ResearchEffectEntry> DEFERRED_REGISTER =
-        DeferredRegister.create(ResourceLocation.fromNamespaceAndPath(Constants.MOD_ID, "researcheffecttypes"), Constants.MOD_ID);
+        DeferredRegister.create(CommonMinecoloniesAPIImpl.RESEARCH_EFFECT_TYPES, Constants.MOD_ID);
     static
     {
         globalResearchEffect = create(GLOBAL_EFFECT_ID, GlobalResearchEffect::new);
@@ -32,7 +33,7 @@ public class ModResearchEffectInitializer
      * @param readFromNBT  function to read this item from json.
      * @return the finalized registry object.
      */
-    private static RegistryObject<ResearchEffectEntry> create(
+    private static DeferredHolder<ResearchEffectEntry, ResearchEffectEntry> create(
         final ResourceLocation registryName,
         final ReadFromNBTFunction readFromNBT)
     {

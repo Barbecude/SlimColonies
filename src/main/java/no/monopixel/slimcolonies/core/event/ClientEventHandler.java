@@ -1,67 +1,80 @@
 package no.monopixel.slimcolonies.core.event;
 
 import com.google.common.collect.ImmutableMap;
+import com.ldtteam.domumornamentum.client.model.data.MaterialTextureData;
 import com.ldtteam.structurize.items.ModItems;
-import net.minecraft.ChatFormatting;
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.multiplayer.ClientLevel;
-import net.minecraft.client.player.LocalPlayer;
-import net.minecraft.core.BlockPos;
-import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.MutableComponent;
-import net.minecraft.network.chat.Style;
-import net.minecraft.resources.ResourceLocation;
-import net.minecraft.world.InteractionHand;
-import net.minecraft.world.InteractionResult;
-import net.minecraft.world.item.BlockItem;
-import net.minecraft.world.item.Item;
-import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.level.block.Block;
-import net.minecraft.world.phys.HitResult;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.api.distmarker.OnlyIn;
-import net.minecraftforge.client.event.ClientPlayerNetworkEvent;
-import net.minecraftforge.client.event.CustomizeGuiOverlayEvent;
-import net.minecraftforge.client.event.RenderLevelStageEvent;
-import net.minecraftforge.client.event.sound.PlaySoundEvent;
-import net.minecraftforge.common.util.Lazy;
-import net.minecraftforge.event.TickEvent;
-import net.minecraftforge.event.entity.player.ItemTooltipEvent;
-import net.minecraftforge.event.entity.player.PlayerInteractEvent;
-import net.minecraftforge.eventbus.api.EventPriority;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.fml.ModList;
-import net.minecraftforge.items.wrapper.InvWrapper;
-import no.monopixel.slimcolonies.api.ISlimColoniesAPI;
-import no.monopixel.slimcolonies.api.SlimColoniesAPIProxy;
+import no.monopixel.slimcolonies.api.IMinecoloniesAPI;
+import no.monopixel.slimcolonies.api.MinecoloniesAPIProxy;
 import no.monopixel.slimcolonies.api.blocks.AbstractBlockHut;
 import no.monopixel.slimcolonies.api.blocks.interfaces.IBuildingBrowsableBlock;
+import no.monopixel.slimcolonies.api.colony.ICitizenDataView;
 import no.monopixel.slimcolonies.api.colony.IColony;
 import no.monopixel.slimcolonies.api.colony.IColonyManager;
+import no.monopixel.slimcolonies.api.colony.IColonyView;
+import no.monopixel.slimcolonies.api.colony.buildings.ModBuildings;
 import no.monopixel.slimcolonies.api.colony.buildings.modules.IBuildingModule;
 import no.monopixel.slimcolonies.api.colony.buildings.modules.ICraftingBuildingModule;
 import no.monopixel.slimcolonies.api.colony.buildings.registry.BuildingEntry;
+import no.monopixel.slimcolonies.api.colony.buildings.views.IBuildingView;
+import no.monopixel.slimcolonies.api.crafting.ItemStorage;
 import no.monopixel.slimcolonies.api.research.IGlobalResearch;
+import no.monopixel.slimcolonies.api.util.FoodUtils;
 import no.monopixel.slimcolonies.api.util.InventoryUtils;
+import no.monopixel.slimcolonies.api.util.ItemStackUtils;
+import no.monopixel.slimcolonies.api.util.Log;
 import no.monopixel.slimcolonies.api.util.constant.ColonyConstants;
 import no.monopixel.slimcolonies.api.util.constant.Constants;
 import no.monopixel.slimcolonies.api.util.constant.TranslationConstants;
 import no.monopixel.slimcolonies.core.client.gui.WindowBuildingBrowser;
+import no.monopixel.slimcolonies.core.client.gui.containers.WindowCitizenInventory;
 import no.monopixel.slimcolonies.core.client.render.worldevent.ColonyBorderRenderer;
 import no.monopixel.slimcolonies.core.client.render.worldevent.WorldEventContext;
 import no.monopixel.slimcolonies.core.colony.crafting.CustomRecipe;
 import no.monopixel.slimcolonies.core.colony.crafting.CustomRecipeManager;
 import no.monopixel.slimcolonies.core.util.DomumOrnamentumUtils;
 import no.monopixel.slimcolonies.core.util.SchemAnalyzerUtil;
+import net.minecraft.ChatFormatting;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.multiplayer.ClientLevel;
+import net.minecraft.client.player.LocalPlayer;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.network.chat.Style;
+import net.minecraft.network.chat.contents.TranslatableContents;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.tags.ItemTags;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResult;
+import net.minecraft.world.item.*;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.phys.HitResult;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.api.distmarker.OnlyIn;
+import net.neoforged.bus.api.EventPriority;
+import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.fml.ModList;
+import net.neoforged.neoforge.client.event.ClientPlayerNetworkEvent;
+import net.neoforged.neoforge.client.event.CustomizeGuiOverlayEvent;
+import net.neoforged.neoforge.client.event.RenderLevelStageEvent;
+import net.neoforged.neoforge.client.event.sound.PlaySoundEvent;
+import net.neoforged.neoforge.common.util.Lazy;
+import net.neoforged.neoforge.event.entity.player.ItemTooltipEvent;
+import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent;
+import net.neoforged.neoforge.event.tick.LevelTickEvent;
+import net.neoforged.neoforge.items.wrapper.InvWrapper;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
 import java.util.Map.Entry;
 
+import static no.monopixel.slimcolonies.api.research.util.ResearchConstants.SATURATION;
 import static no.monopixel.slimcolonies.api.sounds.ModSoundEvents.CITIZEN_SOUND_EVENT_PREFIX;
 import static no.monopixel.slimcolonies.api.util.constant.TranslationConstants.*;
 import static no.monopixel.slimcolonies.api.util.constant.translation.DebugTranslationConstants.*;
+import static no.monopixel.slimcolonies.core.colony.buildings.modules.BuildingModules.RESTAURANT_MENU;
 
 /**
  * Used to handle client events.
@@ -81,11 +94,11 @@ public class ClientEventHandler
     }
 
     @SubscribeEvent(priority = EventPriority.LOWEST)
-    public static void onwWorldTick(@NotNull final TickEvent.LevelTickEvent event)
+    public static void onwWorldTick(@NotNull final LevelTickEvent.Pre event)
     {
-        if (event.level.isClientSide && event.phase == TickEvent.Phase.END && ColonyConstants.rand.nextInt(20) == 0)
+        if (event.getLevel().isClientSide && ColonyConstants.rand.nextInt(20) == 0)
         {
-            WorldEventContext.INSTANCE.checkNearbyColony(event.level);
+            WorldEventContext.INSTANCE.checkNearbyColony(event.getLevel());
         }
     }
 
@@ -94,6 +107,8 @@ public class ClientEventHandler
     {
         ColonyBorderRenderer.cleanup();
         WindowBuildingBrowser.clearCache();
+        IColonyManager.getInstance().resetColonyViews();
+        Log.getLogger().info("Removed all colony views");
     }
 
     @SubscribeEvent(priority = EventPriority.HIGH)
@@ -105,7 +120,7 @@ public class ClientEventHandler
         }
 
         final ResourceLocation soundLocation = event.getSound().getLocation();
-        if (!SlimColoniesAPIProxy.getInstance().getConfig().getClient().citizenVoices.get()
+        if (!MinecoloniesAPIProxy.getInstance().getConfig().getClient().citizenVoices.get()
             && soundLocation.getNamespace().equals(Constants.MOD_ID)
             && soundLocation.getPath().startsWith(CITIZEN_SOUND_EVENT_PREFIX)
         )
@@ -113,6 +128,11 @@ public class ClientEventHandler
             event.setSound(null);
         }
     }
+
+    /**
+     * Additional tooltips added to specific items
+     */
+    public static Map<Item, Component> extraItemTooltips = new HashMap<>();
 
     /**
      * Fires when an item tooltip is requested, generally from inventory, JEI, or when minecraft is first populating the recipe book.
@@ -127,14 +147,36 @@ public class ClientEventHandler
         {
             return;
         }
-
+        IColony colony = IMinecoloniesAPI.getInstance().getColonyManager().getIColony(event.getEntity().level(), event.getEntity().blockPosition());
         final ItemStack stack = event.getItemStack();
 
-        IColony colony = ISlimColoniesAPI.getInstance().getColonyManager().getIColony(event.getEntity().level, event.getEntity().blockPosition());
+        if (extraItemTooltips.containsKey(stack.getItem()))
+        {
+            event.getToolTip().add(extraItemTooltips.get(stack.getItem()));
+        }
+
+        if (stack.is(ItemTags.DYEABLE) && IMinecoloniesAPI.getInstance().getConfig().getClient().showdyetooltips.get())
+        {
+            IMinecoloniesAPI.getInstance().getColonyManager().getCompatibilityManager().getDyeColor(stack).ifPresent(c ->
+            {
+                event.getToolTip().removeIf(line -> line.getContents() instanceof TranslatableContents t && t.getKey().equals("item.dyed"));
+                event.getToolTip().add(1, Component.translatable("%s: %s",
+                    Component.translatable("item.dyed"),
+                    Component.translatable("color.minecraft." + c.getName()).withStyle(Style.EMPTY.withColor(c.getTextColor()).withItalic(false)))
+                    .withStyle(Style.EMPTY.withColor(ChatFormatting.GRAY).withItalic(true)));
+            });
+        }
+
         if (colony == null)
         {
-            colony = ISlimColoniesAPI.getInstance().getColonyManager().getIColonyByOwner(event.getEntity().level, event.getEntity());
+            colony = IMinecoloniesAPI.getInstance().getColonyManager().getIColonyByOwner(event.getEntity().level(), event.getEntity());
         }
+
+        if (colony == null)
+        {
+            return;
+        }
+
         handleCrafterRecipeTooltips(colony, event.getToolTip(), stack.getItem());
         if (stack.getItem() instanceof BlockItem)
         {
@@ -148,15 +190,56 @@ public class ClientEventHandler
             {
                 int tier = SchemAnalyzerUtil.getBlockTier(blockItem.getBlock());
 
-                if (DomumOrnamentumUtils.isDoBlock(blockItem.getBlock()) && stack.hasTag())
+                if (DomumOrnamentumUtils.isDoBlock(blockItem.getBlock()))
                 {
-                    for (Block block : DomumOrnamentumUtils.getTextureData(stack).getTexturedComponents().values())
+                    for (Block block : MaterialTextureData.readFromItemStack(event.getItemStack()).getTexturedComponents().values())
                     {
                         tier = Math.max(tier, SchemAnalyzerUtil.getBlockTier(block));
                     }
                 }
 
-                event.getToolTip().add(Component.translatable("no.monopixel.slimcolonies.coremod.tooltip.schematic.tier", tier));
+                event.getToolTip().add(Component.translatableEscape("no.monopixel.slimcolonies.coremod.tooltip.schematic.tier", tier));
+            }
+        }
+
+        if (WindowCitizenInventory.activeCitizenInventory != null && ItemStackUtils.ISFOOD.test(stack))
+        {
+            if (!FoodUtils.EDIBLE.test(stack))
+            {
+                event.getToolTip().add(Component.translatable("no.monopixel.slimcolonies.coremod.item.tooltip.wrongfood").withStyle(ChatFormatting.RED));
+                return;
+            }
+
+            final int foodTier = FoodUtils.getFoodTier(stack);
+
+            final ICitizenDataView citizenData = (ICitizenDataView) WindowCitizenInventory.activeCitizenInventory.getCitizenData();
+            final IColonyView colonyView = citizenData.getColony();
+
+            IBuildingView cookBuilding = null;
+            for (final IBuildingView buildingView : colonyView.getClientBuildingManager().getBuildings().values())
+            {
+                if (buildingView.getBuildingType() == ModBuildings.cook.get())
+                {
+                    if (cookBuilding == null || cookBuilding.getID().distSqr(citizenData.getPosition()) > buildingView.getID().distSqr(citizenData.getPosition()))
+                    {
+                        cookBuilding = buildingView;
+                    }
+                }
+            }
+
+            final int homeBuildingLevel =
+                colonyView.getClientBuildingManager().getBuilding(citizenData.getHomeBuilding()) == null ? 0 : colonyView.getClientBuildingManager().getBuilding(citizenData.getHomeBuilding()).getBuildingLevel();
+            if (FoodUtils.canEatLevel(event.getItemStack(), homeBuildingLevel))
+            {
+                event.getToolTip().add(Component.translatable(TranslationConstants.TIER_TOOLTIP + foodTier).withStyle(ChatFormatting.GRAY));
+                if (cookBuilding != null && !cookBuilding.getModuleView(RESTAURANT_MENU).getMenu().contains(new ItemStorage(event.getItemStack())))
+                {
+                    event.getToolTip().add(Component.translatable("no.monopixel.slimcolonies.coremod.item.tooltip.nomenu").withStyle(ChatFormatting.RED));
+                }
+            }
+            else
+            {
+                event.getToolTip().add(Component.translatable("no.monopixel.slimcolonies.coremod.item.tooltip.needbetterfood").withStyle(ChatFormatting.RED));
             }
         }
     }
@@ -197,14 +280,14 @@ public class ClientEventHandler
             for (final ResourceLocation id : rec.getRequiredResearchIds())
             {
                 final Set<IGlobalResearch> researches;
-                if (ISlimColoniesAPI.getInstance().getGlobalResearchTree().hasResearch(id))
+                if (IMinecoloniesAPI.getInstance().getGlobalResearchTree().hasResearch(id))
                 {
                     researches = new HashSet<>();
-                    researches.add(ISlimColoniesAPI.getInstance().getGlobalResearchTree().getResearch(id));
+                    researches.add(IMinecoloniesAPI.getInstance().getGlobalResearchTree().getResearch(id));
                 }
                 else
                 {
-                    researches = ISlimColoniesAPI.getInstance().getGlobalResearchTree().getResearchForEffect(id);
+                    researches = IMinecoloniesAPI.getInstance().getGlobalResearchTree().getResearchForEffect(id);
                 }
                 if (researches != null)
                 {
@@ -221,8 +304,8 @@ public class ClientEventHandler
 
                     for (IGlobalResearch research : researches)
                     {
-                        toolTip.add(Component.translatable(COREMOD_ITEM_REQUIRES_RESEARCH_TOOLTIP_GUI,
-                            MutableComponent.create(research.getName())).setStyle(Style.EMPTY.withColor(researchFormat)));
+                        toolTip.add(Component.translatableEscape(COM_MINECOLONIES_COREMOD_ITEM_REQUIRES_RESEARCH_TOOLTIP_GUI,
+                          MutableComponent.create(research.getName())).setStyle(Style.EMPTY.withColor(researchFormat)));
                     }
                 }
             }
@@ -240,8 +323,8 @@ public class ClientEventHandler
                 // appear to be an easy way to get the schematic name from a BuildingEntry ... or
                 // unless we can change how colony.hasBuilding uses its parameter...
 
-                final MutableComponent reqLevelText = Component.translatable(COREMOD_ITEM_BUILDLEVEL_TOOLTIP_GUI, craftingBuildingName, minimumLevel);
-                if (colony != null && colony.hasBuilding(schematicName, minimumLevel, true))
+                final MutableComponent reqLevelText = Component.translatableEscape(COM_MINECOLONIES_COREMOD_ITEM_BUILDLEVEL_TOOLTIP_GUI, craftingBuildingName, minimumLevel);
+                if (colony != null && colony.getCommonBuildingManager().hasBuilding(schematicName, minimumLevel, true))
                 {
                     reqLevelText.setStyle(Style.EMPTY.withColor(ChatFormatting.AQUA));
                 }
@@ -253,8 +336,8 @@ public class ClientEventHandler
             }
             else
             {
-                final MutableComponent reqBuildingTxt = Component.translatable(COREMOD_ITEM_AVAILABLE_TOOLTIP_GUI, craftingBuildingName)
-                    .setStyle(Style.EMPTY.withItalic(true).withColor(ChatFormatting.GRAY));
+                final MutableComponent reqBuildingTxt = Component.translatableEscape(COM_MINECOLONIES_COREMOD_ITEM_AVAILABLE_TOOLTIP_GUI, craftingBuildingName)
+                                                          .setStyle(Style.EMPTY.withItalic(true).withColor(ChatFormatting.GRAY));
                 toolTip.add(reqBuildingTxt);
             }
         }
@@ -284,7 +367,7 @@ public class ClientEventHandler
     private static Map<String, BuildingEntry> buildCrafterToBuildingMap()
     {
         final ImmutableMap.Builder<String, BuildingEntry> builder = new ImmutableMap.Builder<>();
-        for (final BuildingEntry building : ISlimColoniesAPI.getInstance().getBuildingRegistry())
+        for (final BuildingEntry building : IMinecoloniesAPI.getInstance().getBuildingRegistry())
         {
             for (final BuildingEntry.ModuleProducer moduleProducer : building.getModuleProducers())
             {
@@ -299,7 +382,7 @@ public class ClientEventHandler
     }
 
     /**
-     * Display research-related information on Building hut blocks.
+     * Display research-related information on MineColonies Building hut blocks.
      * While this test can handle other non-hut blocks, research can only currently effect AbstractHutBlocks.
      *
      * @param colony  The colony to check against, if one is present.
@@ -317,10 +400,10 @@ public class ClientEventHandler
         {
             return;
         }
-        if (SlimColoniesAPIProxy.getInstance().getGlobalResearchTree().getResearchForEffect(effectId) != null)
+        if (MinecoloniesAPIProxy.getInstance().getGlobalResearchTree().getResearchForEffect(effectId) != null)
         {
-            tooltip.add(Component.translatable(TranslationConstants.HUT_NEEDS_RESEARCH_TOOLTIP_1, block.getName()));
-            tooltip.add(Component.translatable(TranslationConstants.HUT_NEEDS_RESEARCH_TOOLTIP_2, block.getName()));
+            tooltip.add(Component.translatableEscape(TranslationConstants.HUT_NEEDS_RESEARCH_TOOLTIP_1, block.getName()));
+            tooltip.add(Component.translatableEscape(TranslationConstants.HUT_NEEDS_RESEARCH_TOOLTIP_2, block.getName()));
         }
     }
 
@@ -331,8 +414,7 @@ public class ClientEventHandler
     public static void onDebugOverlay(final CustomizeGuiOverlayEvent.DebugText event)
     {
         final Minecraft mc = Minecraft.getInstance();
-        if (mc.options.renderDebug)
-        {
+
             final ClientLevel world = mc.level;
             final LocalPlayer player = mc.player;
             final BlockPos pos = player.blockPosition();
@@ -341,7 +423,7 @@ public class ClientEventHandler
             {
                 if (IColonyManager.getInstance().isFarEnoughFromColonies(world, pos))
                 {
-                    event.getLeft().add(Component.translatable(DEBUG_NO_CLOSE_COLONY).getString());
+                    event.getLeft().add(Component.translatableEscape(DEBUG_NO_CLOSE_COLONY).getString());
                     return;
                 }
                 colony = IColonyManager.getInstance().getClosestIColony(world, pos);
@@ -352,14 +434,13 @@ public class ClientEventHandler
                 }
 
                 event.getLeft()
-                    .add(Component.translatable(DEBUG_NEXT_COLONY,
-                        (int) Math.sqrt(colony.getDistanceSquared(pos)),
-                        IColonyManager.getInstance().getMinimumDistanceBetweenTownHalls()).getString());
+                  .add(Component.translatableEscape(DEBUG_NEXT_COLONY,
+                    (int) Math.sqrt(colony.getDistanceSquared(pos)),
+                    IColonyManager.getInstance().getMinimumDistanceBetweenTownHalls()).getString());
                 return;
             }
 
-            event.getLeft().add(colony.getName() + " : " + Component.translatable(DEBUG_BLOCKS_FROM_CENTER, (int) Math.sqrt(colony.getDistanceSquared(pos))).getString());
-        }
+            event.getLeft().add(colony.getName() + " : " + Component.translatableEscape(DEBUG_BLOCKS_FROM_CENTER, (int) Math.sqrt(colony.getDistanceSquared(pos))).getString());
     }
 
     @SubscribeEvent(priority = EventPriority.LOW)
@@ -384,7 +465,7 @@ public class ClientEventHandler
 
             if (block instanceof IBuildingBrowsableBlock browsable && browsable.shouldBrowseBuildings(event))
             {
-                SlimColoniesAPIProxy.getInstance().getBuildingDataManager().openBuildingBrowser(block);
+                MinecoloniesAPIProxy.getInstance().getBuildingDataManager().openBuildingBrowser(block);
 
                 event.setCanceled(true);
                 event.setCancellationResult(InteractionResult.SUCCESS);

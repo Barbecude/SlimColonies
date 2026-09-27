@@ -14,7 +14,7 @@ public class WindowBuildingInventory extends AbstractContainerScreen<ContainerBu
     /**
      * Texture res loc.
      */
-    private static final ResourceLocation TEXT = ResourceLocation.fromNamespaceAndPath(Constants.MOD_ID, "textures/gui/generic_108.png");
+    private static final ResourceLocation TEXT = new ResourceLocation(Constants.MOD_ID, "textures/gui/generic_108.png");
 
     /**
      * Offset inside the texture to use.
@@ -51,7 +51,6 @@ public class WindowBuildingInventory extends AbstractContainerScreen<ContainerBu
     @Override
     public void render(@NotNull GuiGraphics matrixStack, int x, int y, float z)
     {
-        this.renderBackground(matrixStack);
         super.render(matrixStack, x, y, z);
         this.renderTooltip(matrixStack, x, y);
     }

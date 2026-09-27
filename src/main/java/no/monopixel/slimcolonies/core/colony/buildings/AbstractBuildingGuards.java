@@ -1,11 +1,41 @@
 package no.monopixel.slimcolonies.core.colony.buildings;
 
+import com.ldtteam.structurize.blueprints.v1.Blueprint;
+import no.monopixel.slimcolonies.api.colony.ICitizenData;
+import no.monopixel.slimcolonies.api.colony.IColony;
+import no.monopixel.slimcolonies.api.colony.IColonyManager;
+import no.monopixel.slimcolonies.api.colony.IColonyView;
+import no.monopixel.slimcolonies.api.colony.buildings.IGuardBuilding;
+import no.monopixel.slimcolonies.api.colony.buildings.modules.settings.ISettingKey;
+import no.monopixel.slimcolonies.api.colony.requestsystem.location.ILocation;
+import no.monopixel.slimcolonies.api.entity.ai.statemachine.AIOneTimeEventTarget;
+import no.monopixel.slimcolonies.api.entity.ai.statemachine.states.AIWorkerState;
+import no.monopixel.slimcolonies.api.entity.citizen.AbstractEntityCitizen;
+import no.monopixel.slimcolonies.api.equipment.ModEquipmentTypes;
+import no.monopixel.slimcolonies.api.util.BlockPosUtil;
+import no.monopixel.slimcolonies.api.util.ItemStackUtils;
+import no.monopixel.slimcolonies.api.util.MessageUtils;
+import no.monopixel.slimcolonies.api.util.NBTUtils;
+import no.monopixel.slimcolonies.api.util.StatsUtil;
+import no.monopixel.slimcolonies.api.util.constant.StatisticsConstants;
+import no.monopixel.slimcolonies.core.colony.buildings.modules.BuildingModules;
+import no.monopixel.slimcolonies.core.colony.buildings.modules.settings.*;
+import no.monopixel.slimcolonies.core.colony.buildings.views.AbstractBuildingView;
+import no.monopixel.slimcolonies.core.colony.buildings.workerbuildings.BuildingMiner;
+import no.monopixel.slimcolonies.core.colony.jobs.AbstractJobGuard;
+import no.monopixel.slimcolonies.core.colony.requestsystem.locations.EntityLocation;
+import no.monopixel.slimcolonies.core.colony.requestsystem.locations.StaticLocation;
+import no.monopixel.slimcolonies.core.entity.pathfinding.Pathfinding;
+import no.monopixel.slimcolonies.core.entity.pathfinding.pathjobs.PathJobRandomPos;
+import no.monopixel.slimcolonies.core.entity.pathfinding.pathresults.PathResult;
+import no.monopixel.slimcolonies.core.items.ItemBannerRallyGuards;
+import no.monopixel.slimcolonies.core.util.AttributeModifierUtils;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
-import net.minecraft.nbt.NbtUtils;
 import net.minecraft.nbt.Tag;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Tuple;
 import net.minecraft.world.entity.EquipmentSlot;
@@ -13,59 +43,44 @@ import net.minecraft.world.entity.ai.attributes.AttributeModifier;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ArmorItem;
 import net.minecraft.world.item.ArrowItem;
-import no.monopixel.slimcolonies.api.colony.ICitizenData;
-import no.monopixel.slimcolonies.api.colony.IColony;
-import no.monopixel.slimcolonies.api.colony.IColonyView;
-import no.monopixel.slimcolonies.api.colony.buildings.IGuardBuilding;
-import no.monopixel.slimcolonies.api.colony.buildings.modules.settings.ISettingKey;
-import no.monopixel.slimcolonies.api.entity.ai.statemachine.AIOneTimeEventTarget;
-import no.monopixel.slimcolonies.api.entity.ai.statemachine.states.AIWorkerState;
-import no.monopixel.slimcolonies.api.entity.citizen.AbstractEntityCitizen;
-import no.monopixel.slimcolonies.api.equipment.ModEquipmentTypes;
-import no.monopixel.slimcolonies.api.util.BlockPosUtil;
-import no.monopixel.slimcolonies.api.util.ItemStackUtils;
-import no.monopixel.slimcolonies.api.util.constant.Constants;
-import no.monopixel.slimcolonies.core.colony.buildings.modules.BuildingModules;
-import no.monopixel.slimcolonies.core.colony.buildings.modules.settings.*;
-import no.monopixel.slimcolonies.core.colony.buildings.views.AbstractBuildingView;
-import no.monopixel.slimcolonies.core.colony.buildings.workerbuildings.BuildingMiner;
-import no.monopixel.slimcolonies.core.colony.jobs.AbstractJobGuard;
-import no.monopixel.slimcolonies.core.entity.pathfinding.Pathfinding;
-import no.monopixel.slimcolonies.core.entity.pathfinding.pathjobs.PathJobRandomPos;
-import no.monopixel.slimcolonies.core.entity.pathfinding.pathresults.PathResult;
-import no.monopixel.slimcolonies.core.util.AttributeModifierUtils;
+import net.minecraft.world.item.ItemStack;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
 
 import static no.monopixel.slimcolonies.api.research.util.ResearchConstants.ARCHER_USE_ARROWS;
+import static no.monopixel.slimcolonies.api.research.util.ResearchConstants.TELESCOPE;
 import static no.monopixel.slimcolonies.api.util.constant.CitizenConstants.GUARD_HEALTH_MOD_BUILDING_NAME;
+import static no.monopixel.slimcolonies.api.util.constant.CitizenConstants.LOW_SATURATION;
+import static no.monopixel.slimcolonies.api.util.constant.EquipmentLevelConstants.TOOL_LEVEL_WOOD_OR_GOLD;
+import static no.monopixel.slimcolonies.api.util.constant.TranslationConstants.WARNING_RALLYING_POINT_OUT_OF_RANGE;
 import static no.monopixel.slimcolonies.core.util.ServerUtils.getPlayerFromUUID;
 
 /**
  * Abstract class for Guard huts.
  */
+@SuppressWarnings({"squid:MaximumInheritanceDepth", "squid:S1448"})
 public abstract class AbstractBuildingGuards extends AbstractBuilding implements IGuardBuilding
 {
     /**
      * Settings.
      */
-    public static final ISettingKey<BoolSetting>            RETREAT      =
-        new SettingKey<>(BoolSetting.class, ResourceLocation.fromNamespaceAndPath(Constants.MOD_ID, "retreat"));
+    public static final ISettingKey<BoolSetting>       RETREAT      =
+      new SettingKey<>(BoolSetting.class, new ResourceLocation(no.monopixel.slimcolonies.api.util.constant.Constants.MOD_ID, "retreat"));
     public static final ISettingKey<BoolSetting>            HIRE_TRAINEE =
-        new SettingKey<>(BoolSetting.class, ResourceLocation.fromNamespaceAndPath(Constants.MOD_ID, "hiretrainee"));
-    public static final ISettingKey<GuardPatrolModeSetting> PATROL_MODE  =
-        new SettingKey<>(GuardPatrolModeSetting.class, ResourceLocation.fromNamespaceAndPath(Constants.MOD_ID, "patrolmode"));
-    public static final ISettingKey<GuardFollowModeSetting> FOLLOW_MODE  =
-        new SettingKey<>(GuardFollowModeSetting.class, ResourceLocation.fromNamespaceAndPath(Constants.MOD_ID, "followmode"));
-    public static final ISettingKey<GuardTaskSetting>       GUARD_TASK   =
-        new SettingKey<>(GuardTaskSetting.class, ResourceLocation.fromNamespaceAndPath(Constants.MOD_ID, "guardtask"));
+      new SettingKey<>(BoolSetting.class, new ResourceLocation(no.monopixel.slimcolonies.api.util.constant.Constants.MOD_ID, "hiretrainee"));
+    public static final ISettingKey<GuardPatrolModeSetting> PATROL_MODE =
+      new SettingKey<>(GuardPatrolModeSetting.class, new ResourceLocation(no.monopixel.slimcolonies.api.util.constant.Constants.MOD_ID, "patrolmode"));
+    public static final ISettingKey<GuardFollowModeSetting> FOLLOW_MODE =
+      new SettingKey<>(GuardFollowModeSetting.class, new ResourceLocation(no.monopixel.slimcolonies.api.util.constant.Constants.MOD_ID, "followmode"));
+    public static final ISettingKey<GuardTaskSetting>       GUARD_TASK  =
+      new SettingKey<>(GuardTaskSetting.class, new ResourceLocation(no.monopixel.slimcolonies.api.util.constant.Constants.MOD_ID, "guardtask"));
 
 
     //manual patroll. retreat, hire from training
 
-    /// /// --------------------------- NBTConstants --------------------------- \\\\\\
+    ////// --------------------------- NBTConstants --------------------------- \\\\\\
     private static final String NBT_JOB            = "guardType";
     private static final String NBT_PATROL_TARGETS = "patrol targets";
     private static final String NBT_TARGET         = "target";
@@ -113,6 +128,11 @@ public abstract class AbstractBuildingGuards extends AbstractBuilding implements
     private UUID followPlayerUUID;
 
     /**
+     * The location the guard has been set to rally to.
+     */
+    private ILocation rallyLocation;
+
+    /**
      * A temporary next patrol point, which gets consumed and used once
      */
     protected BlockPos tempNextPatrolPoint = null;
@@ -142,21 +162,21 @@ public abstract class AbstractBuildingGuards extends AbstractBuilding implements
     {
         super(c, l);
 
-        keepX.put(itemStack -> ItemStackUtils.isEquipmentType(itemStack, ModEquipmentTypes.bow.get()), new Tuple<>(1, true));
+        keepX.put(itemStack -> ItemStackUtils.hasEquipmentLevel(itemStack, ModEquipmentTypes.bow.get(), TOOL_LEVEL_WOOD_OR_GOLD, getMaxEquipmentLevel()), new Tuple<>(1, true));
         keepX.put(itemStack -> !ItemStackUtils.isEmpty(itemStack) && ItemStackUtils.doesItemServeAsWeapon(itemStack), new Tuple<>(1, true));
 
         keepX.put(itemStack -> !ItemStackUtils.isEmpty(itemStack)
-            && itemStack.getItem() instanceof ArmorItem
-            && ((ArmorItem) itemStack.getItem()).getEquipmentSlot() == EquipmentSlot.CHEST, new Tuple<>(1, true));
+                                 && itemStack.getItem() instanceof ArmorItem
+                                 && ((ArmorItem) itemStack.getItem()).getEquipmentSlot() == EquipmentSlot.CHEST, new Tuple<>(1, true));
         keepX.put(itemStack -> !ItemStackUtils.isEmpty(itemStack)
-            && itemStack.getItem() instanceof ArmorItem
-            && ((ArmorItem) itemStack.getItem()).getEquipmentSlot() == EquipmentSlot.HEAD, new Tuple<>(1, true));
+                                 && itemStack.getItem() instanceof ArmorItem
+                                 && ((ArmorItem) itemStack.getItem()).getEquipmentSlot() == EquipmentSlot.HEAD, new Tuple<>(1, true));
         keepX.put(itemStack -> !ItemStackUtils.isEmpty(itemStack)
-            && itemStack.getItem() instanceof ArmorItem
-            && ((ArmorItem) itemStack.getItem()).getEquipmentSlot() == EquipmentSlot.LEGS, new Tuple<>(1, true));
+                                 && itemStack.getItem() instanceof ArmorItem
+                                 && ((ArmorItem) itemStack.getItem()).getEquipmentSlot() == EquipmentSlot.LEGS, new Tuple<>(1, true));
         keepX.put(itemStack -> !ItemStackUtils.isEmpty(itemStack)
-            && itemStack.getItem() instanceof ArmorItem
-            && ((ArmorItem) itemStack.getItem()).getEquipmentSlot() == EquipmentSlot.FEET, new Tuple<>(1, true));
+                                 && itemStack.getItem() instanceof ArmorItem
+                                 && ((ArmorItem) itemStack.getItem()).getEquipmentSlot() == EquipmentSlot.FEET, new Tuple<>(1, true));
 
         keepX.put(itemStack -> {
             if (ItemStackUtils.isEmpty(itemStack) || !(itemStack.getItem() instanceof ArrowItem))
@@ -176,7 +196,7 @@ public abstract class AbstractBuildingGuards extends AbstractBuilding implements
      * @param newLevel The new level.
      */
     @Override
-    public void onUpgradeComplete(final int newLevel)
+    public void onUpgradeComplete(@Nullable final Blueprint blueprint, final int newLevel)
     {
         if (getAllAssignedCitizen() != null)
         {
@@ -184,23 +204,23 @@ public abstract class AbstractBuildingGuards extends AbstractBuilding implements
             {
                 if (optCitizen.getEntity().isPresent())
                 {
-                    final AttributeModifier healthModBuildingHP = new AttributeModifier(GUARD_HEALTH_MOD_BUILDING_NAME, getBonusHealth(), AttributeModifier.Operation.ADDITION);
+                    final AttributeModifier healthModBuildingHP = new AttributeModifier(GUARD_HEALTH_MOD_BUILDING_NAME, getBonusHealth(), AttributeModifier.Operation.ADD_VALUE);
                     AttributeModifierUtils.addHealthModifier(optCitizen.getEntity().get(), healthModBuildingHP);
                 }
             }
         }
 
-        super.onUpgradeComplete(newLevel);
+        super.onUpgradeComplete(blueprint, newLevel);
     }
 
     //// ---- NBT Overrides ---- \\\\
 
-    /// / ---- Overrides ---- \\\\
+    //// ---- Overrides ---- \\\\
 
     @Override
-    public void deserializeNBT(final CompoundTag compound)
+    public void deserializeNBT(@NotNull final HolderLookup.Provider provider, final CompoundTag compound)
     {
-        super.deserializeNBT(compound);
+        super.deserializeNBT(provider, compound);
 
         final ListTag wayPointTagList = compound.getList(NBT_PATROL_TARGETS, Tag.TAG_COMPOUND);
         for (int i = 0; i < wayPointTagList.size(); ++i)
@@ -210,22 +230,23 @@ public abstract class AbstractBuildingGuards extends AbstractBuilding implements
             patrolTargets.add(pos);
         }
 
-        guardPos = NbtUtils.readBlockPos(compound.getCompound(NBT_GUARD));
+        guardPos = NBTUtils.readBlockPos(compound, NBT_GUARD);
         if (compound.contains(NBT_MINE_POS))
         {
-            minePos = NbtUtils.readBlockPos(compound.getCompound(NBT_MINE_POS));
+            minePos = NBTUtils.readBlockPos(compound, NBT_MINE_POS);
         }
 
         if (compound.contains(NBT_PLAYER_UUID))
         {
             followPlayerUUID = compound.getUUID(NBT_PLAYER_UUID);
         }
+
     }
 
     @Override
-    public CompoundTag serializeNBT()
+    public CompoundTag serializeNBT(@NotNull final HolderLookup.Provider provider)
     {
-        final CompoundTag compound = super.serializeNBT();
+        final CompoundTag compound = super.serializeNBT(provider);
 
         @NotNull final ListTag wayPointTagList = new ListTag();
         for (@NotNull final BlockPos pos : patrolTargets)
@@ -236,10 +257,10 @@ public abstract class AbstractBuildingGuards extends AbstractBuilding implements
             wayPointTagList.add(wayPointCompound);
         }
         compound.put(NBT_PATROL_TARGETS, wayPointTagList);
-        compound.put(NBT_GUARD, NbtUtils.writeBlockPos(guardPos));
+        compound.put(NBT_GUARD, NBTUtils.writeBlockPos(guardPos));
         if (minePos != null)
         {
-            compound.put(NBT_MINE_POS, NbtUtils.writeBlockPos(minePos));
+            compound.put(NBT_MINE_POS, NBTUtils.writeBlockPos(minePos));
         }
 
         if (followPlayerUUID != null)
@@ -251,7 +272,7 @@ public abstract class AbstractBuildingGuards extends AbstractBuilding implements
     }
 
     @Override
-    public void serializeToView(@NotNull final FriendlyByteBuf buf, final boolean fullSync)
+    public void serializeToView(@NotNull final RegistryFriendlyByteBuf buf, final boolean fullSync)
     {
         super.serializeToView(buf, fullSync);
         buf.writeInt(patrolTargets.size());
@@ -288,7 +309,11 @@ public abstract class AbstractBuildingGuards extends AbstractBuilding implements
     @Nullable
     public Player getPlayerToFollowOrRally()
     {
-        if (getTask().equals(GuardTaskSetting.FOLLOW))
+        if (rallyLocation != null && rallyLocation instanceof EntityLocation)
+        {
+            return ((EntityLocation) rallyLocation).getPlayerEntity();
+        }
+        else if (getTask().equals(GuardTaskSetting.FOLLOW))
         {
             return getPlayerFromUUID(followPlayerUUID, this.colony.getWorld());
         }
@@ -353,7 +378,6 @@ public abstract class AbstractBuildingGuards extends AbstractBuilding implements
 
     /**
      * Set the patroll timer.
-     *
      * @param timer the timer to set.
      */
     public void setPatrolTimer(final int timer)
@@ -366,6 +390,7 @@ public abstract class AbstractBuildingGuards extends AbstractBuilding implements
      */
     public void startPatrolNext()
     {
+        StatsUtil.trackStat(this, StatisticsConstants.PATROLS_STARTED, 1);
         getNextPatrolTarget(true);
         patrolTimer = 5;
         arrivedAtPatrol.clear();
@@ -415,7 +440,7 @@ public abstract class AbstractBuildingGuards extends AbstractBuilding implements
             }
             else
             {
-                pos = colony.getBuildingManager().getRandomBuilding(b -> b.getBuildingLevel() >= 1);
+                pos = getRandomPatrolTarget();
             }
 
             if (pos != null)
@@ -444,6 +469,17 @@ public abstract class AbstractBuildingGuards extends AbstractBuilding implements
         }
         lastPatrolPoint = patrolTargets.get(0);
         return lastPatrolPoint;
+    }
+
+    /**
+     * Gets a random automatic patrol target for this guard building.
+     *
+     * @return the next random patrol target.
+     */
+    @Nullable
+    protected BlockPos getRandomPatrolTarget()
+    {
+        return colony.getServerBuildingManager().getRandomBuilding(b -> b.getBuildingLevel() >= 1);
     }
 
     @Override
@@ -479,7 +515,7 @@ public abstract class AbstractBuildingGuards extends AbstractBuilding implements
         {
             this.minePos = null;
         }
-        else if (colony.getBuildingManager().getBuilding(pos) instanceof BuildingMiner)
+        else if (colony.getServerBuildingManager().getBuilding(pos) instanceof BuildingMiner)
         {
             this.minePos = pos;
         }
@@ -519,12 +555,100 @@ public abstract class AbstractBuildingGuards extends AbstractBuilding implements
     public BlockPos getPositionToFollow()
     {
         Player followPlayer = getPlayerFromUUID(followPlayerUUID, this.colony.getWorld());
-        if (getSetting(GUARD_TASK).getValue().equals(GuardTaskSetting.FOLLOW) && followPlayer != null && followPlayer.level.dimension() == this.colony.getDimension())
+        if (getSetting(GUARD_TASK).getValue().equals(GuardTaskSetting.FOLLOW) && followPlayer != null && followPlayer.level().dimension() == this.colony.getDimension())
         {
             return followPlayer.blockPosition();
         }
 
         return this.getPosition();
+    }
+
+    @Override
+    @Nullable
+    public ILocation getRallyLocation()
+    {
+        if (rallyLocation == null)
+        {
+            return null;
+        }
+
+        boolean outOfRange = false;
+        final IColony colonyAtPosition = IColonyManager.getInstance().getColonyByPosFromDim(rallyLocation.getDimension(), rallyLocation.getInDimensionLocation());
+        if (colonyAtPosition == null || colonyAtPosition.getID() != colony.getID())
+        {
+            if (getColony().getResearchManager().getResearchEffects().getEffectStrength(TELESCOPE) <= 0 || BlockPosUtil.getDistance2D(rallyLocation.getInDimensionLocation(), colony.getCenter()) > 500)
+            {
+                outOfRange = true;
+            }
+        }
+
+        if (rallyLocation instanceof EntityLocation)
+        {
+            final Player player = ((EntityLocation) rallyLocation).getPlayerEntity();
+            if (player == null)
+            {
+                setRallyLocation(null);
+                return null;
+            }
+
+            if (outOfRange)
+            {
+                MessageUtils.format(WARNING_RALLYING_POINT_OUT_OF_RANGE).sendTo(player);
+                setRallyLocation(null);
+                return null;
+            }
+
+            final int size = player.getInventory().getContainerSize();
+            for (int i = 0; i < size; i++)
+            {
+                final ItemStack stack = player.getInventory().getItem(i);
+                if (stack.getItem() instanceof ItemBannerRallyGuards)
+                {
+                    if (((ItemBannerRallyGuards) (stack.getItem())).isActiveForGuardTower(stack, this))
+                    {
+                        return rallyLocation;
+                    }
+                }
+            }
+            // Note: We do not reset the rallyLocation here.
+            // So, if the player doesn't properly deactivate the banner, this will cause relatively minor lag.
+            // But, in exchange, the player does not have to reactivate the banner so often, and it also works
+            // if the user moves the banner around in the inventory.
+            return null;
+        }
+        else if (rallyLocation instanceof StaticLocation)
+        {
+            if (outOfRange)
+            {
+                MessageUtils.format(WARNING_RALLYING_POINT_OUT_OF_RANGE).sendTo(colony.getImportantMessageEntityPlayers());
+                setRallyLocation(null);
+                return null;
+            }
+        }
+
+        return rallyLocation;
+    }
+
+    @Override
+    public void setRallyLocation(final ILocation location)
+    {
+        boolean reduceSaturation = false;
+        if (rallyLocation != null && location == null)
+        {
+            reduceSaturation = true;
+        }
+
+        rallyLocation = location;
+
+        for (final ICitizenData iCitizenData : getAllAssignedCitizen())
+        {
+            if (reduceSaturation && iCitizenData.getSaturation() < LOW_SATURATION)
+            {
+                // In addition to the scaled saturation reduction during rallying, stopping a rally
+                // will - if only LOW_SATURATION is left - set the saturation level to 0.
+                iCitizenData.decreaseSaturation(LOW_SATURATION);
+            }
+        }
     }
 
     @Override
@@ -586,7 +710,7 @@ public abstract class AbstractBuildingGuards extends AbstractBuilding implements
     }
 
     /**
-     * Populates the mobs list from the ForgeRegistries.
+     * Populates the mobs list from the BuiltInRegistries.
      */
     @Override
     public void calculateMobs()
@@ -635,7 +759,7 @@ public abstract class AbstractBuildingGuards extends AbstractBuilding implements
         }
 
         @Override
-        public void deserialize(@NotNull final FriendlyByteBuf buf)
+        public void deserialize(@NotNull final RegistryFriendlyByteBuf buf)
         {
             super.deserialize(buf);
 
@@ -674,14 +798,14 @@ public abstract class AbstractBuildingGuards extends AbstractBuilding implements
          *
          * @return the position of the mine
          */
-        public BlockPos getMinePos() {return minePos;}
+        public BlockPos getMinePos() { return minePos; }
 
         /**
          * Set the position of the mine the guard is patrolling
          *
          * @param pos the position of the mine
          */
-        public void setMinePos(BlockPos pos) {this.minePos = pos;}
+        public void setMinePos(BlockPos pos) { this.minePos = pos; }
 
         @Override
         public int getRange()

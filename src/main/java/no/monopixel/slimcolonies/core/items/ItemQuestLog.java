@@ -1,6 +1,12 @@
 package no.monopixel.slimcolonies.core.items;
 
-import net.minecraft.nbt.CompoundTag;
+import no.monopixel.slimcolonies.api.colony.IColonyManager;
+import no.monopixel.slimcolonies.api.colony.IColonyView;
+import no.monopixel.slimcolonies.api.items.component.ColonyId;
+import no.monopixel.slimcolonies.core.tileentities.TileEntityColonyBuilding;
+import no.monopixel.slimcolonies.api.util.MessageUtils;
+import no.monopixel.slimcolonies.api.util.constant.TranslationConstants;
+import no.monopixel.slimcolonies.core.client.gui.questlog.WindowQuestLog;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
@@ -11,21 +17,15 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
-import no.monopixel.slimcolonies.api.colony.IColonyManager;
-import no.monopixel.slimcolonies.api.colony.IColonyView;
-import no.monopixel.slimcolonies.api.util.MessageUtils;
-import no.monopixel.slimcolonies.api.util.constant.TranslationConstants;
-import no.monopixel.slimcolonies.core.client.gui.questlog.WindowQuestLog;
-import no.monopixel.slimcolonies.core.tileentities.TileEntityColonyBuilding;
 import org.jetbrains.annotations.NotNull;
 
 import static no.monopixel.slimcolonies.api.util.constant.Constants.STACKSIZE;
-import static no.monopixel.slimcolonies.api.util.constant.TranslationConstants.QUEST_LOG_COLONY_SET;
+import static no.monopixel.slimcolonies.api.util.constant.TranslationConstants.COM_MINECOLONIES_QUEST_LOG_COLONY_SET;
 
 /**
  * Class describing the quest log item.
  */
-public class ItemQuestLog extends AbstractItemSlimColonies
+public class ItemQuestLog extends AbstractItemMinecolonies
 {
     /**
      * Tag of the colony.
@@ -47,21 +47,19 @@ public class ItemQuestLog extends AbstractItemSlimColonies
     public InteractionResult useOn(final UseOnContext ctx)
     {
         final ItemStack questLog = ctx.getPlayer().getItemInHand(ctx.getHand());
-
-        final CompoundTag compound = checkForCompound(questLog);
         final BlockEntity entity = ctx.getLevel().getBlockEntity(ctx.getClickedPos());
 
         if (entity instanceof TileEntityColonyBuilding buildingEntity)
         {
-            compound.putInt(TAG_COLONY, buildingEntity.getColonyId());
+            buildingEntity.writeColonyToItemStack(questLog);
             if (!ctx.getLevel().isClientSide)
             {
-                MessageUtils.format(QUEST_LOG_COLONY_SET, buildingEntity.getColony().getName()).sendTo(ctx.getPlayer());
+                MessageUtils.format(COM_MINECOLONIES_QUEST_LOG_COLONY_SET, buildingEntity.getColony().getName()).sendTo(ctx.getPlayer());
             }
         }
         else if (ctx.getLevel().isClientSide)
         {
-            openWindow(compound, ctx.getLevel(), ctx.getPlayer());
+            openWindow(questLog, ctx.getLevel(), ctx.getPlayer());
         }
 
         return InteractionResult.SUCCESS;
@@ -78,9 +76,9 @@ public class ItemQuestLog extends AbstractItemSlimColonies
     @Override
     @NotNull
     public InteractionResultHolder<ItemStack> use(
-        final Level worldIn,
-        final Player playerIn,
-        final InteractionHand hand)
+      final Level worldIn,
+      final Player playerIn,
+      final InteractionHand hand)
     {
         final ItemStack questLog = playerIn.getItemInHand(hand);
 
@@ -89,45 +87,28 @@ public class ItemQuestLog extends AbstractItemSlimColonies
             return new InteractionResultHolder<>(InteractionResult.SUCCESS, questLog);
         }
 
-        openWindow(checkForCompound(questLog), worldIn, playerIn);
+        openWindow(questLog, worldIn, playerIn);
 
         return new InteractionResultHolder<>(InteractionResult.SUCCESS, questLog);
     }
 
     /**
-     * Check for the compound and return it. If not available create and return it.
-     *
-     * @param questLog the quest log item to check for.
-     * @return the compound of the quest log.
-     */
-    private static CompoundTag checkForCompound(final ItemStack questLog)
-    {
-        if (!questLog.hasTag())
-        {
-            questLog.setTag(new CompoundTag());
-        }
-        return questLog.getTag();
-    }
-
-    /**
      * Opens the quest log window if there is a valid colony linked
      *
-     * @param compound the item compound
+     * @param stack the item
      * @param player   the player entity opening the window
      */
-    private static void openWindow(CompoundTag compound, Level world, Player player)
+    private static void openWindow(ItemStack stack, Level world, Player player)
     {
-        if (compound.contains(TAG_COLONY))
+        final IColonyView colonyView = ColonyId.readColonyViewFromItemStack(stack);
+        if (colonyView != null)
         {
-            final IColonyView colonyView = IColonyManager.getInstance().getColonyView(compound.getInt(TAG_COLONY), world.dimension());
-            if (colonyView != null)
-            {
-                new WindowQuestLog(colonyView).open();
-            }
+            new WindowQuestLog(colonyView).open();
         }
         else
         {
-            player.displayClientMessage(Component.translatable(TranslationConstants.QUEST_LOG_NEED_COLONY), true);
+            player.displayClientMessage(Component.translatableEscape(TranslationConstants.COM_MINECOLONIES_QUEST_LOG_NEED_COLONY), true);
         }
     }
 }
+

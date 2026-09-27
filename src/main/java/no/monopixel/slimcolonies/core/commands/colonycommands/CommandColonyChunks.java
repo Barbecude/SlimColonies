@@ -1,10 +1,9 @@
 package no.monopixel.slimcolonies.core.commands.colonycommands;
 
 import no.monopixel.slimcolonies.api.colony.IColony;
-import no.monopixel.slimcolonies.api.colony.IColonyManager;
+import no.monopixel.slimcolonies.core.commands.arguments.ColonyIdArgument;
 import no.monopixel.slimcolonies.core.commands.commandTypes.IMCColonyOfficerCommand;
 import no.monopixel.slimcolonies.core.commands.commandTypes.IMCCommand;
-import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
 import net.minecraft.ChatFormatting;
@@ -17,7 +16,6 @@ import net.minecraft.util.SortedArraySet;
 import java.util.HashSet;
 import java.util.Set;
 
-import static no.monopixel.slimcolonies.api.util.constant.translation.CommandTranslationConstants.COMMAND_COLONY_ID_NOT_FOUND;
 import static no.monopixel.slimcolonies.core.commands.CommandArgumentNames.COLONYID_ARG;
 import static no.monopixel.slimcolonies.core.commands.colonycommands.CommandColonyInfo.ID_TEXT;
 import static no.monopixel.slimcolonies.core.commands.colonycommands.CommandColonyInfo.NAME_TEXT;
@@ -32,15 +30,7 @@ public class CommandColonyChunks implements IMCColonyOfficerCommand
     @Override
     public int onExecute(final CommandContext<CommandSourceStack> context)
     {
-        // Colony
-        final int colonyID = IntegerArgumentType.getInteger(context, COLONYID_ARG);
-        final IColony colony = IColonyManager.getInstance().getColonyByDimension(colonyID, context.getSource().getLevel().dimension());
-        if (colony == null)
-        {
-            context.getSource().sendSuccess(() -> Component.translatable(COMMAND_COLONY_ID_NOT_FOUND, colonyID), true);
-            return 0;
-        }
-
+        final IColony colony = ColonyIdArgument.getColony(context, COLONYID_ARG);
 
         Set<TicketType> types = new HashSet<>();
 
@@ -68,7 +58,7 @@ public class CommandColonyChunks implements IMCColonyOfficerCommand
             .append(Component.literal(" " + NAME_TEXT))
             .append(Component.literal("" + colony.getName()).withStyle(ChatFormatting.YELLOW)), true);
         context.getSource().sendSuccess(() -> Component.literal("Loaded chunks:").append(Component.literal(" " + colony.getLoadedChunkCount()).withStyle(ChatFormatting.YELLOW)), true);
-        context.getSource().sendSuccess(() -> Component.translatable("Ticket types: ").append(Component.literal(ticketString.toString()).withStyle(ChatFormatting.YELLOW)), true);
+        context.getSource().sendSuccess(() -> Component.translatableEscape("Ticket types: ").append(Component.literal(ticketString.toString()).withStyle(ChatFormatting.YELLOW)), true);
 
         return 1;
     }
@@ -86,6 +76,6 @@ public class CommandColonyChunks implements IMCColonyOfficerCommand
     public LiteralArgumentBuilder<CommandSourceStack> build()
     {
         return IMCCommand.newLiteral(getName())
-          .then(IMCCommand.newArgument(COLONYID_ARG, IntegerArgumentType.integer(1)).executes(this::checkPreConditionAndExecute));
+          .then(IMCCommand.newArgument(COLONYID_ARG, ColonyIdArgument.id()).executes(this::checkPreConditionAndExecute));
     }
 }

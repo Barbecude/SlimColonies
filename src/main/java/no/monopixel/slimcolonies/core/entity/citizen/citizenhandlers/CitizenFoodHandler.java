@@ -3,19 +3,27 @@ package no.monopixel.slimcolonies.core.entity.citizen.citizenhandlers;
 import com.google.common.collect.EvictingQueue;
 import com.google.common.collect.ImmutableList;
 import no.monopixel.slimcolonies.api.colony.ICitizenData;
+import no.monopixel.slimcolonies.api.colony.interactionhandling.ChatPriority;
 import no.monopixel.slimcolonies.api.entity.citizen.citizenhandlers.ICitizenFoodHandler;
+import no.monopixel.slimcolonies.api.items.IMinecoloniesFoodItem;
+import no.monopixel.slimcolonies.core.colony.interactionhandling.StandardInteraction;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.StringTag;
+import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.Items;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.HashSet;
+import java.util.Set;
+
 import static no.monopixel.slimcolonies.api.util.constant.Constants.TAG_STRING;
 import static no.monopixel.slimcolonies.api.util.constant.Constants.TICKS_SECOND;
 import static no.monopixel.slimcolonies.api.util.constant.NbtTagConstants.TAG_LAST_FOODS;
+import static no.monopixel.slimcolonies.api.util.constant.TranslationConstants.*;
 
 /**
  * The food handler for the citizen.
@@ -37,6 +45,15 @@ public class CitizenFoodHandler implements ICitizenFoodHandler
      */
     private final EvictingQueue<Item> lastEatenFoods = EvictingQueue.create(FOOD_QUEUE_SIZE);
 
+    /**
+     * Food stat cache to avoid recalculating constantly.
+     */
+    private CitizenFoodStats foodStatCache = null;
+
+    /**
+     * Dirty tracking if food stat cache has to be recalculated.
+     */
+    private boolean dirty = false;
 
     /**
      * Create the food handler.
@@ -53,6 +70,14 @@ public class CitizenFoodHandler implements ICitizenFoodHandler
     {
         lastEatenFoods.add(item);
         citizenData.markDirty(TICKS_SECOND);
+        dirty = true;
+        if (lastEatenFoods.size() >= FOOD_QUEUE_SIZE)
+        {
+            citizenData.triggerInteraction(new StandardInteraction(Component.translatable(NO + FOOD_DIVERSITY), ChatPriority.CHITCHAT));
+            citizenData.triggerInteraction(new StandardInteraction(Component.translatable(NO + FOOD_QUALITY), ChatPriority.CHITCHAT));
+            citizenData.triggerInteraction(new StandardInteraction(Component.translatable(NO + FOOD_DIVERSITY + URGENT), ChatPriority.IMPORTANT));
+            citizenData.triggerInteraction(new StandardInteraction(Component.translatable(NO + FOOD_QUALITY + URGENT), ChatPriority.IMPORTANT));
+        }
     }
 
     @Override
@@ -61,7 +86,42 @@ public class CitizenFoodHandler implements ICitizenFoodHandler
         return lastEatenFoods.peek();
     }
 
+    @Override
+    public int checkLastEaten(final Item item)
+    {
+        int foundIndex = -1;
 
+        int index = -1;
+        for (final Item foodItem : lastEatenFoods)
+        {
+            index++;
+            if (foodItem == item)
+            {
+                foundIndex = index;
+            }
+        }
+        return foundIndex;
+    }
+
+    @Override
+    public CitizenFoodStats getFoodHappinessStats()
+    {
+        if (foodStatCache == null || dirty)
+        {
+            int qualityFoodCounter = 0;
+            Set<Item> uniqueFoods = new HashSet<>();
+            for (final Item foodItem : lastEatenFoods)
+            {
+                if (foodItem instanceof IMinecoloniesFoodItem)
+                {
+                    qualityFoodCounter++;
+                }
+                uniqueFoods.add(foodItem);
+            }
+            foodStatCache = new CitizenFoodStats(Math.max(1, uniqueFoods.size()), qualityFoodCounter);
+        }
+        return foodStatCache;
+    }
 
     @Override
     public boolean hasFullFoodHistory()
@@ -75,7 +135,7 @@ public class CitizenFoodHandler implements ICitizenFoodHandler
         @NotNull final ListTag lastFoodNbt = compound.getList(TAG_LAST_FOODS, TAG_STRING);
         for (int i = 0; i < lastFoodNbt.size(); i++)
         {
-            final Item lastFood = BuiltInRegistries.ITEM.get(new ResourceLocation(lastFoodNbt.getString(i)));
+            final Item lastFood = BuiltInRegistries.ITEM.get(ResourceLocation.parse(lastFoodNbt.getString(i)));
             if (lastFood != Items.AIR)
             {
                 lastEatenFoods.add(lastFood);
@@ -94,6 +154,15 @@ public class CitizenFoodHandler implements ICitizenFoodHandler
         compound.put(TAG_LAST_FOODS, lastEatenFoodsNBT);
     }
 
+    @Override
+    public double getDiseaseModifier(final double baseModifier)
+    {
+        if (lastEatenFoods.size() < FOOD_QUEUE_SIZE || baseModifier == 0)
+        {
+            return baseModifier;
+        }
+        return baseModifier * 0.5 * Math.min(2.5, 5.0/getFoodHappinessStats().diversity());
+    }
 
     @Override
     public ImmutableList<Item> getLastEatenFoods()

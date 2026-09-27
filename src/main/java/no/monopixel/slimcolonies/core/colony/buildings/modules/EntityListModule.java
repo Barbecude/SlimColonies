@@ -1,18 +1,16 @@
 package no.monopixel.slimcolonies.core.colony.buildings.modules;
 
 import com.google.common.collect.ImmutableList;
-import no.monopixel.slimcolonies.api.colony.buildings.modules.AbstractBuildingModule;
-import no.monopixel.slimcolonies.api.colony.buildings.modules.IEntityListModule;
-import no.monopixel.slimcolonies.api.colony.buildings.modules.IPersistentModule;
-
+import no.monopixel.slimcolonies.api.colony.buildings.modules.*;
+import no.monopixel.slimcolonies.api.util.constant.Constants;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.StringTag;
 import net.minecraft.nbt.Tag;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
-
-import net.minecraftforge.registries.ForgeRegistries;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.HashSet;
@@ -49,7 +47,7 @@ public class EntityListModule extends AbstractBuildingModule implements IEntityL
     }
 
     @Override
-    public void deserializeNBT(CompoundTag compound)
+    public void deserializeNBT(@NotNull final HolderLookup.Provider provider, CompoundTag compound)
     {
         if (compound.contains(id))
         {
@@ -60,7 +58,7 @@ public class EntityListModule extends AbstractBuildingModule implements IEntityL
         for (int i = 0; i < filterableList.size(); ++i)
         {
             final ResourceLocation res = ResourceLocation.parse(filterableList.getString(i));
-            if (ForgeRegistries.ENTITY_TYPES.containsKey(res))
+            if (BuiltInRegistries.ENTITY_TYPE.containsKey(res))
             {
                 mobsAllowed.add(res);
             }
@@ -68,7 +66,7 @@ public class EntityListModule extends AbstractBuildingModule implements IEntityL
     }
 
     @Override
-    public void serializeNBT(final CompoundTag compound)
+    public void serializeNBT(@NotNull final HolderLookup.Provider provider, CompoundTag compound)
     {
         @NotNull final ListTag filteredMobs = new ListTag();
         for (@NotNull final ResourceLocation mob : mobsAllowed)
@@ -111,12 +109,12 @@ public class EntityListModule extends AbstractBuildingModule implements IEntityL
     }
 
     @Override
-    public void serializeToView(@NotNull final FriendlyByteBuf buf)
+    public void serializeToView(@NotNull final RegistryFriendlyByteBuf buf)
     {
         buf.writeInt(mobsAllowed.size());
         for (final ResourceLocation entity : mobsAllowed)
         {
-            buf.writeRegistryIdUnsafe(ForgeRegistries.ENTITY_TYPES, entity);
+            buf.writeResourceLocation(entity);
         }
     }
 

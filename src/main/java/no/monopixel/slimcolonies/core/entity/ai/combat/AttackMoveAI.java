@@ -1,19 +1,19 @@
 package no.monopixel.slimcolonies.core.entity.ai.combat;
 
-import net.minecraft.world.InteractionHand;
-import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.entity.Mob;
 import no.monopixel.slimcolonies.api.entity.ai.combat.CombatAIStates;
 import no.monopixel.slimcolonies.api.entity.ai.combat.threat.IThreatTableEntity;
 import no.monopixel.slimcolonies.api.entity.ai.combat.threat.ThreatTableEntry;
 import no.monopixel.slimcolonies.api.entity.ai.statemachine.states.IState;
 import no.monopixel.slimcolonies.api.entity.ai.statemachine.tickratestatemachine.ITickRateStateMachine;
 import no.monopixel.slimcolonies.api.entity.ai.statemachine.tickratestatemachine.TickingTransition;
-import no.monopixel.slimcolonies.api.entity.other.AbstractFastSlimColoniesEntity;
+import no.monopixel.slimcolonies.api.entity.other.AbstractFastMinecoloniesEntity;
 import no.monopixel.slimcolonies.api.util.DamageSourceKeys;
 import no.monopixel.slimcolonies.core.entity.pathfinding.navigation.EntityNavigationUtils;
-import no.monopixel.slimcolonies.core.entity.pathfinding.navigation.SlimColoniesAdvancedPathNavigate;
+import no.monopixel.slimcolonies.core.entity.pathfinding.navigation.MinecoloniesAdvancedPathNavigate;
 import no.monopixel.slimcolonies.core.entity.pathfinding.pathresults.PathResult;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.Mob;
 
 import static no.monopixel.slimcolonies.api.util.constant.Constants.HALF_ROTATION;
 
@@ -68,9 +68,9 @@ public class AttackMoveAI<T extends Mob & IThreatTableEntity> extends TargetAI<T
         final boolean canSeeTarget = user.getSensing().hasLineOfSight(target);
         if (canSeeTarget)
         {
-            nextTarget.setLastSeen(user.level.getGameTime());
+            nextTarget.setLastSeen(user.level().getGameTime());
         }
-        else if ((user.level.getGameTime() - nextTarget.getLastSeen()) > STOP_PERSECUTION_AFTER)
+        else if ((user.level().getGameTime() - nextTarget.getLastSeen()) > STOP_PERSECUTION_AFTER)
         {
             resetTarget();
             return null;
@@ -95,8 +95,8 @@ public class AttackMoveAI<T extends Mob & IThreatTableEntity> extends TargetAI<T
             }
 
             if (targetPath == null ||
-                user.getNavigation().isDone() ||
-                (targetPath.isDone() && targetPath.hasPath() && targetPath.getPath().getTarget().distSqr(target.blockPosition()) > Math.pow(getAttackDistance(), 2) - 1))
+                  user.getNavigation().isDone() ||
+                  (targetPath.isDone() && targetPath.hasPath() && targetPath.getPath().getTarget().distSqr(target.blockPosition()) > Math.pow(getAttackDistance(), 2) - 1))
             {
                 targetPath = moveInAttackPosition(target);
                 pathAttempts++;
@@ -137,7 +137,7 @@ public class AttackMoveAI<T extends Mob & IThreatTableEntity> extends TargetAI<T
             return CombatAIStates.NO_TARGET;
         }
 
-        if (nextAttackTime >= user.level.getGameTime() || !isInDistanceForAttack(target))
+        if (nextAttackTime >= user.level().getGameTime() || !isInDistanceForAttack(target))
         {
             return null;
         }
@@ -147,7 +147,7 @@ public class AttackMoveAI<T extends Mob & IThreatTableEntity> extends TargetAI<T
             pathAttempts = 0;
             user.getLookControl().setLookAt(target);
             doAttack(target);
-            nextAttackTime = user.level.getGameTime() + getAttackDelay();
+            nextAttackTime = user.level().getGameTime() + getAttackDelay();
         }
 
         return null;
@@ -181,7 +181,7 @@ public class AttackMoveAI<T extends Mob & IThreatTableEntity> extends TargetAI<T
      */
     protected void doAttack(final LivingEntity target)
     {
-        target.hurt(target.level.damageSources().source(DamageSourceKeys.DEFAULT, user), 5);
+        target.hurt(target.level().damageSources().source(DamageSourceKeys.DEFAULT, user), 5);
         user.swing(InteractionHand.MAIN_HAND);
     }
 
@@ -213,7 +213,7 @@ public class AttackMoveAI<T extends Mob & IThreatTableEntity> extends TargetAI<T
      */
     protected PathResult moveInAttackPosition(final LivingEntity target)
     {
-        EntityNavigationUtils.walkToPos((AbstractFastSlimColoniesEntity) user, target.blockPosition(), 1, false);
-        return ((SlimColoniesAdvancedPathNavigate) user.getNavigation()).getPathResult();
+        EntityNavigationUtils.walkToPos((AbstractFastMinecoloniesEntity) user, target.blockPosition(), 1, false);
+        return ((MinecoloniesAdvancedPathNavigate) user.getNavigation()).getPathResult();
     }
 }

@@ -8,8 +8,9 @@ import no.monopixel.slimcolonies.api.colony.buildings.modules.IAssignsCitizen;
 import no.monopixel.slimcolonies.api.colony.buildings.modules.IBuildingEventsModule;
 import no.monopixel.slimcolonies.api.colony.buildings.modules.IPersistentModule;
 import no.monopixel.slimcolonies.api.entity.citizen.AbstractEntityCitizen;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -128,13 +129,13 @@ public abstract class AbstractAssignedCitizenModule extends AbstractBuildingModu
     }
 
     @Override
-    public void serializeNBT(final CompoundTag compound)
+    public void serializeNBT(@NotNull final HolderLookup.Provider provider, CompoundTag compound)
     {
         compound.putInt(TAG_HIRING_MODE, this.hiringMode.ordinal());
     }
 
     @Override
-    public void deserializeNBT(final CompoundTag compound)
+    public void deserializeNBT(@NotNull final HolderLookup.Provider provider, final CompoundTag compound)
     {
         if (compound.contains(TAG_ASSIGNED))
         {
@@ -151,7 +152,7 @@ public abstract class AbstractAssignedCitizenModule extends AbstractBuildingModu
     }
 
     @Override
-    public void serializeToView(@NotNull final FriendlyByteBuf buf)
+    public void serializeToView(@NotNull final RegistryFriendlyByteBuf buf)
     {
         super.serializeToView(buf);
         buf.writeInt(assignedCitizen.size());

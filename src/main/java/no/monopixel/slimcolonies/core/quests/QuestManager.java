@@ -5,12 +5,14 @@ import no.monopixel.slimcolonies.api.quests.FinishedQuest;
 import no.monopixel.slimcolonies.api.quests.IQuestInstance;
 import no.monopixel.slimcolonies.api.quests.IQuestManager;
 import no.monopixel.slimcolonies.api.quests.IQuestTemplate;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Player;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
 
@@ -206,21 +208,21 @@ public class QuestManager implements IQuestManager
     }
 
     @Override
-    public CompoundTag serializeNBT()
+    public CompoundTag serializeNBT(@NotNull final HolderLookup.Provider provider)
     {
         final CompoundTag managerCompound = new CompoundTag();
 
         final ListTag availableListTag = new ListTag();
         for (final Map.Entry<ResourceLocation, IQuestInstance> available : availableQuests.entrySet())
         {
-            availableListTag.add(available.getValue().serializeNBT());
+            availableListTag.add(available.getValue().serializeNBT(provider));
         }
         managerCompound.put(TAG_AVAILABLE, availableListTag);
 
         final ListTag inProgressListTag = new ListTag();
         for (final Map.Entry<ResourceLocation, IQuestInstance> inProgress : inProgressQuests.entrySet())
         {
-            inProgressListTag.add(inProgress.getValue().serializeNBT());
+            inProgressListTag.add(inProgress.getValue().serializeNBT(provider));
         }
         managerCompound.put(TAG_IN_PROGRESS, inProgressListTag);
 
@@ -248,17 +250,17 @@ public class QuestManager implements IQuestManager
     }
 
     @Override
-    public void deserializeNBT(final CompoundTag nbt)
+    public void deserializeNBT(@NotNull final HolderLookup.Provider provider, final CompoundTag nbt)
     {
         final Map<ResourceLocation, IQuestInstance> localAvailableQuests = new HashMap<>();
         final ListTag availableListTag = nbt.getList(TAG_AVAILABLE, Tag.TAG_COMPOUND);
         for (final Tag element : availableListTag)
         {
-            final ResourceLocation key = new ResourceLocation(((CompoundTag) element).getString(TAG_ID));
+            final ResourceLocation key = ResourceLocation.parse(((CompoundTag) element).getString(TAG_ID));
             if (GLOBAL_SERVER_QUESTS.containsKey(key))
             {
                 final IQuestInstance colonyQuest = availableQuests.containsKey(key) ? availableQuests.get(key) : new QuestInstance(colony);
-                colonyQuest.deserializeNBT((CompoundTag) element);
+                colonyQuest.deserializeNBT(provider, (CompoundTag) element);
                 localAvailableQuests.put(colonyQuest.getId(), colonyQuest);
             }
         }
@@ -270,11 +272,11 @@ public class QuestManager implements IQuestManager
         final ListTag inProgressListTag = nbt.getList(TAG_IN_PROGRESS, Tag.TAG_COMPOUND);
         for (final Tag element : inProgressListTag)
         {
-            final ResourceLocation key = new ResourceLocation(((CompoundTag) element).getString(TAG_ID));
+            final ResourceLocation key = ResourceLocation.parse(((CompoundTag) element).getString(TAG_ID));
             if (GLOBAL_SERVER_QUESTS.containsKey(key))
             {
                 final IQuestInstance colonyQuest = this.inProgressQuests.containsKey(key) ? this.inProgressQuests.get(key) : new QuestInstance(colony);
-                colonyQuest.deserializeNBT((CompoundTag) element);
+                colonyQuest.deserializeNBT(provider,(CompoundTag) element);
                 localInProgressQuests.put(colonyQuest.getId(), colonyQuest);
             }
         }
@@ -287,7 +289,7 @@ public class QuestManager implements IQuestManager
         final ListTag finishedListTag = nbt.getList(TAG_FINISHED, Tag.TAG_COMPOUND);
         for (final Tag element : finishedListTag)
         {
-            this.finishedQuests.put(new ResourceLocation(((CompoundTag) element).getString(TAG_ID)), ((CompoundTag) element).getInt(TAG_QUANTITY));
+            this.finishedQuests.put(ResourceLocation.parse(((CompoundTag) element).getString(TAG_ID)), ((CompoundTag) element).getInt(TAG_QUANTITY));
         }
         finishedQuestsCache = null;
 
@@ -295,28 +297,28 @@ public class QuestManager implements IQuestManager
         final ListTag unlockedListTag = nbt.getList(TAG_UNLOCKED, Tag.TAG_COMPOUND);
         for (final Tag element : unlockedListTag)
         {
-            this.unlockedQuests.add(new ResourceLocation(((CompoundTag) element).getString(TAG_ID)));
+            this.unlockedQuests.add(ResourceLocation.parse(((CompoundTag) element).getString(TAG_ID)));
         }
         this.questReputation = nbt.getDouble(TAG_REPUTATION);
     }
 
     @Override
-    public void serialize(final FriendlyByteBuf buf, final boolean hasNewSubscribers)
+    public void serialize(final RegistryFriendlyByteBuf buf, final boolean hasNewSubscribers)
     {
         buf.writeBoolean(isDirty || hasNewSubscribers);
         if (isDirty || hasNewSubscribers)
         {
-            buf.writeNbt(serializeNBT());
+            buf.writeNbt(serializeNBT(buf.registryAccess()));
         }
     }
 
     @Override
-    public void deserialize(final FriendlyByteBuf buf)
+    public void deserialize(final RegistryFriendlyByteBuf buf)
     {
         final boolean hasData = buf.readBoolean();
         if (hasData)
         {
-            deserializeNBT(buf.readNbt());
+            deserializeNBT(buf.registryAccess(), buf.readNbt());
         }
     }
 

@@ -5,6 +5,7 @@ import no.monopixel.slimcolonies.api.entity.citizen.VisibleCitizenStatus;
 import no.monopixel.slimcolonies.api.util.constant.Constants;
 import no.monopixel.slimcolonies.core.colony.buildings.workerbuildings.BuildingSawmill;
 import no.monopixel.slimcolonies.core.colony.jobs.JobSawmill;
+import no.monopixel.slimcolonies.core.entity.ai.workers.crafting.AbstractEntityAICrafting;
 import net.minecraft.resources.ResourceLocation;
 import org.jetbrains.annotations.NotNull;
 
@@ -17,7 +18,7 @@ public class EntityAIWorkSawmill extends AbstractEntityAICrafting<JobSawmill, Bu
      * Crafting icon
      */
     private final static VisibleCitizenStatus CRAFTING =
-        new VisibleCitizenStatus(ResourceLocation.fromNamespaceAndPath(Constants.MOD_ID, "textures/icons/work/sawmill.png"), "no.monopixel.slimcolonies.gui.visiblestatus.sawmill");
+      new VisibleCitizenStatus(new ResourceLocation(Constants.MOD_ID, "textures/icons/work/sawmill.png"), "no.monopixel.slimcolonies.gui.visiblestatus.sawmill");
 
     /**
      * Initialize the sawmill and add all his tasks.

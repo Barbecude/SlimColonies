@@ -7,8 +7,8 @@ import no.monopixel.slimcolonies.api.colony.interactionhandling.IChatPriority;
 import net.minecraft.network.chat.contents.TranslatableContents;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.network.chat.Component;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.api.distmarker.OnlyIn;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.api.distmarker.OnlyIn;
 
 import static no.monopixel.slimcolonies.api.colony.interactionhandling.ModInteractionResponseHandlers.SIMPLE_NOTIFICATION;
 
@@ -26,7 +26,7 @@ public class SimpleNotificationInteraction extends StandardInteraction
       final Component inquiry,
       final IChatPriority priority)
     {
-        super(inquiry, null, priority);
+        super(inquiry, Component.empty(), priority);
     }
 
     @Override

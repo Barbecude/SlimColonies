@@ -1,24 +1,23 @@
 package no.monopixel.slimcolonies.core.recipes;
 
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-import no.monopixel.slimcolonies.api.util.constant.Constants;
-import net.minecraft.network.FriendlyByteBuf;
-import net.minecraft.resources.ResourceLocation;
-import net.minecraft.util.GsonHelper;
+import no.monopixel.slimcolonies.apiimp.initializer.ModIngredientTypeInitializer;
+import com.mojang.serialization.Codec;
+import com.mojang.serialization.MapCodec;
+import com.mojang.serialization.codecs.RecordCodecBuilder;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.world.food.FoodProperties;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.crafting.Ingredient;
-import net.minecraftforge.common.crafting.CraftingHelper;
-import net.minecraftforge.common.crafting.IIngredientSerializer;
-import net.minecraftforge.registries.ForgeRegistries;
+import net.neoforged.neoforge.common.crafting.ICustomIngredient;
+import net.neoforged.neoforge.common.crafting.IngredientType;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Stream;
 
-import static no.monopixel.slimcolonies.api.util.ItemStackUtils.ISFOOD;
+import static no.monopixel.slimcolonies.api.util.ItemStackUtils.IS_ANY_FOOD;
 
 /**
  * An ingredient that can be used in a vanilla recipe to match food items.
@@ -44,54 +43,69 @@ import static no.monopixel.slimcolonies.api.util.ItemStackUtils.ISFOOD;
  *
  * Conditions can also be combined.
  * Min bounds are inclusive and max bounds are exclusive.
+ *
+ * @param minHealing minimum healing value
+ * @param maxHealing maximum healing value
+ * @param minSaturation minimum saturation value
+ * @param maxSaturation maximum saturation value
  */
-public class FoodIngredient extends Ingredient
+public record FoodIngredient(@NotNull Optional<Integer> minHealing,
+                             @NotNull Optional<Integer> maxHealing,
+                             @NotNull Optional<Float> minSaturation,
+                             @NotNull Optional<Float> maxSaturation) implements ICustomIngredient
 {
-    public static final ResourceLocation ID = ResourceLocation.fromNamespaceAndPath(Constants.MOD_ID, "food");
+    public static final MapCodec<FoodIngredient> CODEC = RecordCodecBuilder.mapCodec(builder -> builder
+        .group(Codec.INT.optionalFieldOf("min-healing").forGetter(FoodIngredient::minHealing),
+               Codec.INT.optionalFieldOf("max-healing").forGetter(FoodIngredient::maxHealing),
+               Codec.FLOAT.optionalFieldOf("min-saturation").forGetter(FoodIngredient::minSaturation),
+               Codec.FLOAT.optionalFieldOf("max-saturation").forGetter(FoodIngredient::maxSaturation))
+        .apply(builder, FoodIngredient::new));
 
-    public static final String MIN_HEALING_PROP = "min-healing";
-    public static final String MAX_HEALING_PROP = "max-healing";
-    public static final String MIN_SATURATION_PROP = "min-saturation";
-    public static final String MAX_SATURATION_PROP = "max-saturation";
-
-    private final Optional<Integer> minHealing;
-    private final Optional<Integer> maxHealing;
-    private final Optional<Float> minSaturation;
-    private final Optional<Float> maxSaturation;
-
-    private FoodIngredient(final Builder builder)
+    public static Builder builder()
     {
-        super(buildItemLists(builder));
-
-        this.minHealing = builder.minHealing;
-        this.maxHealing = builder.maxHealing;
-        this.minSaturation = builder.minSaturation;
-        this.maxSaturation = builder.maxSaturation;
+        return new Builder();
     }
 
-    private static Stream<Value> buildItemLists(final Builder builder)
+    private boolean matchesFood(@NotNull final ItemStack stack)
     {
-        return ForgeRegistries.ITEMS.getValues().stream()
+        @NotNull final FoodProperties food = Objects.requireNonNull(stack.getItem().getFoodProperties(stack, null));
+        return minHealing.map(healing -> food.nutrition() >= healing).orElse(true) &&
+               maxHealing.map(healing -> food.nutrition() < healing).orElse(true) &&
+               minSaturation.map(saturation -> food.saturation() >= saturation).orElse(true) &&
+               maxSaturation.map(saturation -> food.saturation() < saturation).orElse(true);
+    }
+
+    @Override
+    public boolean test(@Nullable final ItemStack stack)
+    {
+        if (stack == null)
+        {
+            return false;
+        }
+
+        return IS_ANY_FOOD.test(stack) && matchesFood(stack);
+    }
+
+    @NotNull
+    @Override
+    public Stream<ItemStack> getItems()
+    {
+        return BuiltInRegistries.ITEM.stream()
                 .map(ItemStack::new)
-                .filter(ISFOOD)
-                .filter(builder::matchesFood)
-                .map(ItemValue::new);
+                .filter(this::test);
+    }
+
+    @Override
+    public boolean isSimple()
+    {
+        return true;
     }
 
     @NotNull
     @Override
-    public JsonElement toJson()
+    public IngredientType<?> getType()
     {
-        JsonObject json = new JsonObject();
-        Serializer.getInstance().write(json, this);
-        return json;
-    }
-
-    @NotNull
-    @Override
-    public IIngredientSerializer<? extends Ingredient> getSerializer()
-    {
-        return Serializer.getInstance();
+        return ModIngredientTypeInitializer.FOOD_INGREDIENT_TYPE.get();
     }
 
     public static class Builder
@@ -101,84 +115,18 @@ public class FoodIngredient extends Ingredient
         private Optional<Float> minSaturation = Optional.empty();
         private Optional<Float> maxSaturation = Optional.empty();
 
+        private Builder()
+        {
+        }
+
         public Builder minHealing(final int healing) { minHealing = Optional.of(healing); return this; }
         public Builder maxHealing(final int healing) { maxHealing = Optional.of(healing); return this; }
         public Builder minSaturation(final float saturation) { minSaturation = Optional.of(saturation); return this; }
         public Builder maxSaturation(final float saturation) { maxSaturation = Optional.of(saturation); return this; }
 
-        public FoodIngredient build()
+        public Ingredient build()
         {
-            return new FoodIngredient(this);
-        }
-
-        private boolean matchesFood(@NotNull final ItemStack stack)
-        {
-            @NotNull final FoodProperties food = Objects.requireNonNull(stack.getItem().getFoodProperties(stack, null));
-            return minHealing.map(healing -> food.getNutrition() >= healing).orElse(true) &&
-                    maxHealing.map(healing -> food.getNutrition() < healing).orElse(true) &&
-                    minSaturation.map(saturation -> food.getSaturationModifier() >= saturation).orElse(true) &&
-                    maxSaturation.map(saturation -> food.getSaturationModifier() < saturation).orElse(true);
-        }
-    }
-
-    public static class Serializer implements IIngredientSerializer<FoodIngredient>
-    {
-        private static final Serializer INSTANCE = new Serializer();
-
-        public static Serializer getInstance() { return INSTANCE; }
-
-        private Serializer() { }
-
-        @NotNull
-        @Override
-        public FoodIngredient parse(@NotNull final JsonObject json)
-        {
-            final Builder builder = new Builder();
-
-            if (json.has(MIN_HEALING_PROP)) builder.minHealing(GsonHelper.getAsInt(json, MIN_HEALING_PROP));
-            if (json.has(MAX_HEALING_PROP)) builder.maxHealing(GsonHelper.getAsInt(json, MAX_HEALING_PROP));
-            if (json.has(MIN_SATURATION_PROP)) builder.minSaturation(GsonHelper.getAsFloat(json, MIN_SATURATION_PROP));
-            if (json.has(MAX_SATURATION_PROP)) builder.maxSaturation(GsonHelper.getAsFloat(json, MAX_SATURATION_PROP));
-
-            return builder.build();
-        }
-
-        public void write(@NotNull final JsonObject json, @NotNull final FoodIngredient ingredient)
-        {
-            json.addProperty("type", (Objects.requireNonNull(CraftingHelper.getID(this))).toString());
-
-            ingredient.minHealing.ifPresent(value -> json.addProperty(MIN_HEALING_PROP, value));
-            ingredient.maxHealing.ifPresent(value -> json.addProperty(MAX_HEALING_PROP, value));
-            ingredient.minSaturation.ifPresent(value -> json.addProperty(MIN_SATURATION_PROP, value));
-            ingredient.maxSaturation.ifPresent(value -> json.addProperty(MAX_SATURATION_PROP, value));
-        }
-
-        @NotNull
-        @Override
-        public FoodIngredient parse(@NotNull final FriendlyByteBuf buffer)
-        {
-            final Builder builder = new Builder();
-            final int flags = buffer.readVarInt();
-
-            if ((flags & 1) != 0) builder.minHealing(buffer.readVarInt());
-            if ((flags & 2) != 0) builder.maxHealing(buffer.readVarInt());
-            if ((flags & 4) != 0) builder.minSaturation(buffer.readFloat());
-            if ((flags & 8) != 0) builder.maxSaturation(buffer.readFloat());
-
-            return builder.build();
-        }
-
-        @Override
-        public void write(@NotNull final FriendlyByteBuf buffer, @NotNull final FoodIngredient ingredient)
-        {
-            buffer.writeVarInt((ingredient.minHealing.isPresent() ? 1 : 0) |
-                    (ingredient.maxHealing.isPresent() ? 2 : 0) |
-                    (ingredient.minSaturation.isPresent() ? 4 : 0) |
-                    (ingredient.maxSaturation.isPresent() ? 8 : 0));
-            ingredient.minHealing.ifPresent(buffer::writeVarInt);
-            ingredient.maxHealing.ifPresent(buffer::writeVarInt);
-            ingredient.minSaturation.ifPresent(buffer::writeFloat);
-            ingredient.maxSaturation.ifPresent(buffer::writeFloat);
+            return new FoodIngredient(minHealing, maxHealing, minSaturation, maxSaturation).toVanilla();
         }
     }
 }

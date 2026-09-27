@@ -1,5 +1,23 @@
 package no.monopixel.slimcolonies.core.compatibility.jei;
 
+import no.monopixel.slimcolonies.api.IMinecoloniesAPI;
+import no.monopixel.slimcolonies.api.blocks.ModBlocks;
+import no.monopixel.slimcolonies.api.colony.buildings.modules.ICraftingBuildingModule;
+import no.monopixel.slimcolonies.api.colony.buildings.registry.BuildingEntry;
+import no.monopixel.slimcolonies.api.colony.jobs.IJob;
+import no.monopixel.slimcolonies.api.colony.jobs.ModJobs;
+import no.monopixel.slimcolonies.api.colony.jobs.registry.JobEntry;
+import no.monopixel.slimcolonies.api.compatibility.Compatibility;
+import no.monopixel.slimcolonies.api.compatibility.IJeiProxy;
+import no.monopixel.slimcolonies.api.crafting.IGenericRecipe;
+import no.monopixel.slimcolonies.api.crafting.registry.CraftingType;
+import no.monopixel.slimcolonies.api.eventbus.events.CustomRecipesReloadedEvent;
+import no.monopixel.slimcolonies.api.util.Log;
+import no.monopixel.slimcolonies.api.util.constant.Constants;
+import no.monopixel.slimcolonies.api.util.constant.TranslationConstants;
+import no.monopixel.slimcolonies.core.colony.buildings.modules.AnimalHerdingModule;
+import no.monopixel.slimcolonies.core.colony.crafting.RecipeAnalyzer;
+import no.monopixel.slimcolonies.core.compatibility.jei.transfer.*;
 import mezz.jei.api.IModPlugin;
 import mezz.jei.api.constants.RecipeTypes;
 import mezz.jei.api.constants.VanillaTypes;
@@ -8,6 +26,7 @@ import mezz.jei.api.helpers.IJeiHelpers;
 import mezz.jei.api.helpers.IModIdHelper;
 import mezz.jei.api.recipe.IFocus;
 import mezz.jei.api.recipe.IFocusFactory;
+import mezz.jei.api.recipe.IRecipeManager;
 import mezz.jei.api.recipe.RecipeIngredientRole;
 import mezz.jei.api.recipe.RecipeType;
 import mezz.jei.api.registration.*;
@@ -19,23 +38,6 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.animal.Animal;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
-import no.monopixel.slimcolonies.api.ISlimColoniesAPI;
-import no.monopixel.slimcolonies.api.blocks.ModBlocks;
-import no.monopixel.slimcolonies.api.colony.buildings.modules.ICraftingBuildingModule;
-import no.monopixel.slimcolonies.api.colony.buildings.registry.BuildingEntry;
-import no.monopixel.slimcolonies.api.colony.jobs.IJob;
-import no.monopixel.slimcolonies.api.colony.jobs.ModJobs;
-import no.monopixel.slimcolonies.api.colony.jobs.registry.JobEntry;
-import no.monopixel.slimcolonies.api.compatibility.Compatibility;
-import no.monopixel.slimcolonies.api.compatibility.IJeiProxy;
-import no.monopixel.slimcolonies.api.crafting.IGenericRecipe;
-import no.monopixel.slimcolonies.api.crafting.registry.CraftingType;
-import no.monopixel.slimcolonies.api.util.Log;
-import no.monopixel.slimcolonies.api.util.constant.Constants;
-import no.monopixel.slimcolonies.api.util.constant.TranslationConstants;
-import no.monopixel.slimcolonies.core.colony.buildings.modules.AnimalHerdingModule;
-import no.monopixel.slimcolonies.core.colony.crafting.RecipeAnalyzer;
-import no.monopixel.slimcolonies.core.compatibility.jei.transfer.*;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -45,6 +47,10 @@ import java.util.function.BiConsumer;
 @mezz.jei.api.JeiPlugin
 public class JEIPlugin implements IModPlugin
 {
+    @Nullable IJeiRuntime jei;
+    boolean recipesLoaded;
+    boolean subscribed;
+
     public JEIPlugin()
     {
         Compatibility.jeiProxy = new IJeiProxy()
@@ -79,12 +85,10 @@ public class JEIPlugin implements IModPlugin
     @Override
     public ResourceLocation getPluginUid()
     {
-        return ResourceLocation.parse(Constants.MOD_ID);
+        return new ResourceLocation(Constants.MOD_ID, Constants.MOD_ID);
     }
 
     private final List<JobBasedRecipeCategory<?>> categories = new ArrayList<>();
-    @Nullable
-    private       IJeiRuntime                     jei;
 
     @Override
     public void registerCategories(@NotNull final IRecipeCategoryRegistration registration)
@@ -93,17 +97,20 @@ public class JEIPlugin implements IModPlugin
         final IGuiHelper guiHelper = jeiHelpers.getGuiHelper();
         final IModIdHelper modIdHelper = jeiHelpers.getModIdHelper();
 
-        registration.addRecipeCategories(new ToolRecipeCategory(guiHelper));
-        registration.addRecipeCategories(new CompostRecipeCategory(guiHelper));
-        registration.addRecipeCategories(new FishermanRecipeCategory(guiHelper));
-        registration.addRecipeCategories(new FloristRecipeCategory(guiHelper));
+        registration.addRecipeCategories(
+          new CropRecipeCategory(guiHelper),
+            new ToolRecipeCategory(guiHelper),
+            new CompostRecipeCategory(guiHelper),
+            new FishermanRecipeCategory(guiHelper),
+            new FloristRecipeCategory(guiHelper)
+        );
 
         categories.clear();
-        for (final BuildingEntry building : ISlimColoniesAPI.getInstance().getBuildingRegistry())
+        for (final BuildingEntry building : IMinecoloniesAPI.getInstance().getBuildingRegistry())
         {
             final Map<JobEntry, GenericRecipeCategory> craftingCategories = new HashMap<>();
 
-            for (final BuildingEntry.ModuleProducer producer : building.getModuleProducers())
+            for (final BuildingEntry.ModuleProducer<?, ?> producer : building.getModuleProducers())
             {
                 if (!producer.hasServerModule())
                 {
@@ -151,9 +158,8 @@ public class JEIPlugin implements IModPlugin
         }
     }
 
-    private void registerCategory(
-        @NotNull final IRecipeCategoryRegistration registration,
-        @NotNull final JobBasedRecipeCategory<?> category)
+    private void registerCategory(@NotNull final IRecipeCategoryRegistration registration,
+                                  @NotNull final JobBasedRecipeCategory<?> category)
     {
         categories.add(category);
         registration.addRecipeCategories(category);
@@ -162,30 +168,51 @@ public class JEIPlugin implements IModPlugin
     @Override
     public void registerRecipes(@NotNull final IRecipeRegistration registration)
     {
-        registration.addIngredientInfo(new ItemStack(ModBlocks.blockHutComposter.asItem()), VanillaTypes.ITEM_STACK,
-            Component.translatable(TranslationConstants.PARTIAL_JEI_INFO + ModJobs.COMPOSTER_ID.getPath()));
-
-        registration.addRecipes(ModRecipeTypes.TOOLS, ToolRecipeCategory.findRecipes());
-        registration.addRecipes(ModRecipeTypes.COMPOSTING, CompostRecipeCategory.findRecipes());
-        registration.addRecipes(ModRecipeTypes.FISHING, FishermanRecipeCategory.findRecipes());
-        registration.addRecipes(ModRecipeTypes.FLOWERS, FloristRecipeCategory.findRecipes());
-
-        final ClientLevel level = Objects.requireNonNull(Minecraft.getInstance().level);
-        final Map<CraftingType, List<IGenericRecipe>> vanilla = RecipeAnalyzer.buildVanillaRecipesMap(level.getRecipeManager(), level);
-        final List<Animal> animals = RecipeAnalyzer.createAnimals(level);
-
-        for (final JobBasedRecipeCategory<?> category : this.categories)
+        if (!subscribed)
         {
-            addJobBasedRecipes(vanilla, animals, category, registration::addRecipes, level);
+            // check required because Minecolonies event bus doesn't support unsubscribe, unlike NeoForge.
+            // assumes that JEI re-uses this instance instead of creating fresh ones on reload/reconnect.
+            IMinecoloniesAPI.getInstance().getEventBus().subscribe(CustomRecipesReloadedEvent.class, this::onRecipesLoaded);
+            subscribed = true;
+        }
+
+        registration.addIngredientInfo(ModBlocks.blockHutComposter,
+                Component.translatableEscape(TranslationConstants.PARTIAL_JEI_INFO + ModJobs.COMPOSTER_ID.getPath()));
+
+        // we actually populate the recipes in onRecipesLoaded, since that happens later
+    }
+
+    private void onRecipesLoaded(@NotNull final CustomRecipesReloadedEvent event)
+    {
+        this.recipesLoaded = true;
+
+        if (this.jei != null)
+        {
+            // defer recipe loading until after the compatibility manager is populated, because they use it
+            final IRecipeManager recipeManager = this.jei.getRecipeManager();
+            recipeManager.addRecipes(ModRecipeTypes.COMPOSTING, CompostRecipeCategory.findRecipes());
+            recipeManager.addRecipes(ModRecipeTypes.FLOWERS, FloristRecipeCategory.findRecipes());
+
+            recipeManager.addRecipes(ModRecipeTypes.TOOLS, ToolRecipeCategory.findRecipes(Minecraft.getInstance().level));
+            recipeManager.addRecipes(ModRecipeTypes.CROPS, CropRecipeCategory.findRecipes());
+            recipeManager.addRecipes(ModRecipeTypes.FISHING, FishermanRecipeCategory.findRecipes());
+
+            final ClientLevel level = Objects.requireNonNull(Minecraft.getInstance().level);
+            final Map<CraftingType, List<IGenericRecipe>> vanilla = RecipeAnalyzer.buildVanillaRecipesMap(level.getRecipeManager(), level);
+            final List<Animal> animals = RecipeAnalyzer.createAnimals(level);
+
+            for (final JobBasedRecipeCategory<?> category : this.categories)
+            {
+                addJobBasedRecipes(vanilla, animals, category, recipeManager::addRecipes, level);
+            }
         }
     }
 
-    private <R> void addJobBasedRecipes(
-        @NotNull final Map<CraftingType, List<IGenericRecipe>> vanilla,
-        @NotNull final List<Animal> animals,
-        @NotNull final JobBasedRecipeCategory<R> category,
-        @NotNull final BiConsumer<RecipeType<R>, List<R>> registrar,
-        @NotNull final Level world)
+    private <R> void addJobBasedRecipes(@NotNull final Map<CraftingType, List<IGenericRecipe>> vanilla,
+                                        @NotNull final List<Animal> animals,
+                                        @NotNull final JobBasedRecipeCategory<R> category,
+                                        @NotNull final BiConsumer<RecipeType<R>, List<R>> registrar,
+                                        @NotNull final Level world)
     {
         try
         {
@@ -200,10 +227,10 @@ public class JEIPlugin implements IModPlugin
     @Override
     public void registerRecipeCatalysts(@NotNull final IRecipeCatalystRegistration registration)
     {
-        registration.addRecipeCatalyst(new ItemStack(ModBlocks.blockBarrel), ModRecipeTypes.COMPOSTING);
-        registration.addRecipeCatalyst(new ItemStack(ModBlocks.blockHutComposter), ModRecipeTypes.COMPOSTING);
-        registration.addRecipeCatalyst(new ItemStack(ModBlocks.blockHutFisherman), ModRecipeTypes.FISHING);
-        registration.addRecipeCatalyst(new ItemStack(ModBlocks.blockHutFlorist), ModRecipeTypes.FLOWERS);
+        registration.addRecipeCatalyst(ModBlocks.blockBarrel, ModRecipeTypes.COMPOSTING);
+        registration.addRecipeCatalyst(ModBlocks.blockHutComposter, ModRecipeTypes.COMPOSTING);
+        registration.addRecipeCatalyst(ModBlocks.blockHutFisherman, ModRecipeTypes.FISHING);
+        registration.addRecipeCatalyst(ModBlocks.blockHutFlorist, ModRecipeTypes.FLOWERS);
 
         for (final JobBasedRecipeCategory<?> category : this.categories)
         {
@@ -231,11 +258,17 @@ public class JEIPlugin implements IModPlugin
     public void onRuntimeAvailable(@NotNull final IJeiRuntime jeiRuntime)
     {
         this.jei = jeiRuntime;
+
+        if (this.recipesLoaded)
+        {
+            onRecipesLoaded(new CustomRecipesReloadedEvent());
+        }
     }
 
     @Override
     public void onRuntimeUnavailable()
     {
         this.jei = null;
+        this.recipesLoaded = false;
     }
 }

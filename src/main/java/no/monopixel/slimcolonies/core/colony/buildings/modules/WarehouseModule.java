@@ -2,8 +2,9 @@ package no.monopixel.slimcolonies.core.colony.buildings.modules;
 
 import no.monopixel.slimcolonies.api.colony.buildings.modules.AbstractBuildingModule;
 import no.monopixel.slimcolonies.api.colony.buildings.modules.IPersistentModule;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -30,19 +31,19 @@ public class WarehouseModule extends AbstractBuildingModule implements IPersiste
     }
 
     @Override
-    public void deserializeNBT(final CompoundTag compound)
+    public void deserializeNBT(@NotNull final HolderLookup.Provider provider, final CompoundTag compound)
     {
         storageUpgrade = compound.getInt(TAG_STORAGE);
     }
 
     @Override
-    public void serializeNBT(final CompoundTag compound)
+    public void serializeNBT(@NotNull final HolderLookup.Provider provider, CompoundTag compound)
     {
         compound.putInt(TAG_STORAGE, storageUpgrade);
     }
 
     @Override
-    public void serializeToView(@NotNull final FriendlyByteBuf buf)
+    public void serializeToView(@NotNull final RegistryFriendlyByteBuf buf)
     {
         buf.writeInt(storageUpgrade);
     }

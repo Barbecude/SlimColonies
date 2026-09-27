@@ -1,5 +1,10 @@
 package no.monopixel.slimcolonies.api.util.constant;
 
+import net.minecraft.resources.ResourceLocation;
+import java.util.UUID;
+
+import static no.monopixel.slimcolonies.api.colony.ICitizenData.MAX_SATURATION;
+
 /**
  * Constants regarding citizens.
  */
@@ -48,7 +53,7 @@ public final class CitizenConstants
     /**
      * Full saturation amount.
      */
-    public static final double FULL_SATURATION = 20;
+    public static final double FULL_SATURATION = MAX_SATURATION;
 
     /**
      * Number of ticks to heal the citizens.
@@ -58,12 +63,7 @@ public final class CitizenConstants
     /**
      * Number of ticks to decrease saturation after.
      */
-    public static final int SATURATION_DECREASE_AFTER = 20 * 300;
-
-    /**
-     * Amount of saturation to decrease each time.
-     */
-    public static final double SATURATION_DECREASE_AMOUNT = 1.0;
+    public static final int SATURATION_DECREASE_AFTER = 20 * 60;
 
     /**
      * The delta yaw value for looking at things.
@@ -137,7 +137,7 @@ public final class CitizenConstants
     /**
      * Big multiplier in extreme saturation situations.
      */
-    public static final double BIG_SATURATION_FACTOR      = 0.05;
+    public static final double BIG_SATURATION_FACTOR      = 0.2;
     /**
      * Decrease by this * buildingLevel each new night.
      */
@@ -186,27 +186,28 @@ public final class CitizenConstants
     /**
      * The Guard Building health modifier Name
      */
-    public static final String GUARD_HEALTH_MOD_BUILDING_NAME = "SlimColoniesGuardBuildingHP";
+    public static final ResourceLocation GUARD_HEALTH_MOD_BUILDING_NAME = new ResourceLocation(Constants.MOD_ID, "guardbuildinghp");
 
     /**
      * The Research health modifier name.
      */
-    public static final String RESEARCH_BONUS_MULTIPLIER = "ResearchSpeedBonus";
+    public static final ResourceLocation RESEARCH_BONUS_MULTIPLIER = new ResourceLocation(Constants.MOD_ID, "researchspeedbonus");
 
     /**
      * The addition skill bonus speed modifier
      */
-    public static final String SKILL_BONUS_ADD = "SkillSpeedBonus";
+    public static final UUID SKILL_BONUS_ADD = UUID.fromString("e44226c1-dac3-441e-938e-3a94960f3675");
+    public static final ResourceLocation SKILL_BONUS_ADD_NAME = new ResourceLocation(Constants.MOD_ID, "skillspeedbonus");
 
     /**
      * The Config guard health modifier name
      */
-    public static final String GUARD_HEALTH_MOD_CONFIG_NAME = "SlimColoniesGuardConfigHP";
+    public static final ResourceLocation GUARD_HEALTH_MOD_CONFIG_NAME = new ResourceLocation(Constants.MOD_ID, "guardconfighp");
 
     /**
      * The guard's level based health bonus mod's name
      */
-    public static final String GUARD_HEALTH_MOD_LEVEL_NAME = "SlimColoniesGuardLevelHealth";
+    public static final ResourceLocation GUARD_HEALTH_MOD_LEVEL_NAME = new ResourceLocation(Constants.MOD_ID, "guardlevelhealth");
 
     /**
      * At this stack size or smaller the chance to dump is 50%.
@@ -219,12 +220,17 @@ public final class CitizenConstants
     public static final int CHANCE_TO_DUMP = 8;
 
     /**
-     * Injury tag,
+     * Disease tag,
      */
-    public static final String TAG_INJURY = "injury";
+    public static final String TAG_DISEASE = "disease";
 
     /**
-     * Injury immunity tag,
+     * Disease iod tag.
+     */
+    public static final String TAG_DISEASE_ID = "disease_id";
+
+    /**
+     * Disease immunity tag,
      */
     public static final String TAG_IMMUNITY = "immunity";
 
@@ -236,7 +242,7 @@ public final class CitizenConstants
     /**
      * Nighttime, point at which you can sleep.
      */
-    public static final int NIGHT = 18000;
+    public static final int NIGHT = 15000;
 
     /**
      * The minimum range to keep from the current building place.

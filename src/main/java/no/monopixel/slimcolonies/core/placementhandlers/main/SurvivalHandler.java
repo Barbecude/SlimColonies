@@ -1,28 +1,11 @@
 package no.monopixel.slimcolonies.core.placementhandlers.main;
 
+import com.ldtteam.structurize.api.RotationMirror;
 import com.ldtteam.structurize.blocks.interfaces.ILeveledBlueprintAnchorBlock;
 import com.ldtteam.structurize.blueprints.v1.Blueprint;
 import com.ldtteam.structurize.storage.ISurvivalBlueprintHandler;
 import com.ldtteam.structurize.storage.StructurePacks;
-import com.ldtteam.structurize.util.PlacementSettings;
-import com.ldtteam.structurize.util.RotationMirror;
-import net.minecraft.client.multiplayer.ClientLevel;
-import net.minecraft.core.BlockPos;
-import net.minecraft.nbt.CompoundTag;
-import net.minecraft.network.chat.Component;
-import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.level.Level;
-import net.minecraft.world.level.block.Mirror;
-import net.minecraft.world.level.block.state.BlockState;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.api.distmarker.OnlyIn;
-import net.minecraftforge.common.MinecraftForge;
-import net.minecraftforge.common.util.BlockSnapshot;
-import net.minecraftforge.event.level.BlockEvent;
-import net.minecraftforge.items.wrapper.InvWrapper;
-import no.monopixel.slimcolonies.api.ISlimColoniesAPI;
+import no.monopixel.slimcolonies.api.IMinecoloniesAPI;
 import no.monopixel.slimcolonies.api.advancements.AdvancementTriggers;
 import no.monopixel.slimcolonies.api.blocks.AbstractBlockHut;
 import no.monopixel.slimcolonies.api.blocks.ModBlocks;
@@ -32,24 +15,38 @@ import no.monopixel.slimcolonies.api.colony.IColonyView;
 import no.monopixel.slimcolonies.api.colony.buildings.IBuilding;
 import no.monopixel.slimcolonies.api.colony.buildings.IRSComponent;
 import no.monopixel.slimcolonies.api.colony.permissions.Action;
+import no.monopixel.slimcolonies.api.items.component.ColonyId;
+import no.monopixel.slimcolonies.api.items.component.HutBlockData;
 import no.monopixel.slimcolonies.api.util.*;
 import no.monopixel.slimcolonies.api.util.constant.Constants;
-import no.monopixel.slimcolonies.core.Network;
 import no.monopixel.slimcolonies.core.blocks.huts.BlockHutTownHall;
 import no.monopixel.slimcolonies.core.entity.ai.workers.util.ConstructionTapeHelper;
 import no.monopixel.slimcolonies.core.event.EventHandler;
 import no.monopixel.slimcolonies.core.network.messages.client.OpenDecoBuildWindowMessage;
 import no.monopixel.slimcolonies.core.network.messages.client.OpenPlantationFieldBuildWindowMessage;
 import no.monopixel.slimcolonies.core.util.AdvancementUtils;
+import net.minecraft.client.multiplayer.ClientLevel;
+import net.minecraft.core.BlockPos;
+import net.minecraft.network.chat.Component;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.ChunkPos;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.state.BlockState;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.api.distmarker.OnlyIn;
+import net.neoforged.neoforge.common.NeoForge;
+import net.neoforged.neoforge.common.util.BlockSnapshot;
+import net.neoforged.neoforge.event.level.BlockEvent;
+import net.neoforged.neoforge.items.wrapper.InvWrapper;
 import org.jetbrains.annotations.Nullable;
 
-import static no.monopixel.slimcolonies.api.util.constant.NbtTagConstants.*;
 import static no.monopixel.slimcolonies.api.util.constant.TranslationConstants.*;
 
 /**
  * Minecolonies survival blueprint handler.
  */
-@SuppressWarnings("removal")
 public class SurvivalHandler implements ISurvivalBlueprintHandler
 {
 
@@ -62,14 +59,14 @@ public class SurvivalHandler implements ISurvivalBlueprintHandler
     @Override
     public Component getDisplayName()
     {
-        return Component.translatable("no.monopixel.slimcolonies.coremod.blueprint.placement");
+        return Component.translatableEscape("no.monopixel.slimcolonies.coremod.blueprint.placement");
     }
 
     @Override
     @OnlyIn(Dist.CLIENT)
-    public boolean canHandle(final Blueprint blueprint, final ClientLevel clientLevel, final Player player, final BlockPos blockPos, final PlacementSettings placementSettings)
+    public boolean canHandle(final Blueprint blueprint, final ClientLevel clientLevel, final Player player, final BlockPos blockPos, final RotationMirror rotMir)
     {
-        if (ISlimColoniesAPI.getInstance().getConfig().getServer().blueprintBuildMode.get())
+        if (IMinecoloniesAPI.getInstance().getConfig().getServer().blueprintBuildMode.get())
         {
             final IColonyView colonyView = IColonyManager.getInstance().getClosestColonyView(clientLevel, blockPos);
             return colonyView != null;
@@ -80,14 +77,14 @@ public class SurvivalHandler implements ISurvivalBlueprintHandler
 
     @Override
     public void handle(
-        final Blueprint blueprint,
-        final String packName,
-        final String blueprintPath,
-        final boolean clientPack,
-        final Level world,
-        final Player player,
-        final BlockPos blockPos,
-        final PlacementSettings placementSettings)
+      final Blueprint blueprint,
+      final String packName,
+      final String blueprintPath,
+      final boolean clientPack,
+      final Level world,
+      final Player player,
+      final BlockPos blockPos,
+      final RotationMirror rotMir)
     {
         if (blueprint == null)
         {
@@ -97,7 +94,7 @@ public class SurvivalHandler implements ISurvivalBlueprintHandler
             return;
         }
 
-        blueprint.setRotationMirror(RotationMirror.of(placementSettings.rotation, placementSettings.mirror == Mirror.NONE ? Mirror.NONE : Mirror.FRONT_BACK), world);
+        blueprint.setRotationMirror(rotMir, world);
         final BlockState anchor = blueprint.getBlockState(blueprint.getPrimaryBlockOffset());
 
         final IColony tempColony = IColonyManager.getInstance().getClosestColony(world, blockPos);
@@ -124,8 +121,7 @@ public class SurvivalHandler implements ISurvivalBlueprintHandler
             }
         }
 
-        // Only require anchor block to be in colony - building will claim chunks as needed
-        if (!isInColony && !successfulTownHallLocation)
+        if ((!isInColony || !isBlueprintInColony(blueprint, tempColony, blockPos)) && !successfulTownHallLocation)
         {
             MessageUtils.format(BP_OUTSIDE_COLONY).sendTo(player);
             SoundUtils.playErrorSound(player, player.blockPosition());
@@ -134,9 +130,7 @@ public class SurvivalHandler implements ISurvivalBlueprintHandler
 
         if (anchor.is(ModBlocks.blockPlantationField))
         {
-            Network.getNetwork()
-                .sendToPlayer(new OpenPlantationFieldBuildWindowMessage(blockPos, packName, blueprintPath, placementSettings.getRotation(), placementSettings.mirror),
-                    (ServerPlayer) player);
+            new OpenPlantationFieldBuildWindowMessage(blockPos, packName, blueprintPath, rotMir).sendToPlayer((ServerPlayer) player);
         }
         if (anchor.getBlock() instanceof AbstractBlockHut<?> anchorBlock)
         {
@@ -158,10 +152,11 @@ public class SurvivalHandler implements ISurvivalBlueprintHandler
                 }
 
                 final ItemStack inventoryStack = slot == -1 ? stack : player.getInventory().getItem(slot);
-                final CompoundTag compound = inventoryStack.getTag();
-                if (compound != null && compound.contains(TAG_COLONY_ID) && tempColony != null && tempColony.getID() != compound.getInt(TAG_COLONY_ID))
+
+                final ColonyId colonyComponent = ColonyId.readFromItemStack(stack);
+                if (colonyComponent.hasColonyId() && tempColony != null && tempColony.getID() != colonyComponent.id())
                 {
-                    MessageUtils.format(WRONG_COLONY, compound.getInt(TAG_COLONY_ID)).sendTo(player);
+                    MessageUtils.format(WRONG_COLONY, colonyComponent.id()).sendTo(player);
                     SoundUtils.playErrorSound(player, player.blockPosition());
                     return;
                 }
@@ -169,53 +164,54 @@ public class SurvivalHandler implements ISurvivalBlueprintHandler
                 world.destroyBlock(blockPos, true);
                 world.setBlockAndUpdate(blockPos, anchor);
                 anchorBlock.onBlockPlacedByBuildTool(world,
-                    blockPos,
-                    anchor,
-                    player,
-                    null,
-                    placementSettings.getMirror() != Mirror.NONE,
-                    packName,
-                    blueprintPath);
+                  blockPos,
+                  anchor,
+                  player,
+                  null,
+                  rotMir,
+                  packName,
+                  blueprintPath);
                 try
                 {
-                    MinecraftForge.EVENT_BUS.post(new BlockEvent.EntityPlaceEvent(BlockSnapshot.create(world.dimension(), world, blockPos),
-                        world.getBlockState(blockPos.below()),
-                        player));
+                    NeoForge.EVENT_BUS.post(new BlockEvent.EntityPlaceEvent(BlockSnapshot.create(world.dimension(), world, blockPos), world.getBlockState(blockPos.below()), player));
                 }
                 catch (final Exception e)
                 {
                     Log.getLogger().error("Error during EntityPlaceEvent", e);
                 }
-                InventoryUtils.reduceStackInItemHandler(new InvWrapper(player.getInventory()), inventoryStack, 1);
 
                 if (tempColony == null)
                 {
                     // Townhall Placement
                     SoundUtils.playSuccessSound(player, player.blockPosition());
-                    AdvancementTriggers.PLACE_STRUCTURE.trigger((ServerPlayer) player, anchorBlock.getBlueprintName());
+                    InventoryUtils.reduceStackInItemHandler(new InvWrapper(player.getInventory()), inventoryStack, 1);
+                    AdvancementTriggers.PLACE_STRUCTURE.get().trigger((ServerPlayer) player, anchorBlock.getBlueprintName());
                     return;
                 }
 
-                AdvancementUtils.TriggerAdvancementPlayersForColony(tempColony, playerMP -> AdvancementTriggers.PLACE_STRUCTURE.trigger(playerMP, anchorBlock.getBlueprintName()));
+                AdvancementUtils.TriggerAdvancementPlayersForColony(tempColony, playerMP -> AdvancementTriggers.PLACE_STRUCTURE.get().trigger(playerMP, anchorBlock.getBlueprintName()));
 
                 int level = 0;
                 boolean finishedUpgrade = false;
-                if (compound != null)
+                final HutBlockData hutComponent = HutBlockData.readFromItemStack(inventoryStack);
+                if (hutComponent != null)
                 {
-                    if (compound.contains(TAG_OTHER_LEVEL))
+                    if (hutComponent.level() != -1)
                     {
-                        level = compound.getInt(TAG_OTHER_LEVEL);
+                        level = hutComponent.level();
                     }
-                    if (compound.contains(TAG_PASTEABLE))
+                    if (hutComponent.pastable())
                     {
                         String newBlueprintPath = blueprintPath;
                         newBlueprintPath = newBlueprintPath.substring(0, newBlueprintPath.length() - 1);
                         newBlueprintPath += level;
-                        CreativeBuildingStructureHandler.loadAndPlaceStructureWithRotation(player.level, StructurePacks.getBlueprintFuture(packName, newBlueprintPath),
-                            blockPos, placementSettings.getRotation(), placementSettings.getMirror() != Mirror.NONE ? Mirror.FRONT_BACK : Mirror.NONE, true, (ServerPlayer) player);
+                        CreativeBuildingStructureHandler.loadAndPlaceStructureWithRotation(player.level(), StructurePacks.getBlueprintFuture(packName, newBlueprintPath, world.registryAccess()),
+                          blockPos, rotMir, true, (ServerPlayer) player);
                         finishedUpgrade = true;
                     }
                 }
+
+                InventoryUtils.reduceStackInItemHandler(new InvWrapper(player.getInventory()), inventoryStack, 1);
 
                 @Nullable final IBuilding building = IColonyManager.getInstance().getBuilding(world, blockPos);
                 if (building == null)
@@ -256,11 +252,11 @@ public class SurvivalHandler implements ISurvivalBlueprintHandler
                         ConstructionTapeHelper.placeConstructionTape(building.getCorners(), building.getColony());
                     }
 
-                    building.setIsMirrored(placementSettings.mirror != Mirror.NONE);
+                    building.setRotationMirror(rotMir);
 
                     if (finishedUpgrade)
                     {
-                        building.onUpgradeComplete(building.getBuildingLevel());
+                        building.onUpgradeComplete(blueprint, building.getBuildingLevel());
                     }
                 }
             }
@@ -273,28 +269,57 @@ public class SurvivalHandler implements ISurvivalBlueprintHandler
                 int level = Utils.getBlueprintLevel(blueprint.getFileName());
                 if (level == -1)
                 {
-                    Network.getNetwork()
-                        .sendToPlayer(new OpenDecoBuildWindowMessage(blockPos, packName, blueprintPath, placementSettings.getRotation(), placementSettings.mirror),
-                            (ServerPlayer) player);
+                    new OpenDecoBuildWindowMessage(blockPos, packName, blueprintPath, rotMir).sendToPlayer((ServerPlayer) player);
                 }
                 else
                 {
-                    Network.getNetwork()
-                        .sendToPlayer(new OpenDecoBuildWindowMessage(blockPos,
-                            packName,
-                            blueprintPath.replace(level + ".blueprint", "1.blueprint"),
-                            placementSettings.getRotation(),
-                            placementSettings.mirror), (ServerPlayer) player);
+                    new OpenDecoBuildWindowMessage(blockPos, packName, blueprintPath.replace(level + ".blueprint", "1.blueprint"), rotMir).sendToPlayer((ServerPlayer) player);
                 }
             }
             else
             {
-                Network.getNetwork()
-                    .sendToPlayer(new OpenDecoBuildWindowMessage(blockPos, packName, blueprintPath, placementSettings.getRotation(), placementSettings.mirror),
-                        (ServerPlayer) player);
+                new OpenDecoBuildWindowMessage(blockPos, packName, blueprintPath, rotMir).sendToPlayer((ServerPlayer) player);
             }
         }
 
         Log.getLogger().warn("Handling Survival Placement in Colony");
+    }
+
+    /**
+     * Check if the blueprint is fully inside colony boundaries.
+     * @param blueprint the blueprint to check.
+     * @param colony the colony to check for.
+     * @param blockPos the position to check at.
+     * @return true if so.
+     */
+    private boolean isBlueprintInColony(final Blueprint blueprint, final IColony colony, final BlockPos blockPos)
+    {
+        final Level world = colony.getWorld();
+        final BlockPos zeroPos = blockPos.subtract(blueprint.getPrimaryBlockOffset());
+
+        final BlockPos pos1 = new BlockPos(zeroPos.getX(), zeroPos.getY(), zeroPos.getZ());
+        final BlockPos pos2 = new BlockPos(zeroPos.getX() + blueprint.getSizeX() - 1, zeroPos.getY() + blueprint.getSizeY() - 1, zeroPos.getZ() + blueprint.getSizeZ() - 1);
+
+        final int minX = Math.min(pos1.getX(), pos2.getX()) + 1;
+        final int maxX = Math.max(pos1.getX(), pos2.getX());
+
+        final int minZ = Math.min(pos1.getZ(), pos2.getZ()) + 1;
+        final int maxZ = Math.max(pos1.getZ(), pos2.getZ());
+
+        for (int x = minX; x < maxX; x += 16)
+        {
+            for (int z = minZ; z < maxZ; z += 16)
+            {
+                final int chunkX = x >> 4;
+                final int chunkZ = z >> 4;
+                final ChunkPos pos = new ChunkPos(chunkX, chunkZ);
+
+                if (ColonyUtils.getOwningColony(world.getChunk(pos.x, pos.z)) != colony.getID())
+                {
+                    return false;
+                }
+            }
+        }
+        return true;
     }
 }

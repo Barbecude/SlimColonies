@@ -4,11 +4,13 @@
   "inputs": [
     {
       "count": 2,
-      "item": "minecraft:cobbled_deepslate"
+      "id": "minecraft:cobbled_deepslate"
     }
   ],
   "intermediate": "minecraft:air",
   "not-research-id": "slimcolonies:effects/crushing11unlock",
   "research-id": "slimcolonies:effects/knowledgeofthedepthsunlock",
-  "result": "minecraft:tuff"
+  "result": {
+    "id": "minecraft:tuff"
+  }
 }

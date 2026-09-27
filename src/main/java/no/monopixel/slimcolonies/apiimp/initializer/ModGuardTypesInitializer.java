@@ -5,16 +5,15 @@ import no.monopixel.slimcolonies.api.colony.guardtype.registry.ModGuardTypes;
 import no.monopixel.slimcolonies.api.colony.jobs.ModJobs;
 import no.monopixel.slimcolonies.api.entity.citizen.Skill;
 import no.monopixel.slimcolonies.api.util.constant.Constants;
-import no.monopixel.slimcolonies.core.colony.jobs.JobKnight;
-import no.monopixel.slimcolonies.core.colony.jobs.JobRanger;
-import net.minecraft.resources.ResourceLocation;
-import net.minecraftforge.registries.DeferredRegister;
+import no.monopixel.slimcolonies.apiimp.CommonMinecoloniesAPIImpl;
+import no.monopixel.slimcolonies.core.colony.jobs.guard.*;
+import net.neoforged.neoforge.registries.DeferredRegister;
 
 import static no.monopixel.slimcolonies.api.util.constant.translation.JobTranslationConstants.*;
 
 public final class ModGuardTypesInitializer
 {
-    public final static DeferredRegister<GuardType> DEFERRED_REGISTER = DeferredRegister.create(ResourceLocation.fromNamespaceAndPath(Constants.MOD_ID, "guardtypes"), Constants.MOD_ID);
+    public final static DeferredRegister<GuardType> DEFERRED_REGISTER = DeferredRegister.create(CommonMinecoloniesAPIImpl.GUARD_TYPES, Constants.MOD_ID);
 
     private ModGuardTypesInitializer()
     {
@@ -24,25 +23,69 @@ public final class ModGuardTypesInitializer
     static
     {
         ModGuardTypes.knight = DEFERRED_REGISTER.register(ModGuardTypes.KNIGHT_ID.getPath(), () -> new GuardType.Builder()
-                                 .setJobTranslationKey(JOB_KNIGHT)
-                                 .setButtonTranslationKey(JOB_KNIGHT_BUTTON)
+            .setJobTranslationKey(JOB_KNIGHT)
+            .setButtonTranslationKey(JOB_KNIGHT_BUTTON)
+            .setPrimarySkill(Skill.Adaptability)
+            .setSecondarySkill(Skill.Stamina)
+            .setWorkerSoundName("knight")
+            .setJobEntry(() -> ModJobs.knight.get())
+            .setRegistryName(ModGuardTypes.KNIGHT_ID)
+            .setClazz(JobKnight.class)
+            .createGuardType());
+
+        ModGuardTypes.ranger = DEFERRED_REGISTER.register(ModGuardTypes.RANGER_ID.getPath(), () -> new GuardType.Builder()
+            .setJobTranslationKey(JOB_RANGER)
+            .setButtonTranslationKey(JOB_RANGER_BUTTON)
+            .setPrimarySkill(Skill.Agility)
+            .setSecondarySkill(Skill.Adaptability)
+            .setWorkerSoundName("archer")
+            .setJobEntry(() -> ModJobs.archer.get())
+            .setRegistryName(ModGuardTypes.RANGER_ID)
+            .setClazz(JobRanger.class)
+            .createGuardType());
+
+        ModGuardTypes.marksman = DEFERRED_REGISTER.register(ModGuardTypes.MARKSMAN_ID.getPath(), () -> new GuardType.Builder()
+            .setJobTranslationKey(JOB_MARKSMAN)
+            .setButtonTranslationKey(JOB_MARKSMAN_BUTTON)
+            .setPrimarySkill(Skill.Agility)
+            .setSecondarySkill(Skill.Adaptability)
+            .setWorkerSoundName("archer")
+            .setJobEntry(() -> ModJobs.marksman.get())
+            .setRegistryName(ModGuardTypes.MARKSMAN_ID)
+            .setClazz(JobMarksman.class)
+            .createGuardType());
+
+        ModGuardTypes.huscarl = DEFERRED_REGISTER.register(ModGuardTypes.HUSCARL_ID.getPath(), () -> new GuardType.Builder()
+            .setJobTranslationKey(JOB_HUSCARL)
+            .setButtonTranslationKey(JOB_HUSCARL_BUTTON)
+            .setPrimarySkill(Skill.Adaptability)
+            .setSecondarySkill(Skill.Stamina)
+            .setWorkerSoundName("knight")
+            .setJobEntry(() -> ModJobs.huscarl.get())
+            .setRegistryName(ModGuardTypes.HUSCARL_ID)
+            .setClazz(JobHuscarl.class)
+            .createGuardType());
+
+        ModGuardTypes.druid = DEFERRED_REGISTER.register(ModGuardTypes.DRUID_ID.getPath(), () -> new GuardType.Builder()
+          .setJobTranslationKey(JOB_DRUID)
+          .setButtonTranslationKey(JOB_DRUID_BUTTON)
+          .setPrimarySkill(Skill.Mana)
+          .setSecondarySkill(Skill.Focus)
+          .setWorkerSoundName("druid")
+          .setJobEntry(() -> ModJobs.druid.get())
+          .setRegistryName(ModGuardTypes.DRUID_ID)
+          .setClazz(JobDruid.class)
+          .createGuardType());
+
+        ModGuardTypes.cavalry = DEFERRED_REGISTER.register(ModGuardTypes.CAVALRY_ID.getPath(), () -> new GuardType.Builder()
+                                 .setJobTranslationKey(JOB_CAVALRY)
+                                 .setButtonTranslationKey(JOB_CAVALRY_BUTTON)
                                  .setPrimarySkill(Skill.Adaptability)
                                  .setSecondarySkill(Skill.Stamina)
                                  .setWorkerSoundName("archer")
-                                 .setJobEntry(() -> ModJobs.knight.get())
-                                 .setRegistryName(ModGuardTypes.KNIGHT_ID)
-                                 .setClazz(JobKnight.class)
-                                 .createGuardType());
-
-        ModGuardTypes.ranger = DEFERRED_REGISTER.register(ModGuardTypes.RANGER_ID.getPath(), () -> new GuardType.Builder()
-                                 .setJobTranslationKey(JOB_RANGER)
-                                 .setButtonTranslationKey(JOB_RANGER_BUTTON)
-                                 .setPrimarySkill(Skill.Agility)
-                                 .setSecondarySkill(Skill.Adaptability)
-                                 .setWorkerSoundName("archer")
-                                 .setJobEntry(() -> ModJobs.archer.get())
-                                 .setRegistryName(ModGuardTypes.RANGER_ID)
-                                 .setClazz(JobRanger.class)
+                                 .setJobEntry(() -> ModJobs.cavalry.get())
+                                 .setRegistryName(ModGuardTypes.CAVALRY_ID)
+                                 .setClazz(JobCavalry.class)
                                  .createGuardType());
 
     }

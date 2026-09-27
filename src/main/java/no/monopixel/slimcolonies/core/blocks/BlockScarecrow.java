@@ -1,13 +1,26 @@
 package no.monopixel.slimcolonies.core.blocks;
 
+import no.monopixel.slimcolonies.api.blocks.huts.AbstractBlockMinecoloniesDefault;
+import no.monopixel.slimcolonies.api.blocks.interfaces.IBuildingBrowsableBlock;
+import no.monopixel.slimcolonies.api.colony.IColony;
+import no.monopixel.slimcolonies.api.colony.IColonyManager;
+import no.monopixel.slimcolonies.api.colony.buildingextensions.registry.BuildingExtensionRegistries;
+import no.monopixel.slimcolonies.api.util.InventoryUtils;
+import no.monopixel.slimcolonies.api.util.constant.Constants;
+import no.monopixel.slimcolonies.core.client.gui.containers.WindowField;
+import no.monopixel.slimcolonies.core.colony.buildingextensions.FarmField;
+import no.monopixel.slimcolonies.core.tileentities.TileEntityScarecrow;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.InteractionHand;
-import net.minecraft.world.InteractionResult;
+import net.minecraft.world.ItemInteractionResult;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.Explosion;
@@ -18,32 +31,30 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.StateDefinition;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
+import net.minecraft.world.level.block.state.properties.BooleanProperty;
 import net.minecraft.world.level.block.state.properties.DoubleBlockHalf;
 import net.minecraft.world.level.block.state.properties.EnumProperty;
 import net.minecraft.world.level.material.MapColor;
+import net.minecraft.world.level.storage.loot.LootParams;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.shapes.CollisionContext;
 import net.minecraft.world.phys.shapes.Shapes;
 import net.minecraft.world.phys.shapes.VoxelShape;
-import no.monopixel.slimcolonies.api.blocks.huts.AbstractBlockSlimColoniesDefault;
-import no.monopixel.slimcolonies.api.blocks.interfaces.IBuildingBrowsableBlock;
-import no.monopixel.slimcolonies.api.colony.IColony;
-import no.monopixel.slimcolonies.api.colony.IColonyManager;
-import no.monopixel.slimcolonies.api.colony.buildingextensions.registry.BuildingExtensionRegistries;
-import no.monopixel.slimcolonies.api.util.constant.Constants;
-import no.monopixel.slimcolonies.core.client.gui.containers.WindowField;
-import no.monopixel.slimcolonies.core.colony.buildingextensions.FarmField;
-import no.monopixel.slimcolonies.core.tileentities.TileEntityScarecrow;
+import net.neoforged.neoforge.items.wrapper.InvWrapper;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+
+import java.util.List;
 
 /**
  * The net.minecraft.core.Directions, placement and activation.
  */
 @SuppressWarnings("PMD.ExcessiveImports")
-public class BlockScarecrow extends AbstractBlockSlimColoniesDefault<BlockScarecrow> implements EntityBlock, IBuildingBrowsableBlock
+public class BlockScarecrow extends AbstractBlockMinecoloniesDefault<BlockScarecrow> implements EntityBlock, IBuildingBrowsableBlock
 {
     public static final EnumProperty<DoubleBlockHalf> HALF = BlockStateProperties.DOUBLE_BLOCK_HALF;
+
+    public static final BooleanProperty LANTERN = BooleanProperty.create("lantern");
 
     /**
      * Constructor called on block placement.
@@ -51,13 +62,19 @@ public class BlockScarecrow extends AbstractBlockSlimColoniesDefault<BlockScarec
     public BlockScarecrow()
     {
         super(Properties.of().mapColor(MapColor.WOOD).sound(SoundType.WOOD).strength(HARDNESS, RESISTANCE));
-        this.registerDefaultState(this.defaultBlockState().setValue(FACING, Direction.NORTH).setValue(HALF, DoubleBlockHalf.LOWER));
+        this.registerDefaultState(this.defaultBlockState().setValue(FACING, Direction.NORTH).setValue(HALF, DoubleBlockHalf.LOWER).setValue(LANTERN, false));
     }
 
     @Override
     public ResourceLocation getRegistryName()
     {
-        return ResourceLocation.fromNamespaceAndPath(Constants.MOD_ID, REGISTRY_NAME);
+        return new ResourceLocation(Constants.MOD_ID, REGISTRY_NAME);
+    }
+
+    @Override
+    public int getLightEmission(final BlockState state, final BlockGetter level, final BlockPos pos)
+    {
+        return state.getValue(LANTERN) ? Blocks.LANTERN.defaultBlockState().getLightEmission(level, pos) : 0;
     }
 
     @Nullable
@@ -72,7 +89,8 @@ public class BlockScarecrow extends AbstractBlockSlimColoniesDefault<BlockScarec
     }
 
     @Override
-    public InteractionResult use(
+    public ItemInteractionResult useItemOn(
+        final ItemStack stack,
         final BlockState state,
         final Level worldIn,
         final BlockPos pos,
@@ -80,6 +98,14 @@ public class BlockScarecrow extends AbstractBlockSlimColoniesDefault<BlockScarec
         final InteractionHand hand,
         final BlockHitResult ray)
     {
+        if (player.getItemInHand(hand).is(Items.LANTERN) && !state.getValue(LANTERN))
+        {
+            worldIn.setBlock(pos, state.setValue(LANTERN, true), 3);
+            worldIn.playSound(player, pos, SoundEvents.LANTERN_PLACE, SoundSource.BLOCKS, 1.0F, 1.0F);
+            InventoryUtils.reduceStackInItemHandler(new InvWrapper(player.getInventory()), player.getItemInHand(hand));
+            return ItemInteractionResult.CONSUME_PARTIAL;
+        }
+
         // If the world is client, open the inventory of the field.
         if (worldIn.isClientSide)
         {
@@ -90,16 +116,21 @@ public class BlockScarecrow extends AbstractBlockSlimColoniesDefault<BlockScarec
             if (entity instanceof TileEntityScarecrow scarecrow)
             {
                 new WindowField(scarecrow).open();
-                return InteractionResult.SUCCESS;
+                return ItemInteractionResult.SUCCESS;
             }
             else
             {
-                return InteractionResult.FAIL;
+                return ItemInteractionResult.FAIL;
             }
         }
 
+        final IColony iColony = IColonyManager.getInstance().getIColony(worldIn, pos);
+        if (iColony != null)
+        {
+            iColony.getServerBuildingManager().addBuildingExtensionIfMissing(BuildingExtensionRegistries.farmField.get(), getFieldBasePos(state, pos), player);
+        }
         // This must succeed in Remote to stop more right click interactions like placing blocks
-        return InteractionResult.SUCCESS;
+        return ItemInteractionResult.SUCCESS;
     }
 
     @NotNull
@@ -126,18 +157,46 @@ public class BlockScarecrow extends AbstractBlockSlimColoniesDefault<BlockScarec
 
     @Override
     public VoxelShape getShape(
-        final BlockState state, final BlockGetter worldIn, final BlockPos pos, final CollisionContext context)
+      final BlockState state, final BlockGetter worldIn, final BlockPos pos, final CollisionContext context)
     {
         // Force the different halves to share the same collision space;
         // the user will think it is one big block
         return Shapes.box(
-            (float) START_COLLISION,
-            (float) (BOTTOM_COLLISION - (state.getValue(HALF) == DoubleBlockHalf.UPPER ? 1 : 0)),
-            (float) START_COLLISION,
-            (float) END_COLLISION,
-            (float) (HEIGHT_COLLISION - (state.getValue(HALF) == DoubleBlockHalf.UPPER ? 1 : 0)),
-            (float) END_COLLISION
+          (float) START_COLLISION,
+          (float) (BOTTOM_COLLISION - (state.getValue(HALF) == DoubleBlockHalf.UPPER ? 1 : 0)),
+          (float) START_COLLISION,
+          (float) END_COLLISION,
+          (float) (HEIGHT_COLLISION - (state.getValue(HALF) == DoubleBlockHalf.UPPER ? 1 : 0)),
+          (float) END_COLLISION
         );
+    }
+
+    @Override
+    public void neighborChanged(final BlockState state, final Level worldIn, final BlockPos pos, final Block block, final BlockPos fromPos, final boolean isMoving)
+    {
+        super.neighborChanged(state, worldIn, pos, block, fromPos, isMoving);
+        final DoubleBlockHalf half = state.getValue(HALF);
+        final BlockPos otherPos = half == DoubleBlockHalf.LOWER ? pos.above() : pos.below();
+        if (!fromPos.equals(otherPos))
+        {
+            return;
+        }
+        final BlockState otherState = worldIn.getBlockState(otherPos);
+        if (otherState.getBlock() == this && otherState.getValue(HALF) != half && otherState.getValue(LANTERN) != state.getValue(LANTERN))
+        {
+            worldIn.setBlock(pos, state.setValue(LANTERN, otherState.getValue(LANTERN)), UPDATE_ALL);
+        }
+    }
+
+    @Override
+    public List<ItemStack> getDrops(final BlockState state, final LootParams.Builder params)
+    {
+        final List<ItemStack> drops = super.getDrops(state, params);
+        if (state.getValue(HALF) == DoubleBlockHalf.LOWER && state.getValue(LANTERN))
+        {
+            drops.add(new ItemStack(Items.LANTERN));
+        }
+        return drops;
     }
 
     @Override
@@ -177,12 +236,12 @@ public class BlockScarecrow extends AbstractBlockSlimColoniesDefault<BlockScarec
         final IColony colony = IColonyManager.getInstance().getColonyByPosFromWorld(worldIn, pos);
         if (colony != null)
         {
-            colony.getBuildingManager().addBuildingExtension(FarmField.create(pos));
+            colony.getServerBuildingManager().addBuildingExtension(FarmField.create(pos, worldIn));
         }
     }
 
     @Override
-    public void playerWillDestroy(final Level worldIn, @NotNull final BlockPos pos, final BlockState state, @NotNull final Player player)
+    public BlockState playerWillDestroy(final Level worldIn, @NotNull final BlockPos pos, final BlockState state, @NotNull final Player player)
     {
         DoubleBlockHalf half = state.getValue(HALF);
         BlockPos otherpos = half == DoubleBlockHalf.LOWER ? pos.above() : pos.below();
@@ -196,13 +255,27 @@ public class BlockScarecrow extends AbstractBlockSlimColoniesDefault<BlockScarec
         }
 
         notifyColonyAboutDestruction(worldIn, pos);
-        super.playerWillDestroy(worldIn, pos, state, player);
+        return super.playerWillDestroy(worldIn, pos, state, player);
     }
 
     @Override
     protected void createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> builder)
     {
-        builder.add(HALF, FACING);
+        builder.add(HALF, FACING, LANTERN);
+    }
+
+    @Override
+    @NotNull
+    protected  BlockState rotate(BlockState state, Rotation rot)
+    {
+        return state.setValue(FACING, rot.rotate(state.getValue(FACING)));
+    }
+
+    @Override
+    @NotNull
+    protected BlockState mirror(BlockState state, Mirror mirror)
+    {
+        return state.rotate(mirror.getRotation(state.getValue(FACING)));
     }
 
     /**
@@ -215,12 +288,24 @@ public class BlockScarecrow extends AbstractBlockSlimColoniesDefault<BlockScarec
     {
         if (!worldIn.isClientSide())
         {
-            final IColony colony = IColonyManager.getInstance().getColonyByPosFromWorld(worldIn, pos);
+            final BlockPos fieldBasePos = getFieldBasePos(worldIn.getBlockState(pos), pos);
+            final IColony colony = IColonyManager.getInstance().getColonyByPosFromWorld(worldIn, fieldBasePos);
             if (colony != null)
             {
-                colony.getBuildingManager()
-                    .removeBuildingExtension(field -> field.getBuildingExtensionType().equals(BuildingExtensionRegistries.farmField.get()) && field.getPosition().equals(pos));
+                colony.getServerBuildingManager().removeBuildingExtension(field -> field.getBuildingExtensionType().equals(BuildingExtensionRegistries.farmField.get()) && field.getPosition().equals(fieldBasePos));
             }
         }
+    }
+
+    /**
+     * Resolve a scarecrow block position to the lower-half block that owns the field data.
+     *
+     * @param state the currently interacted scarecrow state.
+     * @param pos the currently interacted block position.
+     * @return the lower-half block position.
+     */
+    private static BlockPos getFieldBasePos(final BlockState state, final BlockPos pos)
+    {
+        return state.getValue(HALF) == DoubleBlockHalf.UPPER ? pos.below() : pos;
     }
 }

@@ -99,7 +99,7 @@ public class WorkManager implements IWorkManager
         {
             if (workOrder.isClaimed())
             {
-                final IBuilding building = colony.getBuildingManager().getBuilding(workOrder.getClaimedBy());
+                final IBuilding building = colony.getServerBuildingManager().getBuilding(workOrder.getClaimedBy());
                 if (building instanceof AbstractBuildingStructureBuilder abstractBuildingStructureBuilder)
                 {
                     abstractBuildingStructureBuilder.onWorkOrderCancellation(workOrder);
@@ -266,7 +266,7 @@ public class WorkManager implements IWorkManager
                 //  If this Work Order is claimed, and the Citizen who claimed it no longer exists
                 //  then clear the Claimed status
                 //  This is just a failsafe cleanup; this should not happen under normal circumstances
-                if (o.isClaimed() && colony.getBuildingManager().getBuilding(o.getClaimedBy()) == null)
+                if (o.isClaimed() && colony.getServerBuildingManager().getBuilding(o.getClaimedBy()) == null)
                 {
                     o.setClaimedBy(null);
                 }
@@ -316,17 +316,17 @@ public class WorkManager implements IWorkManager
         {
             if (order instanceof WorkOrderBuilding buildingOrder)
             {
-                final IBuilding building = colony.getBuildingManager().getBuilding(buildingOrder.getLocation());
+                final IBuilding building = colony.getServerBuildingManager().getBuilding(buildingOrder.getLocation());
                 if (building != null)
                 {
                     AdvancementUtils.TriggerAdvancementPlayersForColony(colony,
-                            player -> AdvancementTriggers.CREATE_BUILD_REQUEST.trigger(player, building.getBuildingType().getRegistryName().getPath(), level));
+                            player -> AdvancementTriggers.CREATE_BUILD_REQUEST.get().trigger(player, building.getSchematicName(), level));
                 }
             }
             else if (order instanceof WorkOrderDecoration)
             {
                 AdvancementUtils.TriggerAdvancementPlayersForColony(colony,
-                  player -> AdvancementTriggers.CREATE_BUILD_REQUEST.trigger(player, order.getFileName().replace(String.valueOf(level), ""), level));
+                  player -> AdvancementTriggers.CREATE_BUILD_REQUEST.get().trigger(player, order.getFileName().replace(String.valueOf(level), ""), level));
             }
         }
 
@@ -343,13 +343,12 @@ public class WorkManager implements IWorkManager
     private boolean isWorkOrderWithinColony(final IWorkOrder order)
     {
         final Level world = colony.getWorld();
-        final Blueprint blueprint = StructurePacks.getBlueprint(order.getStructurePack(), order.getStructurePath());
+        final Blueprint blueprint = StructurePacks.getBlueprint(order.getStructurePack(), order.getStructurePath(), world.registryAccess());
         final Tuple<BlockPos, BlockPos> corners
           = ColonyUtils.calculateCorners(order.getLocation(),
           world,
           blueprint,
-          order.getRotation(),
-          order.isMirrored());
+          order.getRotationMirror());
 
         Set<ChunkPos> chunks = new HashSet<>();
         final int minX = Math.min(corners.getA().getX(), corners.getB().getX()) + 1;
@@ -402,7 +401,7 @@ public class WorkManager implements IWorkManager
                 order.resetChange();
             }
 
-            if (order.isClaimed() && getColony().getBuildingManager().getBuildings().get(order.getClaimedBy()) == null)
+            if (order.isClaimed() && getColony().getServerBuildingManager().getBuildings().get(order.getClaimedBy()) == null)
             {
                 order.setClaimedBy(BlockPos.ZERO);
             }
@@ -423,7 +422,7 @@ public class WorkManager implements IWorkManager
      */
     private void tryAssignWorkOrder(final IServerWorkOrder order, @NotNull Predicate<IBuilding> predicate)
     {
-        for (IBuilding building : colony.getBuildingManager().getBuildings().values())
+        for (IBuilding building : colony.getServerBuildingManager().getBuildings().values())
         {
             if (building instanceof AbstractBuildingStructureBuilder abstractBuildingStructureBuilder)
             {

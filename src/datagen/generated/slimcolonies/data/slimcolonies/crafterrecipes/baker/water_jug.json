@@ -1,0 +1,13 @@
+{
+  "type": "recipe",
+  "crafter": "baker_crafting",
+  "inputs": [
+    {
+      "id": "slimcolonies:large_empty_bottle"
+    }
+  ],
+  "intermediate": "minecraft:air",
+  "result": {
+    "id": "slimcolonies:large_water_bottle"
+  }
+}

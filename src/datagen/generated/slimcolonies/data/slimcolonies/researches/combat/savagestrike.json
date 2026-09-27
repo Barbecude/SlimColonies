@@ -1,5 +1,11 @@
 {
   "branch": "slimcolonies:combat",
+  "costs": [
+    {
+      "count": 32,
+      "item": "minecraft:iron_block"
+    }
+  ],
   "effects": [
     {
       "id": "slimcolonies:effects/meleedamageaddition",

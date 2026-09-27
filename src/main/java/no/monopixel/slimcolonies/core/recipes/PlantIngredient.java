@@ -1,22 +1,20 @@
 package no.monopixel.slimcolonies.core.recipes;
 
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-import no.monopixel.slimcolonies.api.util.constant.Constants;
-import net.minecraft.world.level.block.CropBlock;
-import net.minecraft.world.level.block.StemBlock;
+import no.monopixel.slimcolonies.apiimp.initializer.ModIngredientTypeInitializer;
+import com.mojang.serialization.MapCodec;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.crafting.Ingredient;
-import net.minecraft.network.FriendlyByteBuf;
-import net.minecraft.resources.ResourceLocation;
-import net.minecraftforge.common.crafting.CraftingHelper;
-import net.minecraftforge.common.crafting.IIngredientSerializer;
-import net.minecraftforge.common.util.Lazy;
-import net.minecraftforge.registries.ForgeRegistries;
+import net.minecraft.world.level.block.CropBlock;
+import net.minecraft.world.level.block.StemBlock;
+import net.neoforged.neoforge.common.crafting.ICustomIngredient;
+import net.neoforged.neoforge.common.crafting.IngredientType;
+import net.neoforged.neoforge.common.util.Lazy;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
-import java.util.Objects;
+import java.util.List;
 import java.util.stream.Stream;
 
 /**
@@ -27,74 +25,57 @@ import java.util.stream.Stream;
  *     "type": "slimcolonies:plant"
  * }
  */
-public class PlantIngredient extends Ingredient
+public class PlantIngredient implements ICustomIngredient
 {
-    public static final ResourceLocation ID = ResourceLocation.fromNamespaceAndPath(Constants.MOD_ID, "plant");
+    private static final Lazy<PlantIngredient> INSTANCE = Lazy.of(PlantIngredient::new);
 
-    private static final Lazy<PlantIngredient> INSTANCE
-            = Lazy.of(() -> new PlantIngredient(ForgeRegistries.ITEMS.getValues().stream()
-                    .filter(item -> item instanceof BlockItem &&
-                        (((BlockItem) item).getBlock() instanceof CropBlock ||
-                         ((BlockItem) item).getBlock() instanceof StemBlock))
-                    .map(item -> new ItemValue(new ItemStack(item)))));
+    public static final MapCodec<PlantIngredient> CODEC = MapCodec.unit(INSTANCE);
 
-    protected PlantIngredient(final Stream<? extends Value> itemLists)
+    private final List<ItemStack> items;
+
+    private PlantIngredient()
     {
-        super(itemLists);
+        items = BuiltInRegistries.ITEM.stream()
+                .filter(item -> item instanceof final BlockItem block &&
+                        (block.getBlock() instanceof CropBlock || block.getBlock() instanceof StemBlock))
+                .map(ItemStack::new)
+                .toList();
     }
 
     @NotNull
-    public static PlantIngredient getInstance()
+    public static Ingredient of()
     {
-        return INSTANCE.get();
+        return INSTANCE.get().toVanilla();
+    }
+
+    @Override
+    public boolean test(@Nullable final ItemStack stack)
+    {
+        if (stack == null)
+        {
+            return false;
+        }
+
+        return getItems().anyMatch(s -> stack.is(s.getItem()));
     }
 
     @NotNull
     @Override
-    public JsonElement toJson()
+    public Stream<ItemStack> getItems()
     {
-        JsonObject json = new JsonObject();
-        Serializer.getInstance().write(json, this);
-        return json;
+        return items.stream();
+    }
+
+    @Override
+    public boolean isSimple()
+    {
+        return true;
     }
 
     @NotNull
     @Override
-    public IIngredientSerializer<? extends Ingredient> getSerializer()
+    public IngredientType<?> getType()
     {
-        return Serializer.getInstance();
-    }
-
-    public static class Serializer implements IIngredientSerializer<PlantIngredient>
-    {
-        private static final Serializer INSTANCE = new Serializer();
-
-        public static Serializer getInstance() { return INSTANCE; }
-
-        private Serializer() { }
-
-        @NotNull
-        @Override
-        public PlantIngredient parse(@NotNull final JsonObject json)
-        {
-            return PlantIngredient.getInstance();
-        }
-
-        public void write(@NotNull final JsonObject json, @NotNull final PlantIngredient ingredient)
-        {
-            json.addProperty("type", (Objects.requireNonNull(CraftingHelper.getID(this))).toString());
-        }
-
-        @NotNull
-        @Override
-        public PlantIngredient parse(@NotNull final FriendlyByteBuf buffer)
-        {
-            return PlantIngredient.getInstance();
-        }
-
-        @Override
-        public void write(@NotNull final FriendlyByteBuf buffer, @NotNull final PlantIngredient ingredient)
-        {
-        }
+        return ModIngredientTypeInitializer.PLANT_INGREDIENT_TYPE.get();
     }
 }

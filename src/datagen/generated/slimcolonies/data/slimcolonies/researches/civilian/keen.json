@@ -1,5 +1,11 @@
 {
   "branch": "slimcolonies:civilian",
+  "costs": [
+    {
+      "count": 3,
+      "item": "minecraft:book"
+    }
+  ],
   "effects": [
     {
       "id": "slimcolonies:effects/blockhutlibrary",

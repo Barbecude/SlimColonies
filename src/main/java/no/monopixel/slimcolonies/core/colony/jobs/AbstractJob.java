@@ -24,9 +24,11 @@ import no.monopixel.slimcolonies.core.colony.interactionhandling.RequestBasedInt
 import no.monopixel.slimcolonies.core.entity.ai.workers.AbstractAISkeleton;
 import no.monopixel.slimcolonies.core.entity.citizen.EntityCitizen;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.Tag;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.damagesource.DamageSource;
@@ -39,13 +41,15 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import static no.monopixel.slimcolonies.api.util.constant.NbtTagConstants.TAG_JOB_TYPE;
+import static no.monopixel.slimcolonies.api.util.constant.Suppression.CLASSES_SHOULD_NOT_ACCESS_STATIC_MEMBERS_OF_THEIR_OWN_SUBCLASSES_DURING_INITIALIZATION;
 
 /**
  * Basic job information.
  * <p>
+ * Suppressing Sonar Rule squid:S2390 This rule does "Classes should not access static members of their own subclasses during initialization" But in this case the rule does not
  * apply because We are only mapping classes and that is reasonable
  */
-
+@SuppressWarnings(CLASSES_SHOULD_NOT_ACCESS_STATIC_MEMBERS_OF_THEIR_OWN_SUBCLASSES_DURING_INITIALIZATION)
 public abstract class AbstractJob<AI extends AbstractAISkeleton<J> & ITickingStateAI, J extends AbstractJob<AI, J>> implements IJob<AI>
 {
     private static final String TAG_ASYNC_REQUESTS = "asyncRequests";
@@ -183,7 +187,7 @@ public abstract class AbstractJob<AI extends AbstractAISkeleton<J> & ITickingSta
     }
 
     @Override
-    public CompoundTag serializeNBT()
+    public CompoundTag serializeNBT(@NotNull final HolderLookup.Provider provider)
     {
         final CompoundTag compound = new CompoundTag();
 
@@ -191,7 +195,7 @@ public abstract class AbstractJob<AI extends AbstractAISkeleton<J> & ITickingSta
         compound.put(TAG_ASYNC_REQUESTS,
           getAsyncRequests().stream()
             .filter(token -> getColony().getRequestManager().getRequestForToken(token) != null)
-            .map(StandardFactoryController.getInstance()::serialize)
+            .map(s -> StandardFactoryController.getInstance().serializeTag(provider, s))
             .collect(NBTUtils.toListNBT()));
         compound.putInt(TAG_ACTIONS_DONE, actionsDone);
 
@@ -204,13 +208,13 @@ public abstract class AbstractJob<AI extends AbstractAISkeleton<J> & ITickingSta
     }
 
     @Override
-    public void deserializeNBT(final CompoundTag compound)
+    public void deserializeNBT(@NotNull final HolderLookup.Provider provider, final CompoundTag compound)
     {
         this.asyncRequests.clear();
         if (compound.contains(TAG_ASYNC_REQUESTS))
         {
             this.asyncRequests.addAll(NBTUtils.streamCompound(compound.getList(TAG_ASYNC_REQUESTS, Tag.TAG_COMPOUND))
-                                        .map(StandardFactoryController.getInstance()::deserialize)
+                                        .map(s -> StandardFactoryController.getInstance().deserializeTag(provider, s))
                                         .map(o -> (IToken<?>) o)
                                         .collect(Collectors.toSet()));
         }
@@ -226,7 +230,7 @@ public abstract class AbstractJob<AI extends AbstractAISkeleton<J> & ITickingSta
     }
 
     @Override
-    public void serializeToView(final FriendlyByteBuf buffer)
+    public void serializeToView(final RegistryFriendlyByteBuf buffer)
     {
         buffer.writeUtf(getJobRegistryEntry().getKey().toString());
         buffer.writeInt(getAsyncRequests().size());
@@ -234,7 +238,7 @@ public abstract class AbstractJob<AI extends AbstractAISkeleton<J> & ITickingSta
         {
             StandardFactoryController.getInstance().serialize(buffer, token);
         }
-        buffer.writeRegistryId(IJobRegistry.getInstance(), getJobRegistryEntry());
+        buffer.writeById(IJobRegistry.getInstance()::getIdOrThrow, getJobRegistryEntry());
     }
 
     /**
@@ -414,6 +418,11 @@ public abstract class AbstractJob<AI extends AbstractAISkeleton<J> & ITickingSta
         return true;
     }
 
+    @Override
+    public double getDiseaseModifier()
+    {
+        return 1;
+    }
 
     @Override
     public void onRemoval()

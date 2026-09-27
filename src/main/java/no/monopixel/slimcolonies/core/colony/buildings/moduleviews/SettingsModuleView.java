@@ -7,18 +7,23 @@ import no.monopixel.slimcolonies.api.colony.buildings.modules.settings.ISettingK
 import no.monopixel.slimcolonies.api.colony.buildings.modules.settings.ISettingsModuleView;
 import no.monopixel.slimcolonies.api.colony.requestsystem.StandardFactoryController;
 import no.monopixel.slimcolonies.api.util.constant.Constants;
-import no.monopixel.slimcolonies.core.Network;
-import no.monopixel.slimcolonies.core.client.gui.modules.SettingsModuleWindow;
+import no.monopixel.slimcolonies.core.client.gui.modules.building.SettingsModuleWindow;
 import no.monopixel.slimcolonies.core.colony.buildings.modules.settings.SettingKey;
 import no.monopixel.slimcolonies.core.network.messages.server.colony.building.TriggerSettingMessage;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.core.BlockPos;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.api.distmarker.OnlyIn;
+import net.minecraft.server.level.ServerPlayer;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.api.distmarker.OnlyIn;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Module containing all settings (client side).
@@ -28,10 +33,10 @@ public class SettingsModuleView extends AbstractBuildingModuleView implements IS
     /**
      * Map of setting id (string) to generic setting.
      */
-    final Map<ISettingKey<? extends ISetting>, ISetting> settings = new LinkedHashMap<>();
+    final Map<ISettingKey<?>, ISetting<?>> settings = new LinkedHashMap<>();
 
     @Override
-    public void deserialize(@NotNull final FriendlyByteBuf buf)
+    public void deserialize(@NotNull final RegistryFriendlyByteBuf buf)
     {
         final Map<ISettingKey<?>, ISetting> tempSettings = new LinkedHashMap<>();
         final int size = buf.readInt();
@@ -47,7 +52,7 @@ public class SettingsModuleView extends AbstractBuildingModuleView implements IS
             }
         }
 
-        for (final Map.Entry<ISettingKey<? extends ISetting>, ISetting> entry : new ArrayList<>(settings.entrySet()))
+        for (final Map.Entry<ISettingKey<?>, ISetting<?>> entry : new ArrayList<>(settings.entrySet()))
         {
             final ISetting syncSetting = tempSettings.get(entry.getKey());
             if (syncSetting == null)
@@ -67,14 +72,14 @@ public class SettingsModuleView extends AbstractBuildingModuleView implements IS
      *
      * @return the list of string key and ISetting value.
      */
-    public List<ISettingKey<? extends ISetting>> getSettingsToShow()
+    public List<ISettingKey<? extends ISetting<?>>> getSettingsToShow()
     {
-        List<ISettingKey<? extends ISetting>> filteredSettings = new ArrayList<>();
-        for (Map.Entry<ISettingKey<? extends ISetting>, ISetting> setting : settings.entrySet())
+        final List<ISettingKey<? extends ISetting<?>>> filteredSettings = new ArrayList<>();
+        for (Map.Entry<ISettingKey<?>, ISetting<?>> setting : settings.entrySet())
         {
             if (setting.getValue().isActive(this) || !setting.getValue().shouldHideWhenInactive())
             {
-                filteredSettings.add(setting.getKey());
+                filteredSettings.add((ISettingKey<? extends ISetting<?>>) setting.getKey());
             }
         }
         return filteredSettings;
@@ -83,7 +88,7 @@ public class SettingsModuleView extends AbstractBuildingModuleView implements IS
     @Override
     @Nullable
     @SuppressWarnings("unchecked")
-    public <T extends ISetting> T getSetting(final ISettingKey<T> key)
+    public <T extends ISetting<?>> T getSetting(final ISettingKey<T> key)
     {
         return (T) settings.getOrDefault(key, null);
     }
@@ -92,19 +97,19 @@ public class SettingsModuleView extends AbstractBuildingModuleView implements IS
     @Override
     public BOWindow getWindow()
     {
-        return new SettingsModuleWindow(Constants.MOD_ID + ":gui/layouthuts/layoutsettings.xml", buildingView, this);
+        return new SettingsModuleWindow(this);
     }
 
     @Override
     public ResourceLocation getIconResourceLocation()
     {
-        return ResourceLocation.fromNamespaceAndPath(Constants.MOD_ID, "textures/gui/modules/settings.png");
+        return new ResourceLocation(Constants.MOD_ID, "textures/gui/modules/settings.png");
     }
 
     @Override
-    public String getDesc()
+    public Component getDesc()
     {
-        return "no.monopixel.slimcolonies.coremod.gui.workerhuts.settings";
+        return Component.translatable("no.monopixel.slimcolonies.coremod.gui.workerhuts.settings");
     }
 
     @Override
@@ -114,7 +119,16 @@ public class SettingsModuleView extends AbstractBuildingModuleView implements IS
         if (setting.isActive(this))
         {
             setting.trigger();
-            Network.getNetwork().sendToServer(new TriggerSettingMessage(buildingView, key, setting, getProducer().getRuntimeID()));
+            new TriggerSettingMessage(getColony(), key, setting, getProducer().getRuntimeID(), buildingView == null ? BlockPos.ZERO : buildingView.getPosition()).sendToServer();
+        }
+    }
+
+    @Override
+    public void updateSetting(final ISettingKey<?> settingKey, final ISetting<?> value, final ServerPlayer sender)
+    {
+        if (settings.containsKey(settingKey))
+        {
+            settings.put(settingKey, value);
         }
     }
 }

@@ -2,6 +2,7 @@ package no.monopixel.slimcolonies.api.crafting;
 
 import com.google.common.collect.ImmutableMap;
 import no.monopixel.slimcolonies.api.colony.requestsystem.token.IToken;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import org.jetbrains.annotations.NotNull;
 
@@ -51,7 +52,7 @@ public interface IRecipeManager
 
     /**
      * Register the recipe as used with the recipe manager
-     *
+     * 
      * @param token the recipe token
      */
     void registerUse(final IToken<?> token);
@@ -61,14 +62,14 @@ public interface IRecipeManager
      *
      * @param compound NBT-Tag.
      */
-    void write(@NotNull final CompoundTag compound);
+    void write(@NotNull final HolderLookup.Provider provider, @NotNull final CompoundTag compound);
 
     /**
      * Read Colonies from saved NBT data.
      *
      * @param compound NBT Tag.
      */
-    void read(@NotNull final CompoundTag compound);
+    void read(@NotNull final HolderLookup.Provider provider, @NotNull final CompoundTag compound);
 
     /**
      * Clear the recipe list (used during shutdown)

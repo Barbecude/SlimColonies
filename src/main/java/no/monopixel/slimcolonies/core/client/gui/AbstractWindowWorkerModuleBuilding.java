@@ -9,7 +9,6 @@ import no.monopixel.slimcolonies.api.colony.ICitizenDataView;
 import no.monopixel.slimcolonies.api.colony.buildings.views.IBuildingView;
 import no.monopixel.slimcolonies.api.util.MessageUtils;
 import no.monopixel.slimcolonies.api.util.Tuple;
-import no.monopixel.slimcolonies.core.Network;
 import no.monopixel.slimcolonies.core.colony.buildings.moduleviews.WorkerBuildingModuleView;
 import no.monopixel.slimcolonies.core.colony.buildings.views.AbstractBuildingView;
 import no.monopixel.slimcolonies.core.network.messages.server.colony.building.ChangeDeliveryPriorityMessage;
@@ -17,6 +16,7 @@ import no.monopixel.slimcolonies.core.network.messages.server.colony.building.Fo
 import no.monopixel.slimcolonies.core.network.messages.server.colony.building.worker.RecallCitizenMessage;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
@@ -29,7 +29,7 @@ import static no.monopixel.slimcolonies.api.util.constant.TranslationConstants.*
  *
  * @param <B> Class extending {@link AbstractBuildingView}
  */
-public abstract class AbstractWindowWorkerModuleBuilding<B extends IBuildingView> extends AbstractWindowModuleBuilding<B>
+public abstract class AbstractWindowWorkerModuleBuilding<B extends IBuildingView> extends AbstractBuildingMainWindow<B>
 {
     /**
      * Id of the hire/fire button in the GUI.
@@ -74,15 +74,15 @@ public abstract class AbstractWindowWorkerModuleBuilding<B extends IBuildingView
     /**
      * Current pickup priority of the building.
      */
-    private int prio = building.getBuildingDmPrio();
+    private int prio = buildingView.getBuildingDmPrio();
 
     /**
      * Constructor for the window of the worker building.
      *
      * @param building class extending {@link AbstractBuildingView}.
-     * @param resource Resource of the window.
+     * @param resource window resource location.
      */
-    protected AbstractWindowWorkerModuleBuilding(final B building, final String resource)
+    protected AbstractWindowWorkerModuleBuilding(final B building, final ResourceLocation resource)
     {
         super(building, resource);
 
@@ -98,12 +98,12 @@ public abstract class AbstractWindowWorkerModuleBuilding<B extends IBuildingView
         Component component;
         if (prio == 0)
         {
-            component = Component.translatable(TEXT_PICKUP_PRIORITY)
-              .append(Component.translatable(TEXT_PICKUP_PRIORITY_NEVER));
+            component = Component.translatableEscape(TEXT_PICKUP_PRIORITY)
+              .append(Component.translatableEscape(TEXT_PICKUP_PRIORITY_NEVER));
         }
         else
         {
-            component = Component.translatable(TEXT_PICKUP_PRIORITY)
+            component = Component.translatableEscape(TEXT_PICKUP_PRIORITY)
               .append(Component.literal(prio + "/10"));
         }
         findPaneOfTypeByID(LABEL_PRIO_VALUE, Text.class).setText(component);
@@ -115,7 +115,7 @@ public abstract class AbstractWindowWorkerModuleBuilding<B extends IBuildingView
         {
             prio++;
         }
-        Network.getNetwork().sendToServer(new ChangeDeliveryPriorityMessage(building, true));
+        new ChangeDeliveryPriorityMessage(buildingView, true).sendToServer();
         updatePriorityLabel();
     }
 
@@ -125,13 +125,13 @@ public abstract class AbstractWindowWorkerModuleBuilding<B extends IBuildingView
         {
             prio--;
         }
-        Network.getNetwork().sendToServer(new ChangeDeliveryPriorityMessage(building, false));
+        new ChangeDeliveryPriorityMessage(buildingView, false).sendToServer();
         updatePriorityLabel();
     }
 
     private void forcePickup()
     {
-        Network.getNetwork().sendToServer(new ForcePickupMessage(building));
+        new ForcePickupMessage(buildingView).sendToServer();
     }
 
     /**
@@ -141,13 +141,13 @@ public abstract class AbstractWindowWorkerModuleBuilding<B extends IBuildingView
      */
     protected void hireClicked(@NotNull final Button button)
     {
-        if (!building.allowsAssignment())
+        if (!buildingView.allowsAssignment())
         {
-            MessageUtils.format(COREMOD_GUI_WORKERHUTS_LEVEL_0).sendTo(Minecraft.getInstance().player);
+            MessageUtils.format(COM_MINECOLONIES_COREMOD_GUI_WORKERHUTS_LEVEL_0).sendTo(Minecraft.getInstance().player);
             return;
         }
 
-        new WindowHireWorker(building.getColony(), building.getPosition()).open();
+        new WindowHireWorker(buildingView.getColony(), buildingView.getPosition()).open();
     }
 
     /**
@@ -155,7 +155,7 @@ public abstract class AbstractWindowWorkerModuleBuilding<B extends IBuildingView
      */
     private void recallClicked()
     {
-        Network.getNetwork().sendToServer(new RecallCitizenMessage(building));
+        new RecallCitizenMessage(buildingView).sendToServer();
     }
 
     @Override
@@ -168,7 +168,7 @@ public abstract class AbstractWindowWorkerModuleBuilding<B extends IBuildingView
         {
             for (final int worker : module.getAssignedCitizens())
             {
-                workers.add(new Tuple<>(Component.translatable(module.getJobEntry().getTranslationKey()).getString(), worker));
+                workers.add(new Tuple<>(Component.translatableEscape(module.getJobEntry().getTranslationKey()).getString(), worker));
             }
         }
 
@@ -187,7 +187,7 @@ public abstract class AbstractWindowWorkerModuleBuilding<B extends IBuildingView
                 public void updateElement(final int index, @NotNull final Pane rowPane)
                 {
 
-                    final ICitizenDataView worker = building.getColony().getCitizen(workers.get(index).getB());
+                    final ICitizenDataView worker = buildingView.getColony().getCitizen(workers.get(index).getB());
                     if (worker != null)
                     {
                         Text workerNameField = rowPane.findPaneOfTypeByID(LABEL_WORKERNAME, Text.class);

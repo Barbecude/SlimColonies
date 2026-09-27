@@ -3,9 +3,10 @@ package no.monopixel.slimcolonies.api.colony.workorders;
 import no.monopixel.slimcolonies.api.colony.IColony;
 import no.monopixel.slimcolonies.api.colony.buildings.IBuilding;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import org.jetbrains.annotations.NotNull;
 
+import static no.monopixel.slimcolonies.api.util.constant.Suppression.UNUSED_METHOD_PARAMETERS_SHOULD_BE_REMOVED;
 
 public interface IServerWorkOrder extends IWorkOrder
 {
@@ -24,11 +25,12 @@ public interface IServerWorkOrder extends IWorkOrder
     /**
      * Is this WorkOrder still valid? If not, it will be deleted.
      * <p>
+     * Suppressing Sonar Rule squid:S1172 This rule does " Unused method parameters should be removed" But in this case extending class may need to use the colony parameter
      *
      * @param colony The colony that owns the Work Order
      * @return True if the WorkOrder is still valid, or False if it should be deleted
      */
-    
+    @SuppressWarnings(UNUSED_METHOD_PARAMETERS_SHOULD_BE_REMOVED)
     boolean isValid(IColony colony);
 
     /**
@@ -51,7 +53,7 @@ public interface IServerWorkOrder extends IWorkOrder
      *
      * @param buf Buffer to write to
      */
-    void serializeViewNetworkData(@NotNull FriendlyByteBuf buf);
+    void serializeViewNetworkData(@NotNull RegistryFriendlyByteBuf buf);
 
     /**
      * Executed when a work order is added.

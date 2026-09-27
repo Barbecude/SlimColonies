@@ -1,13 +1,15 @@
 package no.monopixel.slimcolonies.core.util;
 
 import com.google.common.io.Files;
-import com.ldtteam.structurize.api.util.BlockPosUtil;
+import com.ldtteam.structurize.api.BlockPosUtil;
 import com.ldtteam.structurize.blueprints.v1.Blueprint;
 import com.ldtteam.structurize.blueprints.v1.BlueprintUtil;
-import net.minecraft.core.BlockPos;
-import net.minecraft.nbt.CompoundTag;
-import net.minecraft.nbt.NbtIo;
 import no.monopixel.slimcolonies.api.util.Log;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.NbtAccounter;
+import net.minecraft.nbt.NbtIo;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -15,6 +17,7 @@ import java.io.FileOutputStream;
 import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 
 import static com.ldtteam.structurize.blockentities.interfaces.IBlueprintDataProviderBE.*;
 
@@ -23,16 +26,13 @@ import static com.ldtteam.structurize.blockentities.interfaces.IBlueprintDataPro
  */
 public class SchemFixerUtil
 {
-    public static void fixSchematics()
+    public static void fixSchematics(final CompletableFuture<HolderLookup.Provider> provider)
     {
         String baseFolder = Paths.get("").toAbsolutePath().getParent().toString() + "/src/main/resources/assets/slimcolonies/schematics";
         File baseFolderFile = new File(baseFolder);
-        if (!baseFolderFile.exists())
-        {
-            return;
-        }
+        if (!baseFolderFile.exists()) { return; }
         final List<File> files = Arrays.asList(baseFolderFile.listFiles());
-        for (File subFolder : files)
+        for (File subFolder :files)
         {
             final File[] subFileArray = subFolder.listFiles();
             if (subFileArray == null)
@@ -50,13 +50,11 @@ public class SchemFixerUtil
                 {
                     if (blueprintFile.getName().startsWith("home"))
                     {
-                        Files.move(blueprintFile,
-                            new File(blueprintFile.getPath().substring(0, blueprintFile.getPath().lastIndexOf("/") + 1) + blueprintFile.getName().replace("home", "residence")));
+                        Files.move(blueprintFile, new File(blueprintFile.getPath().substring(0, blueprintFile.getPath().lastIndexOf("/") + 1) + blueprintFile.getName().replace("home", "residence")));
                     }
                     else if (blueprintFile.getName().startsWith("citizen"))
                     {
-                        Files.move(blueprintFile,
-                            new File(blueprintFile.getPath().substring(0, blueprintFile.getPath().lastIndexOf("/") + 1) + blueprintFile.getName().replace("citizen", "residence")));
+                        Files.move(blueprintFile, new File(blueprintFile.getPath().substring(0, blueprintFile.getPath().lastIndexOf("/") + 1) + blueprintFile.getName().replace("citizen", "residence")));
                     }
                 }
                 catch (Exception ex)
@@ -83,8 +81,8 @@ public class SchemFixerUtil
                 }
                 try
                 {
-                    CompoundTag compoundNBT = NbtIo.readCompressed(new ByteArrayInputStream(java.nio.file.Files.readAllBytes(blueprintFile.toPath())));
-                    final Blueprint blueprint = BlueprintUtil.readBlueprintFromNBT(compoundNBT);
+                    CompoundTag compoundNBT = NbtIo.readCompressed(new ByteArrayInputStream(java.nio.file.Files.readAllBytes(blueprintFile.toPath())), NbtAccounter.unlimitedHeap());
+                    final Blueprint blueprint = BlueprintUtil.readBlueprintFromNBT(compoundNBT, provider.get());
                     if (fixSchematicNameAndCorners(blueprint))
                     {
                         BlueprintUtil.writeToStream(new FileOutputStream(blueprintFile), blueprint);
@@ -139,8 +137,8 @@ public class SchemFixerUtil
                 schemDataCompound.putString(TAG_SCHEMATIC_NAME, blueprint.getName());
                 BlockPosUtil.writeToNBT(schemDataCompound, TAG_CORNER_ONE, BlockPos.ZERO.subtract(blueprint.getPrimaryBlockOffset()));
                 BlockPosUtil.writeToNBT(schemDataCompound,
-                    TAG_CORNER_TWO,
-                    new BlockPos(blueprint.getSizeX() - 1, blueprint.getSizeY() - 1, blueprint.getSizeZ() - 1).subtract(blueprint.getPrimaryBlockOffset()));
+                  TAG_CORNER_TWO,
+                  new BlockPos(blueprint.getSizeX() - 1, blueprint.getSizeY() - 1, blueprint.getSizeZ() - 1).subtract(blueprint.getPrimaryBlockOffset()));
                 Log.getLogger().warn("Fixing blueprint schematic name and corners for:" + blueprint.getName());
                 return true;
             }

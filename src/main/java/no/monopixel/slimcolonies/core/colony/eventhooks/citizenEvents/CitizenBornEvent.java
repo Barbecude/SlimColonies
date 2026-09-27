@@ -1,8 +1,9 @@
 package no.monopixel.slimcolonies.core.colony.eventhooks.citizenEvents;
 
 import no.monopixel.slimcolonies.api.util.constant.Constants;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.core.BlockPos;
 import org.jetbrains.annotations.NotNull;
@@ -16,7 +17,7 @@ public class CitizenBornEvent extends AbstractCitizenEvent
     /**
      * This events id, registry entries use res locations as ids.
      */
-    public static final ResourceLocation CITIZEN_BORN_EVENT_ID = ResourceLocation.fromNamespaceAndPath(Constants.MOD_ID, "citizen_born");
+    public static final ResourceLocation CITIZEN_BORN_EVENT_ID = new ResourceLocation(Constants.MOD_ID, "citizen_born");
 
     /**
      * Creates a new citizen born event.
@@ -28,13 +29,13 @@ public class CitizenBornEvent extends AbstractCitizenEvent
 
     /**
      * Creates a new citizen born event.
-     *
+     * 
      * @param eventPos    the position of the hut block of the building.
      * @param citizenName the name of the building.
      */
-    public CitizenBornEvent(final BlockPos eventPos, final String citizenName)
+    public CitizenBornEvent(BlockPos eventPos, String citizenName)
     {
-        super(true, eventPos, citizenName);
+        super(eventPos, citizenName);
     }
 
     @Override
@@ -55,10 +56,10 @@ public class CitizenBornEvent extends AbstractCitizenEvent
      * @param compound the NBT compound
      * @return the colony to load.
      */
-    public static CitizenBornEvent loadFromNBT(@NotNull final CompoundTag compound)
+    public static CitizenBornEvent loadFromNBT(@NotNull final HolderLookup.Provider provider, @NotNull final CompoundTag compound)
     {
         final CitizenBornEvent birthEvent = new CitizenBornEvent();
-        birthEvent.deserializeNBT(compound);
+        birthEvent.deserializeNBT(provider, compound);
         return birthEvent;
     }
 
@@ -68,16 +69,10 @@ public class CitizenBornEvent extends AbstractCitizenEvent
      * @param buf the packet buffer.
      * @return the colony to load.
      */
-    public static CitizenBornEvent loadFromFriendlyByteBuf(@NotNull final FriendlyByteBuf buf)
+    public static CitizenBornEvent loadFromFriendlyByteBuf(@NotNull final RegistryFriendlyByteBuf buf)
     {
         final CitizenBornEvent birthEvent = new CitizenBornEvent();
         birthEvent.deserialize(buf);
         return birthEvent;
-    }
-
-    @Override
-    public String getSummaryTranslationKey()
-    {
-        return "no.monopixel.slimcolonies.core.event.summary.citizen.born";
     }
 }

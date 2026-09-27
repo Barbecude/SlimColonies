@@ -1,0 +1,23 @@
+{
+  "branch": "slimcolonies:technology",
+  "costs": [
+    {
+      "count": 16,
+      "item": "minecraft:white_wool"
+    },
+    {
+      "count": 16,
+      "item": "minecraft:feather"
+    }
+  ],
+  "effects": [
+    {
+      "id": "slimcolonies:effects/softshoesunlock",
+      "level": 1
+    }
+  ],
+  "icon": "minecraft:leather_boots",
+  "researchLevel": 1,
+  "sortOrder": 2,
+  "subtitle": "no.monopixel.slimcolonies.research.technology.softshoes.subtitle"
+}

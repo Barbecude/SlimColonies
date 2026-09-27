@@ -3,11 +3,13 @@
   "crafter": "stonemason_crafting",
   "inputs": [
     {
-      "item": "minecraft:flint"
+      "id": "minecraft:flint"
     }
   ],
   "intermediate": "minecraft:air",
   "research-id": "slimcolonies:effects/sifterflintunlock",
-  "result": "slimcolonies:sifter_mesh_flint",
+  "result": {
+    "id": "slimcolonies:sifter_mesh_flint"
+  },
   "show-tooltip": true
 }

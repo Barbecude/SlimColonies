@@ -3,6 +3,7 @@ package no.monopixel.slimcolonies.core.placementhandlers;
 import com.ldtteam.structurize.placement.IPlacementContext;
 import com.ldtteam.structurize.placement.handlers.placement.IPlacementHandler;
 import com.ldtteam.structurize.util.BlockUtils;
+import no.monopixel.slimcolonies.core.blocks.BlockMinecoloniesNamedGrave;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.util.Tuple;
@@ -10,36 +11,28 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
-import no.monopixel.slimcolonies.api.blocks.ModBlocks;
-import no.monopixel.slimcolonies.core.blocks.BlockSlimColoniesNamedGrave;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Collections;
 import java.util.List;
 
-@SuppressWarnings("removal")
 public class NamedGravePlacementHandler implements IPlacementHandler
 {
     @Override
     public boolean canHandle(@NotNull final Level world, @NotNull final BlockPos pos, @NotNull final BlockState blockState)
     {
-        return blockState.getBlock() instanceof BlockSlimColoniesNamedGrave;
+        return blockState.getBlock() instanceof BlockMinecoloniesNamedGrave;
     }
 
     @Override
     public ActionProcessingResult handle(
-        @NotNull final Level world,
-        @NotNull final BlockPos pos,
-        @NotNull final BlockState blockState,
-        @Nullable final CompoundTag tileEntityData,
-        @NotNull final IPlacementContext placementContext)
+      @NotNull final Level world,
+      @NotNull final BlockPos pos,
+      @NotNull final BlockState blockState,
+      @Nullable final CompoundTag tileEntityData,
+      @NotNull final IPlacementContext placementContext)
     {
-        if (world.getBlockState(pos).getBlock() == ModBlocks.blockNamedGrave)
-        {
-            return ActionProcessingResult.SUCCESS;
-        }
-
         if (!placementContext.fancyPlacement())
         {
             world.setBlockAndUpdate(pos, blockState);
@@ -51,11 +44,11 @@ public class NamedGravePlacementHandler implements IPlacementHandler
 
     @Override
     public List<ItemStack> getRequiredItems(
-        @NotNull final Level world,
-        @NotNull final BlockPos pos,
-        @NotNull final BlockState blockState,
-        @Nullable final CompoundTag tileEntityData,
-        @NotNull final IPlacementContext placementContext)
+      @NotNull final Level world,
+      @NotNull final BlockPos pos,
+      @NotNull final BlockState blockState,
+      @Nullable final CompoundTag tileEntityData,
+      @NotNull final IPlacementContext placementContext)
     {
         if (!placementContext.fancyPlacement())
         {
@@ -65,8 +58,12 @@ public class NamedGravePlacementHandler implements IPlacementHandler
     }
 
     @Override
-    public boolean doesWorldStateMatchBlueprintState(final BlockState worldState, final BlockState blueprintState, @Nullable final Tuple<BlockEntity, CompoundTag> blockEntityData, @NotNull final IPlacementContext placementContext)
+    public boolean doesWorldStateMatchBlueprintState(
+        final BlockState worldState,
+        final BlockState blueprintState,
+        final Tuple<BlockEntity, CompoundTag> blockEntityData,
+        @NotNull final IPlacementContext structureHandler)
     {
-        return worldState.equals(blueprintState);
+        return worldState.getBlock() == blueprintState.getBlock();
     }
 }

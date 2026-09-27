@@ -1,0 +1,27 @@
+{
+  "type": "recipe",
+  "crafter": "chef_crafting",
+  "inputs": [
+    {
+      "id": "slimcolonies:flatbread"
+    },
+    {
+      "id": "slimcolonies:tomato"
+    },
+    {
+      "id": "slimcolonies:onion"
+    },
+    {
+      "id": "slimcolonies:eggplant"
+    },
+    {
+      "id": "slimcolonies:garlic"
+    }
+  ],
+  "intermediate": "minecraft:air",
+  "min-building-level": 4,
+  "result": {
+    "id": "slimcolonies:stuffed_pita"
+  },
+  "show-tooltip": true
+}

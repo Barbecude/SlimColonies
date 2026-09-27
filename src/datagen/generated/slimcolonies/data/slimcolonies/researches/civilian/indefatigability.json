@@ -1,5 +1,11 @@
 {
   "branch": "slimcolonies:civilian",
+  "costs": [
+    {
+      "count": 64,
+      "item": "minecraft:golden_apple"
+    }
+  ],
   "effects": [
     {
       "id": "slimcolonies:effects/healingsaturationlimitaddition",

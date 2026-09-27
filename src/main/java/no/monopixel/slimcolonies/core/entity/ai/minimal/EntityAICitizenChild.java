@@ -161,19 +161,19 @@ public class EntityAICitizenChild implements IStateAI
         }
 
         CompatibilityUtils.getWorldFromCitizen(child)
-            // Search entities in radius
-            .getEntities(
-                child,
-                child.getBoundingBox().expandTowards(
-                    (double) START_FOLLOW_DISTANCE,
-                    1.0D,
-                    (double) START_FOLLOW_DISTANCE),
-                // Limit entity classes
-                target -> target.isAlive() && (target instanceof AbstractCivilianEntity || target instanceof Player))
-            // Take the first entity
-            .stream()
-            .findFirst()
-            .ifPresent(entity -> followTarget = new WeakReference<>(entity));
+          // Search entities in radius
+          .getEntities(
+            child,
+            child.getBoundingBox().expandTowards(
+              (double) START_FOLLOW_DISTANCE,
+              1.0D,
+              (double) START_FOLLOW_DISTANCE),
+            // Limit entity classes
+            target -> target.isAlive() && (target instanceof AbstractCivilianEntity || target instanceof Player))
+          // Take the first entity
+          .stream()
+          .findFirst()
+          .ifPresent(entity -> followTarget = new WeakReference<>(entity));
 
         if (followTarget.get() != null)
         {
@@ -223,11 +223,11 @@ public class EntityAICitizenChild implements IStateAI
                 actionTimer = 3 * 60 * 20;
             }
 
-            int index = child.getCitizenColonyHandler().getColonyOrRegister().getBuildingManager().getBuildings().size();
+            int index = child.getCitizenColonyHandler().getColonyOrRegister().getServerBuildingManager().getBuildings().size();
 
             index = rand.nextInt(index);
 
-            final List<IBuilding> buildings = new ArrayList<>(child.getCitizenColonyHandler().getColonyOrRegister().getBuildingManager().getBuildings().values());
+            final List<IBuilding> buildings = new ArrayList<>(child.getCitizenColonyHandler().getColonyOrRegister().getServerBuildingManager().getBuildings().values());
             visitingHut = buildings.get(index);
 
             EntityNavigationUtils.walkToBuilding(child, visitingHut);
@@ -284,14 +284,12 @@ public class EntityAICitizenChild implements IStateAI
             if (rand.nextInt((int) (70 / growthModifier) + 1) == 0 || aiActiveTime > 70000 / growthModifier)
             {
                 child.getCitizenColonyHandler()
-                    .getColonyOrRegister()
-                    .getEventDescriptionManager()
-                    .addEventDescription(new CitizenGrownUpEvent(child.blockPosition(), child.getCitizenData().getName()));
+                  .getColonyOrRegister()
+                  .getEventDescriptionManager()
+                  .addEventDescription(new CitizenGrownUpEvent(child.blockPosition(), child.getCitizenData().getName()));
                 if (child.getCitizenColonyHandler().getColonyOrRegister().getCitizenManager().getCitizens().size() <= GROW_UP_NOTIFY_LIMIT)
                 {
-                    MessageUtils.format(MESSAGE_INFO_COLONY_CHILD_GREW_UP, child.getName().getString())
-                        .sendTo(child.getCitizenColonyHandler().getColonyOrRegister())
-                        .forAllPlayers();
+                    MessageUtils.format(MESSAGE_INFO_COLONY_CHILD_GREW_UP, child.getName().getString()).sendTo(child.getCitizenColonyHandler().getColonyOrRegister()).forAllPlayers();
                 }
                 // Grow up
                 child.setIsChild(false);
@@ -305,7 +303,7 @@ public class EntityAICitizenChild implements IStateAI
     }
 
     /**
-     * Returns whether the Goal should begin execution. True when age less than 100, when a random (120) is chosen correctly, and when a citizen is nearby.
+     * {@inheritDoc} Returns whether the Goal should begin execution. True when age less than 100, when a random (120) is chosen correctly, and when a citizen is nearby.
      */
     public boolean canUse()
     {

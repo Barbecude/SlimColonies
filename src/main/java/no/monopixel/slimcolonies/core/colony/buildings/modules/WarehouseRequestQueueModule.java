@@ -4,10 +4,11 @@ import no.monopixel.slimcolonies.api.colony.buildings.modules.AbstractBuildingMo
 import no.monopixel.slimcolonies.api.colony.buildings.modules.IPersistentModule;
 import no.monopixel.slimcolonies.api.colony.requestsystem.StandardFactoryController;
 import no.monopixel.slimcolonies.api.colony.requestsystem.token.IToken;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
@@ -27,31 +28,31 @@ public class WarehouseRequestQueueModule extends AbstractBuildingModule implemen
     private final List<IToken<?>> requestList = new ArrayList<>();
 
     @Override
-    public void deserializeNBT(final CompoundTag compound)
+    public void deserializeNBT(@NotNull final HolderLookup.Provider provider, final CompoundTag compound)
     {
         final ListTag requestTagList = compound.getList(TAG_REQUEST, Tag.TAG_COMPOUND);
         for (int i = 0; i < requestTagList.size(); ++i)
         {
-            requestList.add(StandardFactoryController.getInstance().deserialize(requestTagList.getCompound(i)));
+            requestList.add(StandardFactoryController.getInstance().deserializeTag(provider, requestTagList.getCompound(i)));
         }
     }
 
     @Override
-    public void serializeNBT(final CompoundTag compound)
+    public void serializeNBT(@NotNull final HolderLookup.Provider provider, CompoundTag compound)
     {
         if (!requestList.isEmpty())
         {
             @NotNull final ListTag requestTagList = new ListTag();
             for (@NotNull final IToken<?> token : requestList)
             {
-                requestTagList.add(StandardFactoryController.getInstance().serialize(token));
+                requestTagList.add(StandardFactoryController.getInstance().serializeTag(provider, token));
             }
             compound.put(TAG_REQUEST, requestTagList);
         }
     }
 
     @Override
-    public void serializeToView(final FriendlyByteBuf buf)
+    public void serializeToView(final RegistryFriendlyByteBuf buf)
     {
         super.serializeToView(buf);
         buf.writeInt(requestList.size());

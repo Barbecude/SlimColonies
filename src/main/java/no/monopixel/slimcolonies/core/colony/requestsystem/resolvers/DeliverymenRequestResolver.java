@@ -42,7 +42,7 @@ public abstract class DeliverymenRequestResolver<R extends IRequestable> extends
             return false;
         }
 
-        if (manager.getColony().getBuildingManager().getBuilding(requestToCheck.getRequester().getLocation().getInDimensionLocation()) instanceof IWareHouse
+        if (manager.getColony().getServerBuildingManager().getBuilding(requestToCheck.getRequester().getLocation().getInDimensionLocation()) instanceof IWareHouse
               && !requestToCheck.getRequester().getLocation().equals(getLocation()))
         {
             return false;
@@ -60,7 +60,7 @@ public abstract class DeliverymenRequestResolver<R extends IRequestable> extends
     public boolean hasCouriers(@NotNull final IRequestManager manager)
     {
         final Colony colony = (Colony) manager.getColony();
-        final IWareHouse wareHouse = colony.getBuildingManager().getBuilding(getLocation().getInDimensionLocation(), IWareHouse.class);
+        final IWareHouse wareHouse = colony.getServerBuildingManager().getBuilding(getLocation().getInDimensionLocation(), IWareHouse.class);
         if (wareHouse == null)
         {
             return false;
@@ -72,7 +72,7 @@ public abstract class DeliverymenRequestResolver<R extends IRequestable> extends
     @Override
     public int getSuitabilityMetric(@NotNull final IRequestManager manager, @NotNull final IRequest<? extends R> request)
     {
-        final IWareHouse wareHouse = manager.getColony().getBuildingManager().getBuilding(getLocation().getInDimensionLocation(), IWareHouse.class);
+        final IWareHouse wareHouse = manager.getColony().getServerBuildingManager().getBuilding(getLocation().getInDimensionLocation(), IWareHouse.class);
         final int distance = (int) BlockPosUtil.getDistance(request.getRequester().getLocation().getInDimensionLocation(), getLocation().getInDimensionLocation());
         if (wareHouse == null)
         {
@@ -97,7 +97,7 @@ public abstract class DeliverymenRequestResolver<R extends IRequestable> extends
     public void resolveRequest(@NotNull final IRequestManager manager, @NotNull final IRequest<? extends R> request) throws RuntimeException
     {
         final Colony colony = (Colony) manager.getColony();
-        final IWareHouse wareHouse = colony.getBuildingManager().getBuilding(getLocation().getInDimensionLocation(), IWareHouse.class);
+        final IWareHouse wareHouse = colony.getServerBuildingManager().getBuilding(getLocation().getInDimensionLocation(), IWareHouse.class);
         if (wareHouse == null)
         {
             return;
@@ -144,7 +144,7 @@ public abstract class DeliverymenRequestResolver<R extends IRequestable> extends
                 job.onTaskDeletion(request.getId());
             }
 
-            final IWareHouse wareHouse = colony.getBuildingManager().getBuilding(getLocation().getInDimensionLocation(), IWareHouse.class);
+            final IWareHouse wareHouse = colony.getServerBuildingManager().getBuilding(getLocation().getInDimensionLocation(), IWareHouse.class);
             if (wareHouse == null)
             {
                 return;
@@ -172,7 +172,7 @@ public abstract class DeliverymenRequestResolver<R extends IRequestable> extends
     public MutableComponent getRequesterDisplayName(
       @NotNull final IRequestManager manager, @NotNull final IRequest<?> request)
     {
-        return Component.translatable(TranslationConstants.COREMOD_JOB_DELIVERYMAN);
+        return Component.translatableEscape(TranslationConstants.COM_MINECOLONIES_COREMOD_JOB_DELIVERYMAN);
     }
 
     @Override

@@ -1,13 +1,17 @@
 package no.monopixel.slimcolonies.core.network.messages.server.colony.building.postbox;
 
+import com.ldtteam.common.network.PlayMessageType;
 import no.monopixel.slimcolonies.api.colony.IColony;
+import no.monopixel.slimcolonies.api.colony.buildings.views.IBuildingView;
 import no.monopixel.slimcolonies.api.colony.requestsystem.requestable.Stack;
-import no.monopixel.slimcolonies.core.colony.buildings.views.AbstractBuildingView;
+import no.monopixel.slimcolonies.api.util.Utils;
+import no.monopixel.slimcolonies.api.util.constant.Constants;
 import no.monopixel.slimcolonies.core.colony.buildings.workerbuildings.PostBox;
 import no.monopixel.slimcolonies.core.network.messages.server.AbstractBuildingServerMessage;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.network.FriendlyByteBuf;
-import net.minecraftforge.network.NetworkEvent;
+import net.neoforged.neoforge.network.handling.IPayloadContext;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -15,25 +19,19 @@ import org.jetbrains.annotations.NotNull;
  */
 public class PostBoxRequestMessage extends AbstractBuildingServerMessage<PostBox>
 {
+    public static final PlayMessageType<?> TYPE = PlayMessageType.forServer(Constants.MOD_ID, "post_box_request", PostBoxRequestMessage::new);
+
     /**
      * How many item need to be transfer from the player inventory to the building chest.
      */
-    private ItemStack itemStack;
+    private final ItemStack itemStack;
 
     /*
      * Whether to deliver what's currently available or entire request
      */
-    private boolean deliverAvailable;
+    private final boolean deliverAvailable;
 
-    private int reqQuantity;
-
-    /**
-     * Empty constructor used when registering the
-     */
-    public PostBoxRequestMessage()
-    {
-        super();
-    }
+    private final int reqQuantity;
 
     /**
      * Creates a Transfer Items request
@@ -42,39 +40,39 @@ public class PostBoxRequestMessage extends AbstractBuildingServerMessage<PostBox
      * @param itemStack to be take from the player for the building
      * @param quantity  of item needed to be transfered
      */
-    public PostBoxRequestMessage(@NotNull final AbstractBuildingView building, final ItemStack itemStack, final int quantity, final boolean deliverAvailable)
+    public PostBoxRequestMessage(@NotNull final IBuildingView building, final ItemStack itemStack, final int quantity, final boolean deliverAvailable)
     {
-        super(building);
+        super(TYPE, building);
         this.itemStack = itemStack;
         reqQuantity = quantity;
         this.deliverAvailable = deliverAvailable;
     }
 
     @Override
-    public void toBytesOverride(@NotNull final FriendlyByteBuf buf)
+    protected void toBytes(@NotNull final RegistryFriendlyByteBuf buf)
     {
+        super.toBytes(buf);
 
-        buf.writeItem(itemStack);
+        Utils.serializeCodecMess(buf, itemStack);
         buf.writeBoolean(deliverAvailable);
         buf.writeInt(reqQuantity);
     }
 
-    @Override
-    public void fromBytesOverride(@NotNull final FriendlyByteBuf buf)
+    protected PostBoxRequestMessage(final RegistryFriendlyByteBuf buf, final PlayMessageType<?> type)
     {
+        super(buf, type);
 
-        itemStack = buf.readItem();
+        itemStack = Utils.deserializeCodecMess(buf);
         deliverAvailable = buf.readBoolean();
         reqQuantity = buf.readInt();
     }
 
     @Override
-    protected void onExecute(
-      final NetworkEvent.Context ctxIn, final boolean isLogicalServer, final IColony colony, final PostBox building)
+    protected void onExecute(final IPayloadContext ctxIn, final ServerPlayer player, final IColony colony, final PostBox building)
     {
 
         final int minCount = (deliverAvailable) ? 1 : reqQuantity;
-        Stack requestStack = new Stack(itemStack, reqQuantity, minCount);
+        final Stack requestStack = new Stack(itemStack, reqQuantity, minCount);
 
         building.createRequest(requestStack, false);
     }

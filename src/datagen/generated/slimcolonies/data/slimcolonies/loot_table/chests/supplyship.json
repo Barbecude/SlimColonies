@@ -1,0 +1,63 @@
+{
+  "type": "minecraft:chest",
+  "pools": [
+    {
+      "bonus_rolls": 0.0,
+      "entries": [
+        {
+          "type": "minecraft:item",
+          "conditions": [
+            {
+              "chance": 0.01,
+              "condition": "minecraft:random_chance"
+            }
+          ],
+          "functions": [
+            {
+              "components": {
+                "slimcolonies:supplies": {
+                  "Placement": true,
+                  "randkey": -1,
+                  "sawstory": false
+                }
+              },
+              "function": "minecraft:set_components"
+            },
+            {
+              "function": "minecraft:set_name",
+              "name": {
+                "translate": "item.slimcolonies.supply.free",
+                "with": [
+                  {
+                    "translate": "item.slimcolonies.supplychestdeployer"
+                  }
+                ]
+              },
+              "target": "item_name"
+            }
+          ],
+          "name": "slimcolonies:supplychestdeployer"
+        },
+        {
+          "type": "minecraft:item",
+          "conditions": [
+            {
+              "chance": 0.1,
+              "condition": "minecraft:random_chance"
+            }
+          ],
+          "functions": [
+            {
+              "add": false,
+              "count": 4.0,
+              "function": "minecraft:set_count"
+            }
+          ],
+          "name": "slimcolonies:scroll_buff"
+        }
+      ],
+      "rolls": 1.0
+    }
+  ],
+  "random_sequence": "slimcolonies:chests/supplyship"
+}

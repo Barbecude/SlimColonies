@@ -5,27 +5,47 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.ldtteam.domumornamentum.block.IMateriallyTexturedBlock;
 import com.ldtteam.domumornamentum.block.IMateriallyTexturedBlockComponent;
-import no.monopixel.slimcolonies.api.items.CheckedNbtKey;
-import no.monopixel.slimcolonies.api.items.ModTags;
+import com.ldtteam.domumornamentum.client.model.data.MaterialTextureData;
+import com.ldtteam.domumornamentum.client.model.data.MaterialTextureData.Builder;
+import no.monopixel.slimcolonies.api.items.component.ModDataComponents;
 import no.monopixel.slimcolonies.api.util.CraftingUtils;
-import io.netty.buffer.Unpooled;
+import com.mojang.serialization.DynamicOps;
+import it.unimi.dsi.fastutil.objects.ReferenceArraySet;
+import net.minecraft.core.Holder;
 import net.minecraft.core.HolderLookup;
+import net.minecraft.core.Registry;
+import net.minecraft.core.component.DataComponentType;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.data.CachedOutput;
 import net.minecraft.data.DataProvider;
 import net.minecraft.data.PackOutput;
-import net.minecraft.nbt.CompoundTag;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.RegistryOps;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.packs.PackLocationInfo;
+import net.minecraft.server.packs.PackResources;
+import net.minecraft.server.packs.PackType;
+import net.minecraft.server.packs.repository.PackSource;
+import net.minecraft.server.packs.repository.ServerPacksSource;
+import net.minecraft.server.packs.resources.MultiPackResourceManager;
+import net.minecraft.server.packs.resources.ResourceManager;
+import net.minecraft.tags.TagKey;
+import net.minecraft.tags.TagLoader;
+import net.minecraft.tags.TagManager;
 import net.minecraft.world.flag.FeatureFlags;
-import net.minecraft.world.item.BlockItem;
-import net.minecraft.world.item.CreativeModeTab;
-import net.minecraft.world.item.DyeableLeatherItem;
-import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.*;
+import net.neoforged.fml.ModList;
+import net.neoforged.neoforge.resource.ResourcePackLoader;
 import org.jetbrains.annotations.NotNull;
 
 import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static no.monopixel.slimcolonies.api.util.constant.Constants.MOD_ID;
 
@@ -54,200 +74,182 @@ public class ItemNbtCalculator implements DataProvider
     @Override
     public CompletableFuture<?> run(@NotNull final CachedOutput cache)
     {
-        final List<ItemStack> allStacks;
-        final HolderLookup.Provider provider = lookupProvider.join();
-        final ImmutableList.Builder<ItemStack> listBuilder = new ImmutableList.Builder<>();
-        final CreativeModeTab.ItemDisplayParameters tempDisplayParams = new CreativeModeTab.ItemDisplayParameters(FeatureFlags.REGISTRY.allFlags(), false, provider);
+        final ResourceManager serverResources = loadServerData();
 
-        CraftingUtils.forEachCreativeTabItems(tempDisplayParams, (tab, stacks) ->
+        // Force loading some tags, since the creative tabs don't enumerate properly without them
+        return lookupProvider
+            // Tag TagKey[minecraft:instrument / minecraft:goat_horns] can't be dereferenced during construction
+            .thenApply(p -> loadRegistryTags(p, serverResources, BuiltInRegistries.INSTRUMENT))
+            // Missing tag: 'minecraft:enchantable/fishing' in 'minecraft:item'
+            .thenApply(p -> loadRegistryTags(p, serverResources, BuiltInRegistries.ITEM))
+            // Missing tag: 'minecraft:blocks_wind_charge_explosions' in 'minecraft:block'
+            .thenApply(p -> loadRegistryTags(p, serverResources, BuiltInRegistries.BLOCK))
+            // and now the actual calculator
+            .thenCompose(provider ->
         {
-            for (final ItemStack item : stacks)
+            final List<ItemStack> allStacks;
+            final ImmutableList.Builder<ItemStack> listBuilder = new ImmutableList.Builder<>();
+            final CreativeModeTab.ItemDisplayParameters tempDisplayParams = new CreativeModeTab.ItemDisplayParameters(FeatureFlags.REGISTRY.allFlags(), false, provider);
+
+            CraftingUtils.forEachCreativeTabItems(tempDisplayParams, (tab, stacks) ->
             {
-                if (item.getItem() instanceof BlockItem blockItem && blockItem.getBlock() instanceof IMateriallyTexturedBlock texturedBlock)
+                for (final ItemStack item : stacks)
                 {
-                    final CompoundTag tag = item.hasTag() ? item.getTag() : new CompoundTag();
-                    final CompoundTag textureData = new CompoundTag();
-                    for (final IMateriallyTexturedBlockComponent key : texturedBlock.getComponents())
+                    if (item.getItem() instanceof BlockItem blockItem && blockItem.getBlock() instanceof IMateriallyTexturedBlock texturedBlock)
                     {
-                        textureData.putString(key.getId().toString(), key.getDefault().builtInRegistryHolder().key().location().toString());
+                        final Builder builder = MaterialTextureData.builder();
+                        for (final IMateriallyTexturedBlockComponent key : texturedBlock.getComponents())
+                        {
+                            builder.setComponent(key.getId(), key.getDefault());
+                        }
+                        final ItemStack copy = item.copy();
+                        builder.writeToItemStack(copy);
+                        listBuilder.add(copy);
                     }
-                    tag.put("textureData", textureData);
-                    final ItemStack copy = item.copy();
-                    copy.setTag(tag);
-                    listBuilder.add(copy);
+                    else
+                    {
+                        listBuilder.add(item);
+                    }
                 }
-                else
-                {
-                    listBuilder.add(item);
-                }
-            }
-        });
+            });
 
-        allStacks = listBuilder.build();
+            listBuilder.add(Items.FILLED_MAP.getDefaultInstance());
+            allStacks = listBuilder.build();
 
-        final TreeMap<String, Set<CheckedNbtKey>> keyMapping = new TreeMap<>();
-        for (final ItemStack stack : allStacks)
-        {
-            final ResourceLocation resourceLocation = stack.getItemHolder().unwrapKey().get().location();
-            final CompoundTag tag = (stack.hasTag() && !stack.is(ModTags.ignoreNBT)) ? stack.getTag() : new CompoundTag();
-            final Set<String> keys = tag.isEmpty() ? new HashSet<>() : new HashSet<>(tag.getAllKeys());
+            final TreeMap<String, Set<String>> keyMapping = new TreeMap<>();
+            final Set<DataComponentType<?>> typesToRemove = new ReferenceArraySet<>();
 
-            if (stack.getItem() instanceof DyeableLeatherItem)
-            {
-                keys.add("display");
-            }
-            if (stack.isEnchantable())
-            {
-                keys.add("Enchantments");
-            }
-            if (stack.isRepairable())
-            {
-                keys.add("RepairCost");
-            }
             // We ignore damage in nbt.
-            keys.remove("Damage");
+            typesToRemove.add(DataComponents.DAMAGE);
 
-            final Set<CheckedNbtKey> keyObjectList = new HashSet<>();
-            for (String key : keys)
+            // The following we don't care about matching.
+            typesToRemove.add(DataComponents.LORE);
+            typesToRemove.add(DataComponents.MAX_STACK_SIZE);
+            typesToRemove.add(DataComponents.RARITY);
+            typesToRemove.add(DataComponents.ENCHANTMENT_GLINT_OVERRIDE);
+            ModDataComponents.REGISTRY.getEntries().forEach(t -> typesToRemove.add(t.get()));
+            com.ldtteam.structurize.component.ModDataComponents.REGISTRY.getEntries().forEach(t -> typesToRemove.add(t.get()));
+
+            for (final ItemStack stack : allStacks)
             {
-                keyObjectList.add(createKeyFromNbt(key, tag));
+                final ResourceLocation resourceLocation = stack.getItemHolder().unwrapKey().get().location();
+                final Set<DataComponentType<?>> keys = new ReferenceArraySet<>(stack.getComponents().keySet());
+
+                if (stack.getItem() instanceof ArmorItem)
+                {
+                    keys.add(DataComponents.DYED_COLOR);
+                }
+                if (stack.is(Items.FILLED_MAP))
+                {
+                    keys.add(DataComponents.MAP_ID);
+                }
+                if (!stack.isEnchantable())
+                {
+                    keys.remove(DataComponents.ENCHANTMENTS);
+                }
+                if (!stack.isRepairable())
+                {
+                    keys.remove(DataComponents.REPAIR_COST);
+                }
+                if (stack.getAttributeModifiers().modifiers().isEmpty())
+                {
+                    keys.remove(DataComponents.ATTRIBUTE_MODIFIERS);
+                }
+
+                keys.removeAll(typesToRemove);
+
+                keyMapping.compute(resourceLocation.toString(), (k, keysInMap) -> {
+                    if (keysInMap == null)
+                    {
+                        keysInMap = new TreeSet<>();
+                    }
+
+                    for (final DataComponentType<?> type : keys)
+                    {
+                        keysInMap.add(BuiltInRegistries.DATA_COMPONENT_TYPE.getKey(type).toString());
+                    }
+
+                    return keysInMap;
+                });
             }
 
-            if (keyMapping.containsKey(resourceLocation.toString()))
-            {
-                final Set<CheckedNbtKey> list = keyMapping.get(resourceLocation.toString());
-                list.addAll(keyObjectList);
-                keyMapping.put(resourceLocation.toString(), list);
-            }
-            else
-            {
-                keyMapping.put(resourceLocation.toString(), keyObjectList);
-            }
-        }
-
-        final Path path = packOutput.createPathProvider(PackOutput.Target.DATA_PACK, "compatibility").file(ResourceLocation.fromNamespaceAndPath(MOD_ID, "itemnbtmatching"), "json");
-        final JsonArray jsonArray = new JsonArray();
-        for (final Map.Entry<String, Set<CheckedNbtKey>> entry : keyMapping.entrySet())
-        {
-            final JsonObject jsonObject = new JsonObject();
-            jsonObject.addProperty("item", entry.getKey());
-
-            if (!entry.getValue().isEmpty())
-            {
-                final JsonArray subArray = new JsonArray();
-                entry.getValue().forEach(key -> subArray.add(serializeKeyToJson(key)));
-                jsonObject.add("checkednbtkeys", subArray);
-            }
-
-            jsonArray.add(jsonObject);
-        }
-
-        return DataProvider.saveStable(cache, jsonArray, path);
-    }
-
-    /**
-     * Serialize a checked nbt key to json.
-     * @param keyObject the key object to serialize.
-     * @return the output json.
-     */
-    public static JsonObject serializeKeyToJson(final CheckedNbtKey keyObject)
-    {
-        final JsonObject obj = new JsonObject();
-        obj.addProperty("key", keyObject.key);
-
-        if (!keyObject.children.isEmpty())
-        {
+            final Path path = packOutput.createPathProvider(PackOutput.Target.DATA_PACK, "compatibility").file(new ResourceLocation(MOD_ID, "itemnbtmatching"), "json");
             final JsonArray jsonArray = new JsonArray();
-            keyObject.children.forEach(child -> jsonArray.add(serializeKeyToJson(child)));
-            obj.add("children", jsonArray);
-        }
-        return obj;
-    }
-
-    /**
-     * Serialize a checked nbt key to buffer
-     *
-     * @param keyObject the key object to serialize.
-     */
-    public static void serializeKeyToBuffer(final CheckedNbtKey keyObject, final FriendlyByteBuf buf)
-    {
-        buf.writeUtf(keyObject.key);
-        if (!keyObject.children.isEmpty())
-        {
-            FriendlyByteBuf childBuf = new FriendlyByteBuf(Unpooled.buffer());
-            buf.writeInt(keyObject.children.size());
-            for (final var child : keyObject.children)
+            for (final Map.Entry<String, Set<String>> entry : keyMapping.entrySet())
             {
-                serializeKeyToBuffer(child, childBuf);
+                final JsonObject jsonObject = new JsonObject();
+                jsonObject.addProperty("item", entry.getKey());
+
+                if (!entry.getValue().isEmpty())
+                {
+                    final JsonArray subArray = new JsonArray();
+                    entry.getValue().forEach(subArray::add);
+                    jsonObject.add("checkednbtkeys", subArray);
+                }
+
+                jsonArray.add(jsonObject);
             }
-            buf.writeBytes(childBuf);
-        }
-        else
-        {
-            buf.writeInt(0);
-        }
+
+            return DataProvider.saveStable(cache, jsonArray, path);
+        });
     }
 
-    /**
-     * Deserialize key from buffer
-     *
-     * @param buf the buf to deserialize.
-     */
-    public static CheckedNbtKey deSerializeKeyFromBuffer(final FriendlyByteBuf buf)
+    private static ResourceManager loadServerData()
     {
-        String key = buf.readUtf();
-        Set<CheckedNbtKey> children = new HashSet<>();
-        for (int i = 0, limit = buf.readInt(); i < limit; i++)
-        {
-            CheckedNbtKey keyFromBuffer = deSerializeKeyFromBuffer(buf);
-            children.add(keyFromBuffer);
-        }
+        // ideally we'd use ExistingFileHelper.getManager but sadly that's private :'(
+        final List<PackResources> packs = List.of(
+                ServerPacksSource.createVanillaPackSource(),
+                ResourcePackLoader.createPackForMod(ModList.get().getModFileById("neoforge")).openPrimary(new PackLocationInfo("mod/neoforge", Component.empty(), PackSource.BUILT_IN, Optional.empty()))
+        );
+        // we only load tags from vanilla/nf, for simplicity (and because that's all we need for now)
 
-        return new CheckedNbtKey(key, children);
+        return new MultiPackResourceManager(PackType.SERVER_DATA, packs);
     }
 
-    /**
-     * Create a checked nbt key from nbt.
-     * @param key the key to retrieve.
-     * @param tag the tag to deserialize it from.
-     * @return a new checked nbt key.
-     */
-    public static CheckedNbtKey createKeyFromNbt(final String key, final CompoundTag tag)
+    private static <T> HolderLookup.Provider loadRegistryTags(
+            @NotNull final HolderLookup.Provider provider,
+            @NotNull final ResourceManager resources,
+            @NotNull final Registry<T> registry)
     {
-        if (tag.get(key) instanceof CompoundTag)
+        final ResourceKey<? extends Registry<T>> registryId = registry.key();
+
+        // from TagManager.createLoader
+        final TagLoader<Holder<T>> tagLoader = new TagLoader<>(registry::getHolder, Registries.tagsDirPath(registryId));
+        final TagManager.LoadResult<T> loadResult = new TagManager.LoadResult<>(registryId, tagLoader.loadAndBuild(resources));
+
+        final Map<TagKey<T>, List<Holder<T>>> map = loadResult.tags()
+                .entrySet()
+                .stream()
+                .collect(Collectors.toUnmodifiableMap(entry -> TagKey.create(registryId, entry.getKey()), values -> List.copyOf(values.getValue())));
+        registry.bindTags(map);
+
+        return new HolderLookup.Provider()
         {
-            final CompoundTag subTag = tag.getCompound(key);
-            Set<CheckedNbtKey> set = new HashSet<>();
-            for (String subKey : subTag.getAllKeys())
+            @NotNull
+            @Override
+            public Stream<ResourceKey<? extends Registry<?>>> listRegistries()
             {
-                CheckedNbtKey keyFromNbt = createKeyFromNbt(subKey, subTag);
-                set.add(keyFromNbt);
+                return provider.listRegistries();
             }
-            return new CheckedNbtKey(key, set);
-        }
-        else
-        {
-            return new CheckedNbtKey(key, Collections.emptySet());
-        }
-    }
 
-    /**
-     * Create a checked nbt key from json.
-     * @param jsonObject the object to serialize it from.
-     * @return the output key.
-     */
-    public static CheckedNbtKey deserializeKeyFromJson(final JsonObject jsonObject)
-    {
-        final String key = jsonObject.get("key").getAsString();
-        if (jsonObject.has("children"))
-        {
-            final Set<CheckedNbtKey> children = new HashSet<>();
-            jsonObject.getAsJsonArray("children").forEach(child -> children.add(deserializeKeyFromJson(child.getAsJsonObject())));
-            return new CheckedNbtKey(key, children);
-        }
-        else
-        {
-            return new CheckedNbtKey(key, Collections.emptySet());
-        }
+            @NotNull
+            @Override
+            public <U> Optional<HolderLookup.RegistryLookup<U>> lookup(@NotNull final ResourceKey<? extends Registry<? extends U>> id)
+            {
+                if (id.equals(registryId))
+                {
+                    return Optional.of((HolderLookup.RegistryLookup<U>) registry.asLookup());
+                }
+
+                return provider.lookup(id);
+            }
+
+            @NotNull
+            @Override
+            public <V> RegistryOps<V> createSerializationContext(@NotNull final DynamicOps<V> ops)
+            {
+                return provider.createSerializationContext(ops);
+            }
+        };
     }
 }

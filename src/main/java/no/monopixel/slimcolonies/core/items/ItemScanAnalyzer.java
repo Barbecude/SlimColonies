@@ -3,15 +3,14 @@ package no.monopixel.slimcolonies.core.items;
 import com.ldtteam.structurize.Structurize;
 import com.ldtteam.structurize.blueprints.v1.Blueprint;
 import com.ldtteam.structurize.blueprints.v1.BlueprintUtil;
+import com.ldtteam.structurize.component.ModDataComponents;
 import com.ldtteam.structurize.items.AbstractItemWithPosSelector;
-import com.ldtteam.structurize.client.rendertask.RenderTaskManager;
-import com.ldtteam.structurize.client.rendertask.tasks.BoxPreviewData;
-import com.ldtteam.structurize.client.rendertask.tasks.BoxPreviewRenderTask;
+import com.ldtteam.structurize.storage.rendering.RenderingCache;
+import com.ldtteam.structurize.storage.rendering.types.BoxPreviewData;
 import no.monopixel.slimcolonies.api.items.ModItems;
+import no.monopixel.slimcolonies.api.items.component.Timestamp;
 import no.monopixel.slimcolonies.core.client.gui.WindowSchematicAnalyzer;
 import net.minecraft.core.BlockPos;
-import net.minecraft.nbt.CompoundTag;
-import net.minecraft.nbt.NbtUtils;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
@@ -28,9 +27,7 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.Optional;
 
-import static com.ldtteam.structurize.api.util.constant.NbtTagConstants.FIRST_POS_STRING;
-import static com.ldtteam.structurize.api.util.constant.NbtTagConstants.SECOND_POS_STRING;
-import static com.ldtteam.structurize.api.util.constant.TranslationConstants.MAX_SCHEMATIC_SIZE_REACHED;
+import static com.ldtteam.structurize.api.constants.TranslationConstants.MAX_SCHEMATIC_SIZE_REACHED;
 
 /**
  * Item used to analyze schematics or selected blocks
@@ -41,7 +38,6 @@ public class ItemScanAnalyzer extends AbstractItemWithPosSelector
      * NBT constants
      */
     public static String TEMP_SCAN = "selection.blueprint";
-    public static String LAST_TIME = "lastworldtime";
 
     /**
      * Time after which the selection is ignored
@@ -59,7 +55,10 @@ public class ItemScanAnalyzer extends AbstractItemWithPosSelector
       @NotNull final String name,
       final Item.Properties properties)
     {
-        super(properties.durability(0).setNoRepair().rarity(Rarity.UNCOMMON));
+        super(properties.durability(0)
+            .setNoRepair()
+            .rarity(Rarity.UNCOMMON)
+            .component(ModDataComponents.POS_SELECTION, PosSelection.EMPTY));
     }
 
     /**
@@ -98,30 +97,7 @@ public class ItemScanAnalyzer extends AbstractItemWithPosSelector
     public InteractionResultHolder<ItemStack> use(final Level worldIn, final Player playerIn, final InteractionHand handIn)
     {
         checkTimeout(playerIn.getItemInHand(handIn), worldIn);
-
-        final ItemStack itemstack = playerIn.getItemInHand(handIn);
-        final CompoundTag compound = itemstack.getOrCreateTag();
-
-        BlockPos firstPos = null;
-        if (compound.contains(FIRST_POS_STRING))
-        {
-            firstPos = NbtUtils.readBlockPos(compound.getCompound(FIRST_POS_STRING));
-        }
-
-        BlockPos secondPos = null;
-        if (compound.contains(SECOND_POS_STRING))
-        {
-            secondPos = NbtUtils.readBlockPos(compound.getCompound(SECOND_POS_STRING));
-        }
-
-        return new InteractionResultHolder<>(
-          onAirRightClick(
-            firstPos,
-            secondPos,
-            worldIn,
-            playerIn,
-            itemstack),
-          itemstack);
+        return super.use(worldIn, playerIn, handIn);
     }
 
     @Override
@@ -133,8 +109,9 @@ public class ItemScanAnalyzer extends AbstractItemWithPosSelector
             {
                 lastPos = start;
                 lastPos2 = end;
+                final PosSelection data = PosSelection.readFromItemStack(itemStack);
 
-                blueprint = saveStructure(worldIn, playerIn, new AABB(getBounds(itemStack).getA(), getBounds(itemStack).getB()));
+                blueprint = saveStructure(worldIn, playerIn, AABB.encapsulatingFullBlocks(data.startPos().orElse(null), data.endPos().orElse(null)));
             }
 
             new WindowSchematicAnalyzer().open();
@@ -155,13 +132,12 @@ public class ItemScanAnalyzer extends AbstractItemWithPosSelector
      */
     private void openAreaBox(final ItemStack tool)
     {
-        final CompoundTag tag = tool.getOrCreateTag();
-        if (tag.contains(FIRST_POS_STRING) && tag.contains(SECOND_POS_STRING))
+        final PosSelection component = PosSelection.readFromItemStack(tool);
+        final BlockPos start = component.startPos().orElse(null);
+        final BlockPos end = component.endPos().orElse(null);
+        if (start != null && end != null)
         {
-            final BlockPos start = NbtUtils.readBlockPos(tag.getCompound(FIRST_POS_STRING));
-            final BlockPos end = NbtUtils.readBlockPos(tag.getCompound(SECOND_POS_STRING));
-            RenderTaskManager.addRenderTask("analyzer",
-              new BoxPreviewRenderTask("analyzer", new BoxPreviewData(start, end, Optional.empty()), 600));
+            RenderingCache.queue("analyzer", new BoxPreviewData(start, end, Optional.empty()));
         }
     }
 
@@ -175,17 +151,14 @@ public class ItemScanAnalyzer extends AbstractItemWithPosSelector
             return;
         }
 
-        if (stack.getOrCreateTag().contains(LAST_TIME))
-        {
-            final long prevTime = stack.getOrCreateTag().getLong(LAST_TIME);
-            if ((level.getGameTime() - prevTime) > TIMEOUT_DELAY)
+        Timestamp.updateItemStack(stack, component -> {
+            if (component.hasTime() && (level.getGameTime() - component.time()) > TIMEOUT_DELAY)
             {
-                stack.getOrCreateTag().remove(FIRST_POS_STRING);
-                stack.getOrCreateTag().remove(SECOND_POS_STRING);
+                PosSelection.EMPTY.writeToItemStack(stack);
             }
-        }
 
-        stack.getOrCreateTag().putLong(LAST_TIME, level.getGameTime());
+            return new Timestamp(level.getGameTime());
+        });
     }
 
     /**
@@ -198,7 +171,7 @@ public class ItemScanAnalyzer extends AbstractItemWithPosSelector
     {
         if (box.getXsize() * box.getYsize() * box.getZsize() > Structurize.getConfig().getServer().schematicBlockLimit.get())
         {
-            player.displayClientMessage(Component.translatable(MAX_SCHEMATIC_SIZE_REACHED, Structurize.getConfig().getServer().schematicBlockLimit.get()), false);
+            player.displayClientMessage(Component.translatableEscape(MAX_SCHEMATIC_SIZE_REACHED, Structurize.getConfig().getServer().schematicBlockLimit.get()), false);
             return null;
         }
 

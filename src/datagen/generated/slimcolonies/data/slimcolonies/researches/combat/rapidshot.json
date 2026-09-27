@@ -1,12 +1,18 @@
 {
   "branch": "slimcolonies:combat",
+  "costs": [
+    {
+      "count": 18,
+      "item": "minecraft:bow"
+    }
+  ],
   "effects": [
     {
       "id": "slimcolonies:effects/doublearrowsmultiplier",
       "level": 3
     }
   ],
-  "icon": "minecraft:spectral_arrow",
+  "icon": "slimcolonies:firearrow",
   "parentResearch": "slimcolonies:combat/multishot",
   "requirements": [
     {

@@ -1,17 +1,5 @@
 package no.monopixel.slimcolonies.core.entity.ai.workers.service;
 
-import net.minecraft.core.BlockPos;
-import net.minecraft.core.particles.ParticleTypes;
-import net.minecraft.nbt.CompoundTag;
-import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.ComponentUtils;
-import net.minecraft.sounds.SoundEvents;
-import net.minecraft.world.InteractionHand;
-import net.minecraft.world.item.EnchantedBookItem;
-import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.Items;
-import net.minecraft.world.item.enchantment.EnchantmentHelper;
-import net.minecraft.world.phys.Vec3;
 import no.monopixel.slimcolonies.api.colony.ICitizenData;
 import no.monopixel.slimcolonies.api.colony.IColonyManager;
 import no.monopixel.slimcolonies.api.colony.buildings.IBuilding;
@@ -24,7 +12,6 @@ import no.monopixel.slimcolonies.api.entity.citizen.AbstractEntityCitizen;
 import no.monopixel.slimcolonies.api.entity.citizen.Skill;
 import no.monopixel.slimcolonies.api.items.ModItems;
 import no.monopixel.slimcolonies.api.util.*;
-import no.monopixel.slimcolonies.core.Network;
 import no.monopixel.slimcolonies.core.colony.buildings.modules.BuildingModules;
 import no.monopixel.slimcolonies.core.colony.buildings.modules.EnchanterStationsModule;
 import no.monopixel.slimcolonies.core.colony.buildings.workerbuildings.BuildingEnchanter;
@@ -34,6 +21,21 @@ import no.monopixel.slimcolonies.core.entity.ai.workers.crafting.AbstractEntityA
 import no.monopixel.slimcolonies.core.network.messages.client.CircleParticleEffectMessage;
 import no.monopixel.slimcolonies.core.network.messages.client.StreamParticleEffectMessage;
 import no.monopixel.slimcolonies.core.util.WorkerUtil;
+import it.unimi.dsi.fastutil.objects.Object2IntMap;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Holder;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.ComponentUtils;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.item.enchantment.Enchantment;
+import net.minecraft.world.item.enchantment.EnchantmentHelper;
+import net.minecraft.world.item.enchantment.ItemEnchantments;
+import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
@@ -43,9 +45,9 @@ import java.util.function.Predicate;
 
 import static no.monopixel.slimcolonies.api.entity.ai.statemachine.states.AIWorkerState.*;
 import static no.monopixel.slimcolonies.api.util.constant.Constants.TICKS_SECOND;
-import static no.monopixel.slimcolonies.api.util.constant.StatisticsConstants.CITIZENS_VISITED;
-import static no.monopixel.slimcolonies.api.util.constant.StatisticsConstants.ITEMS_ENCHANTED;
 import static no.monopixel.slimcolonies.api.util.constant.TranslationConstants.NO_WORKERS_TO_DRAIN_SET;
+import static no.monopixel.slimcolonies.api.util.constant.StatisticsConstants.ITEMS_ENCHANTED;
+import static no.monopixel.slimcolonies.api.util.constant.StatisticsConstants.CITIZENS_VISITED;
 
 /**
  * Enchanter AI class.
@@ -106,8 +108,8 @@ public class EntityAIWorkEnchanter extends AbstractEntityAICrafting<JobEnchanter
     {
         super(job);
         super.registerTargets(
-            new AITarget(ENCHANTER_DRAIN, this::gatherAndDrain, 10),
-            new AITarget(ENCHANT, this::enchant, TICKS_SECOND)
+          new AITarget(ENCHANTER_DRAIN, this::gatherAndDrain, 10),
+          new AITarget(ENCHANT, this::enchant, TICKS_SECOND)
         );
         worker.setCanPickUpLoot(true);
     }
@@ -147,7 +149,7 @@ public class EntityAIWorkEnchanter extends AbstractEntityAICrafting<JobEnchanter
                 if (worker.getCitizenData() != null)
                 {
                     worker.getCitizenData()
-                        .triggerInteraction(new StandardInteraction(Component.translatable(NO_WORKERS_TO_DRAIN_SET), ChatPriority.BLOCKING));
+                      .triggerInteraction(new StandardInteraction(Component.translatableEscape(NO_WORKERS_TO_DRAIN_SET), ChatPriority.BLOCKING));
                 }
                 return IDLE;
             }
@@ -207,7 +209,6 @@ public class EntityAIWorkEnchanter extends AbstractEntityAICrafting<JobEnchanter
     @Override
     public boolean hasWorkToDo()
     {
-        // Enchanter can always work to either craft or go gather xp
         return true;
     }
 
@@ -234,23 +235,14 @@ public class EntityAIWorkEnchanter extends AbstractEntityAICrafting<JobEnchanter
 
         if (progressTicks++ < MAX_ENCHANTMENT_TICKS / building.getBuildingLevel())
         {
-            Network.getNetwork().sendToTrackingEntity(
-                new CircleParticleEffectMessage(
-                    worker.position().add(0, 2, 0),
-                    ParticleTypes.ENCHANT,
-                    progressTicks), worker);
+            new CircleParticleEffectMessage(worker.position().add(0, 2, 0), ParticleTypes.ENCHANT, progressTicks)
+                .sendToTrackingEntity(worker);
 
-            Network.getNetwork().sendToTrackingEntity(
-                new CircleParticleEffectMessage(
-                    worker.position().add(0, 1.5, 0),
-                    ParticleTypes.ENCHANT,
-                    progressTicks), worker);
+            new CircleParticleEffectMessage(worker.position().add(0, 1.5, 0), ParticleTypes.ENCHANT, progressTicks)
+                .sendToTrackingEntity(worker);
 
-            Network.getNetwork().sendToTrackingEntity(
-                new CircleParticleEffectMessage(
-                    worker.position().add(0, 1, 0),
-                    ParticleTypes.ENCHANT,
-                    progressTicks), worker);
+            new CircleParticleEffectMessage(worker.position().add(0, 1, 0), ParticleTypes.ENCHANT, progressTicks)
+                .sendToTrackingEntity(worker);
 
             worker.queueSound(SoundEvents.ENCHANTMENT_TABLE_USE, worker.blockPosition().above(), 20, 0, 0.5f, worker.getRandom().nextFloat());
 
@@ -272,8 +264,8 @@ public class EntityAIWorkEnchanter extends AbstractEntityAICrafting<JobEnchanter
             if (loot != null)
             {
                 final int enchantmentLevel = loot.stream()
-                    .mapToInt(EntityAIWorkEnchanter::getEnchantedBookLevel)
-                    .max().orElse(0);
+                                               .mapToInt(EntityAIWorkEnchanter::getEnchantedBookLevel)
+                                               .max().orElse(0);
 
                 //Decrement mana.
                 data.getCitizenSkillHandler().incrementLevel(Skill.Mana, -enchantmentLevel);
@@ -291,9 +283,12 @@ public class EntityAIWorkEnchanter extends AbstractEntityAICrafting<JobEnchanter
     {
         if (stack.getItem().equals(Items.ENCHANTED_BOOK))
         {
-            return EnchantedBookItem.getEnchantments(stack).stream()
-                .mapToInt(nbt -> ((CompoundTag) nbt).getShort("lvl"))
-                .max().orElse(0);
+            int level = 0;
+            for (Object2IntMap.Entry<Holder<Enchantment>> entry : stack.getOrDefault(DataComponents.ENCHANTMENTS, ItemEnchantments.EMPTY).entrySet())
+            {
+                level = Math.max(level, entry.getIntValue());
+            }
+            return level;
         }
         return 0;
     }
@@ -310,7 +305,7 @@ public class EntityAIWorkEnchanter extends AbstractEntityAICrafting<JobEnchanter
             return IDLE;
         }
 
-        final IBuilding buildingWorker = building.getColony().getBuildingManager().getBuilding(job.getPosToDrainFrom());
+        final IBuilding buildingWorker = building.getColony().getServerBuildingManager().getBuilding(job.getPosToDrainFrom());
         if (!walkToBuilding(buildingWorker))
         {
             return getState();
@@ -377,19 +372,10 @@ public class EntityAIWorkEnchanter extends AbstractEntityAICrafting<JobEnchanter
             final Vec3 start = worker.position().add(0, 2, 0);
             final Vec3 goal = citizenToGatherFrom.getEntity().get().position().add(0, 2, 0);
 
-            Network.getNetwork().sendToTrackingEntity(
-                new StreamParticleEffectMessage(
-                    start,
-                    goal,
-                    ParticleTypes.ENCHANT,
-                    progressTicks % MAX_PROGRESS_TICKS,
-                    MAX_PROGRESS_TICKS), worker);
+            new StreamParticleEffectMessage(start, goal, ParticleTypes.ENCHANT, progressTicks % MAX_PROGRESS_TICKS, MAX_PROGRESS_TICKS)
+                .sendToTrackingEntity(worker);
 
-            Network.getNetwork().sendToTrackingEntity(
-                new CircleParticleEffectMessage(
-                    start,
-                    ParticleTypes.HAPPY_VILLAGER,
-                    progressTicks), worker);
+            new CircleParticleEffectMessage(start, ParticleTypes.HAPPY_VILLAGER, progressTicks).sendToTrackingEntity(worker);
 
             WorkerUtil.faceBlock(BlockPos.containing(goal), worker);
 
@@ -417,7 +403,7 @@ public class EntityAIWorkEnchanter extends AbstractEntityAICrafting<JobEnchanter
                 final ItemStack stack = citizenToGatherFrom.getInventory().getStackInSlot(randomSlot);
                 if (!stack.isEmpty() && stack.isEnchantable())
                 {
-                    EnchantmentHelper.enchantItem(worker.getRandom(), stack, getSecondarySkillLevel() > 50 ? 2 : 1, false);
+                    EnchantmentHelper.enchantItem(worker.getRandom(), stack, getSecondarySkillLevel() > 50 ? 2 : 1, world.registryAccess(), Optional.empty());
                     break;
                 }
             }
@@ -453,7 +439,6 @@ public class EntityAIWorkEnchanter extends AbstractEntityAICrafting<JobEnchanter
 
     /**
      * Records stats for items enchanted by the enchanter.
-     *
      * @param loot the items to record stats for
      */
     public void recordEnchantmentStats(List<ItemStack> loot)
@@ -464,20 +449,20 @@ public class EntityAIWorkEnchanter extends AbstractEntityAICrafting<JobEnchanter
 
             if (stack.is(Items.ENCHANTED_BOOK))
             {
-                var enchants = EnchantmentHelper.getEnchantments(stack);
+                ItemEnchantments ench = EnchantmentHelper.getEnchantmentsForCrafting(stack);
 
-                if (!enchants.isEmpty())
+                if (!ench.isEmpty())
                 {
-                    if (enchants.size() == 1)
+                    if (ench.size() == 1)
                     {
-                        var e = enchants.entrySet().iterator().next();
-                        name = e.getKey().getFullname(e.getValue());
+                        Holder<Enchantment> h = ench.keySet().iterator().next();
+                        int lvl = ench.getLevel(h);
+                        name = Enchantment.getFullname(h, lvl);
                     }
                     else
                     {
-                        name = ComponentUtils.formatList(
-                            enchants.entrySet().stream().map(e -> e.getKey().getFullname(e.getValue())).toList(),
-                            Component.literal(", "));
+                        List<Component> parts = ench.keySet().stream().map(h -> Enchantment.getFullname(h, ench.getLevel(h))).toList();
+                        name = ComponentUtils.formatList(parts, Component.literal(", "));
                     }
                 }
             }
@@ -488,7 +473,6 @@ public class EntityAIWorkEnchanter extends AbstractEntityAICrafting<JobEnchanter
 
     /**
      * Returns the name of the crafting stat used in the building's statistics.
-     *
      * @return The name of the enchanting statistic.
      */
 

@@ -1,5 +1,15 @@
 {
   "branch": "slimcolonies:technology",
+  "costs": [
+    {
+      "count": 32,
+      "item": "minecraft:leather"
+    },
+    {
+      "count": 16,
+      "item": "minecraft:iron_ingot"
+    }
+  ],
   "effects": [
     {
       "id": "slimcolonies:effects/minerfireresunlock",
@@ -7,7 +17,14 @@
     }
   ],
   "icon": "minecraft:campfire",
-  "parentResearch": "slimcolonies:technology/thoselungs",
+  "parentResearch": "slimcolonies:technology/stringwork",
+  "requirements": [
+    {
+      "type": "slimcolonies:building",
+      "building": "slimcolonies:fletcher",
+      "level": 1
+    }
+  ],
   "researchLevel": 3,
   "subtitle": "no.monopixel.slimcolonies.research.technology.hotboots.subtitle"
 }
