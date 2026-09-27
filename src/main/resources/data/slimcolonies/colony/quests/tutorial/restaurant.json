@@ -1,168 +1,172 @@
 {
-  "name": "Feed the masses",
-  "max-occurrences": 1,
-  "parents": [
-    "slimcolonies:tutorial/housing"
-  ],
-  "triggers": [
-    {
-      "type": "slimcolonies:citizen",
-      "state": {
-        "notmatch": {
-          "finavquests": [
-            "slimcolonies:tutorial/housing"
-          ]
-        }
-      }
-    },
-    {
-      "type": "slimcolonies:citizen",
-      "state": { }
-    }
-  ],
-  "triggerOrder": "1 || 2",
-  "objectives": [
-    {
-      "type": "slimcolonies:dialogue",
-      "target": 0,
-      "text": "While we are getting food from the farm, you still have to manually feed the citizens when they are hungry. How about we build a dining hall so that is taken care of automatically?",
-      "options": [
-        {
-          "answer": "Sounds great!!",
-          "result": {
-            "type": "slimcolonies:dialogue",
-            "text": "The waiter in the dining hall will not only cook food for you in the furnace automatically, but they will also hand out food to citizens that are hungry. You know the drill, craft the dining hall hut block in a crafting bench. This time surround an apple with planks and the build tool at the top.'",
-            "options": [
-              {
-                "answer": "On it!",
-                "result": {
-                  "type": "slimcolonies:advanceobjective",
-                  "go-to": 1
-                }
-              },
-              {
-                "answer": "Already done!",
-                "result": {
-                  "type": "slimcolonies:dialogue",
-                  "text": "Alrighty then! Then it's time to place the dining hall with the Build Tool, click build and provide your Builder with the necessary items like the last time and come back once it is built!",
-                  "options": [
+    "name":  "Warung Makan Desa",
+    "max-occurrences":  1,
+    "parents":  [
+                    "slimcolonies:tutorial/housing"
+                ],
+    "triggers":  [
+                     {
+                         "type":  "slimcolonies:citizen",
+                         "state":  {
+                                       "notmatch":  {
+                                                        "finavquests":  [
+                                                                            "slimcolonies:tutorial/housing"
+                                                                        ]
+                                                    }
+                                   }
+                     },
+                     {
+                         "type":  "slimcolonies:citizen",
+                         "state":  {
+
+                                   }
+                     }
+                 ],
+    "triggerOrder":  "1 || 2",
+    "objectives":  [
+                       {
+                           "type":  "slimcolonies:dialogue",
+                           "target":  0,
+                           "text":  "Walaupun kita udah dapet hasil panen dari pertanian, capek juga kan kalau kamu harus nyuapin warga satu-satu pas mereka laper? Gimana kalau kita bangun Ruang Makan / Restoran (Dining Hall) biar semuanya otomatis?",
+                           "options":  [
+                                           {
+                                               "answer":  "Ide bagus banget tuh!!",
+                                               "result":  {
+                                                              "type":  "slimcolonies:dialogue",
+                                                              "text":  "Pelayan di Restoran nggak cuma otomatis manggang makanan di tungku, tapi juga langsung bagiin makanan ke warga yang laper! Langsung aja bikin blok Restaurant di Crafting Table: taruh Apel di tengah, kelilingi pakai papan kayu (planks), dan Build Tool di paling atas!",
+                                                              "options":  [
+                                                                              {
+                                                                                  "answer":  "Siap, langsung gas!",
+                                                                                  "result":  {
+                                                                                                 "type":  "slimcolonies:advanceobjective",
+                                                                                                 "go-to":  1
+                                                                                             }
+                                                                              },
+                                                                              {
+                                                                                  "answer":  "Udah beres kok!",
+                                                                                  "result":  {
+                                                                                                 "type":  "slimcolonies:dialogue",
+                                                                                                 "text":  "Sip! Sekarang pasang Restoran-nya pakai Build Tool, klik Build, dan kasih bahannya ke tukang bangunan. Kalau udah jadi, balik ngobrol sama aku lagi ya!",
+                                                                                                 "options":  [
+                                                                                                                 {
+                                                                                                                     "answer":  "Beres, serahin ke aku!",
+                                                                                                                     "result":  {
+                                                                                                                                    "type":  "slimcolonies:advanceobjective",
+                                                                                                                                    "go-to":  2
+                                                                                                                                }
+                                                                                                                 }
+                                                                                                             ]
+                                                                                             }
+                                                                              }
+                                                                          ]
+                                                          }
+                                           },
+                                           {
+                                               "answer":  "Nanti dulu ya, aku balik lagi nanti!",
+                                               "result":  {
+                                                              "type":  "slimcolonies:return"
+                                                          }
+                                           },
+                                           {
+                                               "answer":  "Udah beres kok!",
+                                               "result":  {
+                                                              "type":  "slimcolonies:dialogue",
+                                                              "text":  "Wih mantap! Berarti udah beres nih, nanti aku kabarin lagi buat langkah berikutnya ya!",
+                                                              "options":  [
+                                                                              {
+                                                                                  "answer":  "Asik!",
+                                                                                  "result":  {
+                                                                                                 "type":  "slimcolonies:advanceobjective",
+                                                                                                 "go-to":  10
+                                                                                             }
+                                                                              }
+                                                                          ]
+                                                          }
+                                           }
+                                       ]
+                       },
+                       {
+                           "type":  "slimcolonies:dialogue",
+                           "target":  0,
+                           "text":  "Hai balik lagi! Udah berhasil bikin blok Restoran belum?",
+                           "options":  [
+                                           {
+                                               "answer":  "Belum, aku lupa resep crafting-nya!",
+                                               "result":  {
+                                                              "type":  "slimcolonies:dialogue",
+                                                              "text":  "Santai! Di Crafting Table, taruh Apel di tengah, kelilingi pakai papan kayu (planks), dan taruh Build Tool di paling atas.",
+                                                              "options":  [
+                                                                              {
+                                                                                  "answer":  "Oke sip! Aku bikin dulu ya!",
+                                                                                  "result":  {
+                                                                                                 "type":  "slimcolonies:return"
+                                                                                             }
+                                                                              }
+                                                                          ]
+                                                          }
+                                           },
+                                           {
+                                               "answer":  "Udah beres dong! Lanjut ngapain lagi nih?",
+                                               "result":  {
+                                                              "type":  "slimcolonies:dialogue",
+                                                              "text":  "Sip! Sekarang pasang Restoran-nya pakai Build Tool, klik Build, dan kasih bahannya ke tukang bangunan. Kalau udah jadi, balik ngobrol sama aku lagi ya!",
+                                                              "options":  [
+                                                                              {
+                                                                                  "answer":  "Beres, serahin ke aku!",
+                                                                                  "result":  {
+                                                                                                 "type":  "slimcolonies:advanceobjective",
+                                                                                                 "go-to":  2
+                                                                                             }
+                                                                              }
+                                                                          ]
+                                                          }
+                                           },
+                                           {
+                                               "answer":  "Belum sempet nih, nanti aku balik lagi ya!",
+                                               "result":  {
+                                                              "type":  "slimcolonies:return"
+                                                          }
+                                           }
+                                       ]
+                       },
+                       {
+                           "type":  "slimcolonies:buildbuilding",
+                           "details":  {
+                                           "type":  "slimcolonies:cook",
+                                           "count-existing":  true,
+                                           "lvl":  1,
+                                           "qty":  1,
+                                           "target":  0,
+                                           "next-objective":  3
+                                       }
+                       },
+                       {
+                           "unlocks-rewards":  [
+                                                   0
+                                               ],
+                           "type":  "slimcolonies:dialogue",
+                           "target":  0,
+                           "text":  "Keren! Sebentar lagi pelayan bakal otomatis ngelayanin warga yang laper. Pastiin aja stok makanan ada dan kamu udah ngatur daftar Menu di bangunan Restoran-nya ya! Oh iya, makanan biasa (vanilla) nggak terlalu bikin kenyang warga dibanding masakan khas desa. Nih, ambil batu bara (Coal) buat bahan bakar awal!",
+                           "options":  [
+                                           {
+                                               "answer":  "Sip, sampai ketemu lagi!",
+                                               "result":  {
+                                                              "type":  "slimcolonies:advanceobjective",
+                                                              "go-to":  5
+                                                          }
+                                           }
+                                       ]
+                       }
+                   ],
+    "rewards":  [
                     {
-                      "answer": "Consider it done!",
-                      "result": {
-                        "type": "slimcolonies:advanceobjective",
-                        "go-to": 2
-                      }
+                        "type":  "slimcolonies:item",
+                        "details":  {
+                                        "item":  {
+                                                     "id":  "minecraft:coal",
+                                                     "count":  16
+                                                 }
+                                    }
                     }
-                  ]
-                }
-              }
-            ]
-          }
-        },
-        {
-          "answer": "Not right now. I will come back to you later!",
-          "result": {
-            "type": "slimcolonies:return"
-          }
-        },
-        {
-          "answer": "Already done!",
-          "result": {
-            "type": "slimcolonies:dialogue",
-            "text": "Oh nice, then we are done here and I will have more information on the next steps soon!",
-            "options": [
-              {
-                "answer": "Nice!",
-                "result": {
-                  "type": "slimcolonies:advanceobjective",
-                  "go-to": 10
-                }
-              }
-            ]
-          }
-        }
-      ]
-    },
-    {
-      "type": "slimcolonies:dialogue",
-      "target": 0,
-      "text": "Welcome back, were you able to craft the dining hall hut block?",
-      "options": [
-        {
-          "answer": "No, I forgot the recipe!",
-          "result": {
-            "type": "slimcolonies:dialogue",
-            "text": "No problem! In the crafting bench, surround an apple with planks and put the Build Tool in the top.",
-            "options": [
-              {
-                "answer": "Alright! I'll get back to it!",
-                "result": {
-                  "type": "slimcolonies:return"
-                }
-              }
-            ]
-          }
-        },
-        {
-          "answer": "Yes, done, what's next?",
-          "result": {
-            "type": "slimcolonies:dialogue",
-            "text": "Alrighty then! Then it's time to place the dining hall with the Build Tool, click build and provide your Builder with the necessary items like the last time and come back once it is built!",
-            "options": [
-              {
-                "answer": "Consider it done!",
-                "result": {
-                  "type": "slimcolonies:advanceobjective",
-                  "go-to": 2
-                }
-              }
-            ]
-          }
-        },
-        {
-          "answer": "Not yet, I will get to it later!",
-          "result": {
-            "type": "slimcolonies:return"
-          }
-        }
-      ]
-    },
-    {
-      "type": "slimcolonies:buildbuilding",
-      "details": {
-        "type": "slimcolonies:cook",
-        "count-existing": true,
-        "lvl": 1,
-        "qty": 1,
-        "target": 0,
-        "next-objective": 3
-      }
-    },
-    {
-      "unlocks-rewards": [0],
-      "type": "slimcolonies:dialogue",
-      "target": 0,
-      "text": "Neat, soon the waiter will hand out food to your citizens, just make sure the dining hall is supplied with food and there is a menu setup for what the waiter will hand out. Keep in mind that vanilla foods are not as saturating for citizens as they are for players. Here, have some coal to serve as initial fuel!",
-      "options": [
-        {
-          "answer": "See you in a bit!",
-          "result": {
-            "type": "slimcolonies:advanceobjective",
-            "go-to": 5
-          }
-        }
-      ]
-    }
-  ],
-  "rewards": [
-    {
-      "type": "slimcolonies:item",
-      "details": {
-        "item": {
-          "id": "minecraft:coal",
-          "count": 16
-        }
-      }
-    }
-  ]
+                ]
 }

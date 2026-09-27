@@ -1,77 +1,82 @@
 {
-  "name": "Bring Light into the Darkness",
-  "max-occurrences": 1,
-  "parents": [
-    "slimcolonies:tutorial/forester"
-  ],
-  "triggers": [
-    {
-      "type": "slimcolonies:citizen",
-      "state": { }
-    }
-  ],
-  "objectives": [
-    {
-      "type": "slimcolonies:dialogue",
-      "target": 0,
-      "text": "Hello! I see your colony is growing. However, it is quite dangerous around here. How about you light the area up a little bit to avoid monsters preying on your citizens?",
-      "options": [
-        {
-          "answer": "Sounds like a good idea!!",
-          "result": {
-            "type": "slimcolonies:advanceobjective",
-            "go-to": 1
-          }
-        },
-        {
-          "answer": "Not right now. I will come back to you later!",
-          "result": {
-            "type": "slimcolonies:return"
-          }
-        }
-      ]
-    },
-    {
-      "unlocks-rewards": [0,1],
-      "type": "slimcolonies:placeblock",
-      "details": {
-        "block": "minecraft:torch",
-        "next-objective": 2,
-        "qty": 16,
-        "target": 0
-      }
-    },
-    {
-      "type": "slimcolonies:dialogue",
-      "target": 0,
-      "text": "Great, thanks! This should definitely help a bit. Here, I found these, I'm sure they will come in handy!",
-      "options": [
-        {
-          "answer": "Thanks!",
-          "result": {
-            "type": "slimcolonies:advanceobjective",
-            "go-to": 5
-          }
-        }
-      ]
-    }
-  ],
-  "rewards": [
-    {
-      "type": "slimcolonies:item",
-      "details": {
-        "item": {
-          "id": "minecraft:iron_sword"
-        }
-      }
-    },
-    {
-      "type": "slimcolonies:item",
-      "details": {
-        "item": {
-          "id": "minecraft:bow"
-        }
-      }
-    }
-  ]
+    "name":  "Terangi Desa Kita",
+    "max-occurrences":  1,
+    "parents":  [
+                    "slimcolonies:tutorial/forester"
+                ],
+    "triggers":  [
+                     {
+                         "type":  "slimcolonies:citizen",
+                         "state":  {
+
+                                   }
+                     }
+                 ],
+    "objectives":  [
+                       {
+                           "type":  "slimcolonies:dialogue",
+                           "target":  0,
+                           "text":  "Halo! Desa kita makin berkembang nih, tapi kalau malem masih gelap banget di beberapa sudut, bahaya kalau ada monster muncul! Gimana kalau kamu pasang obor (Torch) di sekitar desa biar terang dan aman?",
+                           "options":  [
+                                           {
+                                               "answer":  "Ide bagus banget tuh, langsung kupasang!!",
+                                               "result":  {
+                                                              "type":  "slimcolonies:advanceobjective",
+                                                              "go-to":  1
+                                                          }
+                                           },
+                                           {
+                                               "answer":  "Nanti dulu ya, aku balik lagi nanti!",
+                                               "result":  {
+                                                              "type":  "slimcolonies:return"
+                                                          }
+                                           }
+                                       ]
+                       },
+                       {
+                           "unlocks-rewards":  [
+                                                   0,
+                                                   1
+                                               ],
+                           "type":  "slimcolonies:placeblock",
+                           "details":  {
+                                           "block":  "minecraft:torch",
+                                           "next-objective":  2,
+                                           "qty":  16,
+                                           "target":  0
+                                       }
+                       },
+                       {
+                           "type":  "slimcolonies:dialogue",
+                           "target":  0,
+                           "text":  "Mantap, makasih banyak ya! Sekarang desa kita jadi terang benderang kalau malem. Nih, tadi aku nemu barang bagus, ambil aja buat kamu!",
+                           "options":  [
+                                           {
+                                               "answer":  "Makasih ya!",
+                                               "result":  {
+                                                              "type":  "slimcolonies:advanceobjective",
+                                                              "go-to":  5
+                                                          }
+                                           }
+                                       ]
+                       }
+                   ],
+    "rewards":  [
+                    {
+                        "type":  "slimcolonies:item",
+                        "details":  {
+                                        "item":  {
+                                                     "id":  "minecraft:iron_sword"
+                                                 }
+                                    }
+                    },
+                    {
+                        "type":  "slimcolonies:item",
+                        "details":  {
+                                        "item":  {
+                                                     "id":  "minecraft:bow"
+                                                 }
+                                    }
+                    }
+                ]
 }

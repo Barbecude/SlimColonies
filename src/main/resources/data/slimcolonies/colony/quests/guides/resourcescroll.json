@@ -1,93 +1,95 @@
 {
-  "name": "Best Builders Tool",
-  "max-occurrences": 1,
-  "parents": [
-    "slimcolonies:tutorial/builder"
-  ],
-  "triggers": [
-    {
-      "type": "slimcolonies:state",
-      "state": {
-        "path": "buildingManager/buildings",
-        "match": {
-          "type": "slimcolonies:builder",
-          "level": 1
-        }
-      }
-    },
-    {
-      "type": "slimcolonies:citizen",
-      "state": {
-        "match": {
-          "job": {
-            "type": "slimcolonies:builder"
-          }
-        }
-      }
-    }
-  ],
-  "objectives": [
-    {
-      "type": "slimcolonies:dialogue",
-      "target": 0,
-      "text": "Hello there! Have you heard about the Resource Scroll? It's a powerful tool that can help you gather resources more efficiently. I really need one, but I don't have the time to go and find it myself. Would you be willing to bring one to me?",
-      "options": [
-        {
-          "answer": "Sure, I can try to find one for you!",
-          "result": {
-            "type": "slimcolonies:advanceobjective",
-            "go-to": 1
-          }
-        },
-        {
-          "answer": "I'm sorry, I don't have the time right now.",
-          "result": {
-            "type": "slimcolonies:return"
-          }
-        },
-        {
-          "answer": "I already know what it does!",
-          "result": {
-            "type": "slimcolonies:advanceobjective",
-            "go-to": -1
-          }
-        }
-      ]
-    },
-    {
-      "type": "slimcolonies:delivery",
-      "details": {
-        "target": 0,
-        "item": {
-          "id": "slimcolonies:resourcescroll"
-        },
-        "next-objective": 2
-      }
-    },
-    {
-      "type": "slimcolonies:dialogue",
-      "unlocks-rewards": [0],
-      "target": 0,
-      "text": "Thank you so much for bringing me the Resource Scroll! You know, all you have to do is shift-right-click it on the hut block to activate it. It will help you gather resources more quickly and efficiently. I hope you find it as useful as I do!",
-      "options": [
-        {
-          "answer": "Thanks for the tip, I'll be sure to use it!",
-          "result": {
-            "type": "slimcolonies:advanceobjective",
-            "go-to": 3
-          }
-        }
-      ]
-    }
-  ],
-  "rewards": [
-    {
-      "type": "slimcolonies:item",
-      "details": {
-        "item": {
-          "id": "slimcolonies:resourcescroll"
-        }
-      }
-    }
-  ]
+    "name":  "Sahabat Terbaik Tukang Bangunan",
+    "max-occurrences":  1,
+    "parents":  [
+                    "slimcolonies:tutorial/builder"
+                ],
+    "triggers":  [
+                     {
+                         "type":  "slimcolonies:state",
+                         "state":  {
+                                       "path":  "buildingManager/buildings",
+                                       "match":  {
+                                                     "type":  "slimcolonies:builder",
+                                                     "level":  1
+                                                 }
+                                   }
+                     },
+                     {
+                         "type":  "slimcolonies:citizen",
+                         "state":  {
+                                       "match":  {
+                                                     "job":  {
+                                                                 "type":  "slimcolonies:builder"
+                                                             }
+                                                 }
+                                   }
+                     }
+                 ],
+    "objectives":  [
+                       {
+                           "type":  "slimcolonies:dialogue",
+                           "target":  0,
+                           "text":  "Halo! Udah pernah denger soal Resource Scroll belum? Itu alat praktis banget buat ngecek daftar bahan bangunan yang kurang tanpa harus bolak-balik ke hut tukang bangunan. Aku lagi butuh satu nih, kamu mau bantuin bawain ke sini nggak?",
+                           "options":  [
+                                           {
+                                               "answer":  "Boleh dong, aku bikinin satu buat kamu!",
+                                               "result":  {
+                                                              "type":  "slimcolonies:advanceobjective",
+                                                              "go-to":  1
+                                                          }
+                                           },
+                                           {
+                                               "answer":  "Sori ya, lagi nggak sempet nih sekarang.",
+                                               "result":  {
+                                                              "type":  "slimcolonies:return"
+                                                          }
+                                           },
+                                           {
+                                               "answer":  "Aku udah paham cara pakai Clipboard kok!",
+                                               "result":  {
+                                                              "type":  "slimcolonies:advanceobjective",
+                                                              "go-to":  -1
+                                                          }
+                                           }
+                                       ]
+                       },
+                       {
+                           "type":  "slimcolonies:delivery",
+                           "details":  {
+                                           "target":  0,
+                                           "item":  {
+                                                        "id":  "slimcolonies:resourcescroll"
+                                                    },
+                                           "next-objective":  2
+                                       }
+                       },
+                       {
+                           "type":  "slimcolonies:dialogue",
+                           "unlocks-rewards":  [
+                                                   0
+                                               ],
+                           "target":  0,
+                           "text":  "Makasih banyak udah bawain Resource Scroll! Cara pakainya tinggal Shift + klik kanan di blok Builder\u0027s Hut buat ngaktifin, terus kamu bisa buka daftarnya kapan aja buat nyiapin bahan bangunan dengan cepat. Semoga kepake banget ya!",
+                           "options":  [
+                                           {
+                                               "answer":  "Makasih tipsnya, bakal kupakai terus nih!",
+                                               "result":  {
+                                                              "type":  "slimcolonies:advanceobjective",
+                                                              "go-to":  3
+                                                          }
+                                           }
+                                       ]
+                       }
+                   ],
+    "rewards":  [
+                    {
+                        "type":  "slimcolonies:item",
+                        "details":  {
+                                        "item":  {
+                                                     "id":  "slimcolonies:resourcescroll"
+                                                 }
+                                    }
+                    }
+                ]
 }

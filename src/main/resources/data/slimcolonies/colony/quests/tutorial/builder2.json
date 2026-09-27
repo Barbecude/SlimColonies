@@ -1,124 +1,128 @@
 {
-  "name": "Bob and Wendy",
-  "max-occurrences": 1,
-  "parents": [
-    "slimcolonies:tutorial/restaurant"
-  ],
-  "triggers": [
-    {
-      "type": "slimcolonies:citizen",
-      "state": {
-        "notmatch": {
-          "finavquests": [
-            "slimcolonies:tutorial/restaurant"
-          ]
-        }
-      }
-    },
-    {
-      "type": "slimcolonies:citizen",
-      "state": { }
-    }
-  ],
-  "triggerOrder": "1 || 2",
-  "objectives": [
-    {
-      "type": "slimcolonies:dialogue",
-      "target": 0,
-      "text": "I see your colony is growing nicely. How about we upgrade your builders hut to take your colony to the next level?",
-      "options": [
-        {
-          "answer": "Sounds great!!",
-          "result": {
-            "type": "slimcolonies:dialogue",
-            "text": "Upgrading buildings yields many benefits. Aside from your citizens leveling up faster they may also use higher tool tiers. You can upgrade the building through the build options after right clicking the hut block.",
-            "options": [
-              {
-                "answer": "I'm on it!",
-                "result": {
-                  "type": "slimcolonies:advanceobjective",
-                  "go-to": 1
-                }
-              },
-              {
-                "answer": "Already done!",
-                "result": {
-                  "type": "slimcolonies:dialogue",
-                  "text": "Excellent. I'll leave you be for now then. Make sure to check on your quest log regularly.",
-                  "options": [
+    "name":  "Upgrade Tukang Bangunan",
+    "max-occurrences":  1,
+    "parents":  [
+                    "slimcolonies:tutorial/restaurant"
+                ],
+    "triggers":  [
+                     {
+                         "type":  "slimcolonies:citizen",
+                         "state":  {
+                                       "notmatch":  {
+                                                        "finavquests":  [
+                                                                            "slimcolonies:tutorial/restaurant"
+                                                                        ]
+                                                    }
+                                   }
+                     },
+                     {
+                         "type":  "slimcolonies:citizen",
+                         "state":  {
+
+                                   }
+                     }
+                 ],
+    "triggerOrder":  "1 || 2",
+    "objectives":  [
+                       {
+                           "type":  "slimcolonies:dialogue",
+                           "target":  0,
+                           "text":  "Wah, aku liat desa kita makin berkembang nih! Gimana kalau kita upgrade Builder\u0027s Hut sekarang biar desa kita bisa naik level?",
+                           "options":  [
+                                           {
+                                               "answer":  "Ide bagus banget tuh!!",
+                                               "result":  {
+                                                              "type":  "slimcolonies:dialogue",
+                                                              "text":  "Upgrade bangunan itu banyak banget untungnya lho! Selain warga kita bisa naik level lebih cepet, mereka juga jadi bisa pakai peralatan yang lebih bagus. Kamu bisa upgrade lewat menu \u0027Build Options\u0027 setelah klik kanan blok hut-nya.",
+                                                              "options":  [
+                                                                              {
+                                                                                  "answer":  "Siap, langsung berangkat!",
+                                                                                  "result":  {
+                                                                                                 "type":  "slimcolonies:advanceobjective",
+                                                                                                 "go-to":  1
+                                                                                             }
+                                                                              },
+                                                                              {
+                                                                                  "answer":  "Udah beres kok!",
+                                                                                  "result":  {
+                                                                                                 "type":  "slimcolonies:dialogue",
+                                                                                                 "text":  "Mantap! Kalau gitu aku serahin ke kamu dulu ya. Jangan lupa sering-sering cek Quest Log buat misi berikutnya!",
+                                                                                                 "options":  [
+                                                                                                                 {
+                                                                                                                     "answer":  "Siap, dicatat!",
+                                                                                                                     "result":  {
+                                                                                                                                    "type":  "slimcolonies:advanceobjective",
+                                                                                                                                    "go-to":  10
+                                                                                                                                }
+                                                                                                                 }
+                                                                                                             ]
+                                                                                             }
+                                                                              }
+                                                                          ]
+                                                          }
+                                           },
+                                           {
+                                               "answer":  "Nanti dulu ya, aku balik lagi nanti!",
+                                               "result":  {
+                                                              "type":  "slimcolonies:return"
+                                                          }
+                                           },
+                                           {
+                                               "answer":  "Udah beres kok!",
+                                               "result":  {
+                                                              "type":  "slimcolonies:dialogue",
+                                                              "text":  "Mantap! Kalau gitu aku serahin ke kamu dulu ya. Jangan lupa sering-sering cek Quest Log buat misi berikutnya!",
+                                                              "options":  [
+                                                                              {
+                                                                                  "answer":  "Siap, dicatat!",
+                                                                                  "result":  {
+                                                                                                 "type":  "slimcolonies:advanceobjective",
+                                                                                                 "go-to":  10
+                                                                                             }
+                                                                              }
+                                                                          ]
+                                                          }
+                                           }
+                                       ]
+                       },
+                       {
+                           "type":  "slimcolonies:buildbuilding",
+                           "details":  {
+                                           "type":  "slimcolonies:builder",
+                                           "count-existing":  true,
+                                           "lvl":  2,
+                                           "qty":  1,
+                                           "target":  0,
+                                           "next-objective":  2
+                                       }
+                       },
+                       {
+                           "unlocks-rewards":  [
+                                                   0
+                                               ],
+                           "type":  "slimcolonies:dialogue",
+                           "target":  0,
+                           "text":  "Gokil, keren banget! Sekarang kamu udah bisa upgrade bangunan-bangunan lain juga ke level 2. Kalau pengen bangun banyak tempat sekaligus, bikin aja Builder\u0027s Hut kedua! Jangan lupa rajin cek Quest Log ya!",
+                           "options":  [
+                                           {
+                                               "answer":  "Makasih banyak! Dah!",
+                                               "result":  {
+                                                              "type":  "slimcolonies:advanceobjective",
+                                                              "go-to":  5
+                                                          }
+                                           }
+                                       ]
+                       }
+                   ],
+    "rewards":  [
                     {
-                      "answer": "Noted!",
-                      "result": {
-                        "type": "slimcolonies:advanceobjective",
-                        "go-to": 10
-                      }
+                        "type":  "slimcolonies:item",
+                        "details":  {
+                                        "item":  {
+                                                     "id":  "minecraft:lantern",
+                                                     "count":  8
+                                                 }
+                                    }
                     }
-                  ]
-                }
-              }
-            ]
-          }
-        },
-        {
-          "answer": "Not right now. I will come back to you later!",
-          "result": {
-            "type": "slimcolonies:return"
-          }
-        },
-        {
-          "answer": "Already done!",
-          "result": {
-            "type": "slimcolonies:dialogue",
-            "text": "Excellent. I'll leave you be for now then. Make sure to check on your quest log regularly.",
-            "options": [
-              {
-                "answer": "Noted!",
-                "result": {
-                  "type": "slimcolonies:advanceobjective",
-                  "go-to": 10
-                }
-              }
-            ]
-          }
-        }
-      ]
-    },
-    {
-      "type": "slimcolonies:buildbuilding",
-      "details": {
-        "type": "slimcolonies:builder",
-        "count-existing": true,
-        "lvl": 2,
-        "qty": 1,
-        "target": 0,
-        "next-objective": 2
-      }
-    },
-    {
-      "unlocks-rewards": [0],
-      "type": "slimcolonies:dialogue",
-      "target": 0,
-      "text": "Awesome! This will now also allow you to upgrade all kinds of other buildings. If you want to construct multiple buildings in parallel, consider getting a second builder. Make sure to regularly check the quest log for future tasks!",
-      "options": [
-        {
-          "answer": "Thank you. Bye!",
-          "result": {
-            "type": "slimcolonies:advanceobjective",
-            "go-to": 5
-          }
-        }
-      ]
-    }
-  ],
-  "rewards": [
-    {
-      "type": "slimcolonies:item",
-      "details": {
-        "item": {
-          "id": "minecraft:lantern",
-          "count": 8
-        }
-      }
-    }
-  ]
+                ]
 }

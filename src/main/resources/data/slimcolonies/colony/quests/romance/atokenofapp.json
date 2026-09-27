@@ -1,145 +1,148 @@
 {
-  "name": "A Token of Appreciation",
-  "parents": [
-    "slimcolonies:romance/aromanticgesture"
-  ],
-  "max-occurrences": 1,
-  "triggers": [
-    {
-      "type": "slimcolonies:random",
-      "rarity": 10000000
-    },
-    {
-      "type": "slimcolonies:citizen",
-      "state": {
-        "match": {
-          "finpartquests": [
-            "slimcolonies:romance/aromanticgesture"
-          ]
-        }
-      }
-    },
-    {
-      "type": "slimcolonies:citizen",
-      "state": {
-        "match": {
-          "job": {
-            "type": "slimcolonies:knight"
-          }
-        }
-      }
-    }
-  ],
-  "objectives": [
-    {
-      "type": "slimcolonies:dialogue",
-      "target": 0,
-      "text": "Hey, thank you so much for delivering that poppy to me earlier. It really made my day. I was wondering if I could ask you for another favour?",
-      "options": [
-        {
-          "answer": "Of course, what do you need?",
-          "result": {
-            "type": "slimcolonies:dialogue",
-            "text": "I have a friend who is feeling a bit down and I want to cheer them up. Could you bring $1 this gift for me?",
-            "options": [
-              {
-                "answer": "Sure, I'll be happy to help.",
-                "result": {
-                  "type": "slimcolonies:advanceobjective",
-                  "go-to": 1
-                }
-              },
-              {
-                "answer": "I'm sorry, but I'm a bit busy right now.",
-                "result": {
-                  "type": "slimcolonies:dialogue",
-                  "text": "Oh, that's too bad. Maybe another time then.",
-                  "options": [
+    "name":  "Hadiah Penghibur Hati",
+    "parents":  [
+                    "slimcolonies:romance/aromanticgesture"
+                ],
+    "max-occurrences":  1,
+    "triggers":  [
+                     {
+                         "type":  "slimcolonies:random",
+                         "rarity":  10000000
+                     },
+                     {
+                         "type":  "slimcolonies:citizen",
+                         "state":  {
+                                       "match":  {
+                                                     "finpartquests":  [
+                                                                           "slimcolonies:romance/aromanticgesture"
+                                                                       ]
+                                                 }
+                                   }
+                     },
+                     {
+                         "type":  "slimcolonies:citizen",
+                         "state":  {
+                                       "match":  {
+                                                     "job":  {
+                                                                 "type":  "slimcolonies:knight"
+                                                             }
+                                                 }
+                                   }
+                     }
+                 ],
+    "objectives":  [
+                       {
+                           "type":  "slimcolonies:dialogue",
+                           "target":  0,
+                           "text":  "Hai! Makasih banyak ya udah nganterin bunga Poppy waktu itu, bikin hariku cerah banget deh. Ngomong-ngomong, boleh minta tolong satu hal lagi nggak?",
+                           "options":  [
+                                           {
+                                               "answer":  "Boleh dong, mau minta tolong apa nih?",
+                                               "result":  {
+                                                              "type":  "slimcolonies:dialogue",
+                                                              "text":  "Aku punya temen yang lagi sedih dan murung nih, pengen banget ngehibur dia. Bisa tolong kasihin hadiah ini ke $1 nggak?",
+                                                              "options":  [
+                                                                              {
+                                                                                  "answer":  "Siap, dengan senang hati kubantuin!",
+                                                                                  "result":  {
+                                                                                                 "type":  "slimcolonies:advanceobjective",
+                                                                                                 "go-to":  1
+                                                                                             }
+                                                                              },
+                                                                              {
+                                                                                  "answer":  "Sori ya, aku lagi agak реpot nih sekarang.",
+                                                                                  "result":  {
+                                                                                                 "type":  "slimcolonies:dialogue",
+                                                                                                 "text":  "Yah, sayang banget. Yaudah deh kapan-kapan aja kalau gitu.",
+                                                                                                 "options":  [
+                                                                                                                 {
+                                                                                                                     "answer":  "Sip, nanti kalau udah senggang aku kabarin ya.",
+                                                                                                                     "result":  {
+                                                                                                                                    "type":  "slimcolonies:return"
+                                                                                                                                }
+                                                                                                                 }
+                                                                                                             ]
+                                                                                             }
+                                                                              }
+                                                                          ]
+                                                          }
+                                           },
+                                           {
+                                               "answer":  "Sori banget, aku belum bisa bantu sekarang.",
+                                               "result":  {
+                                                              "type":  "slimcolonies:cancel"
+                                                          }
+                                           }
+                                       ]
+                       },
+                       {
+                           "type":  "slimcolonies:dialogue",
+                           "target":  1,
+                           "text":  "Hai, ada perlu apa nih?",
+                           "options":  [
+                                           {
+                                               "answer":  "Halo! Aku disuruh $0 nganterin hadiah ini biar kamu semangat lagi!",
+                                               "result":  {
+                                                              "type":  "slimcolonies:dialogue",
+                                                              "text":  "Ya ampun, baik banget sih dia! Makasih banyak ya!",
+                                                              "options":  [
+                                                                              {
+                                                                                  "answer":  "Santai, sama-sama!",
+                                                                                  "result":  {
+                                                                                                 "type":  "slimcolonies:advanceobjective",
+                                                                                                 "go-to":  2
+                                                                                             }
+                                                                              }
+                                                                          ]
+                                                          }
+                                           }
+                                       ]
+                       },
+                       {
+                           "type":  "slimcolonies:delivery",
+                           "details":  {
+                                           "target":  1,
+                                           "item":  {
+                                                        "id":  "minecraft:dandelion"
+                                                    },
+                                           "next-objective":  3
+                                       }
+                       },
+                       {
+                           "unlocks-rewards":  [
+                                                   0,
+                                                   1
+                                               ],
+                           "type":  "slimcolonies:dialogue",
+                           "target":  0,
+                           "text":  "Makasih banyak ya udah nganterin hadiahnya tadi. Kamu emang sahabat terbaik di desa ini!",
+                           "options":  [
+                                           {
+                                               "answer":  "Santai aja, seneng bisa bantuin kalian!",
+                                               "result":  {
+                                                              "type":  "slimcolonies:advanceobjective",
+                                                              "go-to":  4
+                                                          }
+                                           }
+                                       ]
+                       }
+                   ],
+    "rewards":  [
                     {
-                      "answer": "Sure, I'll keep it in mind.",
-                      "result": {
-                        "type": "slimcolonies:return"
-                      }
+                        "type":  "slimcolonies:item",
+                        "details":  {
+                                        "item":  {
+                                                     "id":  "minecraft:emerald"
+                                                 }
+                                    }
+                    },
+                    {
+                        "type":  "slimcolonies:happiness",
+                        "details":  {
+                                        "target":  0,
+                                        "qty":  2,
+                                        "days":  7
+                                    }
                     }
-                  ]
-                }
-              }
-            ]
-          }
-        },
-        {
-          "answer": "I'm sorry, but I can't help you right now.",
-          "result": {
-            "type": "slimcolonies:cancel"
-          }
-        }
-      ]
-    },
-    {
-      "type": "slimcolonies:dialogue",
-      "target": 1,
-      "text": "Hi, what do you want?",
-      "options": [
-        {
-          "answer": "Oh, hello! $0 told me to bring you a gift to cheer you up.",
-          "result": {
-            "type": "slimcolonies:dialogue",
-            "text": "How kind of them! Thank you so much!",
-            "options": [
-              {
-                "answer": "No Problem!",
-                "result": {
-                  "type": "slimcolonies:advanceobjective",
-                  "go-to": 2
-                }
-              }
-            ]
-          }
-        }
-      ]
-    },
-    {
-      "type": "slimcolonies:delivery",
-      "details": {
-        "target": 1,
-        "item": {
-          "id": "minecraft:dandelion"
-        },
-        "next-objective": 3
-      }
-    },
-    {
-      "unlocks-rewards": [0, 1],
-      "type": "slimcolonies:dialogue",
-      "target": 0,
-      "text": "Thank you so much for delivering that gift. You're a true friend.",
-      "options": [
-        {
-          "answer": "No problem, glad I could help.",
-          "result": {
-            "type": "slimcolonies:advanceobjective",
-            "go-to": 4
-          }
-        }
-      ]
-    }
-  ],
-  "rewards": [
-    {
-      "type": "slimcolonies:item",
-      "details": {
-        "item": {
-          "id": "minecraft:emerald"
-        }
-      }
-    },
-    {
-      "type": "slimcolonies:happiness",
-      "details": {
-        "target": 0,
-        "qty": 2,
-        "days": 7
-      }
-    }
-  ]
+                ]
 }

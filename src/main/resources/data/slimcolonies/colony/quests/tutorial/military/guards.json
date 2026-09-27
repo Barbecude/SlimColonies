@@ -1,183 +1,187 @@
 {
-  "name": "Building Defences",
-  "max-occurrences": 1,
-  "parents": [
-    "slimcolonies:tutorial/military/zombies"
-  ],
-  "triggers": [
-    {
-      "type": "slimcolonies:citizen",
-      "state": {
-        "notmatch": {
-          "finavquests": [
-            "slimcolonies:tutorial/military/zombies"
-          ]
-        }
-      }
-    },
-    {
-      "type": "slimcolonies:citizen",
-      "state": { }
-    }
-  ],
-  "triggerOrder": "1 || 2",
-  "objectives": [
-    {
-      "type": "slimcolonies:dialogue",
-      "target": 0,
-      "text": "I'm still not feeling very safe. Some might argue that the strongest defense is a swift and decisive offense. How about you build some guard towers?",
-      "options": [
-        {
-          "answer": "Alright, on it!",
-          "result": {
-            "type": "slimcolonies:dialogue",
-            "text": "Nice, so as usual we start by crafting the Guard Tower block. In the crafting bench, surround a bow with planks and put the Build Tool in the top. Come back to me once you've done that!'",
-            "options": [
-              {
-                "answer": "On it!",
-                "result": {
-                  "type": "slimcolonies:advanceobjective",
-                  "go-to": 1
-                }
-              },
-              {
-                "answer": "Already done!",
-                "result": {
-                  "type": "slimcolonies:dialogue",
-                  "text": "Alrighty then! Then it's time to place both Guard Towers with the Build Tool, click build and provide your Builder with the necessary items like the last time and come back once they are built!",
-                  "options": [
+    "name":  "Bangun Pertahanan Desa",
+    "max-occurrences":  1,
+    "parents":  [
+                    "slimcolonies:tutorial/military/zombies"
+                ],
+    "triggers":  [
+                     {
+                         "type":  "slimcolonies:citizen",
+                         "state":  {
+                                       "notmatch":  {
+                                                        "finavquests":  [
+                                                                            "slimcolonies:tutorial/military/zombies"
+                                                                        ]
+                                                    }
+                                   }
+                     },
+                     {
+                         "type":  "slimcolonies:citizen",
+                         "state":  {
+
+                                   }
+                     }
+                 ],
+    "triggerOrder":  "1 || 2",
+    "objectives":  [
+                       {
+                           "type":  "slimcolonies:dialogue",
+                           "target":  0,
+                           "text":  "Jujur aku masih agak was-was nih kalau malem. Kata orang, pertahanan terbaik adalah pasukan yang siap siaga. Gimana kalau kita bangun beberapa Menara Penjaga (Guard Tower)?",
+                           "options":  [
+                                           {
+                                               "answer":  "Siap, langsung kukerjain!",
+                                               "result":  {
+                                                              "type":  "slimcolonies:dialogue",
+                                                              "text":  "Mantap! Seperti biasa, kita bikin dulu blok Guard Tower-nya. Di Crafting Table, taruh Busur Panah (Bow) di tengah, kelilingi pakai papan kayu (planks), dan taruh Build Tool di paling atas. Kalau udah bikin 2 biji, balik ke sini ya!",
+                                                              "options":  [
+                                                                              {
+                                                                                  "answer":  "Siap, langsung gas!",
+                                                                                  "result":  {
+                                                                                                 "type":  "slimcolonies:advanceobjective",
+                                                                                                 "go-to":  1
+                                                                                             }
+                                                                              },
+                                                                              {
+                                                                                  "answer":  "Udah beres kok!",
+                                                                                  "result":  {
+                                                                                                 "type":  "slimcolonies:dialogue",
+                                                                                                 "text":  "Sip! Sekarang pasang kedua Guard Tower itu pakai Build Tool, klik Build, dan siapin bahannya buat tukang bangunan. Kalau dua-duanya udah berdiri, balik ke sini lagi ya!",
+                                                                                                 "options":  [
+                                                                                                                 {
+                                                                                                                     "answer":  "Beres, serahin ke aku!",
+                                                                                                                     "result":  {
+                                                                                                                                    "type":  "slimcolonies:advanceobjective",
+                                                                                                                                    "go-to":  2
+                                                                                                                                }
+                                                                                                                 }
+                                                                                                             ]
+                                                                                             }
+                                                                              }
+                                                                          ]
+                                                          }
+                                           },
+                                           {
+                                               "answer":  "Nanti dulu ya, aku balik lagi nanti!",
+                                               "result":  {
+                                                              "type":  "slimcolonies:return"
+                                                          }
+                                           },
+                                           {
+                                               "answer":  "Udah beres kok!",
+                                               "result":  {
+                                                              "type":  "slimcolonies:dialogue",
+                                                              "text":  "Wih mantap! Berarti udah beres nih, nanti aku kabarin lagi buat langkah berikutnya ya!",
+                                                              "options":  [
+                                                                              {
+                                                                                  "answer":  "Asik!",
+                                                                                  "result":  {
+                                                                                                 "type":  "slimcolonies:advanceobjective",
+                                                                                                 "go-to":  5
+                                                                                             }
+                                                                              }
+                                                                          ]
+                                                          }
+                                           }
+                                       ]
+                       },
+                       {
+                           "type":  "slimcolonies:dialogue",
+                           "target":  0,
+                           "text":  "Hai balik lagi! Udah jadi belum blok Guard Tower-nya?",
+                           "options":  [
+                                           {
+                                               "answer":  "Belum, aku lupa resep crafting-nya!",
+                                               "result":  {
+                                                              "type":  "slimcolonies:dialogue",
+                                                              "text":  "Santai! Di Crafting Table, taruh Busur Panah (Bow) di tengah, kelilingi pakai papan kayu (planks), dan taruh Build Tool di slot paling atas.",
+                                                              "options":  [
+                                                                              {
+                                                                                  "answer":  "Oke sip! Aku bikin dulu ya!",
+                                                                                  "result":  {
+                                                                                                 "type":  "slimcolonies:return"
+                                                                                             }
+                                                                              }
+                                                                          ]
+                                                          }
+                                           },
+                                           {
+                                               "answer":  "Udah beres dong! Lanjut ngapain lagi nih?",
+                                               "result":  {
+                                                              "type":  "slimcolonies:dialogue",
+                                                              "text":  "Sip! Sekarang pasang kedua Guard Tower itu pakai Build Tool, klik Build, dan siapin bahannya buat tukang bangunan. Kalau dua-duanya udah selesai dibangun, balik ke sini lagi ya!",
+                                                              "options":  [
+                                                                              {
+                                                                                  "answer":  "Beres, serahin ke aku!",
+                                                                                  "result":  {
+                                                                                                 "type":  "slimcolonies:advanceobjective",
+                                                                                                 "go-to":  2
+                                                                                             }
+                                                                              }
+                                                                          ]
+                                                          }
+                                           },
+                                           {
+                                               "answer":  "Guard Tower-nya udah selesai kubangun semua kok!",
+                                               "result":  {
+                                                              "type":  "slimcolonies:dialogue",
+                                                              "text":  "Wih cepet banget! Kalau gitu urusan yang ini udah beres, nanti aku kabarin lagi buat langkah selanjutnya ya!",
+                                                              "options":  [
+                                                                              {
+                                                                                  "answer":  "Mantap jiwa!",
+                                                                                  "result":  {
+                                                                                                 "type":  "slimcolonies:advanceobjective",
+                                                                                                 "go-to":  5
+                                                                                             }
+                                                                              }
+                                                                          ]
+                                                          }
+                                           },
+                                           {
+                                               "answer":  "Belum sempet nih, nanti aku balik lagi ya!",
+                                               "result":  {
+                                                              "type":  "slimcolonies:return"
+                                                          }
+                                           }
+                                       ]
+                       },
+                       {
+                           "type":  "slimcolonies:buildbuilding",
+                           "details":  {
+                                           "type":  "slimcolonies:guardtower",
+                                           "count-existing":  true,
+                                           "lvl":  1,
+                                           "qty":  2,
+                                           "target":  0,
+                                           "next-objective":  3
+                                       }
+                       },
+                       {
+                           "unlocks-rewards":  [
+                                                   0
+                                               ],
+                           "type":  "slimcolonies:dialogue",
+                           "target":  0,
+                           "text":  "Keren banget, aku jadi jauh lebih tenang sekarang! Oh iya, penjaga desa itu langsung tinggal dan tidur di menara mereka sendiri, jadi nggak makan tempat di Rumah Warga. Pastiin aja mereka dikasih senjata dan armor biar siap tempur!",
+                           "options":  [
+                                           {
+                                               "answer":  "Sip, sampai ketemu lagi!",
+                                               "result":  {
+                                                              "type":  "slimcolonies:advanceobjective",
+                                                              "go-to":  5
+                                                          }
+                                           }
+                                       ]
+                       }
+                   ],
+    "rewards":  [
                     {
-                      "answer": "Consider it done!",
-                      "result": {
-                        "type": "slimcolonies:advanceobjective",
-                        "go-to": 2
-                      }
+                        "type":  "slimcolonies:item",
+                        "details":  {
+                                        "item":  {
+                                                     "id":  "minecraft:iron_block"
+                                                 }
+                                    }
                     }
-                  ]
-                }
-              }
-            ]
-          }
-        },
-        {
-          "answer": "Not right now. I will come back to you later!",
-          "result": {
-            "type": "slimcolonies:return"
-          }
-        },
-        {
-          "answer": "Already done!",
-          "result": {
-            "type": "slimcolonies:dialogue",
-            "text": "Oh nice, then we are done here and I will have more information on the next steps soon!",
-            "options": [
-              {
-                "answer": "Nice!",
-                "result": {
-                  "type": "slimcolonies:advanceobjective",
-                  "go-to": 5
-                }
-              }
-            ]
-          }
-        }
-      ]
-    },
-    {
-      "type": "slimcolonies:dialogue",
-      "target": 0,
-      "text": "Welcome back, were you able to craft the Guard Tower block?",
-      "options": [
-        {
-          "answer": "No, I forgot the recipe!",
-          "result": {
-            "type": "slimcolonies:dialogue",
-            "text": "A great leap forward often requires taking two steps back! In the crafting bench, surround a bow with planks and put the Build Tool in the top.",
-            "options": [
-              {
-                "answer": "Alright! I'll get back to it!",
-                "result": {
-                  "type": "slimcolonies:return"
-                }
-              }
-            ]
-          }
-        },
-        {
-          "answer": "Yes, done, what's next?",
-          "result": {
-            "type": "slimcolonies:dialogue",
-            "text": "Alrighty then! Then it's time to place the Guard Towers with the Build Tool, click build and provide your Builder with the necessary items like the last time and come back once both are built!",
-            "options": [
-              {
-                "answer": "Consider it done!",
-                "result": {
-                  "type": "slimcolonies:advanceobjective",
-                  "go-to": 2
-                }
-              }
-            ]
-          }
-        },
-        {
-          "answer": "I already finished building the Guard Towers!",
-          "result": {
-            "type": "slimcolonies:dialogue",
-            "text": "Oh nice, then we are already done here and I will have more information on the next steps soon!",
-            "options": [
-              {
-                "answer": "Awesome!",
-                "result": {
-                  "type": "slimcolonies:advanceobjective",
-                  "go-to": 5
-                }
-              }
-            ]
-          }
-        },
-        {
-          "answer": "Not yet, I will get to it later!",
-          "result": {
-            "type": "slimcolonies:return"
-          }
-        }
-      ]
-    },
-    {
-      "type": "slimcolonies:buildbuilding",
-      "details": {
-        "type": "slimcolonies:guardtower",
-        "count-existing": true,
-        "lvl": 1,
-        "qty": 2,
-        "target": 0,
-        "next-objective": 3
-      }
-    },
-    {
-      "unlocks-rewards": [0],
-      "type": "slimcolonies:dialogue",
-      "target": 0,
-      "text": "Awesome, I feel much safer already. Guards actually live in their guard towers and don't need housing spots. So just make sure they have armor and weapons and they will serve you well. Come back in a bit and I'll help you with the next steps!",
-      "options": [
-        {
-          "answer": "See you in a bit!",
-          "result": {
-            "type": "slimcolonies:advanceobjective",
-            "go-to": 5
-          }
-        }
-      ]
-    }
-  ],
-  "rewards": [
-    {
-      "type": "slimcolonies:item",
-      "details": {
-        "item": {
-          "id": "minecraft:iron_block"
-        }
-      }
-    }
-  ]
+                ]
 }

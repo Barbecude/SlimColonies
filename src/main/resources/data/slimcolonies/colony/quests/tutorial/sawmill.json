@@ -1,161 +1,166 @@
 {
-  "name": "I saw that!",
-  "max-occurrences": 1,
-  "parents": [
-    "slimcolonies:tutorial/hospital"
-  ],
-  "triggers": [
-    {
-      "type": "slimcolonies:citizen",
-      "state": {
-        "notmatch": {
-          "finavquests": [
-            "slimcolonies:tutorial/hospital"
-          ]
-        }
-      }
-    },
-    {
-      "type": "slimcolonies:citizen",
-      "state": { }
-    }
-  ],
-  "triggerOrder": "1 || 2",
-  "objectives": [
-    {
-      "type": "slimcolonies:dialogue",
-      "target": 0,
-      "text": "I see you working yourself to death crafting all these stairs and planks on your own. I think it's about time to get a sawmill to automate this task!",
-      "options": [
-        {
-          "answer": "Plleeeeeeassse!",
-          "result": {
-            "type": "slimcolonies:dialogue",
-            "text": "The sawmill is able to craft most wood related blocks on demand and your couriers will make sure that they get all they need for it! But before we do that, we need to first research it at the university!'",
-            "options": [
-              {
-                "answer": "On it!",
-                "result": {
-                  "type": "slimcolonies:advanceobjective",
-                  "go-to": 1
-                }
-              },
-              {
-                "answer": "Already done!",
-                "result": {
-                  "type": "slimcolonies:dialogue",
-                  "text": "Alrighty then! You know the drill, craft the sawmill hut block in a crafting bench, place it and let your builder build it. This time put three wooden axes in the middle, put the build tool at the top and fill up the rest with planks.",
-                  "options": [
+    "name":  "Otomatisasi Tukang Kayu (Sawmill)",
+    "max-occurrences":  1,
+    "parents":  [
+                    "slimcolonies:tutorial/hospital"
+                ],
+    "triggers":  [
+                     {
+                         "type":  "slimcolonies:citizen",
+                         "state":  {
+                                       "notmatch":  {
+                                                        "finavquests":  [
+                                                                            "slimcolonies:tutorial/hospital"
+                                                                        ]
+                                                    }
+                                   }
+                     },
+                     {
+                         "type":  "slimcolonies:citizen",
+                         "state":  {
+
+                                   }
+                     }
+                 ],
+    "triggerOrder":  "1 || 2",
+    "objectives":  [
+                       {
+                           "type":  "slimcolonies:dialogue",
+                           "target":  0,
+                           "text":  "Aku liatin kamu capek banget bikin tangga sama papan kayu sendirian dari tadi! Kayaknya udah saatnya kita bangun Penggergajian Kayu (Sawmill) biar semuanya dibikinin otomatis!",
+                           "options":  [
+                                           {
+                                               "answer":  "Plis banget, pegel nih tanganku!",
+                                               "result":  {
+                                                              "type":  "slimcolonies:dialogue",
+                                                              "text":  "Sawmill bisa bikin hampir semua barang berbahan kayu secara otomatis pas dibutuhin, dan kurir bakal langsung nganterin bahannya! Tapi sebelum itu, kita harus riset dulu teknologinya di Universitas!",
+                                                              "options":  [
+                                                                              {
+                                                                                  "answer":  "Siap, langsung gas!",
+                                                                                  "result":  {
+                                                                                                 "type":  "slimcolonies:advanceobjective",
+                                                                                                 "go-to":  1
+                                                                                             }
+                                                                              },
+                                                                              {
+                                                                                  "answer":  "Udah beres kok!",
+                                                                                  "result":  {
+                                                                                                 "type":  "slimcolonies:dialogue",
+                                                                                                 "text":  "Mantap! Langsung aja bikin blok Sawmill di Crafting Table, pasang, dan suruh tukang bangunan ngebangunnya. Resepnya: taruh tiga kapak kayu berjejer di baris tengah, taruh Build Tool di tengah atas, dan sisanya isi papan kayu (planks).",
+                                                                                                 "options":  [
+                                                                                                                 {
+                                                                                                                     "answer":  "Beres, serahin ke aku!",
+                                                                                                                     "result":  {
+                                                                                                                                    "type":  "slimcolonies:advanceobjective",
+                                                                                                                                    "go-to":  2
+                                                                                                                                }
+                                                                                                                 }
+                                                                                                             ]
+                                                                                             }
+                                                                              }
+                                                                          ]
+                                                          }
+                                           },
+                                           {
+                                               "answer":  "Nanti dulu ya, aku balik lagi nanti!",
+                                               "result":  {
+                                                              "type":  "slimcolonies:return"
+                                                          }
+                                           },
+                                           {
+                                               "answer":  "Udah beres kok!",
+                                               "result":  {
+                                                              "type":  "slimcolonies:dialogue",
+                                                              "text":  "Wih mantap! Berarti udah beres nih, nanti aku kabarin lagi buat langkah berikutnya ya!",
+                                                              "options":  [
+                                                                              {
+                                                                                  "answer":  "Asik!",
+                                                                                  "result":  {
+                                                                                                 "type":  "slimcolonies:advanceobjective",
+                                                                                                 "go-to":  10
+                                                                                             }
+                                                                              }
+                                                                          ]
+                                                          }
+                                           }
+                                       ]
+                       },
+                       {
+                           "type":  "slimcolonies:research",
+                           "details":  {
+                                           "type":  "slimcolonies:technology/woodwork",
+                                           "target":  0,
+                                           "next-objective":  2
+                                       }
+                       },
+                       {
+                           "type":  "slimcolonies:dialogue",
+                           "target":  0,
+                           "text":  "Mantap! Langsung aja bikin blok Sawmill di Crafting Table, pasang, dan suruh tukang bangunan ngebangunnya. Resepnya: taruh tiga kapak kayu berjejer di baris tengah, taruh Build Tool di tengah atas, dan sisanya isi papan kayu (planks).",
+                           "options":  [
+                                           {
+                                               "answer":  "Siap, langsung gas!",
+                                               "result":  {
+                                                              "type":  "slimcolonies:advanceobjective",
+                                                              "go-to":  3
+                                                          }
+                                           },
+                                           {
+                                               "answer":  "Nanti dulu ya, aku balik lagi nanti!",
+                                               "result":  {
+                                                              "type":  "slimcolonies:return"
+                                                          }
+                                           }
+                                       ]
+                       },
+                       {
+                           "type":  "slimcolonies:buildbuilding",
+                           "details":  {
+                                           "type":  "slimcolonies:sawmill",
+                                           "count-existing":  true,
+                                           "lvl":  1,
+                                           "qty":  1,
+                                           "target":  0,
+                                           "next-objective":  4
+                                       }
+                       },
+                       {
+                           "unlocks-rewards":  [
+                                                   0,
+                                                   1
+                                               ],
+                           "type":  "slimcolonies:dialogue",
+                           "target":  0,
+                           "text":  "Gokil, Sawmill-nya udah jadi! Di menunya ada halaman Resep tempat kamu bisa ngajarin resep apa aja yang mau dibikin otomatis. Kamu bisa upgrade bangunannya buat nambah slot resep, dan buka pengrajin lainnya dengan cara yang sama!",
+                           "options":  [
+                                           {
+                                               "answer":  "Wah, ini bakal ngebantu banget sih!",
+                                               "result":  {
+                                                              "type":  "slimcolonies:dialogue",
+                                                              "text":  "Aku udah ngajarin semua ilmu yang aku punya, dan sekarang kamu udah jadi Kepala Desa yang jauh lebih hebat dari yang kubayangin! Semangat terus ya mimpin desa kita!",
+                                                              "options":  [
+                                                                              {
+                                                                                  "answer":  "Makasih banyak!",
+                                                                                  "result":  {
+                                                                                                 "type":  "slimcolonies:advanceobjective",
+                                                                                                 "go-to":  10
+                                                                                             }
+                                                                              }
+                                                                          ]
+                                                          }
+                                           }
+                                       ]
+                       }
+                   ],
+    "rewards":  [
                     {
-                      "answer": "Consider it done!",
-                      "result": {
-                        "type": "slimcolonies:advanceobjective",
-                        "go-to": 2
-                      }
+                        "type":  "slimcolonies:item",
+                        "details":  {
+                                        "item":  {
+                                                     "id":  "minecraft:diamond",
+                                                     "count":  3
+                                                 }
+                                    }
                     }
-                  ]
-                }
-              }
-            ]
-          }
-        },
-        {
-          "answer": "Not right now. I will come back to you later!",
-          "result": {
-            "type": "slimcolonies:return"
-          }
-        },
-        {
-          "answer": "Already done!",
-          "result": {
-            "type": "slimcolonies:dialogue",
-            "text": "Oh nice, then we are done here and I will have more information on the next steps soon!",
-            "options": [
-              {
-                "answer": "Nice!",
-                "result": {
-                  "type": "slimcolonies:advanceobjective",
-                  "go-to": 10
-                }
-              }
-            ]
-          }
-        }
-      ]
-    },
-    {
-      "type": "slimcolonies:research",
-      "details": {
-        "type": "slimcolonies:technology/woodwork",
-        "target": 0,
-        "next-objective": 2
-      }
-    },
-    {
-      "type": "slimcolonies:dialogue",
-      "target": 0,
-      "text": "Alrighty then! You know the drill, craft the sawmill hut block in a crafting bench, place it and let your builder build it. This time put three wooden axes in the middle, put the build tool at the top and fill up the rest with planks.",
-      "options": [
-        {
-          "answer": "On it!",
-          "result": {
-            "type": "slimcolonies:advanceobjective",
-            "go-to": 3
-          }
-        },
-        {
-          "answer": "Not right now. I will come back to you later!",
-          "result": {
-            "type": "slimcolonies:return"
-          }
-        }
-      ]
-    },
-    {
-      "type": "slimcolonies:buildbuilding",
-      "details": {
-        "type": "slimcolonies:sawmill",
-        "count-existing": true,
-        "lvl": 1,
-        "qty": 1,
-        "target": 0,
-        "next-objective": 4
-      }
-    },
-    {
-      "unlocks-rewards": [0,1],
-      "type": "slimcolonies:dialogue",
-      "target": 0,
-      "text": "Great, the sawmill has a recipe page where you can teach all the recipes you want the sawmill to handle automatically. You can upgrade the hut to unlock more recipe slots, and research and build the other Crafters in a similar fashion.",
-      "options": [
-        {
-          "answer": "This is going to be so useful!",
-          "result": {
-            "type": "slimcolonies:dialogue",
-            "text": "I have taught you everything I know. and you have become a far greater Mayor than I could ever hope to be. Good luck on this journey!",
-            "options": [
-              {
-                "answer": "Thank you!",
-                "result": {
-                  "type": "slimcolonies:advanceobjective",
-                  "go-to": 10
-                }
-              }
-            ]
-          }
-        }
-      ]
-    }
-  ],
-  "rewards": [
-    {
-      "type": "slimcolonies:item",
-      "details": {
-        "item": {
-          "id": "minecraft:diamond",
-          "count": 3
-        }
-      }
-    }
-  ]
+                ]
 }

@@ -1,266 +1,274 @@
 {
-  "name": "Cookies for the Kids!",
-  "parents": [],
-  "max-occurrences": 1,
-  "triggers": [
-    {
-      "type": "slimcolonies:random",
-      "rarity": 2500000
-    },
-    {
-      "type": "slimcolonies:state",
-      "state": {
-        "path": "buildingManager/buildings",
-        "match": {
-          "type": "slimcolonies:baker",
-          "level": 1
-        }
-      }
-    },
-    {
-      "type": "slimcolonies:citizen",
-      "state": {
-        "match": {
-          "job": {
-            "type": "slimcolonies:baker"
-          }
-        }
-      }
-    },
-    {
-      "type": "slimcolonies:citizen",
-      "state": {
-        "match": {
-          "child": true
-        }
-      }
-    }
-  ],
-  "objectives": [
-    {
-      "type": "slimcolonies:dialogue",
-      "target": 0,
-      "text": "Hi, Thank you for hiring me as a baker! I always wanted to be a baker! Let's make some cookies for young ones!",
-      "options": [
-        {
-          "answer": "Sure, what do you need?.",
-          "result": {
-            "type": "slimcolonies:dialogue",
-            "text": "I need two wheat and one coco bean!",
-            "options": [
-              {
-                "answer": "On my way!",
-                "result": {
-                  "type": "slimcolonies:advanceobjective",
-                  "go-to": 1
-                }
-              },
-              {
-                "answer": "They're not my kids, why should I do it?",
-                "result": {
-                  "type": "slimcolonies:advanceobjective",
-                  "go-to": -1
-                }
-              }
-            ]
-          }
-        },
-        {
-          "answer": "I'm sorry, I can't help right now.",
-          "result": {
-            "type": "slimcolonies:cancel"
-          }
-        },
-        {
-          "answer": "I won't be able to help you with that.",
-          "result": {
-            "type": "slimcolonies:advanceobjective",
-            "go-to": -1
-          }
-        }
-      ]
-    },
-    {
-      "type": "slimcolonies:delivery",
-      "details": {
-        "target": 0,
-        "item": {
-          "id": "minecraft:wheat",
-          "count": 2
-        },
-        "next-objective": 2
-      }
-    },
-    {
-      "type": "slimcolonies:delivery",
-      "details": {
-        "target": 0,
-        "item": {
-          "id": "minecraft:cocoa_beans"
-        },
-        "next-objective": 3
-      }
-    },
-    {
-      "type": "slimcolonies:dialogue",
-      "target": 0,
-      "text": "Thank you. I'll get right on this!",
-      "options": [
-        {
-          "answer": "Sure! I'll wait!",
-          "result": {
-            "type": "slimcolonies:advanceobjective",
-            "go-to": 4
-          }
-        }
-      ]
-    },
-    {
-      "unlocks-rewards": [0],
-      "type": "slimcolonies:dialogue",
-      "target": 0,
-      "text": "Here you are. Please take those 8 cookies and deliver them to $1! You can find the kid with the help of the quest log.",
-      "options": [
-        {
-          "answer": "Sure! I'm on it!",
-          "result": {
-            "type": "slimcolonies:advanceobjective",
-            "go-to": 5
-          }
-        }
-      ]
-    },
-    {
-      "type": "slimcolonies:dialogue",
-      "target": 1,
-      "text": "Hi! The baker told me you got cookies for me!",
-      "options": [
-        {
-          "answer": "Yes, But I ate them all!",
-          "result": {
-            "type": "slimcolonies:dialogue",
-            "text": "You are a so mean! I will never forget this!",
-            "options": [
-              {
-                "answer": "Hihihihih",
-                "result": {
-                  "type": "slimcolonies:advanceobjective",
-                  "go-to": 10
-                }
-              }
-            ]
-          }
-        },
-        {
-          "answer": "Yes, I have them here! Give me a second!",
-          "result": {
-            "type": "slimcolonies:advanceobjective",
-            "go-to": 6
-          }
-        }
-      ]
-    },
-    {
-      "type": "slimcolonies:delivery",
-      "details": {
-        "target": 1,
-        "item": {
-          "id": "minecraft:cookie",
-          "count": 8
-        },
-        "next-objective": 7
-      }
-    },
-    {
-      "unlocks-rewards": [1,2,3],
-      "type": "slimcolonies:dialogue",
-      "target": 1,
-      "text": "*Shiny Eyes* Uhhh! Those look delicious!",
-      "options": [
-        {
-          "answer": "Please make sure to share them with your friends!",
-          "result": {
-            "type": "slimcolonies:dialogue",
-            "text": "Suuuure! I found this shiny thing on the floor. Here you can have it!",
-            "options": [
-              {
-                "answer": "Thanks",
-                "result": {
-                  "type": "slimcolonies:advanceobjective",
-                  "go-to": 10
-                }
-              }
-            ]
-          }
-        },
-        {
-          "answer": "Yes they really do!",
-          "result": {
-            "type": "slimcolonies:dialogue",
-            "text": "Thank you! I found this shiny thing on the floor. Here you can have it!",
-            "options": [
-              {
-                "answer": "Thanks",
-                "result": {
-                  "type": "slimcolonies:advanceobjective",
-                  "go-to": 10
-                }
-              }
-            ]
-          }
-        },
-        {
-          "answer": "Have a good one!",
-          "result": {
-            "type": "slimcolonies:dialogue",
-            "text": "Thank you! I found this shiny thing on the floor. Here you can have it!",
-            "options": [
-              {
-                "answer": "Thanks",
-                "result": {
-                  "type": "slimcolonies:advanceobjective",
-                  "go-to": 10
-                }
-              }
-            ]
-          }
-        }
-      ]
-    }
-  ],
-  "rewards": [
-    {
-      "type": "slimcolonies:item",
-      "details": {
-        "item": {
-          "id": "minecraft:cookie",
-          "count": 8
-        }
-      }
-    },
-    {
-      "type": "slimcolonies:item",
-      "details": {
-        "item": {
-          "id": "minecraft:emerald"
-        }
-      }
-    },
-    {
-      "type": "slimcolonies:happiness",
-      "details": {
-        "target": 1,
-        "qty": 1,
-        "days": 7
-      }
-    },
-    {
-      "type": "slimcolonies:happiness",
-      "details": {
-        "target": 0,
-        "qty": 1,
-        "days": 7
-      }
-    }
-  ]
+    "name":  "Kue Kering buat Anak-Anak!",
+    "parents":  [
+
+                ],
+    "max-occurrences":  1,
+    "triggers":  [
+                     {
+                         "type":  "slimcolonies:random",
+                         "rarity":  2500000
+                     },
+                     {
+                         "type":  "slimcolonies:state",
+                         "state":  {
+                                       "path":  "buildingManager/buildings",
+                                       "match":  {
+                                                     "type":  "slimcolonies:baker",
+                                                     "level":  1
+                                                 }
+                                   }
+                     },
+                     {
+                         "type":  "slimcolonies:citizen",
+                         "state":  {
+                                       "match":  {
+                                                     "job":  {
+                                                                 "type":  "slimcolonies:baker"
+                                                             }
+                                                 }
+                                   }
+                     },
+                     {
+                         "type":  "slimcolonies:citizen",
+                         "state":  {
+                                       "match":  {
+                                                     "child":  true
+                                                 }
+                                   }
+                     }
+                 ],
+    "objectives":  [
+                       {
+                           "type":  "slimcolonies:dialogue",
+                           "target":  0,
+                           "text":  "Hai! Makasih banget ya udah ngangkat aku jadi tukang roti di desa ini! Dari dulu cita-citaku emang pengen bikin roti! Yuk kita bikin kue kering (Cookies) buat anak-anak di desa!",
+                           "options":  [
+                                           {
+                                               "answer":  "Boleh dong, butuh apa aja emangnya?",
+                                               "result":  {
+                                                              "type":  "slimcolonies:dialogue",
+                                                              "text":  "Aku cuma butuh dua gandum (Wheat) sama satu biji cokelat (Cocoa Beans)!",
+                                                              "options":  [
+                                                                              {
+                                                                                  "answer":  "Siap, aku ambil dulu!",
+                                                                                  "result":  {
+                                                                                                 "type":  "slimcolonies:advanceobjective",
+                                                                                                 "go-to":  1
+                                                                                             }
+                                                                              },
+                                                                              {
+                                                                                  "answer":  "Lah, bukan anakku juga, ngapain aku repot-repot?",
+                                                                                  "result":  {
+                                                                                                 "type":  "slimcolonies:advanceobjective",
+                                                                                                 "go-to":  -1
+                                                                                             }
+                                                                              }
+                                                                          ]
+                                                          }
+                                           },
+                                           {
+                                               "answer":  "Sori ya, aku lagi nggak bisa bantu sekarang.",
+                                               "result":  {
+                                                              "type":  "slimcolonies:cancel"
+                                                          }
+                                           },
+                                           {
+                                               "answer":  "Wah, kalau itu aku nggak bisa bantu nih.",
+                                               "result":  {
+                                                              "type":  "slimcolonies:advanceobjective",
+                                                              "go-to":  -1
+                                                          }
+                                           }
+                                       ]
+                       },
+                       {
+                           "type":  "slimcolonies:delivery",
+                           "details":  {
+                                           "target":  0,
+                                           "item":  {
+                                                        "id":  "minecraft:wheat",
+                                                        "count":  2
+                                                    },
+                                           "next-objective":  2
+                                       }
+                       },
+                       {
+                           "type":  "slimcolonies:delivery",
+                           "details":  {
+                                           "target":  0,
+                                           "item":  {
+                                                        "id":  "minecraft:cocoa_beans"
+                                                    },
+                                           "next-objective":  3
+                                       }
+                       },
+                       {
+                           "type":  "slimcolonies:dialogue",
+                           "target":  0,
+                           "text":  "Asik, makasih! Langsung aku panggang sekarang ya!",
+                           "options":  [
+                                           {
+                                               "answer":  "Sip! Aku tungguin nih!",
+                                               "result":  {
+                                                              "type":  "slimcolonies:advanceobjective",
+                                                              "go-to":  4
+                                                          }
+                                           }
+                                       ]
+                       },
+                       {
+                           "unlocks-rewards":  [
+                                                   0
+                                               ],
+                           "type":  "slimcolonies:dialogue",
+                           "target":  0,
+                           "text":  "Nih udah matang! Tolong anterin 8 kue kering ini ke $1 ya! Kamu bisa lacak posisi anaknya pakai Quest Log.",
+                           "options":  [
+                                           {
+                                               "answer":  "Oke siap! Langsung kuanterin!",
+                                               "result":  {
+                                                              "type":  "slimcolonies:advanceobjective",
+                                                              "go-to":  5
+                                                          }
+                                           }
+                                       ]
+                       },
+                       {
+                           "type":  "slimcolonies:dialogue",
+                           "target":  1,
+                           "text":  "Hai Kak! Kata tukang roti, kamu bawa kue kering buat aku ya?!",
+                           "options":  [
+                                           {
+                                               "answer":  "Iya, tapi udah kumakan abis semuanya!",
+                                               "result":  {
+                                                              "type":  "slimcolonies:dialogue",
+                                                              "text":  "Ih, kamu jahat banget sih! Aku bakal inget terus nih!",
+                                                              "options":  [
+                                                                              {
+                                                                                  "answer":  "Hehehehe",
+                                                                                  "result":  {
+                                                                                                 "type":  "slimcolonies:advanceobjective",
+                                                                                                 "go-to":  10
+                                                                                             }
+                                                                              }
+                                                                          ]
+                                                          }
+                                           },
+                                           {
+                                               "answer":  "Iya dong, nih kubawain! Bentar ya!",
+                                               "result":  {
+                                                              "type":  "slimcolonies:advanceobjective",
+                                                              "go-to":  6
+                                                          }
+                                           }
+                                       ]
+                       },
+                       {
+                           "type":  "slimcolonies:delivery",
+                           "details":  {
+                                           "target":  1,
+                                           "item":  {
+                                                        "id":  "minecraft:cookie",
+                                                        "count":  8
+                                                    },
+                                           "next-objective":  7
+                                       }
+                       },
+                       {
+                           "unlocks-rewards":  [
+                                                   1,
+                                                   2,
+                                                   3
+                                               ],
+                           "type":  "slimcolonies:dialogue",
+                           "target":  1,
+                           "text":  "*Mata berbinar-binar* Waaah! Kelihatannya enak banget!!",
+                           "options":  [
+                                           {
+                                               "answer":  "Jangan lupa bagi-bagi sama temen-temenmu ya!",
+                                               "result":  {
+                                                              "type":  "slimcolonies:dialogue",
+                                                              "text":  "Siiaaap! Eh, tadi aku nemu benda kinclong ini di tanah. Buat kamu aja deh!",
+                                                              "options":  [
+                                                                              {
+                                                                                  "answer":  "Makasih ya!",
+                                                                                  "result":  {
+                                                                                                 "type":  "slimcolonies:advanceobjective",
+                                                                                                 "go-to":  10
+                                                                                             }
+                                                                              }
+                                                                          ]
+                                                          }
+                                           },
+                                           {
+                                               "answer":  "Iya dong, masih anget nih!",
+                                               "result":  {
+                                                              "type":  "slimcolonies:dialogue",
+                                                              "text":  "Makasih banyak Kak! Tadi aku nemu benda kinclong ini di tanah. Buat kamu aja nih!",
+                                                              "options":  [
+                                                                              {
+                                                                                  "answer":  "Makasih ya!",
+                                                                                  "result":  {
+                                                                                                 "type":  "slimcolonies:advanceobjective",
+                                                                                                 "go-to":  10
+                                                                                             }
+                                                                              }
+                                                                          ]
+                                                          }
+                                           },
+                                           {
+                                               "answer":  "Selamat makan ya!",
+                                               "result":  {
+                                                              "type":  "slimcolonies:dialogue",
+                                                              "text":  "Makasih banyak Kak! Tadi aku nemu benda kinclong ini di tanah. Buat kamu aja nih!",
+                                                              "options":  [
+                                                                              {
+                                                                                  "answer":  "Makasih ya!",
+                                                                                  "result":  {
+                                                                                                 "type":  "slimcolonies:advanceobjective",
+                                                                                                 "go-to":  10
+                                                                                             }
+                                                                              }
+                                                                          ]
+                                                          }
+                                           }
+                                       ]
+                       }
+                   ],
+    "rewards":  [
+                    {
+                        "type":  "slimcolonies:item",
+                        "details":  {
+                                        "item":  {
+                                                     "id":  "minecraft:cookie",
+                                                     "count":  8
+                                                 }
+                                    }
+                    },
+                    {
+                        "type":  "slimcolonies:item",
+                        "details":  {
+                                        "item":  {
+                                                     "id":  "minecraft:emerald"
+                                                 }
+                                    }
+                    },
+                    {
+                        "type":  "slimcolonies:happiness",
+                        "details":  {
+                                        "target":  1,
+                                        "qty":  1,
+                                        "days":  7
+                                    }
+                    },
+                    {
+                        "type":  "slimcolonies:happiness",
+                        "details":  {
+                                        "target":  0,
+                                        "qty":  1,
+                                        "days":  7
+                                    }
+                    }
+                ]
 }

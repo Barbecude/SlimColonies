@@ -1,44 +1,54 @@
 {
-  "enabled": true,
-  "raidTypes": [
-    {
-      "id": "undead_horde",
-      "displayName": "Serangan Pasukan Undead",
-      "bossBarColor": "PURPLE",
-      "weight": 10,
-      "biomes": [],
-      "minRaidLevel": 0,
-      "normalEntities": [
-        "minecraft:zombie",
-        "minecraft:husk"
-      ],
-      "archerEntities": [
-        "minecraft:skeleton",
-        "minecraft:stray"
-      ],
-      "bossEntities": [
-        "minecraft:vindicator"
-      ],
-      "mountEntity": ""
-    },
-    {
-      "id": "illager_invasion",
-      "displayName": "Invasi Penjarah (Illager)",
-      "bossBarColor": "RED",
-      "weight": 8,
-      "biomes": [],
-      "minRaidLevel": 50,
-      "normalEntities": [
-        "minecraft:vindicator"
-      ],
-      "archerEntities": [
-        "minecraft:pillager"
-      ],
-      "bossEntities": [
-        "minecraft:evoker",
-        "minecraft:ravager"
-      ],
-      "mountEntity": ""
-    }
-  ]
+    "enabled":  true,
+    "raidTypes":  [
+                      {
+                          "id":  "undead_horde",
+                          "displayName":  "Serangan Pasukan Undead",
+                          "bossBarColor":  "PURPLE",
+                          "weight":  10,
+                          "biomes":  [
+
+                                     ],
+                          "minRaidLevel":  0,
+                          "normalEntities":  [
+                                                 "minecraft:zombie",
+                                                 "minecraft:husk"
+                                             ],
+                          "archerEntities":  [
+                                                 "minecraft:skeleton",
+                                                 "minecraft:stray"
+                                             ],
+                          "bossEntities":  [
+                                               "minecraft:vindicator"
+                                           ],
+                          "mountEntity":  ""
+                      },
+                      {
+                          "id":  "illager_invasion",
+                          "displayName":  "Invasi Penjarah (Illager)",
+                          "bossBarColor":  "RED",
+                          "weight":  8,
+                          "biomes":  [
+
+                                     ],
+                          "minRaidLevel":  50,
+                          "normalEntities":  [
+                                                 "minecraft:vindicator"
+                                             ],
+                          "archerEntities":  [
+                                                 "minecraft:pillager"
+                                             ],
+                          "bossEntities":  [
+                                               "minecraft:evoker",
+                                               "minecraft:ravager"
+                                           ],
+                          "mountEntity":  ""
+                      }
+                  ],
+    "raids":  [
+
+              ],
+    "nights_between_raids":  3,
+    "alert_message":  "Goatman is here...",
+    "victory_message":  "Goatman dikalahkan! Desa kembali aman."
 }

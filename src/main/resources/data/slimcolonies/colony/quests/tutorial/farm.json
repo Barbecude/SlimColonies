@@ -1,258 +1,262 @@
 {
-  "name": "Mouths to feed",
-  "max-occurrences": 1,
-  "parents": [
-    "slimcolonies:tutorial/forester"
-  ],
-  "triggers": [
-    {
-      "type": "slimcolonies:citizen",
-      "state": {
-        "notmatch": {
-          "finavquests": [
-            "slimcolonies:tutorial/forester"
-          ]
-        }
-      }
-    },
-    {
-      "type": "slimcolonies:citizen",
-      "state": { }
-    }
-  ],
-  "triggerOrder": "1 || 2",
-  "objectives": [
-    {
-      "type": "slimcolonies:dialogue",
-      "target": 0,
-      "text": "Hello there! We are producing some wood, but you might have already noticed that us citizens also require food, so we should try to build a farm so that the colony can also be self sufficient on food.",
-      "options": [
-        {
-          "answer": "Sure!",
-          "result": {
-            "type": "slimcolonies:dialogue",
-            "text": "Nice, so as usual we start by crafting the farm hut block. In the crafting bench, surround a wooden or stone hoe with planks and put the Build Tool in the top. Come back to me once you've done that!'",
-            "options": [
-              {
-                "answer": "On it!",
-                "result": {
-                  "type": "slimcolonies:advanceobjective",
-                  "go-to": 1
-                }
-              },
-              {
-                "answer": "Already done!",
-                "result": {
-                  "type": "slimcolonies:dialogue",
-                  "text": "Alrighty then! Then it's time to place the Farm with the Build Tool, click build and provide your builder with the necessary items like the last time and come back once it is built!",
-                  "options": [
+    "name":  "Urusan Perut Warga",
+    "max-occurrences":  1,
+    "parents":  [
+                    "slimcolonies:tutorial/forester"
+                ],
+    "triggers":  [
+                     {
+                         "type":  "slimcolonies:citizen",
+                         "state":  {
+                                       "notmatch":  {
+                                                        "finavquests":  [
+                                                                            "slimcolonies:tutorial/forester"
+                                                                        ]
+                                                    }
+                                   }
+                     },
+                     {
+                         "type":  "slimcolonies:citizen",
+                         "state":  {
+
+                                   }
+                     }
+                 ],
+    "triggerOrder":  "1 || 2",
+    "objectives":  [
+                       {
+                           "type":  "slimcolonies:dialogue",
+                           "target":  0,
+                           "text":  "Halo! Produksi kayu kita udah jalan nih, tapi kamu pasti sadar kan kalau warga desa juga butuh makan biar kuat kerja? Yuk kita bangun Pertanian (Farm) biar desa kita punya stok makanan sendiri!",
+                           "options":  [
+                                           {
+                                               "answer":  "Boleh dong!",
+                                               "result":  {
+                                                              "type":  "slimcolonies:dialogue",
+                                                              "text":  "Sip! Seperti biasa, kita mulai dengan bikin blok Farm dulu. Di Crafting Table, taruh cangkul kayu/batu di tengah, kelilingi pakai papan kayu (planks), dan taruh Build Tool di paling atas. Kalau udah jadi, balik ke sini ya!",
+                                                              "options":  [
+                                                                              {
+                                                                                  "answer":  "Siap, langsung gas!",
+                                                                                  "result":  {
+                                                                                                 "type":  "slimcolonies:advanceobjective",
+                                                                                                 "go-to":  1
+                                                                                             }
+                                                                              },
+                                                                              {
+                                                                                  "answer":  "Udah beres kok!",
+                                                                                  "result":  {
+                                                                                                 "type":  "slimcolonies:dialogue",
+                                                                                                 "text":  "Mantap! Sekarang pasang Farm-nya pakai Build Tool, klik Build, terus kasih bahan-bahannya ke tukang bangunan kayak kemarin. Kalau udah selesai dibangun, balik ke sini lagi ya!",
+                                                                                                 "options":  [
+                                                                                                                 {
+                                                                                                                     "answer":  "Beres, serahin ke aku!",
+                                                                                                                     "result":  {
+                                                                                                                                    "type":  "slimcolonies:advanceobjective",
+                                                                                                                                    "go-to":  2
+                                                                                                                                }
+                                                                                                                 }
+                                                                                                             ]
+                                                                                             }
+                                                                              }
+                                                                          ]
+                                                          }
+                                           },
+                                           {
+                                               "answer":  "Pertaniannya udah kubangun kok!",
+                                               "result":  {
+                                                              "type":  "slimcolonies:dialogue",
+                                                              "text":  "Wih cepet banget! Kalau gitu urusan yang ini udah beres, nanti aku kabarin lagi buat langkah selanjutnya ya!",
+                                                              "options":  [
+                                                                              {
+                                                                                  "answer":  "Mantap jiwa!",
+                                                                                  "result":  {
+                                                                                                 "type":  "slimcolonies:advanceobjective",
+                                                                                                 "go-to":  10
+                                                                                             }
+                                                                              }
+                                                                          ]
+                                                          }
+                                           },
+                                           {
+                                               "answer":  "Nanti dulu ya, aku balik lagi nanti!",
+                                               "result":  {
+                                                              "type":  "slimcolonies:return"
+                                                          }
+                                           }
+                                       ]
+                       },
+                       {
+                           "type":  "slimcolonies:dialogue",
+                           "target":  0,
+                           "text":  "Hai balik lagi! Udah berhasil bikin blok Farm-nya belum?",
+                           "options":  [
+                                           {
+                                               "answer":  "Belum, aku lupa resep crafting-nya!",
+                                               "result":  {
+                                                              "type":  "slimcolonies:dialogue",
+                                                              "text":  "Santai aja! Di Crafting Table, taruh cangkul kayu/batu di tengah, kelilingi pakai papan kayu (planks), terus taruh Build Tool di slot paling atas.",
+                                                              "options":  [
+                                                                              {
+                                                                                  "answer":  "Oke sip! Aku bikin dulu ya!",
+                                                                                  "result":  {
+                                                                                                 "type":  "slimcolonies:return"
+                                                                                             }
+                                                                              }
+                                                                          ]
+                                                          }
+                                           },
+                                           {
+                                               "answer":  "Udah beres dong! Lanjut ngapain lagi nih?",
+                                               "result":  {
+                                                              "type":  "slimcolonies:dialogue",
+                                                              "text":  "Mantap! Sekarang pasang Farm-nya pakai Build Tool, klik Build, terus kasih bahan-bahannya ke tukang bangunan kayak kemarin. Kalau udah selesai dibangun, balik ke sini lagi ya!",
+                                                              "options":  [
+                                                                              {
+                                                                                  "answer":  "Beres, serahin ke aku!",
+                                                                                  "result":  {
+                                                                                                 "type":  "slimcolonies:advanceobjective",
+                                                                                                 "go-to":  2
+                                                                                             }
+                                                                              }
+                                                                          ]
+                                                          }
+                                           },
+                                           {
+                                               "answer":  "Belum sempet nih, nanti aku balik lagi ya!",
+                                               "result":  {
+                                                              "type":  "slimcolonies:return"
+                                                          }
+                                           }
+                                       ]
+                       },
+                       {
+                           "type":  "slimcolonies:buildbuilding",
+                           "details":  {
+                                           "type":  "slimcolonies:farmer",
+                                           "count-existing":  true,
+                                           "lvl":  1,
+                                           "qty":  1,
+                                           "target":  0,
+                                           "next-objective":  3
+                                       }
+                       },
+                       {
+                           "type":  "slimcolonies:dialogue",
+                           "target":  0,
+                           "text":  "Bagus banget! Tapi sebelum petani kita bisa mulai nanam, dia butuh Ladang (Field). Cara bikin blok Field di Crafting Table: taruh Labu (Pumpkin) atau Hay Bale di atas, Kulit (Leather) di tengah, terus Stick di kiri, kanan, dan bawah kulit itu.",
+                           "options":  [
+                                           {
+                                               "answer":  "Siap, langsung berangkat!",
+                                               "result":  {
+                                                              "type":  "slimcolonies:advanceobjective",
+                                                              "go-to":  4
+                                                          }
+                                           },
+                                           {
+                                               "answer":  "Ladangnya udah kupasang kok!",
+                                               "result":  {
+                                                              "type":  "slimcolonies:dialogue",
+                                                              "text":  "Wih cepet banget! Kalau gitu urusan yang ini udah beres, nanti aku kabarin lagi buat langkah selanjutnya ya!",
+                                                              "options":  [
+                                                                              {
+                                                                                  "answer":  "Mantap jiwa!",
+                                                                                  "result":  {
+                                                                                                 "type":  "slimcolonies:advanceobjective",
+                                                                                                 "go-to":  10
+                                                                                             }
+                                                                              }
+                                                                          ]
+                                                          }
+                                           }
+                                       ]
+                       },
+                       {
+                           "type":  "slimcolonies:dialogue",
+                           "target":  0,
+                           "text":  "Hai! Udah jadi belum blok Field (Ladang)-nya?",
+                           "options":  [
+                                           {
+                                               "answer":  "Belum, aku lupa resep crafting-nya!",
+                                               "result":  {
+                                                              "type":  "slimcolonies:dialogue",
+                                                              "text":  "Tenang, gampang kok! Di Crafting Table, taruh Labu (Pumpkin) atau Hay Bale di paling atas, Kulit (Leather) di tengah, terus Stick di kiri, kanan, dan bawahnya.",
+                                                              "options":  [
+                                                                              {
+                                                                                  "answer":  "Oke sip! Aku bikin dulu ya!",
+                                                                                  "result":  {
+                                                                                                 "type":  "slimcolonies:return"
+                                                                                             }
+                                                                              }
+                                                                          ]
+                                                          }
+                                           },
+                                           {
+                                               "answer":  "Udah beres dong! Lanjut ngapain lagi nih?",
+                                               "result":  {
+                                                              "type":  "slimcolonies:dialogue",
+                                                              "text":  "Mantap! Kamu bisa pasang blok Field itu langsung di tanah lapang deket Farm, atau suruh tukang bangunan bikin ladang lewat menu Build Tool. Yang penting pastiin ada air buat nyiram tanamannya ya! Kalau udah kepasang, balik ke sini lagi!",
+                                                              "options":  [
+                                                                              {
+                                                                                  "answer":  "Beres, serahin ke aku!",
+                                                                                  "result":  {
+                                                                                                 "type":  "slimcolonies:advanceobjective",
+                                                                                                 "go-to":  5
+                                                                                             }
+                                                                              },
+                                                                              {
+                                                                                  "answer":  "Udah duluan dong!",
+                                                                                  "result":  {
+                                                                                                 "type":  "slimcolonies:advanceobjective",
+                                                                                                 "go-to":  7
+                                                                                             }
+                                                                              }
+                                                                          ]
+                                                          }
+                                           },
+                                           {
+                                               "answer":  "Belum sempet nih, nanti aku balik lagi ya!",
+                                               "result":  {
+                                                              "type":  "slimcolonies:return"
+                                                          }
+                                           }
+                                       ]
+                       },
+                       {
+                           "type":  "slimcolonies:placeblock",
+                           "details":  {
+                                           "block":  "slimcolonies:blockhutfield",
+                                           "next-objective":  6,
+                                           "qty":  1,
+                                           "target":  0
+                                       }
+                       },
+                       {
+                           "unlocks-rewards":  [
+                                                   0
+                                               ],
+                           "type":  "slimcolonies:dialogue",
+                           "target":  0,
+                           "text":  "Nah, sekarang tinggal klik kanan blok Field (orang-orangan sawah) itu terus pilih bibit tanaman yang mau ditanam sama petani. Nih, ambil bibit ini buat modal awal! Nanti aku kabarin lagi buat langkah selanjutnya ya!",
+                           "options":  [
+                                           {
+                                               "answer":  "Sip, sampai ketemu lagi!",
+                                               "result":  {
+                                                              "type":  "slimcolonies:advanceobjective",
+                                                              "go-to":  10
+                                                          }
+                                           }
+                                       ]
+                       }
+                   ],
+    "rewards":  [
                     {
-                      "answer": "Consider it done!",
-                      "result": {
-                        "type": "slimcolonies:advanceobjective",
-                        "go-to": 2
-                      }
+                        "type":  "slimcolonies:item",
+                        "details":  {
+                                        "item":  {
+                                                     "id":  "minecraft:wheat_seeds",
+                                                     "count":  32
+                                                 }
+                                    }
                     }
-                  ]
-                }
-              }
-            ]
-          }
-        },
-        {
-          "answer": "I already set up the farm!",
-          "result": {
-            "type": "slimcolonies:dialogue",
-            "text": "Oh nice, then we are already done here and I will have more information on the next steps soon!",
-            "options": [
-              {
-                "answer": "Awesome!",
-                "result": {
-                  "type": "slimcolonies:advanceobjective",
-                  "go-to": 10
-                }
-              }
-            ]
-          }
-        },
-        {
-          "answer": "Not right now. I will come back to you later!",
-          "result": {
-            "type": "slimcolonies:return"
-          }
-        }
-      ]
-    },
-    {
-      "type": "slimcolonies:dialogue",
-      "target": 0,
-      "text": "Welcome back, were you able to craft the Farm hut block?",
-      "options": [
-        {
-          "answer": "No, I forgot the recipe!",
-          "result": {
-            "type": "slimcolonies:dialogue",
-            "text": "A great leap forward often requires taking two steps back! In the crafting bench, surround a wooden or stone hoe with planks and put the Build Tool in the top.",
-            "options": [
-              {
-                "answer": "Alright! I'll get back to it!",
-                "result": {
-                  "type": "slimcolonies:return"
-                }
-              }
-            ]
-          }
-        },
-        {
-          "answer": "Yes, done, what's next?",
-          "result": {
-            "type": "slimcolonies:dialogue",
-            "text": "Alrighty then! Then it's time to place the Farm with the Build Tool, click build and provide your builder with the necessary items like the last time and come back once it is built!",
-            "options": [
-              {
-                "answer": "Consider it done!",
-                "result": {
-                  "type": "slimcolonies:advanceobjective",
-                  "go-to": 2
-                }
-              }
-            ]
-          }
-        },
-        {
-          "answer": "Not yet, I will get to it later!",
-          "result": {
-            "type": "slimcolonies:return"
-          }
-        }
-      ]
-    },
-    {
-      "type": "slimcolonies:buildbuilding",
-      "details": {
-        "type": "slimcolonies:farmer",
-        "count-existing": true,
-        "lvl": 1,
-        "qty": 1,
-        "target": 0,
-        "next-objective": 3
-      }
-    },
-    {
-      "type": "slimcolonies:dialogue",
-      "target": 0,
-      "text": "Okay great. But before your farmer can start working they need a field. To craft it in the crafting bench put a pumpkin or hay bale at the top, leather in the middle and then sticks to the right and left and below the the leather.",
-      "options": [
-        {
-          "answer": "I'm on it!",
-          "result": {
-            "type": "slimcolonies:advanceobjective",
-            "go-to": 4
-          }
-        },
-        {
-          "answer": "I already set up the field!",
-          "result": {
-            "type": "slimcolonies:dialogue",
-            "text": "Oh nice, then we are already done here and I will have more information on the next steps soon!",
-            "options": [
-              {
-                "answer": "Awesome!",
-                "result": {
-                  "type": "slimcolonies:advanceobjective",
-                  "go-to": 10
-                }
-              }
-            ]
-          }
-        }
-      ]
-    },
-    {
-      "type": "slimcolonies:dialogue",
-      "target": 0,
-      "text": "Welcome back, were you able to craft the Field block?",
-      "options": [
-        {
-          "answer": "No, I forgot the recipe!",
-          "result": {
-            "type": "slimcolonies:dialogue",
-            "text": "A great leap forward often requires taking two steps back! In the crafting bench, put a pumpkin or hay bale at the top, leather in the middle and then sticks to the right and left and below the the leather.",
-            "options": [
-              {
-                "answer": "Alright! I'll get back to it!",
-                "result": {
-                  "type": "slimcolonies:return"
-                }
-              }
-            ]
-          }
-        },
-        {
-          "answer": "Yes, done, what's next?",
-          "result": {
-            "type": "slimcolonies:dialogue",
-            "text": "Great! You can either manually place the field by right clicking the block close to the farm in some open space. Or let the Builder build a pre-made field from the build tool menu. Either way, make sure there is water for the field. Come back to me once either of that is done!",
-            "options": [
-              {
-                "answer": "Consider it done!",
-                "result": {
-                  "type": "slimcolonies:advanceobjective",
-                  "go-to": 5
-                }
-              },
-              {
-                "answer": "Way ahead of you!",
-                "result": {
-                  "type": "slimcolonies:advanceobjective",
-                  "go-to": 7
-                }
-              }
-            ]
-          }
-        },
-        {
-          "answer": "Not yet, I will get to it later!",
-          "result": {
-            "type": "slimcolonies:return"
-          }
-        }
-      ]
-    },
-    {
-      "type": "slimcolonies:placeblock",
-      "details": {
-        "block": "slimcolonies:blockhutfield",
-        "next-objective": 6,
-        "qty": 1,
-        "target": 0
-      }
-    },
-    {
-      "unlocks-rewards": [0],
-      "type": "slimcolonies:dialogue",
-      "target": 0,
-      "text": "Now all that is missing is setting a crop type for your farmer to plant by right clicking the field block and selecting a type of crop. Here have some seeds, I'll let you know about the next steps soon!",
-      "options": [
-        {
-          "answer": "See you in a bit!",
-          "result": {
-            "type": "slimcolonies:advanceobjective",
-            "go-to": 10
-          }
-        }
-      ]
-    }
-  ],
-  "rewards": [
-    {
-      "type": "slimcolonies:item",
-      "details": {
-        "item": {
-          "id": "minecraft:wheat_seeds",
-          "count": 32
-        }
-      }
-    }
-  ]
+                ]
 }

@@ -1,124 +1,128 @@
 {
-  "name": "Upgrade the Shed!",
-  "max-occurrences": 1,
-  "parents": [
-    "slimcolonies:tutorial/builder2"
-  ],
-  "triggers": [
-    {
-      "type": "slimcolonies:citizen",
-      "state": {
-        "notmatch": {
-          "finavquests": [
-            "slimcolonies:tutorial/builder2"
-          ]
-        }
-      }
-    },
-    {
-      "type": "slimcolonies:citizen",
-      "state": { }
-    }
-  ],
-  "triggerOrder": "1 || 2",
-  "objectives": [
-    {
-      "type": "slimcolonies:dialogue",
-      "target": 0,
-      "text": "Now that you got a level 2 builder the next logical step is upgrading your residences. Residences house 1 citizen per housing level up to five citizens at level five.",
-      "options": [
-        {
-          "answer": "Sounds exciting! What do you want me to do?.",
-          "result": {
-            "type": "slimcolonies:dialogue",
-            "text": "Upgrade two of your residences to level 2 and come back to me later then!",
-            "options": [
-              {
-                "answer": "On it!",
-                "result": {
-                  "type": "slimcolonies:advanceobjective",
-                  "go-to": 1
-                }
-              },
-              {
-                "answer": "Already done!",
-                "result": {
-                  "type": "slimcolonies:dialogue",
-                  "text": "Excellent. I'll leave you be for now then. Make sure to check on your quest log regularly.",
-                  "options": [
+    "name":  "Upgrade Rumah \u0026 Dapur!",
+    "max-occurrences":  1,
+    "parents":  [
+                    "slimcolonies:tutorial/builder2"
+                ],
+    "triggers":  [
+                     {
+                         "type":  "slimcolonies:citizen",
+                         "state":  {
+                                       "notmatch":  {
+                                                        "finavquests":  [
+                                                                            "slimcolonies:tutorial/builder2"
+                                                                        ]
+                                                    }
+                                   }
+                     },
+                     {
+                         "type":  "slimcolonies:citizen",
+                         "state":  {
+
+                                   }
+                     }
+                 ],
+    "triggerOrder":  "1 || 2",
+    "objectives":  [
+                       {
+                           "type":  "slimcolonies:dialogue",
+                           "target":  0,
+                           "text":  "Berhubung tukang bangunanmu udah level 2, langkah selanjutnya yang paling pas adalah upgrade Rumah Warga (Residence)! Tiap naik 1 level, rumah itu bisa nampung 1 warga tambahan sampai maksimal 5 warga di level 5.",
+                           "options":  [
+                                           {
+                                               "answer":  "Wah mantap! Aku harus ngapain nih?",
+                                               "result":  {
+                                                              "type":  "slimcolonies:dialogue",
+                                                              "text":  "Coba upgrade dua rumah warga (Residence) ke level 2, kalau udah kelar balik ke sini lagi ya!",
+                                                              "options":  [
+                                                                              {
+                                                                                  "answer":  "Siap, langsung gas!",
+                                                                                  "result":  {
+                                                                                                 "type":  "slimcolonies:advanceobjective",
+                                                                                                 "go-to":  1
+                                                                                             }
+                                                                              },
+                                                                              {
+                                                                                  "answer":  "Udah beres kok!",
+                                                                                  "result":  {
+                                                                                                 "type":  "slimcolonies:dialogue",
+                                                                                                 "text":  "Mantap! Kalau gitu aku serahin ke kamu dulu ya. Jangan lupa sering-sering cek Quest Log buat misi berikutnya!",
+                                                                                                 "options":  [
+                                                                                                                 {
+                                                                                                                     "answer":  "Siap, dicatat!",
+                                                                                                                     "result":  {
+                                                                                                                                    "type":  "slimcolonies:advanceobjective",
+                                                                                                                                    "go-to":  10
+                                                                                                                                }
+                                                                                                                 }
+                                                                                                             ]
+                                                                                             }
+                                                                              }
+                                                                          ]
+                                                          }
+                                           },
+                                           {
+                                               "answer":  "Nanti dulu ya, aku balik lagi nanti!",
+                                               "result":  {
+                                                              "type":  "slimcolonies:return"
+                                                          }
+                                           },
+                                           {
+                                               "answer":  "Udah beres kok!",
+                                               "result":  {
+                                                              "type":  "slimcolonies:dialogue",
+                                                              "text":  "Mantap! Kalau gitu aku serahin ke kamu dulu ya. Jangan lupa sering-sering cek Quest Log buat misi berikutnya!",
+                                                              "options":  [
+                                                                              {
+                                                                                  "answer":  "Siap, dicatat!",
+                                                                                  "result":  {
+                                                                                                 "type":  "slimcolonies:advanceobjective",
+                                                                                                 "go-to":  10
+                                                                                             }
+                                                                              }
+                                                                          ]
+                                                          }
+                                           }
+                                       ]
+                       },
+                       {
+                           "type":  "slimcolonies:buildbuilding",
+                           "details":  {
+                                           "type":  "slimcolonies:residence",
+                                           "count-existing":  true,
+                                           "lvl":  2,
+                                           "qty":  2,
+                                           "target":  0,
+                                           "next-objective":  2
+                                       }
+                       },
+                       {
+                           "unlocks-rewards":  [
+                                                   0
+                                               ],
+                           "type":  "slimcolonies:dialogue",
+                           "target":  0,
+                           "text":  "Keren abis! Ini cara paling ampuh buat nambah kapasitas warga di desa! Nggak cuma itu, warga juga bakal jauh lebih bahagia kalau tinggal di rumah level tinggi! Nih, tadi aku nemu rak penyimpanan (Rack), ambil aja pasti berguna banget!",
+                           "options":  [
+                                           {
+                                               "answer":  "Makasih banyak! Dah!",
+                                               "result":  {
+                                                              "type":  "slimcolonies:advanceobjective",
+                                                              "go-to":  5
+                                                          }
+                                           }
+                                       ]
+                       }
+                   ],
+    "rewards":  [
                     {
-                      "answer": "Noted!",
-                      "result": {
-                        "type": "slimcolonies:advanceobjective",
-                        "go-to": 10
-                      }
+                        "type":  "slimcolonies:item",
+                        "details":  {
+                                        "item":  {
+                                                     "id":  "slimcolonies:blockslimcoloniesrack",
+                                                     "count":  8
+                                                 }
+                                    }
                     }
-                  ]
-                }
-              }
-            ]
-          }
-        },
-        {
-          "answer": "Not right now. I will come back to you later!",
-          "result": {
-            "type": "slimcolonies:return"
-          }
-        },
-        {
-          "answer": "Already done!",
-          "result": {
-            "type": "slimcolonies:dialogue",
-            "text": "Excellent. I'll leave you be for now then. Make sure to check on your quest log regularly.",
-            "options": [
-              {
-                "answer": "Noted!",
-                "result": {
-                  "type": "slimcolonies:advanceobjective",
-                  "go-to": 10
-                }
-              }
-            ]
-          }
-        }
-      ]
-    },
-    {
-      "type": "slimcolonies:buildbuilding",
-      "details": {
-        "type": "slimcolonies:residence",
-        "count-existing": true,
-        "lvl": 2,
-        "qty": 2,
-        "target": 0,
-        "next-objective": 2
-      }
-    },
-    {
-      "unlocks-rewards": [0],
-      "type": "slimcolonies:dialogue",
-      "target": 0,
-      "text": "Amazing! This is the best way to attract new citizens to your colony! Not only that! Citizens are also considerably happier in higher residence tiers! Here I found these racks earlier. I'm sure they will come in handy!",
-      "options": [
-        {
-          "answer": "Thank you. Bye!",
-          "result": {
-            "type": "slimcolonies:advanceobjective",
-            "go-to": 5
-          }
-        }
-      ]
-    }
-  ],
-  "rewards": [
-    {
-      "type": "slimcolonies:item",
-      "details": {
-        "item": {
-          "id": "slimcolonies:blockslimcoloniesrack",
-          "count": 8
-        }
-      }
-    }
-  ]
+                ]
 }

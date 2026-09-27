@@ -1,127 +1,131 @@
 {
-  "name": "Upgrade the Shed!",
-  "max-occurrences": 1,
-  "parents": [
-    "slimcolonies:tutorial/housing2"
-  ],
-  "triggers": [
-    {
-      "type": "slimcolonies:state",
-      "state": {
-        "path": "buildingManager/buildings",
-        "match": {
-          "type": "slimcolonies:residence",
-          "level": 3
-        }
-      }
-    },
-    {
-      "type": "slimcolonies:citizen",
-      "state": {
-        "notmatch": {
-          "finavquests": [
-            "slimcolonies:tutorial/housing2"
-          ]
-        }
-      }
-    },
-    {
-      "type": "slimcolonies:citizen",
-      "state": { }
-    }
-  ],
-  "triggerOrder": "1 && (2 || 3)",
-  "objectives": [
-    {
-      "type": "slimcolonies:dialogue",
-      "target": 0,
-      "text": "Hi, I've seen a fancy new residence was just recently completed. The people that live there start becoming a bit more picky with food.",
-      "options": [
-        {
-          "answer": "Uhh, eehh, what does that mean?",
-          "result": {
-            "type": "slimcolonies:dialogue",
-            "text": "First, aside from the dining hall you should build a Chef's Kitchen that is able to cook some of the special dishes and provide them to the restaurant!",
-            "options": [
-              {
-                "answer": "On it!",
-                "result": {
-                  "type": "slimcolonies:advanceobjective",
-                  "go-to": 1
-                }
-              }
-            ]
-          }
-        },
-        {
-          "answer": "Not right now. I will come back to you later!",
-          "result": {
-            "type": "slimcolonies:return"
-          }
-        },
-        {
-          "answer": "I know all about that already!",
-          "result": {
-            "type": "slimcolonies:dialogue",
-            "text": "Excellent. I'll leave you be for now then. Make sure to check on your quest log regularly.",
-            "options": [
-              {
-                "answer": "Noted!",
-                "result": {
-                  "type": "slimcolonies:advanceobjective",
-                  "go-to": 10
-                }
-              }
-            ]
-          }
-        }
-      ]
-    },
-    {
-      "type": "slimcolonies:buildbuilding",
-      "details": {
-        "type": "slimcolonies:kitchen",
-        "count-existing": true,
-        "lvl": 1,
-        "qty": 1,
-        "target": 0,
-        "next-objective": 2
-      }
-    },
-    {
-      "unlocks-rewards": [0],
-      "type": "slimcolonies:dialogue",
-      "target": 0,
-      "text": "Great, now that the Chef's Kitchen is finished, make sure that your farmer grows the crops for the recipes. You can obtain the seeds from breaking blocks like grass, fern, bushes, etc with a hoe! Here, have some Onion and Garlic to get started!",
-      "options": [
-        {
-          "answer": "Thank you. Bye!",
-          "result": {
-            "type": "slimcolonies:advanceobjective",
-            "go-to": 5
-          }
-        }
-      ]
-    }
-  ],
-  "rewards": [
-    {
-      "type": "slimcolonies:item",
-      "details": {
-        "item": {
-          "id": "slimcolonies:garlic",
-          "count": 8
-        }
-      }
-    },
-    {
-      "type": "slimcolonies:item",
-      "details": {
-        "item": {
-          "id": "slimcolonies:onion",
-          "count": 8
-        }
-      }
-    }
-  ]
+    "name":  "Upgrade Rumah \u0026 Dapur!",
+    "max-occurrences":  1,
+    "parents":  [
+                    "slimcolonies:tutorial/housing2"
+                ],
+    "triggers":  [
+                     {
+                         "type":  "slimcolonies:state",
+                         "state":  {
+                                       "path":  "buildingManager/buildings",
+                                       "match":  {
+                                                     "type":  "slimcolonies:residence",
+                                                     "level":  3
+                                                 }
+                                   }
+                     },
+                     {
+                         "type":  "slimcolonies:citizen",
+                         "state":  {
+                                       "notmatch":  {
+                                                        "finavquests":  [
+                                                                            "slimcolonies:tutorial/housing2"
+                                                                        ]
+                                                    }
+                                   }
+                     },
+                     {
+                         "type":  "slimcolonies:citizen",
+                         "state":  {
+
+                                   }
+                     }
+                 ],
+    "triggerOrder":  "1 \u0026\u0026 (2 || 3)",
+    "objectives":  [
+                       {
+                           "type":  "slimcolonies:dialogue",
+                           "target":  0,
+                           "text":  "Hai! Aku liat ada rumah warga yang baru aja di-upgrade jadi makin bagus nih. Nah, warga yang tinggal di rumah level tinggi biasanya mulai agak pilih-pilih soal makanan lho!",
+                           "options":  [
+                                           {
+                                               "answer":  "Waduh, maksudnya gimana tuh?",
+                                               "result":  {
+                                                              "type":  "slimcolonies:dialogue",
+                                                              "text":  "Pertama, selain Restoran (Dining Hall), kamu perlu bangun Dapur Koki (Chef\u0027s Kitchen / Cookery) yang bisa masak hidangan spesial nan lezat buat dikirim ke Restoran!",
+                                                              "options":  [
+                                                                              {
+                                                                                  "answer":  "Siap, langsung gas!",
+                                                                                  "result":  {
+                                                                                                 "type":  "slimcolonies:advanceobjective",
+                                                                                                 "go-to":  1
+                                                                                             }
+                                                                              }
+                                                                          ]
+                                                          }
+                                           },
+                                           {
+                                               "answer":  "Nanti dulu ya, aku balik lagi nanti!",
+                                               "result":  {
+                                                              "type":  "slimcolonies:return"
+                                                          }
+                                           },
+                                           {
+                                               "answer":  "Tenang, aku udah paham soal itu kok!",
+                                               "result":  {
+                                                              "type":  "slimcolonies:dialogue",
+                                                              "text":  "Mantap! Kalau gitu aku serahin ke kamu dulu ya. Jangan lupa sering-sering cek Quest Log buat misi berikutnya!",
+                                                              "options":  [
+                                                                              {
+                                                                                  "answer":  "Siap, dicatat!",
+                                                                                  "result":  {
+                                                                                                 "type":  "slimcolonies:advanceobjective",
+                                                                                                 "go-to":  10
+                                                                                             }
+                                                                              }
+                                                                          ]
+                                                          }
+                                           }
+                                       ]
+                       },
+                       {
+                           "type":  "slimcolonies:buildbuilding",
+                           "details":  {
+                                           "type":  "slimcolonies:kitchen",
+                                           "count-existing":  true,
+                                           "lvl":  1,
+                                           "qty":  1,
+                                           "target":  0,
+                                           "next-objective":  2
+                                       }
+                       },
+                       {
+                           "unlocks-rewards":  [
+                                                   0
+                                               ],
+                           "type":  "slimcolonies:dialogue",
+                           "target":  0,
+                           "text":  "Mantap, sekarang Dapur Koki-nya udah jadi! Pastiin petani kita juga nanam bahan-bahan masakannya ya. Kamu bisa dapetin bibit tanaman spesial dengan cara nyangkul rumput atau semak-semak pakai Hoe! Nih, ambil Bawang Merah (Onion) dan Bawang Putih (Garlic) buat modal awal!",
+                           "options":  [
+                                           {
+                                               "answer":  "Makasih banyak! Dah!",
+                                               "result":  {
+                                                              "type":  "slimcolonies:advanceobjective",
+                                                              "go-to":  5
+                                                          }
+                                           }
+                                       ]
+                       }
+                   ],
+    "rewards":  [
+                    {
+                        "type":  "slimcolonies:item",
+                        "details":  {
+                                        "item":  {
+                                                     "id":  "slimcolonies:garlic",
+                                                     "count":  8
+                                                 }
+                                    }
+                    },
+                    {
+                        "type":  "slimcolonies:item",
+                        "details":  {
+                                        "item":  {
+                                                     "id":  "slimcolonies:onion",
+                                                     "count":  8
+                                                 }
+                                    }
+                    }
+                ]
 }

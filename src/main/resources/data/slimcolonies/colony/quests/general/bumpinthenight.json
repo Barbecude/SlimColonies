@@ -1,197 +1,205 @@
 {
-  "name": "Things That Go Bump in the Night",
-  "parents": [],
-  "max-occurrences": 1,
-  "triggers": [
-    {
-      "type": "slimcolonies:random",
-      "rarity": 1000000
-    },
-    {
-      "type": "slimcolonies:state",
-      "state": {
-        "path": "buildingManager/buildings",
-        "match": {
-          "type": "slimcolonies:enchanter",
-          "level": 2
-        }
-      }
-    },
-    {
-      "type": "slimcolonies:citizen",
-      "state": {
-        "match": {
-          "job": {
-            "type": "slimcolonies:enchanter"
-          }
-        }
-      }
-    }
-  ],
-  "objectives": [
-    {
-      "type": "slimcolonies:dialogue",
-      "target": 0,
-      "text": "Oh! I am so glad you stopped by. I have been hearing the most unsettling noises near the tower at night - rustling, thumping, all manner of things. Could be animals. Could be something worse. I would feel much safer if I had a Spatial Guard Reinforcements Scroll on hand, just in case. Could you help me gather the ingredients?",
-      "options": [
-        {
-          "answer": "Of course! What do you need?",
-          "result": {
-            "type": "slimcolonies:dialogue",
-            "text": "Wonderful, thank you! I will need one Teleport Scroll, five Lapis Lazuli, one Ender Pearl, and one sheet of Paper. I have the enchanting setup ready - I just need the raw materials. Once I have them I can get to work tonight.",
-            "options": [
-              {
-                "answer": "Leave it to me, I will gather those right away!",
-                "result": {
-                  "type": "slimcolonies:advanceobjective",
-                  "go-to": 1
-                }
-              }
-            ]
-          }
-        },
-        {
-          "answer": "Sorry, I am a bit busy right now.",
-          "result": {
-            "type": "slimcolonies:cancel"
-          }
-        }
-      ]
-    },
-    {
-      "type": "slimcolonies:delivery",
-      "details": {
-        "target": 0,
-        "item": {
-          "id": "slimcolonies:scroll_tp",
-          "count": 1
-        },
-        "next-objective": 2
-      }
-    },
-    {
-      "type": "slimcolonies:delivery",
-      "details": {
-        "target": 0,
-        "item": {
-          "id": "minecraft:lapis_lazuli",
-          "count": 5
-        },
-        "next-objective": 3
-      }
-    },
-    {
-      "type": "slimcolonies:delivery",
-      "details": {
-        "target": 0,
-        "item": {
-          "id": "minecraft:ender_pearl",
-          "count": 1
-        },
-        "next-objective": 4
-      }
-    },
-    {
-      "type": "slimcolonies:delivery",
-      "details": {
-        "target": 0,
-        "item": {
-          "id": "minecraft:paper",
-          "count": 1
-        },
-        "next-objective": 5
-      }
-    },
-    {
-      "type": "slimcolonies:dialogue",
-      "target": 0,
-      "text": "Perfect! This is everything I need. I will get to work on the scroll tonight and have a proper listen around the tower while I am at it. Come back and check in with me tomorrow - I will let you know what I found!",
-      "options": [
-        {
-          "answer": "Of course! I will stop by tomorrow.",
-          "result": {
-            "type": "slimcolonies:advanceobjective",
-            "go-to": 6
-          }
-        }
-      ]
-    },
-    {
-      "unlocks-rewards": [0, 1, 2, 3, 4],
-      "type": "slimcolonies:dialogue",
-      "target": 0,
-      "text": "Oh! You are back! Ha - you will not believe this. I stayed up half the night, peered out every window, and do you know what was making all that noise? Squirrels! A whole family of squirrels had made a nest in the woodpile outside. Completely harmless. I feel a little foolish, I will admit. The good news is I used the time productively and made not one but three scrolls! Here, take them - and the leftover materials. Thank you for humoring a nervous enchanter.",
-      "options": [
-        {
-          "answer": "Ha! I am glad it was not something worse. Stay safe!",
-          "result": {
-            "type": "slimcolonies:advanceobjective",
-            "go-to": 7
-          }
-        },
-        {
-          "answer": "Three scrolls? You really went all out!",
-          "result": {
-            "type": "slimcolonies:dialogue",
-            "text": "Well, I had to do something with all that nervous energy! Besides, you never know when guards might come in handy. Now go on, and do not hesitate to visit if you need more enchanting work done.",
-            "options": [
-              {
-                "answer": "Will do. Thanks!",
-                "result": {
-                  "type": "slimcolonies:advanceobjective",
-                  "go-to": 7
-                }
-              }
-            ]
-          }
-        }
-      ]
-    }
-  ],
-  "rewards": [
-    {
-      "type": "slimcolonies:item",
-      "details": {
-        "item": {
-          "id": "slimcolonies:scroll_guard_help",
-          "count": 3
-        }
-      }
-    },
-    {
-      "type": "slimcolonies:item",
-      "details": {
-        "item": {
-          "id": "minecraft:lapis_lazuli",
-          "count": 5
-        }
-      }
-    },
-    {
-      "type": "slimcolonies:item",
-      "details": {
-        "item": {
-          "id": "minecraft:ender_pearl",
-          "count": 1
-        }
-      }
-    },
-    {
-      "type": "slimcolonies:item",
-      "details": {
-        "item": {
-          "id": "minecraft:paper",
-          "count": 1
-        }
-      }
-    },
-    {
-      "type": "slimcolonies:happiness",
-      "details": {
-        "target": 0,
-        "qty": 1,
-        "days": 7
-      }
-    }
-  ]
+    "name":  "Suara Aneh Tengah Malam",
+    "parents":  [
+
+                ],
+    "max-occurrences":  1,
+    "triggers":  [
+                     {
+                         "type":  "slimcolonies:random",
+                         "rarity":  1000000
+                     },
+                     {
+                         "type":  "slimcolonies:state",
+                         "state":  {
+                                       "path":  "buildingManager/buildings",
+                                       "match":  {
+                                                     "type":  "slimcolonies:enchanter",
+                                                     "level":  2
+                                                 }
+                                   }
+                     },
+                     {
+                         "type":  "slimcolonies:citizen",
+                         "state":  {
+                                       "match":  {
+                                                     "job":  {
+                                                                 "type":  "slimcolonies:enchanter"
+                                                             }
+                                                 }
+                                   }
+                     }
+                 ],
+    "objectives":  [
+                       {
+                           "type":  "slimcolonies:dialogue",
+                           "target":  0,
+                           "text":  "Eh, untung kamu mampir! Belakangan ini kalau malem aku sering denger suara aneh di deket menara - kresek-kresek, gedebuk, macem-macem deh! Bisa jadi cuma hewan, tapi takutnya monster beneran. Aku bakal lebih tenang kalau pegang Spatial Guard Reinforcements Scroll buat jaga-jaga. Bisa bantuin kumpulin bahannya nggak?",
+                           "options":  [
+                                           {
+                                               "answer":  "Bisa dong! Butuh bahan apa aja nih?",
+                                               "result":  {
+                                                              "type":  "slimcolonies:dialogue",
+                                                              "text":  "Makasih banyak ya! Aku butuh 1 Teleport Scroll, 5 Lapis Lazuli, 1 Ender Pearl, sama 1 lembar Kertas (Paper). Meja sihirku udah siap, tinggal kurang bahan mentahnya aja. Kalau udah ada, malem ini langsung kukerjain!",
+                                                              "options":  [
+                                                                              {
+                                                                                  "answer":  "Serahin ke aku aja, langsung kukumpulin sekarang!",
+                                                                                  "result":  {
+                                                                                                 "type":  "slimcolonies:advanceobjective",
+                                                                                                 "go-to":  1
+                                                                                             }
+                                                                              }
+                                                                          ]
+                                                          }
+                                           },
+                                           {
+                                               "answer":  "Sori ya, aku lagi agak sibuk nih sekarang.",
+                                               "result":  {
+                                                              "type":  "slimcolonies:cancel"
+                                                          }
+                                           }
+                                       ]
+                       },
+                       {
+                           "type":  "slimcolonies:delivery",
+                           "details":  {
+                                           "target":  0,
+                                           "item":  {
+                                                        "id":  "slimcolonies:scroll_tp",
+                                                        "count":  1
+                                                    },
+                                           "next-objective":  2
+                                       }
+                       },
+                       {
+                           "type":  "slimcolonies:delivery",
+                           "details":  {
+                                           "target":  0,
+                                           "item":  {
+                                                        "id":  "minecraft:lapis_lazuli",
+                                                        "count":  5
+                                                    },
+                                           "next-objective":  3
+                                       }
+                       },
+                       {
+                           "type":  "slimcolonies:delivery",
+                           "details":  {
+                                           "target":  0,
+                                           "item":  {
+                                                        "id":  "minecraft:ender_pearl",
+                                                        "count":  1
+                                                    },
+                                           "next-objective":  4
+                                       }
+                       },
+                       {
+                           "type":  "slimcolonies:delivery",
+                           "details":  {
+                                           "target":  0,
+                                           "item":  {
+                                                        "id":  "minecraft:paper",
+                                                        "count":  1
+                                                    },
+                                           "next-objective":  5
+                                       }
+                       },
+                       {
+                           "type":  "slimcolonies:dialogue",
+                           "target":  0,
+                           "text":  "Mantap, lengkap semuanya! Malem ini aku langsung bikin scroll-nya sekalian ngintip suara apa sih yang berisik di luar menara. Besok mampir ke sini lagi ya, nanti aku ceritain hasilnya!",
+                           "options":  [
+                                           {
+                                               "answer":  "Oke siap! Besok aku mampir lagi ya.",
+                                               "result":  {
+                                                              "type":  "slimcolonies:advanceobjective",
+                                                              "go-to":  6
+                                                          }
+                                           }
+                                       ]
+                       },
+                       {
+                           "unlocks-rewards":  [
+                                                   0,
+                                                   1,
+                                                   2,
+                                                   3,
+                                                   4
+                                               ],
+                           "type":  "slimcolonies:dialogue",
+                           "target":  0,
+                           "text":  "Eh, kamu udah balik! Haha, kamu pasti nggak bakal percaya deh. Aku begadang semaleman ngintip dari jendela, dan tau nggak suara berisik itu ternyata apa? Tupai! Satu keluarga tupai bikin sarang di tumpukan kayu depan menara! Aman banget ternyata, malu-maluin aja ya aku panik sendiri, haha. Kabar baiknya, semalem aku sekalian lembur bikin tiga scroll sekaligus! Nih, ambil aja sama sisa bahannya. Makasih ya udah nemenin Enchanter yang parnoan ini!",
+                           "options":  [
+                                           {
+                                               "answer":  "Haha! Syukur deh cuma tupai, bukan monster. Jaga diri ya!",
+                                               "result":  {
+                                                              "type":  "slimcolonies:advanceobjective",
+                                                              "go-to":  7
+                                                          }
+                                           },
+                                           {
+                                               "answer":  "Wih, tiga scroll sekaligus? Rajin bener!",
+                                               "result":  {
+                                                              "type":  "slimcolonies:dialogue",
+                                                              "text":  "Habisnya daripada bengong deg-degan semaleman kan! Lagian scroll penjaga gini pasti kepake kapan-kapan. Yaudah sana lanjut lagi, jangan sungkan mampir kalau butuh bantuan sihir ya!",
+                                                              "options":  [
+                                                                              {
+                                                                                  "answer":  "Siap, makasih banyak ya!",
+                                                                                  "result":  {
+                                                                                                 "type":  "slimcolonies:advanceobjective",
+                                                                                                 "go-to":  7
+                                                                                             }
+                                                                              }
+                                                                          ]
+                                                          }
+                                           }
+                                       ]
+                       }
+                   ],
+    "rewards":  [
+                    {
+                        "type":  "slimcolonies:item",
+                        "details":  {
+                                        "item":  {
+                                                     "id":  "slimcolonies:scroll_guard_help",
+                                                     "count":  3
+                                                 }
+                                    }
+                    },
+                    {
+                        "type":  "slimcolonies:item",
+                        "details":  {
+                                        "item":  {
+                                                     "id":  "minecraft:lapis_lazuli",
+                                                     "count":  5
+                                                 }
+                                    }
+                    },
+                    {
+                        "type":  "slimcolonies:item",
+                        "details":  {
+                                        "item":  {
+                                                     "id":  "minecraft:ender_pearl",
+                                                     "count":  1
+                                                 }
+                                    }
+                    },
+                    {
+                        "type":  "slimcolonies:item",
+                        "details":  {
+                                        "item":  {
+                                                     "id":  "minecraft:paper",
+                                                     "count":  1
+                                                 }
+                                    }
+                    },
+                    {
+                        "type":  "slimcolonies:happiness",
+                        "details":  {
+                                        "target":  0,
+                                        "qty":  1,
+                                        "days":  7
+                                    }
+                    }
+                ]
 }

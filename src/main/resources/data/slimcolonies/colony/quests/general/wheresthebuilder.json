@@ -1,254 +1,263 @@
 {
-  "name": "Where's the Builder?",
-  "parents": [],
-  "max-occurrences": 1,
-  "triggers": [
-    {
-      "type": "slimcolonies:random",
-      "rarity": 1000000
-    },
-    {
-      "type": "slimcolonies:state",
-      "state": {
-        "path": "buildingManager/buildings",
-        "match": {
-          "type": "slimcolonies:enchanter",
-          "level": 3
-        }
-      }
-    },
-    {
-      "type": "slimcolonies:citizen",
-      "state": {
-        "match": {
-          "job": {
-            "type": "slimcolonies:enchanter"
-          }
-        }
-      }
-    },
-    {
-      "type": "slimcolonies:citizen",
-      "state": {
-        "match": {
-          "job": {
-            "type": "slimcolonies:builder"
-          }
-        }
-      }
-    }
-  ],
-  "objectives": [
-    {
-      "type": "slimcolonies:dialogue",
-      "target": 0,
-      "text": "Oh, come in, come in! I could not help but overhear the tavernkeeper going on again - apparently the builder has gone missing mid-job and the tavern awning still needs patching. I feel terrible for both of them, honestly. I thought I might help by crafting a Worker-Where-Are-You Scroll - it would highlight the builder so we could find them in no time! Would you be able to gather the ingredients for me?",
-      "options": [
-        {
-          "answer": "Happy to help! What do you need?",
-          "result": {
-            "type": "slimcolonies:dialogue",
-            "text": "Wonderful! I will need three Teleport Scrolls, six Glowstone Dust, and two sheets of Paper. A bit involved, but worth it to settle this whole business once and for all, I think!",
-            "options": [
-              {
-                "answer": "I will get those gathered up!",
-                "result": {
-                  "type": "slimcolonies:advanceobjective",
-                  "go-to": 1
-                }
-              }
-            ]
-          }
-        },
-        {
-          "answer": "I think this is between them, I am staying out of it.",
-          "result": {
-            "type": "slimcolonies:cancel"
-          }
-        }
-      ]
-    },
-    {
-      "type": "slimcolonies:delivery",
-      "details": {
-        "target": 0,
-        "item": {
-          "id": "slimcolonies:scroll_tp",
-          "count": 3
-        },
-        "next-objective": 2
-      }
-    },
-    {
-      "type": "slimcolonies:delivery",
-      "details": {
-        "target": 0,
-        "item": {
-          "id": "minecraft:glowstone_dust",
-          "count": 6
-        },
-        "next-objective": 3
-      }
-    },
-    {
-      "type": "slimcolonies:delivery",
-      "details": {
-        "target": 0,
-        "item": {
-          "id": "minecraft:paper",
-          "count": 2
-        },
-        "next-objective": 4
-      }
-    },
-    {
-      "type": "slimcolonies:dialogue",
-      "target": 0,
-      "text": "Excellent! I am working on the scroll now - these things take a little time to get right. Come check in with me when you are ready and I will have it finished!",
-      "options": [
-        {
-          "answer": "Take your time, I will check back soon!",
-          "result": {
-            "type": "slimcolonies:return"
-          }
-        },
-        {
-          "answer": "I am back - is the scroll ready?",
-          "result": {
-            "type": "slimcolonies:advanceobjective",
-            "go-to": 5
-          }
-        }
-      ]
-    },
-    {
-      "type": "slimcolonies:dialogue",
-      "target": 0,
-      "text": "Ah, perfect timing! The scroll is done. Let me just... [holds up the scroll and closes their eyes] ...there! It is done. Your builder should have a subtle glow about them now - they will not even notice. Go find them and see what they are up to. I will be here when you get back!",
-      "options": [
-        {
-          "answer": "On it! I will report back.",
-          "result": {
-            "type": "slimcolonies:advanceobjective",
-            "go-to": 6
-          }
-        }
-      ]
-    },
-    {
-      "type": "slimcolonies:dialogue",
-      "target": 1,
-      "text": "Oh! Oh no. You found me. Please, please - you have to keep this quiet! I have been sneaking down to the warehouse basement between tasks. It is the only place in the entire colony where I can get five minutes of peace without someone nagging me about something. I KNOW about the tavernkeeper's awning, I have not forgotten, I promise. I just needed a moment to breathe. You understand, yes? Please give my thanks to the enchanter - they are very kind. But keep this between us, would you?",
-      "options": [
-        {
-          "answer": "Your secret is safe with me. Get some rest!",
-          "result": {
-            "type": "slimcolonies:advanceobjective",
-            "go-to": 7
-          }
-        },
-        {
-          "answer": "I completely understand. I will not say a word.",
-          "result": {
-            "type": "slimcolonies:dialogue",
-            "text": "Bless you! I will get to the awning first thing tomorrow, I swear it. Now if you do not mind, I still have about ten minutes left in my nap. Thank you, truly.",
-            "options": [
-              {
-                "answer": "Sweet dreams. You have earned it!",
-                "result": {
-                  "type": "slimcolonies:advanceobjective",
-                  "go-to": 7
-                }
-              }
-            ]
-          }
-        }
-      ]
-    },
-    {
-      "unlocks-rewards": [0, 1, 2, 3, 4, 5],
-      "type": "slimcolonies:dialogue",
-      "target": 0,
-      "text": "Ha! Hiding in the warehouse basement! That is... honestly, I cannot even blame them. The tavernkeeper has been relentless this week. Well, we found them, and I am sure the awning will get sorted out eventually. Here - take these scrolls and your materials back. You did a good deed today, even if it was mostly for everyone's sanity!",
-      "options": [
-        {
-          "answer": "I think we have all needed a quiet corner at some point.",
-          "result": {
-            "type": "slimcolonies:advanceobjective",
-            "go-to": 8
-          }
-        },
-        {
-          "answer": "Let us hope the tavernkeeper does not find the basement.",
-          "result": {
-            "type": "slimcolonies:dialogue",
-            "text": "Ha! Oh they will eventually. But that is a problem for another day. Take your reward - you have earned it. And thank you for keeping this between us!",
-            "options": [
-              {
-                "answer": "Always. Thanks!",
-                "result": {
-                  "type": "slimcolonies:advanceobjective",
-                  "go-to": 8
-                }
-              }
-            ]
-          }
-        }
-      ]
-    }
-  ],
-  "rewards": [
-    {
-      "type": "slimcolonies:item",
-      "details": {
-        "item": {
-          "id": "slimcolonies:scroll_highlight",
-          "count": 5
-        }
-      }
-    },
-    {
-      "type": "slimcolonies:item",
-      "details": {
-        "item": {
-          "id": "slimcolonies:scroll_tp",
-          "count": 3
-        }
-      }
-    },
-    {
-      "type": "slimcolonies:item",
-      "details": {
-        "item": {
-          "id": "minecraft:glowstone_dust",
-          "count": 6
-        }
-      }
-    },
-    {
-      "type": "slimcolonies:item",
-      "details": {
-        "item": {
-          "id": "minecraft:paper",
-          "count": 2
-        }
-      }
-    },
-    {
-      "type": "slimcolonies:happiness",
-      "details": {
-        "target": 0,
-        "qty": 1,
-        "days": 7
-      }
-    },
-    {
-      "type": "slimcolonies:happiness",
-      "details": {
-        "target": 1,
-        "qty": 1,
-        "days": 7
-      }
-    }
-  ]
+    "name":  "Tukang Bangunan Ngumpet di Mana?",
+    "parents":  [
+
+                ],
+    "max-occurrences":  1,
+    "triggers":  [
+                     {
+                         "type":  "slimcolonies:random",
+                         "rarity":  1000000
+                     },
+                     {
+                         "type":  "slimcolonies:state",
+                         "state":  {
+                                       "path":  "buildingManager/buildings",
+                                       "match":  {
+                                                     "type":  "slimcolonies:enchanter",
+                                                     "level":  3
+                                                 }
+                                   }
+                     },
+                     {
+                         "type":  "slimcolonies:citizen",
+                         "state":  {
+                                       "match":  {
+                                                     "job":  {
+                                                                 "type":  "slimcolonies:enchanter"
+                                                             }
+                                                 }
+                                   }
+                     },
+                     {
+                         "type":  "slimcolonies:citizen",
+                         "state":  {
+                                       "match":  {
+                                                     "job":  {
+                                                                 "type":  "slimcolonies:builder"
+                                                             }
+                                                 }
+                                   }
+                     }
+                 ],
+    "objectives":  [
+                       {
+                           "type":  "slimcolonies:dialogue",
+                           "target":  0,
+                           "text":  "Eh, sini masuk-masuk! Dari tadi aku dengerin penjaga Tavern ngomel-ngomel mulu - katanya tukang bangunan kita ngilang di tengah kerjaan padahal atap Tavern masih bocor. Kasian sih dua-duanya. Aku kepikiran mau bikin Worker-Where-Are-You Scroll biar tukang bangunannya nyala dan gampang dicari! Kamu bisa bantuin kumpulin bahannya nggak?",
+                           "options":  [
+                                           {
+                                               "answer":  "Boleh banget! Butuh bahan apa aja nih?",
+                                               "result":  {
+                                                              "type":  "slimcolonies:dialogue",
+                                                              "text":  "Mantap! Aku butuh 3 Teleport Scroll, 6 Glowstone Dust, sama 2 lembar Kertas (Paper). Lumayan sih bahannya, tapi daripada penjaga Tavern ngomel seharian kan!",
+                                                              "options":  [
+                                                                              {
+                                                                                  "answer":  "Siap, kukumpulin dulu ya bahannya!",
+                                                                                  "result":  {
+                                                                                                 "type":  "slimcolonies:advanceobjective",
+                                                                                                 "go-to":  1
+                                                                                             }
+                                                                              }
+                                                                          ]
+                                                          }
+                                           },
+                                           {
+                                               "answer":  "Ah, urusan mereka berdua itu mah, aku nggak mau ikut campur ah.",
+                                               "result":  {
+                                                              "type":  "slimcolonies:cancel"
+                                                          }
+                                           }
+                                       ]
+                       },
+                       {
+                           "type":  "slimcolonies:delivery",
+                           "details":  {
+                                           "target":  0,
+                                           "item":  {
+                                                        "id":  "slimcolonies:scroll_tp",
+                                                        "count":  3
+                                                    },
+                                           "next-objective":  2
+                                       }
+                       },
+                       {
+                           "type":  "slimcolonies:delivery",
+                           "details":  {
+                                           "target":  0,
+                                           "item":  {
+                                                        "id":  "minecraft:glowstone_dust",
+                                                        "count":  6
+                                                    },
+                                           "next-objective":  3
+                                       }
+                       },
+                       {
+                           "type":  "slimcolonies:delivery",
+                           "details":  {
+                                           "target":  0,
+                                           "item":  {
+                                                        "id":  "minecraft:paper",
+                                                        "count":  2
+                                                    },
+                                           "next-objective":  4
+                                       }
+                       },
+                       {
+                           "type":  "slimcolonies:dialogue",
+                           "target":  0,
+                           "text":  "Sip, bahannya udah pas! Aku racik scroll-nya dulu ya - butuh waktu bentar biar mantap. Nanti ngobrol sama aku lagi kalau udah siap!",
+                           "options":  [
+                                           {
+                                               "answer":  "Santai aja, nanti aku balik lagi!",
+                                               "result":  {
+                                                              "type":  "slimcolonies:return"
+                                                          }
+                                           },
+                                           {
+                                               "answer":  "Aku balik nih - udah jadi belum scroll-nya?",
+                                               "result":  {
+                                                              "type":  "slimcolonies:advanceobjective",
+                                                              "go-to":  5
+                                                          }
+                                           }
+                                       ]
+                       },
+                       {
+                           "type":  "slimcolonies:dialogue",
+                           "target":  0,
+                           "text":  "Pas banget! Scroll-nya udah beres. Bentar ya... [mengangkat scroll sambil merem] ...nah, beres! Sekarang tukang bangunanmu udah ada efek cahaya-cahaya dikit di badannya. Coba cari dia lagi ngumpet di mana, aku tunggu di sini ya!",
+                           "options":  [
+                                           {
+                                               "answer":  "Siap! Aku cari dia dulu terus lapor ke sini.",
+                                               "result":  {
+                                                              "type":  "slimcolonies:advanceobjective",
+                                                              "go-to":  6
+                                                          }
+                                           }
+                                       ]
+                       },
+                       {
+                           "type":  "slimcolonies:dialogue",
+                           "target":  1,
+                           "text":  "Waduh! Ketauan deh! Plis, plis banget jangan bilang siapa-siapa ya! Aku sengaja ngumpet bentar di ruang bawah tanah gudang tiap abis kerja. Cuma di sini tempat paling tenang di desa tanpa ada yang bawel nyuruh-nyuruh tiap lima menit. Aku TAU kok soal atap Tavern itu, nggak lupa beneran deh! Cuma butuh narik napas bentar doang. Kamu ngerti kan? Titip makasih ya buat Enchanter, tapi rahasiain tempat ngumpetku ini ya!",
+                           "options":  [
+                                           {
+                                               "answer":  "Aman, rahasiamu terjaga kok. Istirahat dulu aja!",
+                                               "result":  {
+                                                              "type":  "slimcolonies:advanceobjective",
+                                                              "go-to":  7
+                                                          }
+                                           },
+                                           {
+                                               "answer":  "Paham banget kok. Aku nggak bakal bocorin ke siapa-siapa.",
+                                               "result":  {
+                                                              "type":  "slimcolonies:dialogue",
+                                                              "text":  "Duh, makasih banyak pengertiannya! Besok pagi-pagi buta langsung kubenerin atap Tavern-nya, janji! Sekarang mumpung masih ada sisa waktu sepuluh menit, aku lanjut rebahan bentar ya. Makasih banget lho!",
+                                                              "options":  [
+                                                                              {
+                                                                                  "answer":  "Selamat istirahat ya, kamu udah kerja keras!",
+                                                                                  "result":  {
+                                                                                                 "type":  "slimcolonies:advanceobjective",
+                                                                                                 "go-to":  7
+                                                                                             }
+                                                                              }
+                                                                          ]
+                                                          }
+                                           }
+                                       ]
+                       },
+                       {
+                           "unlocks-rewards":  [
+                                                   0,
+                                                   1,
+                                                   2,
+                                                   3,
+                                                   4,
+                                                   5
+                                               ],
+                           "type":  "slimcolonies:dialogue",
+                           "target":  0,
+                           "text":  "Hahaha! Ngumpet di ruang bawah tanah gudang ternyata! Jujur aja aku nggak bisa nyalahin dia sih, penjaga Tavern emang lagi bawel banget minggu ini. Yang penting dia udah ketemu dan atapnya bakal diberesin. Nih, ambil balik scroll sama bahan-bahanmu plus hadiah dariku. Makasih udah bantu jaga kewarasan warga desa hari ini!",
+                           "options":  [
+                                           {
+                                               "answer":  "Haha, namanya juga capek kerja, kadang butuh tempat ngadem.",
+                                               "result":  {
+                                                              "type":  "slimcolonies:advanceobjective",
+                                                              "go-to":  8
+                                                          }
+                                           },
+                                           {
+                                               "answer":  "Semoga aja penjaga Tavern nggak ikutan nemu ruang bawah tanahnya ya.",
+                                               "result":  {
+                                                              "type":  "slimcolonies:dialogue",
+                                                              "text":  "Haha! Cepat atau lambat pasti ketauan sih, tapi itu urusan belakangan lah. Nih ambil hadiahmu, makasih ya udah jaga rahasia kita!",
+                                                              "options":  [
+                                                                              {
+                                                                                  "answer":  "Siap, sama-sama! Makasih ya!",
+                                                                                  "result":  {
+                                                                                                 "type":  "slimcolonies:advanceobjective",
+                                                                                                 "go-to":  8
+                                                                                             }
+                                                                              }
+                                                                          ]
+                                                          }
+                                           }
+                                       ]
+                       }
+                   ],
+    "rewards":  [
+                    {
+                        "type":  "slimcolonies:item",
+                        "details":  {
+                                        "item":  {
+                                                     "id":  "slimcolonies:scroll_highlight",
+                                                     "count":  5
+                                                 }
+                                    }
+                    },
+                    {
+                        "type":  "slimcolonies:item",
+                        "details":  {
+                                        "item":  {
+                                                     "id":  "slimcolonies:scroll_tp",
+                                                     "count":  3
+                                                 }
+                                    }
+                    },
+                    {
+                        "type":  "slimcolonies:item",
+                        "details":  {
+                                        "item":  {
+                                                     "id":  "minecraft:glowstone_dust",
+                                                     "count":  6
+                                                 }
+                                    }
+                    },
+                    {
+                        "type":  "slimcolonies:item",
+                        "details":  {
+                                        "item":  {
+                                                     "id":  "minecraft:paper",
+                                                     "count":  2
+                                                 }
+                                    }
+                    },
+                    {
+                        "type":  "slimcolonies:happiness",
+                        "details":  {
+                                        "target":  0,
+                                        "qty":  1,
+                                        "days":  7
+                                    }
+                    },
+                    {
+                        "type":  "slimcolonies:happiness",
+                        "details":  {
+                                        "target":  1,
+                                        "qty":  1,
+                                        "days":  7
+                                    }
+                    }
+                ]
 }

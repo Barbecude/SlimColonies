@@ -1,279 +1,290 @@
 {
-  "name": "Alchemy!",
-  "parents": [],
-  "max-occurrences": 1,
-  "triggers": [
-    {
-      "type": "slimcolonies:random",
-      "rarity": 2500000
-    },
-    {
-      "type": "slimcolonies:state",
-      "state": {
-        "path": "buildingManager/buildings",
-        "match": {
-          "type": "slimcolonies:alchemist",
-          "level": 2
-        }
-      }
-    },
-    {
-      "type": "slimcolonies:citizen",
-      "state": {
-        "match": {
-          "job": {
-            "type": "slimcolonies:alchemist"
-          }
-        }
-      }
-    }
-  ],
-  "objectives": [
-    {
-      "type": "slimcolonies:dialogue",
-      "target": 0,
-      "text": "I just discovered a new alchemical process but I need some materials to test it out. Do you think you could help me with that?",
-      "options": [
-        {
-          "answer": "Sure, what do you need?.",
-          "result": {
-            "type": "slimcolonies:dialogue",
-            "text": "Splendid! Well, I require the flesh of three zombies!",
-            "options": [
-              {
-                "answer": "A bit creepy. But okay!",
-                "result": {
-                  "type": "slimcolonies:advanceobjective",
-                  "go-to": 1
-                }
-              },
-              {
-                "answer": "I have no concerns, sure!",
-                "result": {
-                  "type": "slimcolonies:advanceobjective",
-                  "go-to": 1
-                }
-              },
-              {
-                "answer": "Uhh, just three?",
-                "result": {
-                  "type": "slimcolonies:advanceobjective",
-                  "go-to": 1
-                }
-              },
-              {
-                "answer": "I suddenly don't feel like being part of this.",
-                "result": {
-                  "type": "slimcolonies:advanceobjective",
-                  "go-to": -1
-                }
-              }
-            ]
-          }
-        },
-        {
-          "answer": "I'm sorry, I can't help right now.",
-          "result": {
-            "type": "slimcolonies:cancel"
-          }
-        },
-        {
-          "answer": "I won't be able to help you with that.",
-          "result": {
-            "type": "slimcolonies:advanceobjective",
-            "go-to": -1
-          }
-        }
-      ]
-    },
-    {
-      "type": "slimcolonies:delivery",
-      "details": {
-        "target": 0,
-        "item": {
-          "id": "minecraft:rotten_flesh",
-          "count": 3
-        },
-        "next-objective": 2
-      }
-    },
-    {
-      "type": "slimcolonies:dialogue",
-      "target": 0,
-      "text": "The flesh you delivered me seemed a bit cold. I feel I require warm zombie flesh. Three again please",
-      "options": [
-        {
-          "answer": "Meh. Okay. On it.",
-          "result": {
-            "type": "slimcolonies:advanceobjective",
-            "go-to": 3
-          }
-        },
-        {
-          "answer": "Uhhh, I get to kill some more zombies. Sure!",
-          "result": {
-            "type": "slimcolonies:advanceobjective",
-            "go-to": 3
-          }
-        },
-        {
-          "answer": "I suddenly don't feel like being part of this anymore.",
-          "result": {
-            "type": "slimcolonies:advanceobjective",
-            "go-to": -1
-          }
-        }
-      ]
-    },
-    {
-      "type": "slimcolonies:killentity",
-      "unlocks-rewards": [0, 1],
-      "details": {
-        "target": 0,
-        "entity-type": "minecraft:zombie",
-        "qty": 3,
-        "next-objective": 4
-      }
-    },
-    {
-      "type": "slimcolonies:delivery",
-      "details": {
-        "target": 0,
-        "item": {
-          "id": "minecraft:rotten_flesh",
-          "count": 3
-        },
-        "next-objective": 5
-      }
-    },
-    {
-      "type": "slimcolonies:dialogue",
-      "target": 0,
-      "text": "Splendid! This looks just perfect! But I'm afraid I need something new! Fetch me 2 fresh spider eyes.",
-      "options": [
-        {
-          "answer": "Yes Master *rubs hands*!",
-          "result": {
-            "type": "slimcolonies:advanceobjective",
-            "go-to": 6
-          }
-        },
-        {
-          "answer": "On it!",
-          "result": {
-            "type": "slimcolonies:advanceobjective",
-            "go-to": 6
-          }
-        },
-        {
-          "answer": "I hate spiders. No way!",
-          "result": {
-            "type": "slimcolonies:advanceobjective",
-            "go-to": -1
-          }
-        }
-      ]
-    },
-    {
-      "type": "slimcolonies:delivery",
-      "details": {
-        "target": 0,
-        "item": {
-          "id": "minecraft:spider_eye",
-          "count": 2
-        },
-        "next-objective": 7
-      }
-    },
-    {
-      "type": "slimcolonies:dialogue",
-      "target": 0,
-      "text": "Hehehehehe! Perfect! Now I just need something to fuel the reaction. Gun powder would be perfect!",
-      "options": [
-        {
-          "answer": "I have no concern. No problem!",
-          "result": {
-            "type": "slimcolonies:advanceobjective",
-            "go-to": 8
-          }
-        },
-        {
-          "answer": "One creeper for the gun powder or stealing some from the guards? No problem!",
-          "result": {
-            "type": "slimcolonies:advanceobjective",
-            "go-to": 8
-          }
-        },
-        {
-          "answer": "This sounds concerning. I want out!",
-          "result": {
-            "type": "slimcolonies:advanceobjective",
-            "go-to": -1
-          }
-        }
-      ]
-    },
-    {
-      "type": "slimcolonies:delivery",
-      "details": {
-        "target": 0,
-        "item": {
-          "id": "minecraft:gunpowder"
-        },
-        "next-objective": 9
-      }
-    },
-    {
-      "type": "slimcolonies:dialogue",
-      "target": 0,
-      "text": "Splendid! Let me mix them together real quick!",
-      "options": [
-        {
-          "answer": "Okay, I'm waiting.",
-          "result": {
-            "type": "slimcolonies:advanceobjective",
-            "go-to": 10
-          }
-        }
-      ]
-    },
-    {
-      "type": "slimcolonies:dialogue",
-      "unlocks-rewards": [0],
-      "target": 0,
-      "text": "*Laughs Maniacally* I have done it. I have done it! I have created a potion of eternal life! Here try it!",
-      "options": [
-        {
-          "answer": "Great! Take Potion",
-          "result": {
-            "type": "slimcolonies:advanceobjective",
-            "go-to": 11
-          }
-        }
-      ]
-    }
-  ],
-  "rewards": [
-    {
-      "type": "slimcolonies:item",
-      "details": {
-        "item": {
-          "id": "minecraft:potion",
-          "components": {
-            "minecraft:item_name": "{\"translate\":\"no.monopixel.slimcolonies.alchemyquestpotion.name\"}",
-            "minecraft:lore": ["{\"translate\":\"no.monopixel.slimcolonies.alchemyquestpotion.lore\"}"],
-            "minecraft:potion_contents": { "potion": "minecraft:poison" }
-          }
-        }
-      }
-    },
-    {
-      "type": "slimcolonies:happiness",
-      "details": {
-        "target": 0,
-        "qty": 1,
-        "days": 7
-      }
-    }
-  ]
+    "name":  "Eksperimen Alkimia!",
+    "parents":  [
+
+                ],
+    "max-occurrences":  1,
+    "triggers":  [
+                     {
+                         "type":  "slimcolonies:random",
+                         "rarity":  2500000
+                     },
+                     {
+                         "type":  "slimcolonies:state",
+                         "state":  {
+                                       "path":  "buildingManager/buildings",
+                                       "match":  {
+                                                     "type":  "slimcolonies:alchemist",
+                                                     "level":  2
+                                                 }
+                                   }
+                     },
+                     {
+                         "type":  "slimcolonies:citizen",
+                         "state":  {
+                                       "match":  {
+                                                     "job":  {
+                                                                 "type":  "slimcolonies:alchemist"
+                                                             }
+                                                 }
+                                   }
+                     }
+                 ],
+    "objectives":  [
+                       {
+                           "type":  "slimcolonies:dialogue",
+                           "target":  0,
+                           "text":  "Eh, aku baru aja nemu racikan alkimia baru nih, tapi butuh beberapa bahan buat ngetes. Kamu bisa bantuin nyariin bahannya nggak?",
+                           "options":  [
+                                           {
+                                               "answer":  "Boleh dong, butuh apa aja emangnya?",
+                                               "result":  {
+                                                              "type":  "slimcolonies:dialogue",
+                                                              "text":  "Mantap! Pertama, aku butuh tiga potong daging zombie (Rotten Flesh)!",
+                                                              "options":  [
+                                                                              {
+                                                                                  "answer":  "Agak ngeri sih... tapi oke deh!",
+                                                                                  "result":  {
+                                                                                                 "type":  "slimcolonies:advanceobjective",
+                                                                                                 "go-to":  1
+                                                                                             }
+                                                                              },
+                                                                              {
+                                                                                  "answer":  "Santai, nggak masalah! Siap!",
+                                                                                  "result":  {
+                                                                                                 "type":  "slimcolonies:advanceobjective",
+                                                                                                 "go-to":  1
+                                                                                             }
+                                                                              },
+                                                                              {
+                                                                                  "answer":  "Hah, cuma tiga biji doang?",
+                                                                                  "result":  {
+                                                                                                 "type":  "slimcolonies:advanceobjective",
+                                                                                                 "go-to":  1
+                                                                                             }
+                                                                              },
+                                                                              {
+                                                                                  "answer":  "Waduh, kok mencurigakan ya. Aku nggak jadi ikut-ikutan deh.",
+                                                                                  "result":  {
+                                                                                                 "type":  "slimcolonies:advanceobjective",
+                                                                                                 "go-to":  -1
+                                                                                             }
+                                                                              }
+                                                                          ]
+                                                          }
+                                           },
+                                           {
+                                               "answer":  "Sori ya, aku lagi nggak bisa bantu sekarang.",
+                                               "result":  {
+                                                              "type":  "slimcolonies:cancel"
+                                                          }
+                                           },
+                                           {
+                                               "answer":  "Wah, kalau itu aku nggak bisa bantu nih.",
+                                               "result":  {
+                                                              "type":  "slimcolonies:advanceobjective",
+                                                              "go-to":  -1
+                                                          }
+                                           }
+                                       ]
+                       },
+                       {
+                           "type":  "slimcolonies:delivery",
+                           "details":  {
+                                           "target":  0,
+                                           "item":  {
+                                                        "id":  "minecraft:rotten_flesh",
+                                                        "count":  3
+                                                    },
+                                           "next-objective":  2
+                                       }
+                       },
+                       {
+                           "type":  "slimcolonies:dialogue",
+                           "target":  0,
+                           "text":  "Daging zombie yang tadi udah agak dingin nih. Kayaknya aku butuh daging zombie yang masih anget, baru dipotong! Tolong cariin tiga lagi dong!",
+                           "options":  [
+                                           {
+                                               "answer":  "Yaelah, ribet amat. Oke deh, tunggu bentar.",
+                                               "result":  {
+                                                              "type":  "slimcolonies:advanceobjective",
+                                                              "go-to":  3
+                                                          }
+                                           },
+                                           {
+                                               "answer":  "Asik, bisa bantai zombie lagi nih. Gas!",
+                                               "result":  {
+                                                              "type":  "slimcolonies:advanceobjective",
+                                                              "go-to":  3
+                                                          }
+                                           },
+                                           {
+                                               "answer":  "Duh, makin aneh aja nih. Aku mundur aja deh.",
+                                               "result":  {
+                                                              "type":  "slimcolonies:advanceobjective",
+                                                              "go-to":  -1
+                                                          }
+                                           }
+                                       ]
+                       },
+                       {
+                           "type":  "slimcolonies:killentity",
+                           "unlocks-rewards":  [
+                                                   0,
+                                                   1
+                                               ],
+                           "details":  {
+                                           "target":  0,
+                                           "entity-type":  "minecraft:zombie",
+                                           "qty":  3,
+                                           "next-objective":  4
+                                       }
+                       },
+                       {
+                           "type":  "slimcolonies:delivery",
+                           "details":  {
+                                           "target":  0,
+                                           "item":  {
+                                                        "id":  "minecraft:rotten_flesh",
+                                                        "count":  3
+                                                    },
+                                           "next-objective":  5
+                                       }
+                       },
+                       {
+                           "type":  "slimcolonies:dialogue",
+                           "target":  0,
+                           "text":  "Nah, ini baru pas banget! Sekarang aku butuh bahan tambahan nih. Tolong cariin 2 mata laba-laba (Spider Eye) yang masih seger ya!",
+                           "options":  [
+                                           {
+                                               "answer":  "Siap Bos! *gosok-gosok tangan*",
+                                               "result":  {
+                                                              "type":  "slimcolonies:advanceobjective",
+                                                              "go-to":  6
+                                                          }
+                                           },
+                                           {
+                                               "answer":  "Siap, langsung gas!",
+                                               "result":  {
+                                                              "type":  "slimcolonies:advanceobjective",
+                                                              "go-to":  6
+                                                          }
+                                           },
+                                           {
+                                               "answer":  "Ih, aku geli banget sama laba-laba. Nggak mau ah!",
+                                               "result":  {
+                                                              "type":  "slimcolonies:advanceobjective",
+                                                              "go-to":  -1
+                                                          }
+                                           }
+                                       ]
+                       },
+                       {
+                           "type":  "slimcolonies:delivery",
+                           "details":  {
+                                           "target":  0,
+                                           "item":  {
+                                                        "id":  "minecraft:spider_eye",
+                                                        "count":  2
+                                                    },
+                                           "next-objective":  7
+                                       }
+                       },
+                       {
+                           "type":  "slimcolonies:dialogue",
+                           "target":  0,
+                           "text":  "Hehehehe! Sempurna! Sekarang tinggal butuh pemicu reaksinya aja nih. Bubuk mesiu (Gunpowder) bakal pas banget!",
+                           "options":  [
+                                           {
+                                               "answer":  "Aman, nggak masalah! Tunggu ya!",
+                                               "result":  {
+                                                              "type":  "slimcolonies:advanceobjective",
+                                                              "go-to":  8
+                                                          }
+                                           },
+                                           {
+                                               "answer":  "Buru satu creeper atau nyomot dikit dari pos penjaga nih? Gampang!",
+                                               "result":  {
+                                                              "type":  "slimcolonies:advanceobjective",
+                                                              "go-to":  8
+                                                          }
+                                           },
+                                           {
+                                               "answer":  "Wah, mulai bahaya nih kayaknya. Aku kabur dulu deh!",
+                                               "result":  {
+                                                              "type":  "slimcolonies:advanceobjective",
+                                                              "go-to":  -1
+                                                          }
+                                           }
+                                       ]
+                       },
+                       {
+                           "type":  "slimcolonies:delivery",
+                           "details":  {
+                                           "target":  0,
+                                           "item":  {
+                                                        "id":  "minecraft:gunpowder"
+                                                    },
+                                           "next-objective":  9
+                                       }
+                       },
+                       {
+                           "type":  "slimcolonies:dialogue",
+                           "target":  0,
+                           "text":  "Mantap! Sini aku campurin semuanya dulu ya, bentar doang!",
+                           "options":  [
+                                           {
+                                               "answer":  "Oke, aku tungguin nih.",
+                                               "result":  {
+                                                              "type":  "slimcolonies:advanceobjective",
+                                                              "go-to":  10
+                                                          }
+                                           }
+                                       ]
+                       },
+                       {
+                           "type":  "slimcolonies:dialogue",
+                           "unlocks-rewards":  [
+                                                   0
+                                               ],
+                           "target":  0,
+                           "text":  "*Ketawa ngakak* Berhasil! Akhirnya berhasil! Aku sukses bikin ramuan hidup abadi! Nih, cobain deh!",
+                           "options":  [
+                                           {
+                                               "answer":  "Wih mantap! Sini kucobain ramuannya",
+                                               "result":  {
+                                                              "type":  "slimcolonies:advanceobjective",
+                                                              "go-to":  11
+                                                          }
+                                           }
+                                       ]
+                       }
+                   ],
+    "rewards":  [
+                    {
+                        "type":  "slimcolonies:item",
+                        "details":  {
+                                        "item":  {
+                                                     "id":  "minecraft:potion",
+                                                     "components":  {
+                                                                        "minecraft:item_name":  "{\"translate\":\"no.monopixel.slimcolonies.alchemyquestpotion.name\"}",
+                                                                        "minecraft:lore":  [
+                                                                                               "{\"translate\":\"no.monopixel.slimcolonies.alchemyquestpotion.lore\"}"
+                                                                                           ],
+                                                                        "minecraft:potion_contents":  {
+                                                                                                          "potion":  "minecraft:poison"
+                                                                                                      }
+                                                                    }
+                                                 }
+                                    }
+                    },
+                    {
+                        "type":  "slimcolonies:happiness",
+                        "details":  {
+                                        "target":  0,
+                                        "qty":  1,
+                                        "days":  7
+                                    }
+                    }
+                ]
 }

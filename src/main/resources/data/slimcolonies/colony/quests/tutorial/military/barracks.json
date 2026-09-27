@@ -1,153 +1,157 @@
 {
-  "name": "Assemble an Army",
-  "max-occurrences": 1,
-  "parents": [
-    "slimcolonies:tutorial/military/guards2",
-    "slimcolonies:tutorial/university"
-  ],
-  "triggers": [
-    {
-      "type": "slimcolonies:citizen",
-      "state": {
-        "notmatch": {
-          "finavquests": [
-            "slimcolonies:tutorial/guards2"
-          ]
-        }
-      }
-    },
-    {
-      "type": "slimcolonies:citizen",
-      "state": { }
-    }
-  ],
-  "triggerOrder": "1 || 2",
-  "objectives": [
-    {
-      "type": "slimcolonies:dialogue",
-      "target": 0,
-      "text": "The defences are starting to look good. But we're still lacking some offensive power in the case of a large scale invasion. We should get some barracks up and running!",
-      "options": [
-        {
-          "answer": "Yes!",
-          "result": {
-            "type": "slimcolonies:dialogue",
-            "text": "Barracks come with up to 4 barrack towers (at level 4+) where each tower can house up to 5 guards (at level 5) giving you a whopping 20 guards! But before we do that, we need to first research it at the university!'",
-            "options": [
-              {
-                "answer": "On it!",
-                "result": {
-                  "type": "slimcolonies:advanceobjective",
-                  "go-to": 1
-                }
-              },
-              {
-                "answer": "Already done!",
-                "result": {
-                  "type": "slimcolonies:dialogue",
-                  "text": "Alrighty then! You know the drill, craft the barracks hut block in a crafting bench. This time surround a block of iron with planks and the build tool at the top.",
-                  "options": [
+    "name":  "Bentuk Pasukan Desa!",
+    "max-occurrences":  1,
+    "parents":  [
+                    "slimcolonies:tutorial/military/guards2",
+                    "slimcolonies:tutorial/university"
+                ],
+    "triggers":  [
+                     {
+                         "type":  "slimcolonies:citizen",
+                         "state":  {
+                                       "notmatch":  {
+                                                        "finavquests":  [
+                                                                            "slimcolonies:tutorial/guards2"
+                                                                        ]
+                                                    }
+                                   }
+                     },
+                     {
+                         "type":  "slimcolonies:citizen",
+                         "state":  {
+
+                                   }
+                     }
+                 ],
+    "triggerOrder":  "1 || 2",
+    "objectives":  [
+                       {
+                           "type":  "slimcolonies:dialogue",
+                           "target":  0,
+                           "text":  "Pertahanan desa kita udah mulai kelihatan oke nih! Tapi kalau tiba-tiba ada penyerbuan besar-besaran (Raid), kita butuh markas pasukan yang lebih kuat. Yuk kita bangun Barak Militer (Barracks)!",
+                           "options":  [
+                                           {
+                                               "answer":  "Gas! Setuju banget!",
+                                               "result":  {
+                                                              "type":  "slimcolonies:dialogue",
+                                                              "text":  "Bangunan Barracks punya sampai 4 menara penjaga di dalamnya (pas level 4+), dan tiap menara bisa nampung sampai 5 prajurit - totalnya bisa 20 prajurit dalam satu markas! Tapi sebelum itu, kita harus riset dulu teknologinya di Universitas!",
+                                                              "options":  [
+                                                                              {
+                                                                                  "answer":  "Siap, langsung gas!",
+                                                                                  "result":  {
+                                                                                                 "type":  "slimcolonies:advanceobjective",
+                                                                                                 "go-to":  1
+                                                                                             }
+                                                                              },
+                                                                              {
+                                                                                  "answer":  "Udah beres kok!",
+                                                                                  "result":  {
+                                                                                                 "type":  "slimcolonies:dialogue",
+                                                                                                 "text":  "Sip! Langsung aja bikin blok Barracks di Crafting Table: taruh Block of Iron di tengah, kelilingi pakai papan kayu (planks), dan taruh Build Tool di paling atas!",
+                                                                                                 "options":  [
+                                                                                                                 {
+                                                                                                                     "answer":  "Beres, serahin ke aku!",
+                                                                                                                     "result":  {
+                                                                                                                                    "type":  "slimcolonies:advanceobjective",
+                                                                                                                                    "go-to":  2
+                                                                                                                                }
+                                                                                                                 }
+                                                                                                             ]
+                                                                                             }
+                                                                              }
+                                                                          ]
+                                                          }
+                                           },
+                                           {
+                                               "answer":  "Nanti dulu ya, aku balik lagi nanti!",
+                                               "result":  {
+                                                              "type":  "slimcolonies:return"
+                                                          }
+                                           },
+                                           {
+                                               "answer":  "Udah beres kok!",
+                                               "result":  {
+                                                              "type":  "slimcolonies:dialogue",
+                                                              "text":  "Wih mantap! Berarti udah beres nih, nanti aku kabarin lagi buat langkah berikutnya ya!",
+                                                              "options":  [
+                                                                              {
+                                                                                  "answer":  "Asik!",
+                                                                                  "result":  {
+                                                                                                 "type":  "slimcolonies:advanceobjective",
+                                                                                                 "go-to":  10
+                                                                                             }
+                                                                              }
+                                                                          ]
+                                                          }
+                                           }
+                                       ]
+                       },
+                       {
+                           "type":  "slimcolonies:research",
+                           "details":  {
+                                           "type":  "slimcolonies:combat/tactictraining",
+                                           "target":  0,
+                                           "next-objective":  2
+                                       }
+                       },
+                       {
+                           "type":  "slimcolonies:dialogue",
+                           "target":  0,
+                           "text":  "Risetnya udah beres nih! Sekarang tinggal bikin blok Barracks di Crafting Table (Block of Iron di tengah, kelilingi papan kayu, dan Build Tool di atas), pasang pakai Build Tool, terus suruh tukang bangunan ngebangunnya!",
+                           "options":  [
+                                           {
+                                               "answer":  "Siap, langsung gas!",
+                                               "result":  {
+                                                              "type":  "slimcolonies:advanceobjective",
+                                                              "go-to":  3
+                                                          }
+                                           },
+                                           {
+                                               "answer":  "Nanti dulu ya, aku balik lagi nanti!",
+                                               "result":  {
+                                                              "type":  "slimcolonies:return"
+                                                          }
+                                           }
+                                       ]
+                       },
+                       {
+                           "type":  "slimcolonies:buildbuilding",
+                           "details":  {
+                                           "type":  "slimcolonies:barracks",
+                                           "count-existing":  true,
+                                           "lvl":  1,
+                                           "qty":  1,
+                                           "target":  0,
+                                           "next-objective":  4
+                                       }
+                       },
+                       {
+                           "unlocks-rewards":  [
+                                                   0
+                                               ],
+                           "type":  "slimcolonies:dialogue",
+                           "target":  0,
+                           "text":  "Mantap! Kalau mau mulai naruh prajurit di situ, jangan lupa bangun dan upgrade juga menara-menara di sudut Barracks-nya ya. Nih, ambil perlengkapan tempur ini buat modal prajuritmu!",
+                           "options":  [
+                                           {
+                                               "answer":  "Makasih banyak!",
+                                               "result":  {
+                                                              "type":  "slimcolonies:advanceobjective",
+                                                              "go-to":  5
+                                                          }
+                                           }
+                                       ]
+                       }
+                   ],
+    "rewards":  [
                     {
-                      "answer": "Consider it done!",
-                      "result": {
-                        "type": "slimcolonies:advanceobjective",
-                        "go-to": 2
-                      }
+                        "type":  "slimcolonies:item",
+                        "details":  {
+                                        "item":  {
+                                                     "id":  "minecraft:iron_sword",
+                                                     "count":  2
+                                                 }
+                                    }
                     }
-                  ]
-                }
-              }
-            ]
-          }
-        },
-        {
-          "answer": "Not right now. I will come back to you later!",
-          "result": {
-            "type": "slimcolonies:return"
-          }
-        },
-        {
-          "answer": "Already done!",
-          "result": {
-            "type": "slimcolonies:dialogue",
-            "text": "Oh nice, then we are done here and I will have more information on the next steps soon!",
-            "options": [
-              {
-                "answer": "Nice!",
-                "result": {
-                  "type": "slimcolonies:advanceobjective",
-                  "go-to": 10
-                }
-              }
-            ]
-          }
-        }
-      ]
-    },
-    {
-      "type": "slimcolonies:research",
-      "details": {
-        "type": "slimcolonies:combat/tactictraining",
-        "target": 0,
-        "next-objective": 2
-      }
-    },
-    {
-      "type": "slimcolonies:dialogue",
-      "target": 0,
-      "text": "Now that the research is done, the process is the same. Craft and place the hut, then let the builder build it! You know the drill, craft the barracks hut block in a crafting bench. This time surround a block of iron with planks and the build tool at the top.",
-      "options": [
-        {
-          "answer": "On it!",
-          "result": {
-            "type": "slimcolonies:advanceobjective",
-            "go-to": 3
-          }
-        },
-        {
-          "answer": "Not right now. I will come back to you later!",
-          "result": {
-            "type": "slimcolonies:return"
-          }
-        }
-      ]
-    },
-    {
-      "type": "slimcolonies:buildbuilding",
-      "details": {
-        "type": "slimcolonies:barracks",
-        "count-existing": true,
-        "lvl": 1,
-        "qty": 1,
-        "target": 0,
-        "next-objective": 4
-      }
-    },
-    {
-      "unlocks-rewards": [0],
-      "type": "slimcolonies:dialogue",
-      "target": 0,
-      "text": "Great. If you want to start having guards you should also build and upgrade the barracks towers. I will leave this to you. Here, some equipment to get your guards going!",
-      "options": [
-        {
-          "answer": "Thank you!",
-          "result": {
-            "type": "slimcolonies:advanceobjective",
-            "go-to": 5
-          }
-        }
-      ]
-    }
-  ],
-  "rewards": [
-    {
-      "type": "slimcolonies:item",
-      "details": {
-        "item": {
-          "id": "minecraft:iron_sword",
-          "count": 2
-        }
-      }
-    }
-  ]
+                ]
 }

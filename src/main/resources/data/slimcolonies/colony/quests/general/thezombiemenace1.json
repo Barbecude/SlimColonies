@@ -1,105 +1,110 @@
 {
-  "name": "The Zombie Menace",
-  "parents": [],
-  "max-occurrences": 2,
-  "triggers": [
-    {
-      "type": "slimcolonies:random",
-      "rarity": 2500000
-    },
-    {
-      "type": "slimcolonies:state",
-      "state": {
-        "path": "buildingManager/buildings",
-        "match": {
-          "type": "slimcolonies:guardtower",
-          "level": 2
-        }
-      }
-    },
-    {
-      "type": "slimcolonies:citizen",
-      "state": {
-        "match": {
-          "job": {
-            "type": "slimcolonies:knight"
-          }
-        }
-      }
-    }
-  ],
-  "objectives": [
-    {
-      "type": "slimcolonies:dialogue",
-      "target": 0,
-      "text": "We have a problem. The Zombies in the nearby forest are causing trouble. Can you help us take care of them?",
-      "options": [
-        {
-          "answer": "Sure, I'll do what I can.",
-          "result": {
-            "type": "slimcolonies:dialogue",
-            "text": "Thank you! We need you to kill 2 Zombies. We'll reward you for your efforts.",
-            "options": [
-              {
-                "answer": "I'm on it!",
-                "result": {
-                  "type": "slimcolonies:advanceobjective",
-                  "go-to": 1
-                }
-              }
-            ]
-          }
-        },
-        {
-          "answer": "I'm sorry, I can't help right now.",
-          "result": {
-            "type": "slimcolonies:cancel"
-          }
-        }
-      ]
-    },
-    {
-      "type": "slimcolonies:killentity",
-      "details": {
-        "target": 0,
-        "entity-type": "minecraft:zombie",
-        "qty": 2,
-        "next-objective": 2
-      }
-    },
-    {
-      "unlocks-rewards": [0, 1],
-      "type": "slimcolonies:dialogue",
-      "target": 0,
-      "text": "You did it! We're safe for now. Here's your reward.",
-      "options": [
-        {
-          "answer": "Thank you!",
-          "result": {
-            "type": "slimcolonies:advanceobjective",
-            "go-to": 3
-          }
-        }
-      ]
-    }
-  ],
-  "rewards": [
-    {
-      "type": "slimcolonies:item",
-      "details": {
-        "item": {
-          "id": "minecraft:iron_ingot",
-          "count": 2
-        }
-      }
-    },
-    {
-      "type": "slimcolonies:happiness",
-      "details": {
-        "target": 0,
-        "qty": 1,
-        "days": 7
-      }
-    }
-  ]
+    "name":  "Ancaman Zombie di Hutan",
+    "parents":  [
+
+                ],
+    "max-occurrences":  2,
+    "triggers":  [
+                     {
+                         "type":  "slimcolonies:random",
+                         "rarity":  2500000
+                     },
+                     {
+                         "type":  "slimcolonies:state",
+                         "state":  {
+                                       "path":  "buildingManager/buildings",
+                                       "match":  {
+                                                     "type":  "slimcolonies:guardtower",
+                                                     "level":  2
+                                                 }
+                                   }
+                     },
+                     {
+                         "type":  "slimcolonies:citizen",
+                         "state":  {
+                                       "match":  {
+                                                     "job":  {
+                                                                 "type":  "slimcolonies:knight"
+                                                             }
+                                                 }
+                                   }
+                     }
+                 ],
+    "objectives":  [
+                       {
+                           "type":  "slimcolonies:dialogue",
+                           "target":  0,
+                           "text":  "Eh, kita ada masalah nih! Zombie-zombie di hutan deket sini mulai bikin ulah dan nakutin warga. Kamu bisa bantu beresin mereka nggak?",
+                           "options":  [
+                                           {
+                                               "answer":  "Bisa dong, serahin ke aku aja!",
+                                               "result":  {
+                                                              "type":  "slimcolonies:dialogue",
+                                                              "text":  "Mantap, makasih ya! Tolong kalahin 2 Zombie aja dulu. Nanti ada hadiah spesial buat kamu!",
+                                                              "options":  [
+                                                                              {
+                                                                                  "answer":  "Siap, langsung berangkat!",
+                                                                                  "result":  {
+                                                                                                 "type":  "slimcolonies:advanceobjective",
+                                                                                                 "go-to":  1
+                                                                                             }
+                                                                              }
+                                                                          ]
+                                                          }
+                                           },
+                                           {
+                                               "answer":  "Sori ya, aku lagi nggak bisa bantu sekarang.",
+                                               "result":  {
+                                                              "type":  "slimcolonies:cancel"
+                                                          }
+                                           }
+                                       ]
+                       },
+                       {
+                           "type":  "slimcolonies:killentity",
+                           "details":  {
+                                           "target":  0,
+                                           "entity-type":  "minecraft:zombie",
+                                           "qty":  2,
+                                           "next-objective":  2
+                                       }
+                       },
+                       {
+                           "unlocks-rewards":  [
+                                                   0,
+                                                   1
+                                               ],
+                           "type":  "slimcolonies:dialogue",
+                           "target":  0,
+                           "text":  "Keren banget, kamu berhasil! Desa kita jadi aman sekarang. Nih hadiah buat kamu!",
+                           "options":  [
+                                           {
+                                               "answer":  "Makasih banyak!",
+                                               "result":  {
+                                                              "type":  "slimcolonies:advanceobjective",
+                                                              "go-to":  3
+                                                          }
+                                           }
+                                       ]
+                       }
+                   ],
+    "rewards":  [
+                    {
+                        "type":  "slimcolonies:item",
+                        "details":  {
+                                        "item":  {
+                                                     "id":  "minecraft:iron_ingot",
+                                                     "count":  2
+                                                 }
+                                    }
+                    },
+                    {
+                        "type":  "slimcolonies:happiness",
+                        "details":  {
+                                        "target":  0,
+                                        "qty":  1,
+                                        "days":  7
+                                    }
+                    }
+                ]
 }

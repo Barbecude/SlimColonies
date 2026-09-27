@@ -1,284 +1,288 @@
 {
-  "name": "Your first Building",
-  "max-occurrences": 1,
-  "parents": [
-    "slimcolonies:tutorial/welcome"
-  ],
-  "triggers": [
-    {
-      "type": "slimcolonies:citizen",
-      "state": {
-        "notmatch": {
-          "finavquests": [
-            "slimcolonies:tutorial/welcome"
-          ]
-        }
-      }
-    },
-    {
-      "type": "slimcolonies:citizen",
-      "state": { }
-    },
-    {
-      "type": "slimcolonies:unlock"
-    }
-  ],
-  "triggerOrder": "(1 || 2) && 3",
-  "objectives": [
-    {
-      "type": "slimcolonies:dialogue",
-      "target": 0,
-      "text": "Hey there! I saw you got your builder hut placed. Nice! Are you ready for the next step?",
-      "options": [
-        {
-          "answer": "Yes sure!",
-          "result": {
-            "type": "slimcolonies:dialogue",
-            "text": "Nice, so let's get this builder hut built then. Right click the builder hut block, go into 'Build Options' and click 'Build Building'",
-            "options": [
-              {
-                "answer": "Already done!",
-                "result": {
-                  "type": "slimcolonies:advanceobjective",
-                  "go-to": 1
-                }
-              },
-              {
-                "answer": "On it!",
-                "result": {
-                  "type": "slimcolonies:dialogue",
-                  "text": "No Problem! To see what the builder requires for this building you can right click the hut and select the 'Required Resources' tab which is the second tab from the top on the left. You can drop off items there directly or through the inventory available through the inventory button in the bottom middle of the main page or by shift right clicking the block.",
-                  "options": [
+    "name":  "Bangunan Pertamamu",
+    "max-occurrences":  1,
+    "parents":  [
+                    "slimcolonies:tutorial/welcome"
+                ],
+    "triggers":  [
+                     {
+                         "type":  "slimcolonies:citizen",
+                         "state":  {
+                                       "notmatch":  {
+                                                        "finavquests":  [
+                                                                            "slimcolonies:tutorial/welcome"
+                                                                        ]
+                                                    }
+                                   }
+                     },
+                     {
+                         "type":  "slimcolonies:citizen",
+                         "state":  {
+
+                                   }
+                     },
+                     {
+                         "type":  "slimcolonies:unlock"
+                     }
+                 ],
+    "triggerOrder":  "(1 || 2) \u0026\u0026 3",
+    "objectives":  [
+                       {
+                           "type":  "slimcolonies:dialogue",
+                           "target":  0,
+                           "text":  "Hai! Aku liat kamu udah pasang blok Builder\u0027s Hut nih. Mantap! Udah siap lanjut ke langkah berikutnya belum?",
+                           "options":  [
+                                           {
+                                               "answer":  "Siap banget dong!",
+                                               "result":  {
+                                                              "type":  "slimcolonies:dialogue",
+                                                              "text":  "Asik, yuk langsung kita bangun Builder\u0027s Hut-nya! Klik kanan blok Builder\u0027s Hut, masuk ke menu \u0027Build Options\u0027 (Opsi Bangunan), terus klik \u0027Build Building\u0027 (Bangun Bangunan).",
+                                                              "options":  [
+                                                                              {
+                                                                                  "answer":  "Udah beres kok!",
+                                                                                  "result":  {
+                                                                                                 "type":  "slimcolonies:advanceobjective",
+                                                                                                 "go-to":  1
+                                                                                             }
+                                                                              },
+                                                                              {
+                                                                                  "answer":  "Siap, langsung gas!",
+                                                                                  "result":  {
+                                                                                                 "type":  "slimcolonies:dialogue",
+                                                                                                 "text":  "Gampang! Buat ngecek bahan apa aja yang dibutuhin tukang bangunan, klik kanan blok hut-nya terus pilih tab kedua di sebelah kiri (\u0027Required Resources\u0027). Kamu bisa taruh bahannya langsung di situ, lewat tombol Inventory di bawah, atau tahan Shift + klik kanan bloknya.",
+                                                                                                 "options":  [
+                                                                                                                 {
+                                                                                                                     "answer":  "Oke sip, makasih infonya!",
+                                                                                                                     "result":  {
+                                                                                                                                    "type":  "slimcolonies:dialogue",
+                                                                                                                                    "text":  "Mantap! Coba dicek dulu gih, abis itu balik ngobrol sama aku lagi ya!",
+                                                                                                                                    "options":  [
+                                                                                                                                                    {
+                                                                                                                                                        "answer":  "Siap, tunggu bentar ya!",
+                                                                                                                                                        "result":  {
+                                                                                                                                                                       "type":  "slimcolonies:advanceobjective",
+                                                                                                                                                                       "go-to":  2
+                                                                                                                                                                   }
+                                                                                                                                                    }
+                                                                                                                                                ]
+                                                                                                                                }
+                                                                                                                 }
+                                                                                                             ]
+                                                                                             }
+                                                                              },
+                                                                              {
+                                                                                  "answer":  "Hut-nya malah udah selesai kubangun kok!",
+                                                                                  "result":  {
+                                                                                                 "type":  "slimcolonies:dialogue",
+                                                                                                 "text":  "Wih cepet banget! Kalau gitu urusan yang ini udah beres, nanti aku kabarin lagi buat langkah selanjutnya ya!",
+                                                                                                 "options":  [
+                                                                                                                 {
+                                                                                                                     "answer":  "Mantap jiwa!",
+                                                                                                                     "result":  {
+                                                                                                                                    "type":  "slimcolonies:advanceobjective",
+                                                                                                                                    "go-to":  5
+                                                                                                                                }
+                                                                                                                 }
+                                                                                                             ]
+                                                                                             }
+                                                                              }
+                                                                          ]
+                                                          }
+                                           },
+                                           {
+                                               "answer":  "Nanti dulu ya, aku balik lagi nanti!",
+                                               "result":  {
+                                                              "type":  "slimcolonies:return"
+                                                          }
+                                           }
+                                       ]
+                       },
+                       {
+                           "type":  "slimcolonies:dialogue",
+                           "target":  0,
+                           "text":  "Hai balik lagi! Gimana, udah berhasil mulai perintah bangunannya belum?",
+                           "options":  [
+                                           {
+                                               "answer":  "Belum nih, aku lupa tadi harus ngapain!",
+                                               "result":  {
+                                                              "type":  "slimcolonies:dialogue",
+                                                              "text":  "Santai! Tinggal klik kanan blok Builder\u0027s Hut-nya, masuk ke \u0027Build Options\u0027, terus klik \u0027Build Building\u0027.",
+                                                              "options":  [
+                                                                              {
+                                                                                  "answer":  "Makasih! Aku coba lagi sekarang!",
+                                                                                  "result":  {
+                                                                                                 "type":  "slimcolonies:return"
+                                                                                             }
+                                                                              }
+                                                                          ]
+                                                          }
+                                           },
+                                           {
+                                               "answer":  "Udah beres dong! Lanjut ngapain lagi nih?",
+                                               "result":  {
+                                                              "type":  "slimcolonies:dialogue",
+                                                              "text":  "Sip! Buat liat bahan apa aja yang dibutuhin tukang bangunan, klik kanan blok hut-nya terus pilih tab kedua di kiri (\u0027Required Resources\u0027). Kamu bisa langsung masukin bahannya ke inventori blok itu pakai Shift + klik kanan.",
+                                                              "options":  [
+                                                                              {
+                                                                                  "answer":  "Oke sip, makasih infonya!",
+                                                                                  "result":  {
+                                                                                                 "type":  "slimcolonies:dialogue",
+                                                                                                 "text":  "Mantap! Coba dicek dulu gih, abis itu balik ngobrol sama aku lagi ya!",
+                                                                                                 "options":  [
+                                                                                                                 {
+                                                                                                                     "answer":  "Siap, tunggu bentar ya!",
+                                                                                                                     "result":  {
+                                                                                                                                    "type":  "slimcolonies:advanceobjective",
+                                                                                                                                    "go-to":  2
+                                                                                                                                }
+                                                                                                                 }
+                                                                                                             ]
+                                                                                             }
+                                                                              }
+                                                                          ]
+                                                          }
+                                           },
+                                           {
+                                               "answer":  "Hut-nya malah udah selesai kubangun kok!",
+                                               "result":  {
+                                                              "type":  "slimcolonies:dialogue",
+                                                              "text":  "Wih cepet banget! Kalau gitu urusan yang ini udah beres, nanti aku kabarin lagi buat langkah selanjutnya ya!",
+                                                              "options":  [
+                                                                              {
+                                                                                  "answer":  "Mantap jiwa!",
+                                                                                  "result":  {
+                                                                                                 "type":  "slimcolonies:advanceobjective",
+                                                                                                 "go-to":  5
+                                                                                             }
+                                                                              }
+                                                                          ]
+                                                          }
+                                           },
+                                           {
+                                               "answer":  "Belum sempet nih, nanti aku balik lagi ya!",
+                                               "result":  {
+                                                              "type":  "slimcolonies:return"
+                                                          }
+                                           }
+                                       ]
+                       },
+                       {
+                           "type":  "slimcolonies:dialogue",
+                           "target":  0,
+                           "text":  "Halo lagi! Udah sempet ngecek daftar bahan bangunan yang dibutuhin belum?",
+                           "options":  [
+                                           {
+                                               "answer":  "Belum nih, aku lupa caranya gimana!",
+                                               "result":  {
+                                                              "type":  "slimcolonies:dialogue",
+                                                              "text":  "Gampang! Buat ngecek bahan apa aja yang dibutuhin tukang bangunan, klik kanan blok hut-nya terus pilih tab kedua di sebelah kiri (\u0027Required Resources\u0027). Kamu bisa taruh bahannya langsung di situ, lewat tombol Inventory di bawah, atau tahan Shift + klik kanan bloknya.",
+                                                              "options":  [
+                                                                              {
+                                                                                  "answer":  "Oke sip, makasih infonya!",
+                                                                                  "result":  {
+                                                                                                 "type":  "slimcolonies:dialogue",
+                                                                                                 "text":  "Mantap! Coba dicek dulu gih, abis itu balik ngobrol sama aku lagi ya!",
+                                                                                                 "options":  [
+                                                                                                                 {
+                                                                                                                     "answer":  "Siap, tunggu bentar ya!",
+                                                                                                                     "result":  {
+                                                                                                                                    "type":  "slimcolonies:advanceobjective",
+                                                                                                                                    "go-to":  2
+                                                                                                                                }
+                                                                                                                 }
+                                                                                                             ]
+                                                                                             }
+                                                                              }
+                                                                          ]
+                                                          }
+                                           },
+                                           {
+                                               "answer":  "Udah beres dong! Lanjut ngapain lagi nih?",
+                                               "result":  {
+                                                              "type":  "slimcolonies:dialogue",
+                                                              "text":  "Keren! Oh iya, tukang bangunanmu mungkin juga butuh alat kerja (seperti sekop atau kapak) buat ngeratain tanah. Kamu bisa cek apa yang dia minta dengan klik kanan ke orangnya, terus buka tab kedua di kiri (\u0027Open Requests\u0027). Tinggal kasih alatnya lewat situ atau Shift + klik kanan ke warga tersebut!",
+                                                              "options":  [
+                                                                              {
+                                                                                  "answer":  "Wah, info bagus nih! Sip!",
+                                                                                  "result":  {
+                                                                                                 "type":  "slimcolonies:dialogue",
+                                                                                                 "text":  "Mantap! Nanti kalau tukang bangunan udah selesai ngebangun hut-nya, balik ngobrol sama aku lagi ya!",
+                                                                                                 "options":  [
+                                                                                                                 {
+                                                                                                                     "answer":  "Siap, langsung gas!",
+                                                                                                                     "result":  {
+                                                                                                                                    "type":  "slimcolonies:advanceobjective",
+                                                                                                                                    "go-to":  3
+                                                                                                                                }
+                                                                                                                 }
+                                                                                                             ]
+                                                                                             }
+                                                                              }
+                                                                          ]
+                                                          }
+                                           },
+                                           {
+                                               "answer":  "Hut-nya malah udah selesai kubangun kok!",
+                                               "result":  {
+                                                              "type":  "slimcolonies:dialogue",
+                                                              "text":  "Wih cepet banget! Kalau gitu urusan yang ini udah beres, nanti aku kabarin lagi buat langkah selanjutnya ya!",
+                                                              "options":  [
+                                                                              {
+                                                                                  "answer":  "Mantap jiwa!",
+                                                                                  "result":  {
+                                                                                                 "type":  "slimcolonies:advanceobjective",
+                                                                                                 "go-to":  5
+                                                                                             }
+                                                                              }
+                                                                          ]
+                                                          }
+                                           },
+                                           {
+                                               "answer":  "Belum sempet nih, nanti aku balik lagi ya!",
+                                               "result":  {
+                                                              "type":  "slimcolonies:return"
+                                                          }
+                                           }
+                                       ]
+                       },
+                       {
+                           "type":  "slimcolonies:buildbuilding",
+                           "details":  {
+                                           "type":  "slimcolonies:builder",
+                                           "count-existing":  true,
+                                           "lvl":  1,
+                                           "qty":  1,
+                                           "target":  0,
+                                           "next-objective":  4
+                                       }
+                       },
+                       {
+                           "unlocks-rewards":  [
+                                                   0
+                                               ],
+                           "type":  "slimcolonies:dialogue",
+                           "target":  0,
+                           "text":  "Selamat!! Kamu berhasil ngebangun bangunan pertama di desa kita! Nanti mampir ke aku lagi ya buat panduan berikutnya. Nih, ambil batu Cobblestone ini buat hadiah!",
+                           "options":  [
+                                           {
+                                               "answer":  "Makasih banyak!",
+                                               "result":  {
+                                                              "type":  "slimcolonies:advanceobjective",
+                                                              "go-to":  5
+                                                          }
+                                           }
+                                       ]
+                       }
+                   ],
+    "rewards":  [
                     {
-                      "answer": "Okay thanks!",
-                      "result": {
-                        "type": "slimcolonies:dialogue",
-                        "text": "Great! Come back to me once you checked that out!",
-                        "options": [
-                          {
-                            "answer": "Understood, be right back!",
-                            "result": {
-                              "type": "slimcolonies:advanceobjective",
-                              "go-to": 2
-                            }
-                          }
-                        ]
-                      }
+                        "type":  "slimcolonies:item",
+                        "details":  {
+                                        "item":  {
+                                                     "id":  "minecraft:cobblestone",
+                                                     "count":  32
+                                                 }
+                                    }
                     }
-                  ]
-                }
-              },
-              {
-                "answer": "I already finished building the hut!",
-                "result": {
-                  "type": "slimcolonies:dialogue",
-                  "text": "Oh nice, then we are already done here and I will have more information on the next steps soon!",
-                  "options": [
-                    {
-                      "answer": "Awesome!",
-                      "result": {
-                        "type": "slimcolonies:advanceobjective",
-                        "go-to": 5
-                      }
-                    }
-                  ]
-                }
-              }
-            ]
-          }
-        },
-        {
-          "answer": "Not right now. I will come back to you later!",
-          "result": {
-            "type": "slimcolonies:return"
-          }
-        }
-      ]
-    },
-    {
-      "type": "slimcolonies:dialogue",
-      "target": 0,
-      "text": "Welcome back, were you able to start the build request?",
-      "options": [
-        {
-          "answer": "No, I forgot what I had to do!",
-          "result": {
-            "type": "slimcolonies:dialogue",
-            "text": "No Problem! Right click the builder hut block, go into 'Build Options' and click 'Build Building'",
-            "options": [
-              {
-                "answer": "Thanks! Will try again!",
-                "result": {
-                  "type": "slimcolonies:return"
-                }
-              }
-            ]
-          }
-        },
-        {
-          "answer": "Yes, done, what's next?",
-          "result": {
-            "type": "slimcolonies:dialogue",
-            "text": "Nice! To see what the builder requires for this building you can right click the hut and select the 'Required Resources' tab which is the second tab from the top on the left. You can drop off items there directly or through the inventory by shift right clicking on the block.",
-            "options": [
-              {
-                "answer": "Okay thanks!",
-                "result": {
-                  "type": "slimcolonies:dialogue",
-                  "text": "Great! Come back to me once you checked that out!",
-                  "options": [
-                    {
-                      "answer": "Understood, be right back!",
-                      "result": {
-                        "type": "slimcolonies:advanceobjective",
-                        "go-to": 2
-                      }
-                    }
-                  ]
-                }
-              }
-            ]
-          }
-        },
-        {
-          "answer": "I already finished building the hut!",
-          "result": {
-            "type": "slimcolonies:dialogue",
-            "text": "Oh nice, then we are already done here and I will have more information on the next steps soon!",
-            "options": [
-              {
-                "answer": "Awesome!",
-                "result": {
-                  "type": "slimcolonies:advanceobjective",
-                  "go-to": 5
-                }
-              }
-            ]
-          }
-        },
-        {
-          "answer": "Not yet, I will get to it later!",
-          "result": {
-            "type": "slimcolonies:return"
-          }
-        }
-      ]
-    },
-    {
-      "type": "slimcolonies:dialogue",
-      "target": 0,
-      "text": "Welcome back, were you able to check out the resource requirement list?",
-      "options": [
-        {
-          "answer": "No, I forgot how to do it!",
-          "result": {
-            "type": "slimcolonies:dialogue",
-            "text": "No Problem! To see what the builder requires for this building you can right click the hut and select the 'Required Resources' tab which is the second tab from the top on the left. You can drop off items there directly or through the inventory available through the inventory button in the bottom middle of the main page or by shift right clicking the block.",
-            "options": [
-              {
-                "answer": "Okay thanks!",
-                "result": {
-                  "type": "slimcolonies:dialogue",
-                  "text": "Great! Come back to me once you checked that out!",
-                  "options": [
-                    {
-                      "answer": "Understood, be right back!",
-                      "result": {
-                        "type": "slimcolonies:advanceobjective",
-                        "go-to": 2
-                      }
-                    }
-                  ]
-                }
-              }
-            ]
-          }
-        },
-        {
-          "answer": "Yes, done, what's next?",
-          "result": {
-            "type": "slimcolonies:dialogue",
-            "text": "Awesome! Your builder might also need some tools to prepare the building area. You can supervise your builders immediate needs by right clicking them and selecting the 'Open Requests' tab which is the second from the top on the left. You can fulfill the request right there or through their inventory by shift right clicking them.",
-            "options": [
-              {
-                "answer": "Oh nice, good to know!",
-                "result": {
-                  "type": "slimcolonies:dialogue",
-                  "text": "Great! Come back to me once the builder finished building.",
-                  "options": [
-                    {
-                      "answer": "On it!",
-                      "result": {
-                        "type": "slimcolonies:advanceobjective",
-                        "go-to": 3
-                      }
-                    }
-                  ]
-                }
-              }
-            ]
-          }
-        },
-        {
-          "answer": "I already finished building the hut!",
-          "result": {
-            "type": "slimcolonies:dialogue",
-            "text": "Oh nice, then we are already done here and I will have more information on the next steps soon!",
-            "options": [
-              {
-                "answer": "Awesome!",
-                "result": {
-                  "type": "slimcolonies:advanceobjective",
-                  "go-to": 5
-                }
-              }
-            ]
-          }
-        },
-        {
-          "answer": "Not yet, I will get to it later!",
-          "result": {
-            "type": "slimcolonies:return"
-          }
-        }
-      ]
-    },
-    {
-      "type": "slimcolonies:buildbuilding",
-      "details": {
-        "type": "slimcolonies:builder",
-        "count-existing": true,
-        "lvl": 1,
-        "qty": 1,
-        "target": 0,
-        "next-objective": 4
-      }
-    },
-    {
-      "unlocks-rewards": [0],
-      "type": "slimcolonies:dialogue",
-      "target": 0,
-      "text": "Congratulations. You built the first building of your colony! Come back to me in a bit and I will let you know the next steps! Here, have some cobblestone as a reward!",
-      "options": [
-        {
-          "answer": "Thank you!",
-          "result": {
-            "type": "slimcolonies:advanceobjective",
-            "go-to": 5
-          }
-        }
-      ]
-    }
-  ],
-  "rewards": [
-    {
-      "type": "slimcolonies:item",
-      "details": {
-        "item": {
-          "id": "minecraft:cobblestone",
-          "count": 32
-        }
-      }
-    }
-  ]
+                ]
 }

@@ -1,161 +1,166 @@
 {
-  "name": "Pill for the Ill",
-  "max-occurrences": 1,
-  "parents": [
-    "slimcolonies:tutorial/university"
-  ],
-  "triggers": [
-    {
-      "type": "slimcolonies:citizen",
-      "state": {
-        "notmatch": {
-          "finavquests": [
-            "slimcolonies:tutorial/housing"
-          ]
-        }
-      }
-    },
-    {
-      "type": "slimcolonies:citizen",
-      "state": { }
-    }
-  ],
-  "triggerOrder": "1 || 2",
-  "objectives": [
-    {
-      "type": "slimcolonies:dialogue",
-      "target": 0,
-      "text": "Now that the university is finished, our next concern is our healthcare. We should really get a hospital in this town.",
-      "options": [
-        {
-          "answer": "Sounds right.",
-          "result": {
-            "type": "slimcolonies:dialogue",
-            "text": "The doctors in the hospital will heal your citizens from all kinds of diseases, making it an essential part of your colony! But before we do that, we need to first research it at the university!'",
-            "options": [
-              {
-                "answer": "On it!",
-                "result": {
-                  "type": "slimcolonies:advanceobjective",
-                  "go-to": 1
-                }
-              },
-              {
-                "answer": "Already done!",
-                "result": {
-                  "type": "slimcolonies:dialogue",
-                  "text": "Alrighty then! You know the drill, craft the hospital hut block in a crafting bench. This time surround a carrot with planks and the build tool at the top.",
-                  "options": [
+    "name":  "Rumah Sakit Desa",
+    "max-occurrences":  1,
+    "parents":  [
+                    "slimcolonies:tutorial/university"
+                ],
+    "triggers":  [
+                     {
+                         "type":  "slimcolonies:citizen",
+                         "state":  {
+                                       "notmatch":  {
+                                                        "finavquests":  [
+                                                                            "slimcolonies:tutorial/housing"
+                                                                        ]
+                                                    }
+                                   }
+                     },
+                     {
+                         "type":  "slimcolonies:citizen",
+                         "state":  {
+
+                                   }
+                     }
+                 ],
+    "triggerOrder":  "1 || 2",
+    "objectives":  [
+                       {
+                           "type":  "slimcolonies:dialogue",
+                           "target":  0,
+                           "text":  "Nah, berhubung Universitas kita udah jadi, sekarang kita harus mikirin kesehatan warga nih. Kita wajib banget bangun Rumah Sakit (Hospital) di desa ini!",
+                           "options":  [
+                                           {
+                                               "answer":  "Setuju banget!",
+                                               "result":  {
+                                                              "type":  "slimcolonies:dialogue",
+                                                              "text":  "Tabib di Rumah Sakit bakal nyembuhin warga kita dari berbagai macam penyakit, jadi penting banget! Tapi sebelum bisa dibangun, kita harus riset dulu teknologinya di Universitas!",
+                                                              "options":  [
+                                                                              {
+                                                                                  "answer":  "Siap, langsung gas!",
+                                                                                  "result":  {
+                                                                                                 "type":  "slimcolonies:advanceobjective",
+                                                                                                 "go-to":  1
+                                                                                             }
+                                                                              },
+                                                                              {
+                                                                                  "answer":  "Udah beres kok!",
+                                                                                  "result":  {
+                                                                                                 "type":  "slimcolonies:dialogue",
+                                                                                                 "text":  "Mantap! Kamu udah hafal kan caranya? Bikin blok Hospital di Crafting Table: taruh Wortel (Carrot) di tengah, kelilingi pakai papan kayu (planks), dan Build Tool di paling atas.",
+                                                                                                 "options":  [
+                                                                                                                 {
+                                                                                                                     "answer":  "Beres, serahin ke aku!",
+                                                                                                                     "result":  {
+                                                                                                                                    "type":  "slimcolonies:advanceobjective",
+                                                                                                                                    "go-to":  2
+                                                                                                                                }
+                                                                                                                 }
+                                                                                                             ]
+                                                                                             }
+                                                                              }
+                                                                          ]
+                                                          }
+                                           },
+                                           {
+                                               "answer":  "Nanti dulu ya, aku balik lagi nanti!",
+                                               "result":  {
+                                                              "type":  "slimcolonies:return"
+                                                          }
+                                           },
+                                           {
+                                               "answer":  "Udah beres kok!",
+                                               "result":  {
+                                                              "type":  "slimcolonies:dialogue",
+                                                              "text":  "Wih mantap! Berarti udah beres nih, nanti aku kabarin lagi buat langkah berikutnya ya!",
+                                                              "options":  [
+                                                                              {
+                                                                                  "answer":  "Asik!",
+                                                                                  "result":  {
+                                                                                                 "type":  "slimcolonies:advanceobjective",
+                                                                                                 "go-to":  10
+                                                                                             }
+                                                                              }
+                                                                          ]
+                                                          }
+                                           }
+                                       ]
+                       },
+                       {
+                           "type":  "slimcolonies:research",
+                           "details":  {
+                                           "type":  "slimcolonies:civilian/stamina",
+                                           "target":  0,
+                                           "next-objective":  2
+                                       }
+                       },
+                       {
+                           "type":  "slimcolonies:dialogue",
+                           "target":  0,
+                           "text":  "Nah, risetnya udah kelar nih! Sekarang tinggal bikin blok Hospital di Crafting Table (taruh Wortel di tengah, kelilingi papan kayu, dan Build Tool di atas), pasang pakai Build Tool, terus suruh tukang bangunan ngebangunnya!",
+                           "options":  [
+                                           {
+                                               "answer":  "Siap, langsung gas!",
+                                               "result":  {
+                                                              "type":  "slimcolonies:advanceobjective",
+                                                              "go-to":  3
+                                                          }
+                                           },
+                                           {
+                                               "answer":  "Nanti dulu ya, aku balik lagi nanti!",
+                                               "result":  {
+                                                              "type":  "slimcolonies:return"
+                                                          }
+                                           }
+                                       ]
+                       },
+                       {
+                           "type":  "slimcolonies:buildbuilding",
+                           "details":  {
+                                           "type":  "slimcolonies:hospital",
+                                           "count-existing":  true,
+                                           "lvl":  1,
+                                           "qty":  1,
+                                           "target":  0,
+                                           "next-objective":  4
+                                       }
+                       },
+                       {
+                           "unlocks-rewards":  [
+                                                   0,
+                                                   1
+                                               ],
+                           "type":  "slimcolonies:dialogue",
+                           "target":  0,
+                           "text":  "Gokil, lega banget rasanya sekarang desa kita udah punya Rumah Sakit! Nih, ambil bahan-bahan obat ini buat stok awal di Rumah Sakit ya!",
+                           "options":  [
+                                           {
+                                               "answer":  "Sip, sampai ketemu lagi!",
+                                               "result":  {
+                                                              "type":  "slimcolonies:advanceobjective",
+                                                              "go-to":  5
+                                                          }
+                                           }
+                                       ]
+                       }
+                   ],
+    "rewards":  [
                     {
-                      "answer": "Consider it done!",
-                      "result": {
-                        "type": "slimcolonies:advanceobjective",
-                        "go-to": 2
-                      }
+                        "type":  "slimcolonies:item",
+                        "details":  {
+                                        "item":  {
+                                                     "id":  "minecraft:carrot",
+                                                     "count":  8
+                                                 }
+                                    }
+                    },
+                    {
+                        "type":  "slimcolonies:item",
+                        "details":  {
+                                        "item":  {
+                                                     "id":  "minecraft:potato",
+                                                     "count":  8
+                                                 }
+                                    }
                     }
-                  ]
-                }
-              }
-            ]
-          }
-        },
-        {
-          "answer": "Not right now. I will come back to you later!",
-          "result": {
-            "type": "slimcolonies:return"
-          }
-        },
-        {
-          "answer": "Already done!",
-          "result": {
-            "type": "slimcolonies:dialogue",
-            "text": "Oh nice, then we are done here and I will have more information on the next steps soon!",
-            "options": [
-              {
-                "answer": "Nice!",
-                "result": {
-                  "type": "slimcolonies:advanceobjective",
-                  "go-to": 10
-                }
-              }
-            ]
-          }
-        }
-      ]
-    },
-    {
-      "type": "slimcolonies:research",
-      "details": {
-        "type": "slimcolonies:civilian/stamina",
-        "target": 0,
-        "next-objective": 2
-      }
-    },
-    {
-      "type": "slimcolonies:dialogue",
-      "target": 0,
-      "text": "Now that the research is done, the process is the same. Craft and place the hut, then let the builder build it! You know the drill, craft the hospital hut block in a crafting bench. This time surround a carrot with planks and the build tool at the top.",
-      "options": [
-        {
-          "answer": "On it!",
-          "result": {
-            "type": "slimcolonies:advanceobjective",
-            "go-to": 3
-          }
-        },
-        {
-          "answer": "Not right now. I will come back to you later!",
-          "result": {
-            "type": "slimcolonies:return"
-          }
-        }
-      ]
-    },
-    {
-      "type": "slimcolonies:buildbuilding",
-      "details": {
-        "type": "slimcolonies:hospital",
-        "count-existing": true,
-        "lvl": 1,
-        "qty": 1,
-        "target": 0,
-        "next-objective": 4
-      }
-    },
-    {
-      "unlocks-rewards": [0,1],
-      "type": "slimcolonies:dialogue",
-      "target": 0,
-      "text": "Awesome. I feel much better now knowing there is a hospital in the colony! Here, take this for an initial stock of medicine in the hospital!",
-      "options": [
-        {
-          "answer": "See you in a bit!",
-          "result": {
-            "type": "slimcolonies:advanceobjective",
-            "go-to": 5
-          }
-        }
-      ]
-    }
-  ],
-  "rewards": [
-    {
-      "type": "slimcolonies:item",
-      "details": {
-        "item": {
-          "id": "minecraft:carrot",
-          "count": 8
-        }
-      }
-    },
-    {
-      "type": "slimcolonies:item",
-      "details": {
-        "item": {
-          "id": "minecraft:potato",
-          "count": 8
-        }
-      }
-    }
-  ]
+                ]
 }

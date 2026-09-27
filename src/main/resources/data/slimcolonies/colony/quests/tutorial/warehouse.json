@@ -1,207 +1,214 @@
 {
-  "name": "Automate Deliveries!",
-  "max-occurrences": 1,
-  "parents": [
-    "slimcolonies:tutorial/housing2"
-  ],
-  "triggers": [
-    {
-      "type": "slimcolonies:citizen",
-      "state": {
-        "notmatch": {
-          "finavquests": [
-            "slimcolonies:tutorial/housing2"
-          ]
-        }
-      }
-    },
-    {
-      "type": "slimcolonies:citizen",
-      "state": { }
-    }
-  ],
-  "triggerOrder": "1 || 2",
-  "objectives": [
-    {
-      "type": "slimcolonies:dialogue",
-      "target": 0,
-      "text": "Hi! I'm sure your feet are hurting by now because you are manually fulfilling all the citizens needs! I got good news! You can automate most of this with the help of a warehouse and courier!",
-      "options": [
-        {
-          "answer": "Tell me more about it!",
-          "result": {
-            "type": "slimcolonies:dialogue",
-            "text": "Let's start by crafting a warehouse block by surrounding a chest with planks and the build tool in the top slot and a courier hut by surrounding a set of chain boots with planks and the build tool in the top slot.",
-            "options": [
-              {
-                "answer": "On it!",
-                "result": {
-                  "type": "slimcolonies:advanceobjective",
-                  "go-to": 1
-                }
-              },
-              {
-                "answer": "Already got a warehouse and courier!",
-                "result": {
-                  "type": "slimcolonies:dialogue",
-                  "text": "Excellent. I'll leave you be for now then. Make sure to check on your quest log regularly.",
-                  "options": [
+    "name":  "Otomatisasi Kurir \u0026 Gudang!",
+    "max-occurrences":  1,
+    "parents":  [
+                    "slimcolonies:tutorial/housing2"
+                ],
+    "triggers":  [
+                     {
+                         "type":  "slimcolonies:citizen",
+                         "state":  {
+                                       "notmatch":  {
+                                                        "finavquests":  [
+                                                                            "slimcolonies:tutorial/housing2"
+                                                                        ]
+                                                    }
+                                   }
+                     },
+                     {
+                         "type":  "slimcolonies:citizen",
+                         "state":  {
+
+                                   }
+                     }
+                 ],
+    "triggerOrder":  "1 || 2",
+    "objectives":  [
+                       {
+                           "type":  "slimcolonies:dialogue",
+                           "target":  0,
+                           "text":  "Hai! Kakimu pasti udah pegel banget kan bolak-balik nganterin barang kebutuhan warga sendirian? Aku punya kabar gembira nih! Semua itu bisa jalan otomatis kalau kita bangun Gudang (Warehouse) dan Pos Kurir (Courier\u0027s Hut)!",
+                           "options":  [
+                                           {
+                                               "answer":  "Wah serius? Gimana tuh caranya?",
+                                               "result":  {
+                                                              "type":  "slimcolonies:dialogue",
+                                                              "text":  "Yuk mulai dengan bikin blok Warehouse (taruh Chest di tengah, Build Tool di atas, kelilingi papan kayu) dan blok Courier\u0027s Hut (taruh sepatu Boots apa aja di tengah, Build Tool di atas, kelilingi papan kayu)!",
+                                                              "options":  [
+                                                                              {
+                                                                                  "answer":  "Siap, langsung gas!",
+                                                                                  "result":  {
+                                                                                                 "type":  "slimcolonies:advanceobjective",
+                                                                                                 "go-to":  1
+                                                                                             }
+                                                                              },
+                                                                              {
+                                                                                  "answer":  "Aku udah punya Gudang dan Kurir kok!",
+                                                                                  "result":  {
+                                                                                                 "type":  "slimcolonies:dialogue",
+                                                                                                 "text":  "Mantap! Kalau gitu aku serahin ke kamu dulu ya. Jangan lupa sering-sering cek Quest Log buat misi berikutnya!",
+                                                                                                 "options":  [
+                                                                                                                 {
+                                                                                                                     "answer":  "Siap, dicatat!",
+                                                                                                                     "result":  {
+                                                                                                                                    "type":  "slimcolonies:advanceobjective",
+                                                                                                                                    "go-to":  10
+                                                                                                                                }
+                                                                                                                 }
+                                                                                                             ]
+                                                                                             }
+                                                                              }
+                                                                          ]
+                                                          }
+                                           },
+                                           {
+                                               "answer":  "Nanti dulu ya, aku balik lagi nanti!",
+                                               "result":  {
+                                                              "type":  "slimcolonies:return"
+                                                          }
+                                           },
+                                           {
+                                               "answer":  "Udah punya dong!!",
+                                               "result":  {
+                                                              "type":  "slimcolonies:dialogue",
+                                                              "text":  "Mantap! Kalau gitu aku serahin ke kamu dulu ya. Jangan lupa sering-sering cek Quest Log buat misi berikutnya!",
+                                                              "options":  [
+                                                                              {
+                                                                                  "answer":  "Siap, dicatat!",
+                                                                                  "result":  {
+                                                                                                 "type":  "slimcolonies:advanceobjective",
+                                                                                                 "go-to":  10
+                                                                                             }
+                                                                              }
+                                                                          ]
+                                                          }
+                                           }
+                                       ]
+                       },
+                       {
+                           "type":  "slimcolonies:dialogue",
+                           "target":  0,
+                           "text":  "Hai balik lagi! Udah jadi belum blok Warehouse sama Courier\u0027s Hut-nya?",
+                           "options":  [
+                                           {
+                                               "answer":  "Belum nih, aku lupa tadi harus ngapain!",
+                                               "result":  {
+                                                              "type":  "slimcolonies:dialogue",
+                                                              "text":  "Bikin blok Warehouse dengan menaruh Chest di tengah, Build Tool di atas, dan kelilingi papan kayu. Terus bikin Courier\u0027s Hut dengan menaruh Boots di tengah, Build Tool di atas, dan kelilingi papan kayu!",
+                                                              "options":  [
+                                                                              {
+                                                                                  "answer":  "Siap, langsung gas!",
+                                                                                  "result":  {
+                                                                                                 "type":  "slimcolonies:advanceobjective",
+                                                                                                 "go-to":  1
+                                                                                             }
+                                                                              }
+                                                                          ]
+                                                          }
+                                           },
+                                           {
+                                               "answer":  "Nanti dulu ya, aku balik lagi nanti!",
+                                               "result":  {
+                                                              "type":  "slimcolonies:return"
+                                                          }
+                                           },
+                                           {
+                                               "answer":  "Udah jadi dong! Nih dua-duanya udah siap!!",
+                                               "result":  {
+                                                              "type":  "slimcolonies:dialogue",
+                                                              "text":  "Wih cepet banget! Sekarang pasang kedua bangunannya pakai Build Tool, klik Build, dan kasih bahannya ke tukang bangunan. Saranku, taruh Gudang (Warehouse) agak di tengah desa biar gampang diakses, kalau Pos Kurir bebas di mana aja.",
+                                                              "options":  [
+                                                                              {
+                                                                                  "answer":  "Siap, dicatat!",
+                                                                                  "result":  {
+                                                                                                 "type":  "slimcolonies:advanceobjective",
+                                                                                                 "go-to":  2
+                                                                                             }
+                                                                              }
+                                                                          ]
+                                                          }
+                                           }
+                                       ]
+                       },
+                       {
+                           "type":  "slimcolonies:buildbuilding",
+                           "details":  {
+                                           "type":  "slimcolonies:warehouse",
+                                           "count-existing":  true,
+                                           "lvl":  1,
+                                           "qty":  1,
+                                           "target":  0,
+                                           "next-objective":  3
+                                       }
+                       },
+                       {
+                           "type":  "slimcolonies:buildbuilding",
+                           "details":  {
+                                           "type":  "slimcolonies:deliveryman",
+                                           "count-existing":  true,
+                                           "lvl":  1,
+                                           "qty":  1,
+                                           "target":  0,
+                                           "next-objective":  4
+                                       }
+                       },
+                       {
+                           "unlocks-rewards":  [
+                                                   0,
+                                                   1,
+                                                   2,
+                                                   3
+                                               ],
+                           "type":  "slimcolonies:dialogue",
+                           "target":  0,
+                           "text":  "Mantap jiwa! Sekarang hasil panen petani bakal otomatis diangkut kurir ke Gudang dan dikirim ke Restoran atau warga yang butuh! Nih, ambil peralatan ini dan taruh di rak Gudang biar nanti dianterin kurir ke warga yang minta!",
+                           "options":  [
+                                           {
+                                               "answer":  "Makasih banyak! Dah!",
+                                               "result":  {
+                                                              "type":  "slimcolonies:advanceobjective",
+                                                              "go-to":  5
+                                                          }
+                                           }
+                                       ]
+                       }
+                   ],
+    "rewards":  [
                     {
-                      "answer": "Noted!",
-                      "result": {
-                        "type": "slimcolonies:advanceobjective",
-                        "go-to": 10
-                      }
+                        "type":  "slimcolonies:item",
+                        "details":  {
+                                        "item":  {
+                                                     "id":  "minecraft:stone_pickaxe",
+                                                     "count":  2
+                                                 }
+                                    }
+                    },
+                    {
+                        "type":  "slimcolonies:item",
+                        "details":  {
+                                        "item":  {
+                                                     "id":  "minecraft:stone_axe",
+                                                     "count":  2
+                                                 }
+                                    }
+                    },
+                    {
+                        "type":  "slimcolonies:item",
+                        "details":  {
+                                        "item":  {
+                                                     "id":  "minecraft:stone_shovel",
+                                                     "count":  2
+                                                 }
+                                    }
+                    },
+                    {
+                        "type":  "slimcolonies:item",
+                        "details":  {
+                                        "item":  {
+                                                     "id":  "minecraft:stone_hoe",
+                                                     "count":  2
+                                                 }
+                                    }
                     }
-                  ]
-                }
-              }
-            ]
-          }
-        },
-        {
-          "answer": "Not right now. I will come back to you later!",
-          "result": {
-            "type": "slimcolonies:return"
-          }
-        },
-        {
-          "answer": "Already got one!!",
-          "result": {
-            "type": "slimcolonies:dialogue",
-            "text": "Excellent. I'll leave you be for now then. Make sure to check on your quest log regularly.",
-            "options": [
-              {
-                "answer": "Noted!",
-                "result": {
-                  "type": "slimcolonies:advanceobjective",
-                  "go-to": 10
-                }
-              }
-            ]
-          }
-        }
-      ]
-    },
-    {
-      "type": "slimcolonies:dialogue",
-      "target": 0,
-      "text": "Welcome back, did you craft the warehouse and courier hut blocks already?",
-      "options": [
-        {
-          "answer": "No, I forgot what I had to do!",
-          "result": {
-            "type": "slimcolonies:dialogue",
-            "text": "Craft a warehouse block by surrounding a chest with planks and the build tool in the top slot and a courier hut by surrounding a set of chain boots with planks and the build tool in the top slot.",
-            "options": [
-              {
-                "answer": "On it!",
-                "result": {
-                  "type": "slimcolonies:advanceobjective",
-                  "go-to": 1
-                }
-              }
-            ]
-          }
-        },
-        {
-          "answer": "Not right now. I will come back to you later!",
-          "result": {
-            "type": "slimcolonies:return"
-          }
-        },
-        {
-          "answer": "Yes! Got them right here!!",
-          "result": {
-            "type": "slimcolonies:dialogue",
-            "text": "That was fast! Next place the buildings with the help of the build tool, click build and supply your builder with the materials. I advise you to place the warehouse somewhat centrally in your colony for easy access. The courier hut location is inconsequential on the other hand.",
-            "options": [
-              {
-                "answer": "Noted!",
-                "result": {
-                  "type": "slimcolonies:advanceobjective",
-                  "go-to": 2
-                }
-              }
-            ]
-          }
-        }
-      ]
-    },
-    {
-      "type": "slimcolonies:buildbuilding",
-      "details": {
-        "type": "slimcolonies:warehouse",
-        "count-existing": true,
-        "lvl": 1,
-        "qty": 1,
-        "target": 0,
-        "next-objective": 3
-      }
-    },
-    {
-      "type": "slimcolonies:buildbuilding",
-      "details": {
-        "type": "slimcolonies:deliveryman",
-        "count-existing": true,
-        "lvl": 1,
-        "qty": 1,
-        "target": 0,
-        "next-objective": 4
-      }
-    },
-    {
-      "unlocks-rewards": [0,1,2,3],
-      "type": "slimcolonies:dialogue",
-      "target": 0,
-      "text": "Neat! The food your farmer produces will now automatically reach the dining hall through the warehouse. Here, have a set of tools you can drop off in the warehouse to be delivered to your citizens on demand.",
-      "options": [
-        {
-          "answer": "Thank you. Bye!",
-          "result": {
-            "type": "slimcolonies:advanceobjective",
-            "go-to": 5
-          }
-        }
-      ]
-    }
-  ],
-  "rewards": [
-    {
-      "type": "slimcolonies:item",
-      "details": {
-        "item": {
-          "id": "minecraft:stone_pickaxe",
-          "count": 2
-        }
-      }
-    },
-    {
-      "type": "slimcolonies:item",
-      "details": {
-        "item": {
-          "id": "minecraft:stone_axe",
-          "count": 2
-        }
-      }
-    },
-    {
-      "type": "slimcolonies:item",
-      "details": {
-        "item": {
-          "id": "minecraft:stone_shovel",
-          "count": 2
-        }
-      }
-    },
-    {
-      "type": "slimcolonies:item",
-      "details": {
-        "item": {
-          "id": "minecraft:stone_hoe",
-          "count": 2
-        }
-      }
-    }
-  ]
+                ]
 }
