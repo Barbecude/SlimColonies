@@ -74,7 +74,7 @@ public class ModdedRaiderAIHandler
 
         mob.targetSelector.addGoal(2, new NearestAttackableTargetGoal<>(mob, EntityCitizen.class, true, citizen -> !citizen.isInvisible()));
         mob.targetSelector.addGoal(3, new NearestAttackableTargetGoal<>(mob, EntityMercenary.class, true));
-        mob.targetSelector.addGoal(3, new NearestAttackableTargetGoal<>(mob, Player.class, true, player -> !player.isCreative() && !player.isSpectator()));
+        mob.targetSelector.addGoal(3, new NearestAttackableTargetGoal<>(mob, Player.class, true, player -> !(player instanceof Player p && p.isCreative()) && !player.isSpectator()));
     }
 
     @SubscribeEvent
